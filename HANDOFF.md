@@ -435,6 +435,10 @@ All Upload date controls render as `dd/MM/yyyy` while retaining ISO `YYYY-MM-DD`
 
 ## Android Build
 
+- The Android launcher icon and app name previously shipped as the default Capacitor placeholder (blue X mark, label `runmate-mobile`). Both are now branded:
+  - `capacitor.config.ts` `appName` and `android/app/src/main/res/values/strings.xml` (`app_name`, `title_activity_main`) are `RunMate`.
+  - The adaptive icon foreground/background and legacy `ic_launcher`/`ic_launcher_round` mipmaps were regenerated from the same pulse-logo design used by `public/icon-512.png` and `public/favicon.svg` (blue gradient background layer + white heartbeat-pulse foreground layer), replacing the unused default Capacitor teal-grid vector drawables.
+  - After pulling this change, run `npx cap sync android` and rebuild (`.\gradlew.bat assembleDebug`) so the new icon/name land in the APK; Android caches launcher icons aggressively, so uninstall the previous debug install (or reboot/clear launcher cache) if the old icon still appears.
 - Capacitor Android was added and synced under `android/` with app id `com.runmate.mobile`.
 - The local Android toolchain uses JDK 21, Android SDK Platform 36, and Android Build Tools 35/36.
 - Create fresh web assets with `npm.cmd run build`, then sync them with `npx.cmd cap sync android`.
