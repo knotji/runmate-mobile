@@ -1,0 +1,237 @@
+import { useCallback, useEffect, useState } from 'react';
+import { useHistory, useLocation } from 'react-router-dom';
+import { IonButton, IonContent, IonDatetime, IonHeader, IonIcon, IonModal, IonPage, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
+import { arrowBackOutline, calendarClearOutline, checkmarkCircleOutline, chevronBackOutline, chevronForwardOutline, warningOutline } from 'ionicons/icons';
+import { buildCoachContextFromSupabase, type CoachContext, type WeekSleepRow } from '@/lib/buildCoachContext';
+import { buildSleepDiagnostics } from '@/lib/sleepDiagnostics';
+import './SleepDetailPage.css';
+
+const SleepDetailPage: React.FC = () => {
+  const history = useHistory();
+  const location = useLocation();
+  const routeParams = new URLSearchParams(location.search);
+  const initialDate = routeParams.get('date');
+  const backPath = routeParams.get('from') === 'activity' ? '/tabs/activity' : '/tabs/recovery';
+  const [context, setContext] = useState<CoachContext | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(initialDate);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [nightLoading, setNightLoading] = useState(false);
+  useEffect(() => {
+    setSelectedDate(initialDate);
+    setCalendarOpen(false);
+    setNightLoading(false);
+  }, [initialDate]);
+  const load = useCallback(async () => {
+    try { setContext(await buildCoachContextFromSupabase()); }
+    catch (loadError) { console.error('[sleep-detail] load failed', loadError); setError('Unable to load sleep details.'); }
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  const recovery = context?.recoverySystem ?? null;
+  const selectedNight = context?.sleepHistory.find((night) => night.date === selectedDate)
+    ?? context?.sleepHistory[0]
+    ?? null;
+  const diagnostics = context ? buildSleepDiagnostics(context, selectedNight?.date) : null;
+  const latestDate = context?.sleepHistory[0]?.date ?? null;
+  const isLatestNight = selectedNight?.date === latestDate;
+  const availableNights = context?.sleepHistory ?? [];
+  const selectedNightIndex = availableNights.findIndex((night) => night.date === selectedNight?.date);
+  const availableDates = new Set(availableNights.map((night) => night.date));
+  const freshnessTitle = recovery?.scoreState === 'scored' ? 'Scored Today'
+    : recovery?.scoreState === 'calibrating' ? 'Baseline Calibrating'
+      : recovery?.scoreState === 'stale' ? 'Sleep Data Is Stale'
+        : recovery?.scoreState === 'pending' ? 'Score Pending' : 'Not Scorable';
+  const displayedStatusTitle = isLatestNight ? freshnessTitle : 'Historical Sleep Record';
+  const displayedStatusBadge = isLatestNight
+    ? (recovery?.dataFreshness.status === 'today' ? 'Current' : recovery?.dataFreshness.status)
+    : 'Historical';
+
+  const moveToNight = (date: string | undefined) => {
+    if (!date || date === selectedNight?.date || nightLoading) return;
+    setNightLoading(true);
+    window.setTimeout(() => {
+      setSelectedDate(date);
+      setNightLoading(false);
+    }, 240);
+  };
+
+  return (
+    <IonPage>
+      <IonHeader translucent className="sleep-detail-header">
+        <IonToolbar>
+          <IonButton slot="start" fill="clear" aria-label="Go Back" onClick={() => history.push(backPath)}>
+            <IonIcon slot="icon-only" icon={arrowBackOutline} />
+          </IonButton>
+          <IonTitle>Sleep Details</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent fullscreen className="sleep-detail-content">
+        <main className="sleep-detail-shell">
+          {!context && !error && <div className="sleep-detail-loading"><IonSpinner name="crescent" /><p>Loading sleep details…</p></div>}
+          {error && <div className="sleep-detail-loading"><IonIcon icon={warningOutline} /><p>{error}</p></div>}
+          {context && recovery && diagnostics && (
+            <>
+              {selectedNight && (
+                <nav className={`sleep-date-navigator${!isLatestNight ? ' has-current' : ''}`} aria-label="Choose sleep night">
+                  <button
+                    type="button"
+                    className="sleep-date-arrow"
+                    aria-label="Previous night"
+                    disabled={nightLoading || selectedNightIndex < 0 || selectedNightIndex >= availableNights.length - 1}
+                    onClick={() => moveToNight(availableNights[selectedNightIndex + 1]?.date)}
+                  ><IonIcon icon={chevronBackOutline} /></button>
+                  <button type="button" className="sleep-date-button" disabled={nightLoading} onClick={() => setCalendarOpen(true)}>
+                    {nightLoading ? <IonSpinner name="crescent" /> : <IonIcon icon={calendarClearOutline} />}
+                    <span><small>{nightLoading ? 'Loading Night' : 'Selected Night'}</small><strong>{nightLoading ? 'Updating…' : formatDisplayDate(selectedNight.date)}</strong></span>
+                  </button>
+                  <button
+                    type="button"
+                    className="sleep-date-arrow"
+                    aria-label="Next night"
+                    disabled={nightLoading || selectedNightIndex <= 0}
+                    onClick={() => moveToNight(availableNights[selectedNightIndex - 1]?.date)}
+                  ><IonIcon icon={chevronForwardOutline} /></button>
+                  {!isLatestNight && <button type="button" className="sleep-inline-current" disabled={nightLoading} onClick={() => moveToNight(latestDate ?? undefined)}>Current</button>}
+                </nav>
+              )}
+
+              <section className={`freshness-card freshness-${recovery.dataFreshness.status}`}>
+                <div className="freshness-card-copy">
+                  <p>Recovery Status</p>
+                  <h1>{displayedStatusTitle}</h1>
+                  <span>{selectedNight
+                    ? `Viewing sleep recorded ${selectedNight.date}`
+                    : 'No recent sleep session found'}</span>
+                </div>
+                <span className="freshness-badge">{displayedStatusBadge}</span>
+              </section>
+
+              <section className="sleep-detail-section">
+                <header className="section-heading-row">
+                  <div><p>{isLatestNight ? 'Latest Night' : 'Historical Night'}</p><h2>{selectedNight ? formatDisplayDate(selectedNight.date) : 'No Sleep Data'}</h2></div>
+                  {selectedNight && <span className="night-type-badge">{isLatestNight ? 'Latest' : 'Historical'}</span>}
+                </header>
+                <div className="sleep-metric-grid">
+                  <Metric label="Sleep Score" value={formatScore(selectedNight?.score)} suffix={selectedNight?.score == null ? undefined : '/100'} helper="Score recorded for this night" />
+                  <Metric label="Sleep Duration" value={formatOptionalMinutes(selectedNight?.durationMinutes)} helper="Total time asleep" />
+                  <Metric label="Time In Bed" value={formatOptionalMinutes(selectedNight?.timeInBedMinutes)} helper="From bedtime to wake time" />
+                  <Metric label="Sleep Efficiency" value={formatEfficiency(selectedNight)} helper="Time asleep while in bed" />
+                </div>
+              </section>
+
+              {selectedNight && <SleepStages night={selectedNight} />}
+
+              <section className="sleep-detail-section">
+                <header><p>Data Coverage</p><h2>Signals Available</h2></header>
+                <div className="coverage-list">
+                  {diagnostics.coverage.map((item) => (
+                    <div className="coverage-row" key={item.label}>
+                      <IonIcon icon={item.available ? checkmarkCircleOutline : warningOutline} className={item.available ? 'available' : 'missing'} />
+                      <div className="coverage-copy">
+                        <span>{item.label}</span>
+                        <small>{item.available ? 'Included in sleep analysis' : 'Not received from your data source'}</small>
+                      </div>
+                      <strong className={item.available ? 'available' : 'missing'}>{item.value ?? 'Missing'}</strong>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {diagnostics.warnings.length > 0 && (
+                <section className="sleep-detail-section">
+                  <header><p>Validation</p><h2>Things To Review</h2></header>
+                  <div className="validation-list">{diagnostics.warnings.map((warning) => <p key={warning}>{warning}</p>)}</div>
+                </section>
+              )}
+
+            </>
+          )}
+        </main>
+      </IonContent>
+      <IonModal className="sleep-date-modal" isOpen={calendarOpen} onDidDismiss={() => setCalendarOpen(false)}>
+        <IonDatetime
+          presentation="date"
+          value={selectedNight?.date}
+          min={availableNights.at(-1)?.date}
+          max={availableNights[0]?.date}
+          isDateEnabled={(date) => availableDates.has(date)}
+          onIonChange={(event) => {
+            const value = event.detail.value;
+            if (typeof value === 'string' && availableDates.has(value.slice(0, 10))) {
+              setSelectedDate(value.slice(0, 10));
+              setCalendarOpen(false);
+            }
+          }}
+        />
+      </IonModal>
+    </IonPage>
+  );
+};
+
+function Metric({ label, value, suffix, helper }: { label: string; value: string; suffix?: string; helper: string }) {
+  return (
+    <div className="sleep-detail-metric">
+      <span>{label}</span>
+      <strong>{value}{suffix && <small>{suffix}</small>}</strong>
+      <p>{helper}</p>
+    </div>
+  );
+}
+
+function SleepStages({ night }: { night: WeekSleepRow }) {
+  const stages = [
+    { label: 'Awake', value: night.awakeMinutes, className: 'awake' },
+    { label: 'REM', value: night.remMinutes, className: 'rem' },
+    { label: 'Light', value: night.lightMinutes, className: 'light' },
+    { label: 'Deep', value: night.deepMinutes, className: 'deep' },
+  ];
+  const total = stages.reduce((sum, stage) => sum + (stage.value ?? 0), 0);
+  if (total <= 0) return (
+    <section className="sleep-detail-section">
+      <header><p>Sleep Stages</p><h2>No Stage Data</h2></header>
+      <p className="sleep-stages-empty">Your data source did not provide sleep stages for this night.</p>
+    </section>
+  );
+  return (
+    <section className="sleep-detail-section">
+      <header><p>Sleep Stages</p><h2>How Your Night Was Spent</h2></header>
+      <div className="sleep-stages-card">
+        <div className="sleep-stage-bar" aria-label="Sleep stage distribution">
+          {stages.map((stage) => stage.value != null && stage.value > 0
+            ? <span key={stage.label} className={stage.className} style={{ width: `${(stage.value / total) * 100}%` }} />
+            : null)}
+        </div>
+        <div className="sleep-stage-legend">
+          {stages.map((stage) => (
+            <div key={stage.label}><i className={stage.className} /><span>{stage.label}</span><strong>{formatOptionalMinutes(stage.value)}</strong></div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function formatMinutes(value: number): string {
+  return `${Math.floor(value / 60)}h ${Math.round(value % 60)}m`;
+}
+
+function formatOptionalMinutes(value: number | null | undefined): string {
+  return value == null ? '—' : formatMinutes(value);
+}
+
+function formatScore(value: number | null | undefined): string {
+  return value == null ? '—' : `${Math.round(value)}`;
+}
+
+function formatEfficiency(night: WeekSleepRow | null): string {
+  if (!night?.durationMinutes || !night.timeInBedMinutes) return '—';
+  return `${Math.min(100, Math.round((night.durationMinutes / night.timeInBedMinutes) * 100))}%`;
+}
+
+function formatDisplayDate(value: string): string {
+  const date = new Date(`${value}T12:00:00`);
+  return new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).format(date);
+}
+
+export default SleepDetailPage;

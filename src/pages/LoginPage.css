@@ -1,0 +1,79 @@
+.login-content {
+  --background: linear-gradient(155deg, #edf7ff 0%, #f7fbff 46%, #ffffff 100%);
+}
+
+.login-shell {
+  min-height: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: max(36px, env(safe-area-inset-top)) 22px max(36px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 38px;
+}
+
+.brand-mark {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  color: #fff;
+  font-size: 25px;
+  background: linear-gradient(145deg, #2563eb, #38bdf8);
+  box-shadow: 0 16px 36px rgba(37, 99, 235, 0.22);
+}
+
+.login-intro .eyebrow {
+  margin: 18px 0 9px;
+  color: var(--ion-color-primary);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.login-intro h1 {
+  margin: 0;
+  color: #10233f;
+  max-width: 420px;
+  font-size: clamp(34px, 9.5vw, 44px);
+  line-height: 1.06;
+  letter-spacing: -0.04em;
+}
+
+.login-intro > p:last-child {
+  max-width: 390px;
+  margin: 14px 0 0;
+  color: #5e718d;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.login-panel {
+  display: grid;
+  gap: 12px;
+  padding: 21px;
+  border: 1px solid rgba(148, 180, 218, 0.32);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 20px 48px rgba(52, 91, 140, 0.11);
+  backdrop-filter: blur(16px);
+}
+
+.login-panel h2 { margin: 0; color: #10233f; font-size: 20px; }
+.google-login-button { min-height: 48px; margin: 2px 0 0; --border-color: #d5e1ec; --border-radius: 14px; --color: #29465f; --background: #fff; font-size: 12px; font-weight: 750; }
+.google-login-button ion-icon { color: #4285f4; }
+.login-divider { display: flex; align-items: center; gap: 10px; color: #91a0b0; font-size: 9px; font-weight: 650; }
+.login-divider::before, .login-divider::after { height: 1px; flex: 1; content: ''; background: #e2eaf2; }
+.login-divider span { white-space: nowrap; }
+.login-field { min-height: 54px; --background: #f3f7fc; --border-radius: 14px; --padding-start: 15px; --padding-end: 12px; }
+.login-error { display: block; padding: 0 4px; font-size: 13px; }
+.login-button { margin: 3px 0 0; min-height: 48px; --border-radius: 14px; font-weight: 800; }
+
+@media (max-height: 700px) {
+  .login-shell { justify-content: flex-start; gap: 28px; padding-top: max(24px, env(safe-area-inset-top)); }
+  .brand-mark { width: 44px; height: 44px; }
+  .login-intro h1 { font-size: 32px; }
+  .login-intro > p:last-child { margin-top: 10px; }
+}

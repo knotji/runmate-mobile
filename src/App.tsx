@@ -1,53 +1,101 @@
+import { useEffect, useState } from 'react';
+import { App as CapacitorApp, type URLOpenListenerEvent } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
+import { Capacitor, type PluginListenerHandle } from '@capacitor/core';
+import type { Session } from '@supabase/supabase-js';
 import { Redirect, Route } from 'react-router-dom';
-import { IonApp, IonRouterOutlet, setupIonicReact } from '@ionic/react';
+import { IonApp, IonLoading, IonRouterOutlet, setupIonicReact } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
-import Home from './pages/Home';
+import { supabase } from '@/lib/supabaseClient';
+import { completeNativeGoogleSignIn } from '@/lib/googleAuth';
+import LoginPage from '@/pages/LoginPage';
+import SleepDetailPage from '@/pages/SleepDetailPage';
+import MainTabs from '@/components/MainTabs';
+import WorkoutDetailPage from '@/pages/WorkoutDetailPage';
+import MealDetailPage from '@/pages/MealDetailPage';
+import HealthDetailPage from '@/pages/HealthDetailPage';
 
-/* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
-
-/* Basic CSS for apps built with Ionic */
 import '@ionic/react/css/normalize.css';
 import '@ionic/react/css/structure.css';
 import '@ionic/react/css/typography.css';
-
-/* Optional CSS utils that can be commented out */
 import '@ionic/react/css/padding.css';
 import '@ionic/react/css/float-elements.css';
 import '@ionic/react/css/text-alignment.css';
 import '@ionic/react/css/text-transformation.css';
 import '@ionic/react/css/flex-utils.css';
 import '@ionic/react/css/display.css';
-
-/**
- * Ionic Dark Mode
- * -----------------------------------------------------
- * For more info, please see:
- * https://ionicframework.com/docs/theming/dark-mode
- */
-
-/* import '@ionic/react/css/palettes/dark.always.css'; */
-/* import '@ionic/react/css/palettes/dark.class.css'; */
-import '@ionic/react/css/palettes/dark.system.css';
-
-/* Theme variables */
 import './theme/variables.css';
 
 setupIonicReact();
 
-const App: React.FC = () => (
-  <IonApp>
-    <IonReactRouter>
-      <IonRouterOutlet>
-        <Route exact path="/home">
-          <Home />
-        </Route>
-        <Route exact path="/">
-          <Redirect to="/home" />
-        </Route>
-      </IonRouterOutlet>
-    </IonReactRouter>
-  </IonApp>
-);
+const App: React.FC = () => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    void supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setCheckingSession(false);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+      setCheckingSession(false);
+    });
+
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let listener: PluginListenerHandle | null = null;
+    const handleOpenUrl = async ({ url }: URLOpenListenerEvent) => {
+      try {
+        const completed = await completeNativeGoogleSignIn(url);
+        if (completed) await Browser.close();
+      } catch (authError) {
+        console.error('[auth] native Google callback failed', authError);
+        await Browser.close().catch(() => undefined);
+      }
+    };
+    void CapacitorApp.addListener('appUrlOpen', handleOpenUrl).then((handle) => { listener = handle; });
+    void CapacitorApp.getLaunchUrl().then((result) => {
+      if (result?.url) void handleOpenUrl({ url: result.url });
+    });
+    return () => { void listener?.remove(); };
+  }, []);
+
+  return (
+    <IonApp>
+      <IonLoading isOpen={checkingSession} message="Checking your account…" />
+      {!checkingSession && (
+        <IonReactRouter>
+          <IonRouterOutlet>
+            <Route exact path="/login">
+              {session ? <Redirect to="/tabs/recovery" /> : <LoginPage />}
+            </Route>
+            <Route path="/tabs">
+              {session ? <MainTabs /> : <Redirect to="/login" />}
+            </Route>
+            <Route exact path="/recovery"><Redirect to="/tabs/recovery" /></Route>
+            <Route exact path="/sleep">
+              {session ? <SleepDetailPage /> : <Redirect to="/login" />}
+            </Route>
+            <Route exact path="/activity/workout/:id">
+              {session ? <WorkoutDetailPage /> : <Redirect to="/login" />}
+            </Route>
+            <Route exact path="/activity/meal/:id">{session ? <MealDetailPage /> : <Redirect to="/login" />}</Route>
+            <Route exact path="/activity/health/:id">{session ? <HealthDetailPage /> : <Redirect to="/login" />}</Route>
+            <Route exact path="/history/workout/:id"><Redirect to="/tabs/activity" /></Route>
+            <Route exact path="/">
+              <Redirect to={session ? '/tabs/recovery' : '/login'} />
+            </Route>
+          </IonRouterOutlet>
+        </IonReactRouter>
+      )}
+    </IonApp>
+  );
+};
 
 export default App;
