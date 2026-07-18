@@ -441,3 +441,5 @@ All Upload date controls render as `dd/MM/yyyy` while retaining ISO `YYYY-MM-DD`
 - Build a debug APK from `android/` with `.\gradlew.bat assembleDebug` after setting `JAVA_HOME` and `ANDROID_HOME`.
 - The verified debug artifact is generated at `android/app/build/outputs/apk/debug/app-debug.apk`.
 - This is a development APK signed with the Android debug certificate; a separately signed release build is still required for Play Store distribution.
+- Native Google OAuth returns through `com.runmate.mobile://auth/callback`. Android registers this URI on `MainActivity` with a browsable `VIEW` intent filter, while `App.tsx` exchanges the callback session and closes the system browser.
+- Supabase Authentication URL Configuration must also allow the exact redirect URL `com.runmate.mobile://auth/callback`. Google Cloud continues to use the Supabase callback URL; the custom mobile URI does not belong in Google Cloud Authorized Redirect URIs.
