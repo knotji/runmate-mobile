@@ -228,7 +228,7 @@ export async function findMealSlotByDateAndType(
     const inner = (rowData?.data ?? rowData) as Record<string, unknown>;
     if (typeof inner?.mealType === "string" && inner.mealType === mealType) {
       if (inner?.isSeparateMeal === true) continue;
-      
+
       // Determine this record's dateKey
       const dateKey = (rowData?.dateKey ?? inner?.dateKey ?? rowData?.recordedAt?.toString().slice(0, 10) ?? inner?.recordedAt?.toString().slice(0, 10));
       if (dateKey) {
@@ -256,4 +256,3 @@ export async function findMealSlotByDateAndType(
   }
   return null;
 }
-
