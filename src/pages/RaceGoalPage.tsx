@@ -24,6 +24,9 @@ import { buildCoachContextFromSupabase } from '@/lib/buildCoachContext';
 import { generateRacePlan } from '@/lib/racePlanGeneration';
 import { translatePlanFieldToEnglish } from '@/lib/todayTrainingPlan';
 import { applyProfilePreferencesToRaceGoal } from '@/lib/raceProfilePreferences';
+import { loadHistoryItems } from '@/lib/cloudHistory';
+import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
+import { buildTrainingAdherence, type TrainingAdherence } from '@/lib/trainingAdherence';
 import type { RaceGoal, RacePlan, RaceResult, WeekWorkout } from '@/types/race';
 import type { UserProfile } from '@/types/profile';
 import RaceGoalEditor from '@/components/RaceGoalEditor';
@@ -41,16 +44,20 @@ const RaceGoalPage: React.FC = () => {
   const [refreshingPlan, setRefreshingPlan] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [selectedWorkout, setSelectedWorkout] = useState<WeekWorkout | null>(null);
+  const [adherence, setAdherence] = useState<TrainingAdherence | null>(null);
+  const [adherenceOpen, setAdherenceOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
     setHistoryError(null);
-    const [result, completed] = await Promise.all([loadActiveRaceGoalAndPlan(), loadRaceResults(20)]);
+    const [result, completed, workoutHistory] = await Promise.all([loadActiveRaceGoalAndPlan(), loadRaceResults(20), loadHistoryItems(['workout', 'strength'])]);
     if (result.ok) {
       setGoal(result.goal);
       setPlan(result.plan);
+      const summary = result.goal ? buildMobileRaceSummary(result.goal, result.plan, todayBangkokDateKey()) : null;
+      setAdherence(summary && workoutHistory.ok ? buildTrainingAdherence(summary.workouts, dedupeWorkoutItems(workoutHistory.items), todayBangkokDateKey()) : null);
     } else {
       setError(result.error);
     }
@@ -81,6 +88,7 @@ const RaceGoalPage: React.FC = () => {
       if (!saved.ok) throw new Error(saved.error);
       setGoal(saved.goal);
       setPlan(saved.plan);
+      await load();
     } catch (refreshFailure) {
       setRefreshError(refreshFailure instanceof Error ? refreshFailure.message : 'Could Not Refresh This Plan. Please Try Again.');
     } finally {
@@ -148,6 +156,35 @@ const RaceGoalPage: React.FC = () => {
                 <section className="race-plan-missing"><p>TRAINING PLAN</p><h2>No Plan Available Yet</h2><span>Your Race Goal is active, but no linked training plan was found.</span></section>
               )}
 
+              {plan && adherence && adherence.days.length > 0 && (
+                <section className={`race-adherence${adherenceOpen ? ' race-adherence-open' : ''}`}>
+                  <div className="race-adherence-summary">
+                    <div>
+                      <p>TRAINING ADHERENCE</p>
+                      <h2>{adherence.planned > 0 ? `${adherence.completed + adherence.modified} Of ${adherence.planned} Sessions Done` : 'Week In Progress'}</h2>
+                      <span>{adherence.planned > 0 ? 'Completed or adjusted from this week’s plan.' : 'Your first planned training day is still ahead.'}</span>
+                    </div>
+                    <strong>{adherence.percentage}%</strong>
+                  </div>
+                  <div className="race-adherence-track"><i style={{ width: `${adherence.percentage}%` }} /></div>
+                  <div className="race-adherence-counts">
+                    <span><i className="completed" />{adherence.completed} Completed</span>
+                    <span><i className="modified" />{adherence.modified} Adjusted</span>
+                    <span><i className="missed" />{adherence.missed} Missed</span>
+                  </div>
+                  <button type="button" className="race-adherence-toggle" aria-expanded={adherenceOpen} onClick={() => setAdherenceOpen((open) => !open)}>
+                    {adherenceOpen ? 'Hide Week' : 'View Week'}<IonIcon icon={chevronDownOutline} />
+                  </button>
+                  {adherenceOpen && <div className="race-adherence-days">
+                    {adherence.days.map((day, index) => <div className={day.status === 'recovery' ? 'race-adherence-support-day' : undefined} key={`${day.date}-${index}`}>
+                      <span>{shortDay(day.workout.day)}</span>
+                      <div><strong>{day.workout.workoutType}</strong>{(day.actualLabel || ['missed', 'recovery'].includes(day.status)) && <small>{day.actualLabel ? `${day.actualLabel} Instead` : adherenceStatusDetail(day.status)}</small>}</div>
+                      <em className={`status-${day.status}`}>{adherenceStatusLabel(day.status)}</em>
+                    </div>)}
+                  </div>}
+                </section>
+              )}
+
               {summary.workouts.length > 0 && (
                 <section className="race-week">
                   <header className="race-section-heading"><div><p>THIS WEEK</p><h2>Upcoming Sessions</h2></div></header>
@@ -192,7 +229,7 @@ const RaceGoalPage: React.FC = () => {
           )}
         </main>
       </IonContent>
-      <RaceGoalEditor isOpen={editorOpen} goal={goal} onClose={() => setEditorOpen(false)} onSaved={(savedGoal, savedPlan) => { setGoal(savedGoal); setPlan(savedPlan); setEditorOpen(false); }} />
+      <RaceGoalEditor isOpen={editorOpen} goal={goal} onClose={() => setEditorOpen(false)} onSaved={(savedGoal, savedPlan) => { setGoal(savedGoal); setPlan(savedPlan); setEditorOpen(false); void load(); }} />
       <WorkoutPlanDetail workout={selectedWorkout} onClose={() => setSelectedWorkout(null)} />
       <IonAlert
         isOpen={refreshConfirmOpen}
@@ -244,6 +281,17 @@ function WorkoutPlanDetail({ workout, onClose }: { workout: WeekWorkout | null; 
 
 function RaceMetric({ label, value }: { label: string; value: string }) {
   return <div className="race-metric"><span>{label}</span><strong>{value}</strong></div>;
+}
+
+function adherenceStatusLabel(status: TrainingAdherence['days'][number]['status']): string {
+  return ({ completed: 'Completed', modified: 'Adjusted', missed: 'Missed', upcoming: 'Upcoming', recovery: 'Support' })[status];
+}
+
+function adherenceStatusDetail(status: TrainingAdherence['days'][number]['status']): string {
+  if (status === 'missed') return 'No workout was logged for this day.';
+  if (status === 'recovery') return 'Not Counted Toward Adherence';
+  if (status === 'upcoming') return '';
+  return 'Matched to the planned session.';
 }
 
 function formatRaceDate(value: string): string {

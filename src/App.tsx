@@ -60,11 +60,15 @@ const App: React.FC = () => {
     if (!session || !Capacitor.isNativePlatform()) return;
     void refreshNotifications().catch((error) => console.warn('[notifications] refresh failed', error));
     let listener: PluginListenerHandle | null = null;
+    let stateListener: PluginListenerHandle | null = null;
     void LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
       const route = action.notification.extra?.route;
       if (typeof route === 'string' && route.startsWith('/')) window.location.assign(route);
     }).then((handle) => { listener = handle; });
-    return () => { void listener?.remove(); };
+    void CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) void refreshNotifications().catch((error) => console.warn('[notifications] resume refresh failed', error));
+    }).then((handle) => { stateListener = handle; });
+    return () => { void listener?.remove(); void stateListener?.remove(); };
   }, [session]);
 
   useEffect(() => {

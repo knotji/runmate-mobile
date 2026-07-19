@@ -3,7 +3,7 @@ import { useHistory } from 'react-router-dom';
 import { IonButton, IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToggle, IonToolbar, useIonViewWillEnter } from '@ionic/react';
 import { arrowBackOutline, barbellOutline, checkmarkCircleOutline, moonOutline, notificationsOutline, pulseOutline, refreshOutline } from 'ionicons/icons';
 import { loadNotificationPreferences, saveNotificationPreferences, type NotificationPreferences } from '@/lib/notificationPreferences';
-import { getNotificationDiagnostics, getNotificationPermission, refreshNotifications, requestNotificationPermission, sendTestNotification, type NotificationDiagnostics } from '@/lib/notificationService';
+import { getNotificationDiagnostics, getNotificationPermission, refreshNotifications, requestExactReminderPermission, requestNotificationPermission, sendTestNotification, type NotificationDiagnostics } from '@/lib/notificationService';
 import type { PermissionState } from '@capacitor/core';
 import './NotificationsPage.css';
 import './NotificationsPage.actions.css';
@@ -62,12 +62,22 @@ const NotificationsPage: React.FC = () => {
       await load();
     } finally { setBusy(false); }
   };
+  const allowExactReminders = async () => {
+    setBusy(true); setMessage(null);
+    const exact = await requestExactReminderPermission();
+    if (exact === 'granted') {
+      const result = await refreshNotifications();
+      setMessage(result.scheduled.includes('Bedtime') ? 'Bedtime Reminder is scheduled.' : 'Exact Reminders are allowed. Set a wake time to schedule Bedtime guidance.');
+    } else setMessage('Exact Reminders are still disabled in Android settings.');
+    await load(); setBusy(false);
+  };
 
   return <IonPage>
     <IonHeader translucent className="notifications-header"><IonToolbar><IonButton slot="start" fill="clear" aria-label="Back To More" onClick={() => history.push('/tabs/more')}><IonIcon slot="icon-only" icon={arrowBackOutline} /></IonButton><IonTitle>Notifications</IonTitle></IonToolbar></IonHeader>
     <IonContent fullscreen className="notifications-content"><main className="notifications-shell">
       <header className="notifications-intro"><p>Personal Guidance</p><h1>Helpful, Not Noisy</h1><span>RunMate sends only timely reminders based on your Sleep, Profile, and training plan.</span></header>
       <section className={`notifications-permission ${permission === 'granted' ? 'allowed' : ''}`}><IonIcon icon={permission === 'granted' ? checkmarkCircleOutline : notificationsOutline} /><div><span>Notification Access</span><h2>{permission === 'granted' ? 'Allowed' : 'Permission Needed'}</h2><p>{permission === 'granted' ? 'Your preferences below are active on this device.' : 'Allow notifications before RunMate can deliver reminders.'}</p></div>{permission !== 'granted' && <IonButton disabled={busy} onClick={() => void enable()}>{busy ? <IonSpinner name="crescent" /> : 'Allow'}</IonButton>}</section>
+      {permission === 'granted' && diagnostics?.exactAlarm !== 'granted' && <section className="notifications-exact-warning"><IonIcon icon={moonOutline} /><div><strong>Allow Exact Reminders</strong><p>Android may delay or remove your Bedtime Reminder until this setting is allowed.</p></div><button type="button" disabled={busy} onClick={() => void allowExactReminders()}>Open Settings</button></section>}
       <section className="notification-list" aria-label="Notification Preferences">{rows.map((row) => <article key={row.key}><IonIcon icon={row.icon} /><div><h2>{row.title}</h2><p>{row.detail}</p><span>{row.timing}</span></div><IonToggle aria-label={row.title} checked={prefs[row.key]} disabled={busy} onIonChange={(event) => void update(row.key, event.detail.checked)} /></article>)}</section>
       {message && <p className="notifications-message" role="status">{message}</p>}
       {permission === 'granted' && <button className="notifications-test" type="button" disabled={busy} onClick={() => void testNotification()}><IonIcon icon={notificationsOutline} />Send Test Notification</button>}
@@ -75,7 +85,7 @@ const NotificationsPage: React.FC = () => {
       <details className="notification-diagnostics">
         <summary><div><span>Developer Details</span><strong>Notification Diagnostics</strong></div><small>{diagnostics?.pendingCount ?? 0} Scheduled</small></summary>
         <div className="notification-diagnostics-body">
-          <p className="notification-diagnostics-meta">Checked {diagnostics ? formatDiagnosticTime(diagnostics.checkedAt) : 'Not Yet'} · Permission {permission}</p>
+          <p className="notification-diagnostics-meta">Checked {diagnostics ? formatDiagnosticTime(diagnostics.checkedAt) : 'Not Yet'} · Notifications {permission} · Exact {diagnostics?.exactAlarm ?? 'unknown'}</p>
           {diagnostics?.rows.map((row) => <article key={row.key}><span className={`diagnostic-state diagnostic-state-${row.state}`}>{row.state}</span><div><strong>{row.label}</strong><p>{row.scheduledAt ? `Next: ${formatDiagnosticTime(row.scheduledAt)}` : row.detail}</p>{row.scheduledAt && <small>{row.detail}</small>}</div></article>)}
           <button type="button" disabled={busy} onClick={() => void load()}><IonIcon icon={refreshOutline} />Check Again</button>
         </div>

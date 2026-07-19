@@ -811,3 +811,18 @@ git push origin v1.0.1
 - `Why Your Score Changed` compares the two latest nights with a Recovery score and describes factual signal movements rather than calling AI or claiming causation. The page also shows per-day score rows and data coverage such as `5/7 Nights`.
 - Pull to refresh performs the existing today-only Samsung Health sync before rebuilding the trend. The normal page load reads persisted history without launching a 30-day Health Connect sync.
 - Browser-based visual QA was unavailable in the implementation session because no browser backend was connected. Unit, type, lint, and build verification still apply; verify the page at 390px and a narrower physical-device viewport before release.
+
+## Training Adherence
+
+- Race Goal now compares the current weekly plan with deduplicated Workout and Strength history using deterministic date, workout-type, distance, and duration matching.
+- The compact Training Adherence card sits below Plan Progress. It shows completed or adjusted sessions against all active sessions in the week, a progress percentage, and separate Completed, Modified, and Missed counts.
+- `View Week` reveals daily statuses only when requested. A compatible workout near the planned volume is Completed; a different workout or a meaningful distance/duration change is Modified; a past unmatched session is Missed; and a future unmatched session is Upcoming.
+- Rest and Recovery are supportive days. They remain visible in the weekly detail but are excluded from both the adherence denominator and the Missed count.
+- Matching is factual and local; it does not call AI, change the Race Plan, or alter Recovery and Strain calculations.
+
+## Bedtime Reminder Reliability Fix
+
+- Android now declares `SCHEDULE_EXACT_ALARM`, which is required for an exact one-hour-before-bedtime reminder on supported Android versions.
+- Notifications refresh whenever the native app returns to the foreground, so a retained login session no longer leaves the previous day's schedule stale.
+- Notifications shows a user-facing `Allow Exact Reminders` warning and Android Settings action when exact alarms are disabled. Notification Diagnostics also reports both display permission and exact-alarm status.
+- After installing this release, open `More > Notifications`, allow Exact Reminders if prompted, then use `Refresh Schedule` and confirm Bedtime Reminder has a pending delivery time.

@@ -22,6 +22,7 @@ export type NotificationDiagnostic = {
 
 export type NotificationDiagnostics = {
   permission: PermissionState;
+  exactAlarm: PermissionState;
   pendingCount: number;
   checkedAt: string;
   rows: NotificationDiagnostic[];
@@ -35,6 +36,17 @@ export async function getNotificationPermission(): Promise<PermissionState> {
 export async function requestNotificationPermission(): Promise<PermissionState> {
   if (!Capacitor.isNativePlatform()) return 'prompt';
   return (await LocalNotifications.requestPermissions()).display;
+}
+
+export async function getExactReminderPermission(): Promise<PermissionState> {
+  if (!Capacitor.isNativePlatform()) return 'prompt';
+  return (await LocalNotifications.checkExactNotificationSetting()).exact_alarm;
+}
+
+export async function requestExactReminderPermission(): Promise<PermissionState> {
+  if (!Capacitor.isNativePlatform()) return 'prompt';
+  await LocalNotifications.changeExactNotificationSetting();
+  return (await LocalNotifications.checkExactNotificationSetting()).exact_alarm;
 }
 
 export async function refreshNotifications(context?: CoachContext): Promise<{ permission: PermissionState; scheduled: string[] }> {
@@ -62,7 +74,7 @@ export async function sendTestNotification(): Promise<boolean> {
 }
 
 export async function getNotificationDiagnostics(): Promise<NotificationDiagnostics> {
-  const permission = await getNotificationPermission();
+  const [permission, exactAlarm] = await Promise.all([getNotificationPermission(), getExactReminderPermission()]);
   const prefs = loadNotificationPreferences();
   const pending = Capacitor.isNativePlatform() && permission === 'granted'
     ? (await LocalNotifications.getPending()).notifications
@@ -77,6 +89,7 @@ export async function getNotificationDiagnostics(): Promise<NotificationDiagnost
   const rows = definitions.map(({ key, label, id }): NotificationDiagnostic => {
     if (!prefs[key]) return { key, label, state: 'off', detail: 'Turned off in your notification preferences.' };
     if (permission !== 'granted') return { key, label, state: 'attention', detail: 'Notification permission is required.' };
+    if (key === 'bedtime' && exactAlarm !== 'granted') return { key, label, state: 'attention', detail: 'Allow Exact Reminders in Android settings so bedtime guidance can arrive on time.' };
     const notification = pendingById.get(id);
     if (notification) return {
       key,
@@ -89,7 +102,7 @@ export async function getNotificationDiagnostics(): Promise<NotificationDiagnost
     if (key === 'plannedWorkout') return { key, label, state: 'monitoring', detail: 'No pending session needs a reminder right now.' };
     return { key, label, state: 'attention', detail: 'No reminder is scheduled. Refresh the schedule to check again.' };
   });
-  return { permission, pendingCount: pending.filter((notification) => Object.values(IDS).includes(notification.id)).length, checkedAt: new Date().toISOString(), rows };
+  return { permission, exactAlarm, pendingCount: pending.filter((notification) => Object.values(IDS).includes(notification.id)).length, checkedAt: new Date().toISOString(), rows };
 }
 
 async function scheduleBedtime(ctx: CoachContext): Promise<boolean> {
