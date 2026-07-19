@@ -757,3 +757,31 @@ Still requires physical-device confirmation: Samsung Health Body Weight should b
 - `npm run android:release:aab` performs the same gates and produces the Play Store bundle at `android/app/build/outputs/bundle/release/app-release.aab`. `npm run android:release` builds both.
 - `npm run android:distribute -- -ReleaseNotes "..."` distributes the existing signed release APK through Firebase App Distribution to `jirayuknot55@gmail.com` by default. It intentionally does not rebuild, so run it only after a successful release build from the intended commit.
 - First verified signed artifacts: `1.0.0 (1020)`. `apksigner` confirmed the APK has one RSA-4096 RunMate signer using APK Signature Scheme v2; Gradle's `validateSigningRelease`, `signReleaseBundle`, `assembleRelease`, and `bundleRelease` all passed.
+
+### GitHub Actions release automation
+
+- `.github/workflows/android-release.yml` runs automatically for tags matching `v*`. It runs unit tests, lint, the Vite build, Capacitor sync, signed APK/AAB builds, APK signature verification, GitHub artifact upload, and Firebase App Distribution to `jirayuknot55@gmail.com`.
+- A manual `workflow_dispatch` run always builds and stores signed artifacts. Turn on its `distribute` input only when that manual build should also be sent through Firebase.
+- Tags define `versionName` by removing the leading `v` (for example, `v1.0.1` becomes `1.0.1`). `versionCode` remains `1000 + full Git commit count`, so checkout must retain full history.
+- Configure these GitHub Actions repository secrets before the first run:
+  - `ANDROID_KEYSTORE_BASE64`: base64 of the binary `android/app/runmate-release.jks` file.
+  - `RUNMATE_KEYSTORE_PASSWORD`, `RUNMATE_KEY_ALIAS`, and `RUNMATE_KEY_PASSWORD`: values matching that keystore.
+  - `GOOGLE_SERVICES_JSON_BASE64`: base64 of `android/app/google-services.json`.
+  - `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`: the production mobile Supabase configuration.
+  - `FIREBASE_SERVICE_ACCOUNT_JSON`: the complete JSON for a dedicated Firebase App Distribution service account. Do not base64 this value; paste the JSON itself as the secret value.
+- On Windows PowerShell, create the two base64 values without printing signing passwords:
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes('android/app/runmate-release.jks')) | Set-Clipboard
+[Convert]::ToBase64String([IO.File]::ReadAllBytes('android/app/google-services.json')) | Set-Clipboard
+```
+
+- Add secrets at GitHub > `Settings` > `Secrets and variables` > `Actions`. Keep the local keystore backup even after CI is configured; GitHub Secrets are not a signing-key backup.
+- Standard release command after updating and committing `package.json` version:
+
+```powershell
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+- Never move or reuse a published version tag. If a release fails after distribution, fix the cause, increment the version, and create a new tag.
