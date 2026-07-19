@@ -19,6 +19,9 @@ import HealthTestPage from '@/pages/HealthTestPage';
 import SleepWindowPage from '@/pages/SleepWindowPage';
 import WeeklySummaryPage from '@/pages/WeeklySummaryPage';
 import ProfileSettingsPage from '@/pages/ProfileSettingsPage';
+import NotificationsPage from '@/pages/NotificationsPage';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { refreshNotifications } from '@/lib/notificationService';
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -51,6 +54,17 @@ const App: React.FC = () => {
 
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!session || !Capacitor.isNativePlatform()) return;
+    void refreshNotifications().catch((error) => console.warn('[notifications] refresh failed', error));
+    let listener: PluginListenerHandle | null = null;
+    void LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+      const route = action.notification.extra?.route;
+      if (typeof route === 'string' && route.startsWith('/')) window.location.assign(route);
+    }).then((handle) => { listener = handle; });
+    return () => { void listener?.remove(); };
+  }, [session]);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
@@ -97,6 +111,7 @@ const App: React.FC = () => {
             <Route exact path="/health-connect">{session ? <HealthTestPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/weekly-summary">{session ? <WeeklySummaryPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/profile-settings">{session ? <ProfileSettingsPage /> : <Redirect to="/login" />}</Route>
+            <Route exact path="/notifications">{session ? <NotificationsPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/health-test"><Redirect to="/health-connect" /></Route>
             <Route exact path="/history/workout/:id"><Redirect to="/tabs/activity" /></Route>
             <Route exact path="/">

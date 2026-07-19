@@ -735,3 +735,13 @@ Verification for this batch:
 - `git diff --check`: passed.
 
 Still requires physical-device confirmation: Samsung Health Body Weight should be checked end-to-end with `Health Connect > Sync Now > Profile & Settings` once an Android device is connected over ADB.
+
+## Local Notifications (2026-07-19)
+
+- Added a user-facing `/notifications` page under More with independent switches for Bedtime, Missing Sleep, Planned Workout, and meaningful Recovery changes. Preferences are stored on the device and default to enabled.
+- Bedtime uses the current Sleep Window calculation, including tonight's override or the Profile default wake time. Planned Workout uses the pending Race Plan session and the Profile preferred training time; Rest days are not notified.
+- Missing Sleep is scheduled natively for 8:00 AM. When RunMate refreshes and confirms fresh Sleep, the pending alert is replaced with the next morning's check. If the app opens after 8:00 AM with Sleep still missing, it sends at most once for that Bangkok date.
+- Recovery alerts compare the fresh score with that day's baseline and require a change of at least 15 points. They are evaluated after RunMate receives fresh data and send at most once per day.
+- Added `Send Test Notification` so notification permission, lock-screen delivery, and tap routing can be verified immediately on a physical device.
+- Notification taps route to Notifications, Sleep Window, or Recovery as appropriate. Android notification permission and reboot rescheduling are supplied by `@capacitor/local-notifications`.
+- Important platform boundary: this is not a hidden Samsung Health background import. Capacitor Background Runner cannot invoke the Health Connect plugin from its headless JavaScript runtime. Health Connect remains foreground-triggered; native notification scheduling provides the morning reminder while Recovery changes are evaluated after a real foreground sync. A true background Health Connect importer would require a dedicated native Android Worker that reproduces reconciliation and authenticated persistence.

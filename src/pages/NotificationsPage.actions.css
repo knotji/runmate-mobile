@@ -1,0 +1,24 @@
+.notifications-test {
+  width: 100%;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 14px;
+  border: 1px solid #c9dfec;
+  border-radius: 14px;
+  color: #2478a5;
+  background: #f4fbfe;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.notifications-test ion-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.notifications-test:disabled {
+  opacity: .6;
+}

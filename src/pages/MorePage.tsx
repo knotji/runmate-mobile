@@ -43,6 +43,7 @@ const plannedItems = [
     icon: notificationsOutline,
     title: 'Notifications',
     summary: 'Bedtime, missing sleep, workout, and Recovery reminders.',
+    path: '/notifications',
   },
   {
     icon: fitnessOutline,

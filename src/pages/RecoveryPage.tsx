@@ -24,6 +24,7 @@ import { TodayTrainingPlanCard } from '@/components/TodayTrainingPlanCard';
 import { formatClockMinutes, loadTonightWakeOverride, parseClockMinutes, sleepWindowForWake } from '@/lib/sleepWindow';
 import { loadDefaultWakeTime, loadTonightWakePlan } from '@/lib/sleepWindowStorage';
 import { syncTodayHealth } from '@/lib/todayHealthSync';
+import { refreshNotifications } from '@/lib/notificationService';
 import './RecoveryPage.css';
 
 const RecoveryPage: React.FC = () => {
@@ -39,7 +40,9 @@ const RecoveryPage: React.FC = () => {
   const loadRecovery = useCallback(async () => {
     setError(null);
     try {
-      setContext(await buildCoachContextFromSupabase());
+      const nextContext = await buildCoachContextFromSupabase();
+      setContext(nextContext);
+      void refreshNotifications(nextContext).catch((notificationError) => console.warn('[notifications] refresh failed', notificationError));
       loadedRef.current = true;
     } catch (loadError) {
       console.error('[recovery] load failed', loadError);
