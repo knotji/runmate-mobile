@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   IonContent,
@@ -20,6 +20,10 @@ import { barbellOutline, bodyOutline, calendarClearOutline, chevronBackOutline, 
 import { deleteHistoryItem, loadHistoryItems } from '@/lib/cloudHistory';
 import { getHistoryItemDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
+import { dedupeSleepItems } from '@/lib/sleepDedupe';
+import { syncSamsungSleep } from '@/lib/samsungSleepSync';
+import { syncSamsungWorkouts } from '@/lib/samsungWorkoutSync';
+import { dedupeWorkoutItems, type MergedWorkoutItem } from '@/lib/workoutDedupe';
 import './ActivityPage.css';
 
 const ActivityPage: React.FC = () => {
@@ -36,13 +40,19 @@ const ActivityPage: React.FC = () => {
 
   const load = useCallback(async () => {
     setError(null);
+    const [sleepSync, workoutSync] = await Promise.all([syncSamsungSleep('today'), syncSamsungWorkouts('today')]);
+    if (sleepSync.error) console.warn('[sleep-sync] Samsung Health sync failed', sleepSync.error);
+    if (workoutSync.error) console.warn('[workout-sync] Samsung Health sync failed', workoutSync.error);
     const result = await loadHistoryItems();
-    if (result.ok) setItems(result.items);
+    if (result.ok) {
+      const sleep = dedupeSleepItems(result.items.filter((item) => item.type === 'sleep'));
+      const workouts = dedupeWorkoutItems(result.items.filter((item) => item.type === 'workout' || item.type === 'strength'));
+      setItems([...result.items.filter((item) => item.type !== 'sleep' && item.type !== 'workout' && item.type !== 'strength'), ...sleep, ...workouts]);
+    }
     else setError(result.error);
     setLoading(false);
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
   useIonViewWillEnter(() => { void load(); });
 
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => {
@@ -164,8 +174,11 @@ function HistoryRow({ item, deleting, onDelete }: { item: LocalHistoryItem; dele
   const content = (
     <>
       <div className={`history-icon history-icon-${presentation.tone}`}><IonIcon icon={presentation.icon} /></div>
-      <div className="history-copy"><span>{presentation.label}</span><h3>{presentation.title}</h3><p>{presentation.detail}</p></div>
-      {item.source?.provider && <small>{sourceLabel(item.source.provider)}</small>}
+      <div className="history-copy">
+        <span>{presentation.label}</span>
+        <h3>{presentation.title}</h3>
+        <div className="history-row-meta"><p>{presentation.detail}</p>{item.source?.provider && <small>{workoutSourceLabel(item)}</small>}</div>
+      </div>
       {detailPath && <IonIcon className="history-row-chevron" icon={chevronForwardOutline} />}
     </>
   );
@@ -212,6 +225,10 @@ function scoreDetail(value: unknown): string { return typeof value === 'number' 
 function arrayText(value: unknown): string | null { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string').map(titleFromKey).join(', ') || null : null; }
 function titleFromKey(value: string): string { return value.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()); }
 function sourceLabel(value: string): string { return titleFromKey(value.replace('_health', ' Health').replace('_connect', ' Connect')); }
+function workoutSourceLabel(item: LocalHistoryItem): string {
+  const sources = (item as MergedWorkoutItem).reconciledSources;
+  return sources?.length ? sources.join(' + ') : sourceLabel(item.source?.provider ?? 'manual');
+}
 function formatSelectedDate(date: string): string { return new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(`${date}T12:00:00`)); }
 function formatMonthDay(date: string): string { return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(`${date}T12:00:00`)); }
 function bangkokDate(offsetDays: number): string { return new Date(Date.now() + 7 * 60 * 60 * 1000 + offsetDays * 86_400_000).toISOString().slice(0, 10); }

@@ -6,7 +6,20 @@ export type MergedSleepItem = LocalHistoryItem & {
   mergedFromDuplicates?: boolean;
   duplicateCount?: number;
   sourceRecordIds?: string[];
+  reconciledSources?: string[];
+  fieldSources?: Record<string, string>;
 };
+
+type SleepSourceKind = "samsung_health" | "structured" | "manual_upload";
+
+const DEVICE_MEASURED_FIELDS = new Set([
+  "actualSleepDurationMinutes", "actualSleepDurationText", "sleepDuration", "sleepDurationSource",
+  "timeInBedMinutes", "timeInBedText", "timeInBedDerived", "sleepStartTime", "sleepEndTime",
+  "avgSleepingHeartRate", "avgSleepingHrv", "avgRespiratoryRate", "sleepLatencyMinutes",
+  "avgSpO2Percent", "lowestSpO2Percent", "skinTemperatureDeltaC", "sleepStageMinutes",
+  "sleepStageAwakeMinutes", "sleepStageRemMinutes", "sleepStageLightMinutes", "sleepStageDeepMinutes",
+  "restingHR", "hrv",
+]);
 
 function getSleepExtracted(item: LocalHistoryItem): Record<string, unknown> {
   const d = item.data as { extracted?: Record<string, unknown> } | null;
@@ -28,17 +41,78 @@ function scoreSleepRecord(item: LocalHistoryItem): number {
   return score;
 }
 
-function mergeExtractedFields(items: LocalHistoryItem[]): Record<string, unknown> {
-  const sorted = [...items].sort((a, b) => scoreSleepRecord(b) - scoreSleepRecord(a));
-  const merged: Record<string, unknown> = { ...getSleepExtracted(sorted[0]) };
-  for (const item of sorted.slice(1)) {
-    for (const [key, value] of Object.entries(getSleepExtracted(item))) {
-      if (merged[key] == null && value != null) {
-        merged[key] = value;
+function sleepSourceKind(item: LocalHistoryItem): SleepSourceKind {
+  const data = item.data as Record<string, unknown> | null;
+  const extracted = getSleepExtracted(item);
+  const sourceId = String(data?.sourceId ?? extracted.sourceId ?? "");
+  if (
+    item.source?.provider === "samsung_health"
+    || sourceId === "com.sec.android.app.shealth"
+    || item.id.startsWith("healthconnect-samsung-sleep-")
+  ) return "samsung_health";
+  if (item.source?.importType === "csv" || item.source?.provider === "garmin_connect" || item.source?.provider === "apple_health") return "structured";
+  return "manual_upload";
+}
+
+function sourceLabel(item: LocalHistoryItem): string {
+  const kind = sleepSourceKind(item);
+  return kind === "samsung_health" ? "Samsung Health" : kind === "structured" ? "Structured Import" : "Manual Upload";
+}
+
+function orderedForField(items: LocalHistoryItem[], field: string): LocalHistoryItem[] {
+  return [...items].sort((a, b) => {
+    if (DEVICE_MEASURED_FIELDS.has(field)) {
+      const rank = { samsung_health: 3, structured: 2, manual_upload: 1 };
+      const sourceOrder = rank[sleepSourceKind(b)] - rank[sleepSourceKind(a)];
+      if (sourceOrder) return sourceOrder;
+      const durationOrder = measuredDurationMinutes(b) - measuredDurationMinutes(a);
+      if (durationOrder) return durationOrder;
+    }
+    return scoreSleepRecord(b) - scoreSleepRecord(a);
+  });
+}
+
+function measuredDurationMinutes(item: LocalHistoryItem): number {
+  const extracted = getSleepExtracted(item);
+  const duration = extracted.actualSleepDurationMinutes ?? extracted.timeInBedMinutes;
+  return typeof duration === "number" && Number.isFinite(duration) ? duration : 0;
+}
+
+function mergeSleepStages(items: LocalHistoryItem[], fieldSources: Record<string, string>): Record<string, unknown> | null {
+  const result: Record<string, unknown> = {};
+  for (const stage of ["awake", "rem", "light", "deep"]) {
+    for (const item of orderedForField(items, "sleepStageMinutes")) {
+      const stages = getSleepExtracted(item).sleepStageMinutes as Record<string, unknown> | null | undefined;
+      if (stages?.[stage] != null) {
+        result[stage] = stages[stage];
+        fieldSources[`sleepStageMinutes.${stage}`] = sourceLabel(item);
+        break;
       }
     }
   }
-  return merged;
+  return Object.keys(result).length ? result : null;
+}
+
+function mergeExtractedFields(items: LocalHistoryItem[]): { extracted: Record<string, unknown>; fieldSources: Record<string, string> } {
+  const keys = new Set(items.flatMap((item) => Object.keys(getSleepExtracted(item))));
+  const extracted: Record<string, unknown> = {};
+  const fieldSources: Record<string, string> = {};
+  for (const key of keys) {
+    if (key === "sleepStageMinutes") {
+      const stages = mergeSleepStages(items, fieldSources);
+      if (stages) extracted[key] = stages;
+      continue;
+    }
+    for (const item of orderedForField(items, key)) {
+      const value = getSleepExtracted(item)[key];
+      if (value != null) {
+        extracted[key] = value;
+        fieldSources[key] = sourceLabel(item);
+        break;
+      }
+    }
+  }
+  return { extracted, fieldSources };
 }
 
 function pickBestCoach(items: LocalHistoryItem[]): unknown {
@@ -80,19 +154,35 @@ export function dedupeSleepItems(items: LocalHistoryItem[]): MergedSleepItem[] {
       result.push(group[0]);
       continue;
     }
-    const sorted = [...group].sort((a, b) => scoreSleepRecord(b) - scoreSleepRecord(a));
+    const sorted = [...group].sort((a, b) => {
+      const rank = { samsung_health: 3, structured: 2, manual_upload: 1 };
+      return rank[sleepSourceKind(b)] - rank[sleepSourceKind(a)]
+        || measuredDurationMinutes(b) - measuredDurationMinutes(a)
+        || scoreSleepRecord(b) - scoreSleepRecord(a);
+    });
     const primary = sorted[0];
+    const merged = mergeExtractedFields(group);
+    const reconciledSources = [...new Set(group.map(sourceLabel))];
     result.push({
       ...primary,
       data: {
-        extracted: mergeExtractedFields(group),
+        ...(primary.data as Record<string, unknown>),
+        extracted: merged.extracted,
         coach: pickBestCoach(group),
         confidence: pickBestConfidence(group),
         unclearFields: mergeUnclearFields(group),
+        reconciliation: {
+          canonical: true,
+          sources: reconciledSources,
+          fieldSources: merged.fieldSources,
+          sourceRecordIds: group.map((item) => item.id),
+        },
       },
       mergedFromDuplicates: true,
       duplicateCount: group.length,
       sourceRecordIds: group.map((item) => item.id),
+      reconciledSources,
+      fieldSources: merged.fieldSources,
     });
   }
 

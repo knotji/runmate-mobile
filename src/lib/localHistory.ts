@@ -8,7 +8,7 @@ export type LocalHistoryItem = {
   dateKey?: string;
   source?: {
     provider: "samsung_health" | "garmin_connect" | "apple_health" | "strava" | "generic_csv" | "generic_image" | "manual";
-    importType: "image" | "csv" | "pdf" | "manual";
+    importType: "image" | "csv" | "pdf" | "manual" | "health_connect";
     originalFileName?: string;
     detectedFormat?: string;
     importedAt: string;

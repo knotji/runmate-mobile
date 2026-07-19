@@ -10,7 +10,7 @@ import {
 import {
   chevronForwardOutline,
   flagOutline,
-  flaskOutline,
+  fitnessOutline,
   logOutOutline,
   notificationsOutline,
   personCircleOutline,
@@ -37,10 +37,10 @@ const plannedItems = [
     summary: 'Bedtime, missing sleep, workout, and Recovery reminders.',
   },
   {
-    icon: flaskOutline,
-    title: 'Health Data Test',
-    summary: 'Spike page — read raw steps/sleep/HR samples from Health Connect or HealthKit.',
-    path: '/health-test',
+    icon: fitnessOutline,
+    title: 'Health Connect',
+    summary: 'Connect Samsung Health and manage automatic health data sync.',
+    path: '/health-connect',
   },
 ];
 

@@ -56,7 +56,9 @@ export function buildWorkoutDetail(item: LocalHistoryItem) {
     metrics,
     exercises,
     insights,
-    source: item.source?.provider ? titleCase(item.source.provider) : 'RunMate',
+    source: Array.isArray((item as LocalHistoryItem & { reconciledSources?: string[] }).reconciledSources)
+      ? (item as LocalHistoryItem & { reconciledSources: string[] }).reconciledSources.join(' + ')
+      : item.source?.provider ? titleCase(item.source.provider) : 'RunMate',
   };
 }
 

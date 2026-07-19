@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   IonButton,
@@ -22,6 +22,8 @@ import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
 import { TodayTrainingPlanCard } from '@/components/TodayTrainingPlanCard';
 import { formatClockMinutes, loadTonightWakeOverride, parseClockMinutes, sleepWindowForWake } from '@/lib/sleepWindow';
 import { loadTonightWakePlan } from '@/lib/sleepWindowStorage';
+import { syncSamsungSleep } from '@/lib/samsungSleepSync';
+import { syncSamsungWorkouts } from '@/lib/samsungWorkoutSync';
 import './RecoveryPage.css';
 
 const RecoveryPage: React.FC = () => {
@@ -34,6 +36,9 @@ const RecoveryPage: React.FC = () => {
   const loadRecovery = useCallback(async () => {
     setError(null);
     try {
+      const [sleepSync, workoutSync] = await Promise.all([syncSamsungSleep('today'), syncSamsungWorkouts('today')]);
+      if (sleepSync.error) console.warn('[sleep-sync] Samsung Health sync failed', sleepSync.error);
+      if (workoutSync.error) console.warn('[workout-sync] Samsung Health sync failed', workoutSync.error);
       setContext(await buildCoachContextFromSupabase());
     } catch (loadError) {
       console.error('[recovery] load failed', loadError);
@@ -43,7 +48,6 @@ const RecoveryPage: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => { void loadRecovery(); }, [loadRecovery]);
   useIonViewWillEnter(() => {
     setWakeOverrideMinutes(loadTonightWakeOverride());
     void loadTonightWakePlan().then((plan) => setWakeOverrideMinutes(plan.minutes));

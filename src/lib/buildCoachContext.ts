@@ -3,6 +3,7 @@ import { loadProfileFromSupabase } from "@/lib/profileStorage";
 import { loadActiveRaceGoalAndPlan } from "@/lib/raceStorage";
 import { formatSleepMinutesShortThai, formatSleepMinutesThai, parseSleepDurationToMinutes } from "@/lib/sleepDuration";
 import { dedupeSleepItems } from "@/lib/sleepDedupe";
+import { dedupeWorkoutItems } from "@/lib/workoutDedupe";
 import { loadRaceResults } from "@/lib/raceResults";
 import { extractMealData, normalizeMealNutrition } from "@/lib/mealMerge";
 import { buildDailyNutritionBalance } from "@/lib/dailyNutritionBalance";
@@ -351,11 +352,12 @@ export function buildCoachContextFromData(input: {
   const sleepAvg7dText = avgSleepMinutes != null ? formatSleepMinutesShortThai(avgSleepMinutes) : null;
   const latestSleep = sleep7d[0] ?? null;
 
-  const workoutItems = items
+  const reconciledWorkoutItems = dedupeWorkoutItems(items.filter((i) => i.type === "workout" || i.type === "strength"));
+  const workoutItems = reconciledWorkoutItems
     .filter((i) => i.type === "workout")
     .filter((i) => getHistoryItemDateKey(i) >= cutoff);
 
-  const strengthItems = items
+  const strengthItems = reconciledWorkoutItems
     .filter((i) => i.type === "strength")
     .filter((i) => getHistoryItemDateKey(i) >= cutoff);
 
@@ -740,7 +742,7 @@ export function buildCoachContextFromData(input: {
     sickRiskLevel,
     autoSyncedToday: {
       sleep: items.some((i) => i.type === "sleep" && i.id.startsWith("ghealth-sleep-") && getHistoryItemDateKey(i) === today),
-      workout: items.some((i) => i.type === "workout" && i.id.startsWith("ghealth-exercise-") && getHistoryItemDateKey(i) === today),
+      workout: items.some((i) => i.type === "workout" && (i.id.startsWith("ghealth-exercise-") || i.id.startsWith("healthconnect-samsung-workout-")) && getHistoryItemDateKey(i) === today),
     },
   };
 

@@ -598,4 +598,59 @@ Rather than building general N-way/fuzzy dedup logic, sleep and workout records 
 
 **Known limitation of this decision**: a workout logged through an app that never syncs into Samsung Health (e.g. this account's Fitbit+Strava-only "weightlifting" session) will be silently excluded once this filter ships. Acceptable for a Samsung-Health-centric user base; revisit if RunMate mobile users commonly rely on a non-Samsung primary tracker.
 
-**Next step, not yet done**: apply the same source-filtering verification to `queryWorkouts` output specifically (sleep is done; workouts still need a real side-by-side check against a known logged session before the mapping/dedup work begins). Do not skip straight to wiring this into `buildCoachContext()`.
+### Workout metrics verification (2026-07-19): distance is solid, calories is a genuine gap, HR derivation works
+
+A real workout (outdoor run + weight machines, both logged via Strava and surfaced through Samsung Health) was captured and compared field-by-field.
+
+- **`totalDistance` (native, computed by the plugin itself) is accurate** — 510.00 m (Samsung Health entry) and 510.84 m (Strava entry) both matched Samsung Health's displayed "0.51 km" almost exactly, once the missing `distance`/`calories` read permissions were added to `READ_TYPES` (the plugin's own `aggregateWorkoutData()` needs those permissions to attach `totalDistance`/`totalEnergyBurned` to a workout — without them it silently returns a workout with neither field, no error).
+- **A real bug was found in `HealthTestPage.tsx`'s own derivation code**, not the plugin: `deriveWorkoutMetrics()` summed every `distance` sample whose `startDate` fell inside `[workout.startDate, workout.endDate]` with no source filter. Because the Samsung Health and Strava copies of the same run started 623ms apart, the boundary check let the Strava-workout window sweep in *both* sources' distance samples (570.89 m Samsung + 510.00 m Strava own record = 1080.89 m), while the Samsung-workout window (starting later) only picked up its own — same underlying bug class as the steps/workout duplication documented above, just now manifesting inside a manual aggregation instead of a raw sample list. **Lesson for the mapping layer: prefer the workout's own native `totalDistance`/`totalEnergyBurned` field over manually summing overlapping raw samples; if manual derivation is ever necessary (e.g. for HR, which has no per-workout native field), filter to the preferred `sourceId` before aggregating, never after.**
+- **maxHR/avgHR/minHR derived from `heartRate` samples worked correctly and agreed exactly across both duplicate workout entries** (144/160/109 avg/max/min for the run, 111/126/98 for the weight session) — heart rate isn't duplicated with diverging values the way distance is, so this derivation is safe to keep.
+- **Calories (`totalEnergyBurned` native and manually-derived `caloriesKcal`) were `null` on every entry**, even with the correct read permission granted. Samsung Health's own displayed "272 Cal" for the weight session is never written to Health Connect as an `ActiveCaloriesBurnedRecord` for this account — this is a real, unfixable-from-RunMate's-side data gap for Strava-sourced-via-Samsung-Health workouts, not a bug in the query.
+
+### Sync architecture design: no fixed-interval background sync is possible
+
+While discussing what the real mapping/sync job would look like, a "sync every 5 minutes" assumption turned out to be infeasible on both platforms — this shapes the whole design, so it's captured here before any implementation starts:
+
+- **Android**: `WorkManager` periodic work has a **hard minimum interval of 15 minutes** — no plugin or code can request more frequent periodic background execution than that, and Doze mode can defer it further when the device is idle.
+- **iOS**: `BGAppRefreshTask` is **opportunistic** — the app can request background refresh, but iOS decides if/when it actually runs; there is no guaranteed interval at all, and gaps of several hours are normal.
+- Capacitor has no first-party plugin for this; it would require a community background-task/background-fetch plugin wrapping the native APIs above, which still carry the same OS limits.
+
+**Design conclusion**: build sync as "run whenever triggered," not "runs every N minutes." Valid triggers, from most to least reliable: (1) app foreground/resume (already wired via `useIonViewWillEnter` on Recovery/Activity), (2) manual pull-to-refresh (already exists), (3) best-effort periodic background task (15+ min on Android, unpredictable on iOS) as a bonus, not a guarantee.
+
+A draft `runSyncCycle()` was sketched (not yet implemented) with these properties, all driven by the findings above:
+
+- Filters to the preferred `sourceId` (`com.sec.android.app.shealth`) at the point samples are read, before any aggregation — not after — closing off the exact distance double-counting bug found this session.
+- Tracks a `lastSyncedAt` cursor, advanced only after a full cycle succeeds, so a failed sync doesn't silently skip data.
+- Treats **workouts as "closed" only once `endDate` is more than ~2 minutes in the past**, since Health Connect's `ExerciseSessionRecord` for an in-progress session may not exist (or may not be finalized) until the source app ends it — a workout spanning multiple 5-to-15-minute sync cycles must not be processed until it closes, then its *entire* duration's heart-rate samples are fetched in one pass (not stitched together from each incremental sync window) to compute maxHR/avgHR.
+- Uses each record's `platformId` as an idempotency key for upserting into `history_items`, since the same workout/session can be seen again across multiple sync calls before or after it closes.
+- Keeps steps/sleep on the separate Bangkok-aligned aggregate/raw-sample path already verified above; they don't need the same "wait for close" handling since they aren't session-shaped.
+
+### Samsung Health Workout Sync implementation (2026-07-19)
+
+- `src/lib/samsungWorkoutSync.ts` now imports closed Samsung Health workouts from Health Connect and persists them idempotently using `platformId`-derived IDs. Only `sourceId === "com.sec.android.app.shealth"` is accepted, and sessions ending less than two minutes ago are deferred.
+- Native `totalDistance` and `totalEnergyBurned` are preferred. Pace is derived deterministically from native distance and duration. Average/max HR use only Samsung Health samples inside the complete workout window, and VO2 Max uses the nearest Samsung sample during or up to 30 minutes after the session; raw distance/calorie samples are never summed across sources.
+- Running, Treadmill, Walking, Cycling, Swimming, Strength, and Other map into the existing Workout schema. Swimming retains meter distance and `/100 m` pace; unavailable metrics remain null.
+- `src/lib/workoutDedupe.ts` reconciles Samsung sessions with same-day screenshot uploads using compatible workout kind, duration tolerance, and distance tolerance. Samsung supplies measured fields; uploads can fill AI coaching, VO2 Max, sweat loss, exercises, and any metric Health Connect did not expose.
+- Activity shows one canonical row with `Samsung Health + Upload` provenance when both sources match. Workout Detail loads the reconciled record, so AI guidance from the screenshot remains visible. `buildCoachContext()` uses the same reconciliation to prevent duplicate Workout/Strain totals.
+- Recovery and Activity trigger Sleep + Workout sync on Ionic view entry; pull-to-refresh and Health Connect's `Sync Now` use the same idempotent path.
+- The Health Connect product page requests Workout, Heart Rate, Distance, and Calories access, displays Workout as `Automatic Sync`, and reports Sleep/Workout counts after syncing.
+- Coverage: `samsungWorkoutSync.test.ts` verifies Run, Swim, and invalid intervals; `workoutDedupe.test.ts` verifies source-of-truth merging and protects distinct same-day sessions from accidental merging.
+- Remaining real-device check: install the latest APK, choose `Update Access`, grant Workout/Heart Rate/Distance/Calories, run `Sync Now`, then compare Outdoor Run, Treadmill, Swimming, and Strength against Samsung Health screenshots.
+- Health Connect has no Sweat Loss record type, and the plugin confirms Exercise metadata exposes only source/device/id. Sweat Loss therefore remains upload-derived when visible in a Samsung screenshot; it must not be estimated by the importer.
+- Workout pagination is mandatory: `queryWorkouts()` can return an old first page plus a non-null `anchor`; sorting applies only to fetched records. `queryAllHealthConnectWorkouts()` now follows every anchor (bounded at 2,000), deduplicates by `platformId`, and sorts the complete result. Both the production importer and Developer Details `Query Workouts (30d, All Pages)` use it. Sync copy says `Processed`, not `Checked`, because idempotent upserts may revisit existing records.
+### Workout Upload And Samsung Reconciliation
+
+- Activity reconciles Samsung Health workouts with existing screenshot uploads instead of showing both records.
+- Matching uses the Bangkok activity date plus start time when both sources provide it; otherwise it compares duration and distance.
+- Legacy uploads labelled `Other` may match a typed Samsung workout when their duration/distance agree. This supports uploads created before Swim and Strength normalization was added.
+- Samsung Health remains the source of truth for measured fields, while upload-only AI guidance and unavailable device fields are preserved in the merged detail.
+- Source records remain stored independently for provenance; Activity and coaching consume one reconciled canonical record. Re-syncing is idempotent and does not create another visible session.
+
+### Health Connect Sync Scope
+
+- `Sync Now` on the Health Connect page performs a 30-day Sleep and Workout backfill.
+- Connecting and granting access also performs the default 30-day backfill.
+- Entering Recovery or Activity, and pull-to-refresh on either page, syncs only today's Bangkok-date records.
+- Today's Sleep query starts at noon on the previous Bangkok day and then retains only sessions attributed to today's wake date. This captures overnight sleep without importing older nights.
+- Initial Recovery/Activity loading uses only Ionic's view-entry trigger, avoiding the previous duplicate request from both React mount and Ionic view entry.
+- Health Connect displays a Latest Sync summary after Connect or Sync Now: Added, Updated, Reconciled, Unchanged, and Failed. Added/Updated/Unchanged compare deterministic Samsung record IDs and semantic health fields while ignoring the changing import timestamp. Reconciled counts canonical Sleep/Workout sessions currently combining Samsung Health and Upload provenance.

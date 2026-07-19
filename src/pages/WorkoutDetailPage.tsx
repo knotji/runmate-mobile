@@ -5,6 +5,7 @@ import { arrowBackOutline, barbellOutline, fitnessOutline, warningOutline } from
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { buildWorkoutDetail } from '@/lib/workoutDetail';
+import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
 import './WorkoutDetailPage.css';
 
 const WorkoutDetailPage: React.FC = () => {
@@ -18,7 +19,8 @@ const WorkoutDetailPage: React.FC = () => {
     const result = await loadHistoryItems(['workout', 'strength']);
     if (!result.ok) setError(result.error);
     else {
-      const match = result.items.find((record) => record.id === decodeURIComponent(id));
+      const requestedId = decodeURIComponent(id);
+      const match = dedupeWorkoutItems(result.items).find((record) => record.id === requestedId || record.sourceRecordIds?.includes(requestedId));
       if (match) setItem(match);
       else setError('This workout record could not be found.');
     }
