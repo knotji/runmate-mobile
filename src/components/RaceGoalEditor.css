@@ -1,0 +1,31 @@
+.race-editor-modal { --width: min(100%, 520px); --height: 92%; --border-radius: 24px 24px 0 0; align-items: end; }
+.race-editor-header ion-toolbar { --background: rgba(250,252,255,.96); --border-color: #e3ebf2; }
+.race-editor-header ion-title { color: #183451; font-size: 16px; font-weight: 800; }
+.race-editor-form { height: 100%; overflow-y: auto; padding: 22px 20px calc(28px + env(safe-area-inset-bottom)); color: #1d3b5b; background: #f4f8fc; }
+.race-editor-form > header { margin-bottom: 20px; }
+.race-editor-form header p { margin: 0 0 5px; color: #1f79b2; font-size: 9px; font-weight: 850; letter-spacing: .13em; }
+.race-editor-form header h2 { margin: 0; font-size: 21px; }
+.race-editor-form header span { display: block; margin-top: 6px; color: #71849a; font-size: 11px; line-height: 1.5; }
+.race-editor-form label { display: grid; gap: 6px; margin-bottom: 14px; }
+.race-editor-form label > span { color: #5f7890; font-size: 9px; font-weight: 750; }
+.race-editor-form label > span small { margin-left: 5px; padding: 3px 6px; border-radius: 999px; color: #197d68; background: #e5f5f0; font-size: 8px; font-weight: 800; }
+.race-editor-form input, .race-editor-form select, .race-editor-date > button { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #d6e3ee; border-radius: 13px; outline: none; color: #203d59; background: #fff; font: inherit; font-size: 12px; }
+.race-editor-form input:focus, .race-editor-form select:focus { border-color: #55a7cd; box-shadow: 0 0 0 3px rgba(48,139,184,.1); }
+.race-editor-form label small { color: #8294a6; font-size: 9px; }
+.race-editor-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 11px; }
+.race-editor-date { position: relative; }
+.race-editor-date > button { display: flex; align-items: center; gap: 8px; text-align: left; }
+.race-editor-date > button ion-icon { color: #2780ad; font-size: 16px; }
+.race-editor-date > button strong { font-size: 11px; }
+.race-editor-date > input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.race-goal-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 14px; padding: 4px; border: 1px solid #d8e4ed; border-radius: 14px; background: #fff; }
+.race-goal-toggle button { min-height: 36px; border: 0; border-radius: 10px; color: #6b8094; background: transparent; font: inherit; font-size: 10px; font-weight: 750; }
+.race-goal-toggle button.active { color: #1e789f; background: #e5f4fb; }
+.race-editor-divider { height: 1px; margin: 23px 0; background: #dfe9f1; }
+.race-editor-plan-heading { margin-bottom: 14px !important; }
+.race-editor-plan-heading h2 { font-size: 17px !important; }
+.race-editor-error { margin: 4px 0 14px; padding: 11px 13px; border-radius: 12px; color: #a44756; background: #fff0f2; font-size: 10px; line-height: 1.45; }
+.race-editor-actions { display: grid; grid-template-columns: .8fr 1.2fr; gap: 9px; margin-top: 8px; }
+.race-editor-actions ion-button { min-height: 46px; margin: 0; --border-radius: 14px; font-size: 11px; font-weight: 800; }
+@media (min-width: 600px) { .race-editor-modal { align-items: center; --height: min(90%,760px); --border-radius: 24px; } }
+@media (max-width: 360px) { .race-editor-grid { grid-template-columns: 1fr; gap: 0; } }

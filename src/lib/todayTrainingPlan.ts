@@ -80,19 +80,31 @@ function isPlannedRecoveryType(workoutType: string): boolean {
   );
 }
 
-/** Whether today's logged workouts already satisfy the planned workout type. */
-export function isTodayPlannedWorkoutCompleted(context: CoachContext, planned: WeekWorkout | null): boolean {
-  if (!planned || context.todayWorkouts.length === 0) return false;
+export type TodayTrainingPlanStatus = 'pending' | 'completed' | 'logged_different';
+
+/**
+ * Compares today's logged workouts against the planned workout type.
+ * - 'pending': nothing logged today yet — the plan below is still today's to-do.
+ * - 'completed': something logged today matches the planned type.
+ * - 'logged_different': something WAS logged today, but it doesn't match the plan
+ *   (e.g. planned an easy run but logged strength instead). This must be shown
+ *   distinctly from 'pending' — silently falling back to "still to do" would be
+ *   misleading on a day the user already trained differently than planned.
+ */
+export function getTodayTrainingPlanStatus(context: CoachContext, planned: WeekWorkout | null): TodayTrainingPlanStatus {
+  if (!planned || context.todayWorkouts.length === 0) return 'pending';
   const plannedType = (planned.workoutType ?? '').toLowerCase();
 
   const loggedStrength = context.todayWorkouts.some((w) => w.kind === 'strength');
   const loggedRun = context.todayWorkouts.some((w) => w.kind === 'run' || w.kind === 'race');
   const loggedWalkOrOther = context.todayWorkouts.some((w) => w.kind === 'walk' || w.kind === 'other' || w.kind === 'cycling');
 
-  if (isPlannedStrengthType(plannedType)) return loggedStrength;
-  if (isPlannedRunType(plannedType)) return loggedRun;
-  if (isPlannedRecoveryType(plannedType)) return loggedWalkOrOther || loggedRun;
-  return false;
+  let matched = false;
+  if (isPlannedStrengthType(plannedType)) matched = loggedStrength;
+  else if (isPlannedRunType(plannedType)) matched = loggedRun;
+  else if (isPlannedRecoveryType(plannedType)) matched = loggedWalkOrOther || loggedRun;
+
+  return matched ? 'completed' : 'logged_different';
 }
 
 const THAI_PLAN_FIELD_TRANSLATIONS: Array<[RegExp, string]> = [
@@ -109,7 +121,22 @@ const THAI_PLAN_FIELD_TRANSLATIONS: Array<[RegExp, string]> = [
  * stored plan data.
  */
 export function translatePlanFieldToEnglish(value: string): string {
-  return THAI_PLAN_FIELD_TRANSLATIONS.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), value);
+  const translated = THAI_PLAN_FIELD_TRANSLATIONS.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), value);
+  return normalizePaceToHalfMinute(translated);
+}
+
+function normalizePaceToHalfMinute(value: string): string {
+  const matches = [...value.matchAll(/\b(\d{1,2}):(\d{2})\b/g)];
+  if (matches.length === 0) return value;
+
+  let index = 0;
+  return value.replace(/\b(\d{1,2}):(\d{2})\b/g, (_match, minutes: string, seconds: string) => {
+    const totalSeconds = Number(minutes) * 60 + Number(seconds);
+    const roundedSeconds = matches.length > 1
+      ? index++ === 0 ? Math.floor(totalSeconds / 30) * 30 : Math.ceil(totalSeconds / 30) * 30
+      : Math.round(totalSeconds / 30) * 30;
+    return `${Math.floor(roundedSeconds / 60)}:${String(roundedSeconds % 60).padStart(2, '0')}`;
+  });
 }
 
 export type TodayTrainingPlanGuidance = {

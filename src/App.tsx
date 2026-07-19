@@ -14,6 +14,8 @@ import MainTabs from '@/components/MainTabs';
 import WorkoutDetailPage from '@/pages/WorkoutDetailPage';
 import MealDetailPage from '@/pages/MealDetailPage';
 import HealthDetailPage from '@/pages/HealthDetailPage';
+import RaceGoalPage from '@/pages/RaceGoalPage';
+import HealthTestPage from '@/pages/HealthTestPage';
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -87,6 +89,8 @@ const App: React.FC = () => {
             </Route>
             <Route exact path="/activity/meal/:id">{session ? <MealDetailPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/activity/health/:id">{session ? <HealthDetailPage /> : <Redirect to="/login" />}</Route>
+            <Route exact path="/race-goal">{session ? <RaceGoalPage /> : <Redirect to="/login" />}</Route>
+            <Route exact path="/health-test">{session ? <HealthTestPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/history/workout/:id"><Redirect to="/tabs/activity" /></Route>
             <Route exact path="/">
               <Redirect to={session ? '/tabs/recovery' : '/login'} />

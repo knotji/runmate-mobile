@@ -1,0 +1,106 @@
+.race-content { --background: radial-gradient(circle at 50% -12%, #e5f4ff 0, #f3f8fc 34%, #f7f9fc 72%); }
+.race-header ion-toolbar { --background: rgba(247, 250, 253, 0.78); --border-color: rgba(173, 194, 217, 0.2); --min-height: 56px; backdrop-filter: blur(20px); }
+.race-header ion-title { color: #142a46; font-size: 16px; font-weight: 800; }
+.race-header ion-button { --color: #52708f; }
+.race-shell { width: min(100%, 760px); margin: 0 auto; padding: 24px 20px calc(42px + env(safe-area-inset-bottom)); }
+.race-state { min-height: 55vh; display: grid; place-content: center; justify-items: center; gap: 12px; color: #71849a; font-size: 12px; text-align: center; }
+.race-error ion-button { margin-top: 5px; }
+
+.race-empty { min-height: 62vh; display: grid; place-content: center; justify-items: center; text-align: center; }
+.race-empty > div { width: 58px; height: 58px; display: grid; place-items: center; border-radius: 19px; color: #2581b5; background: #e4f4fc; }
+.race-empty > div ion-icon { font-size: 27px; }
+.race-empty p { margin: 20px 0 6px; color: #1f79b2; font-size: 10px; font-weight: 850; letter-spacing: .12em; }
+.race-empty h1 { margin: 0; color: #193654; font-size: 24px; line-height: 1.2; }
+.race-empty > span { max-width: 300px; margin-top: 10px; color: #6b7f94; font-size: 13px; line-height: 1.55; }
+.race-empty ion-button { margin-top: 20px; --border-radius: 14px; font-size: 11px; font-weight: 800; }
+
+.race-hero { overflow: hidden; padding: 22px; border-radius: 24px; color: #fff; background: linear-gradient(145deg, #176f91, #229bb2); box-shadow: 0 18px 40px rgba(25, 111, 145, .2); }
+.race-hero-topline { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+.race-hero-topline span { font-size: 10px; font-weight: 850; letter-spacing: .12em; opacity: .78; }
+.race-hero-topline strong { padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,.16); font-size: 11px; }
+.race-hero h1 { margin: 18px 0 8px; font-size: clamp(23px, 6vw, 26px); line-height: 1.16; letter-spacing: -.015em; }
+.race-hero > p { display: flex; align-items: center; gap: 7px; margin: 0; color: rgba(255,255,255,.82); font-size: 12px; line-height: 1.4; }
+.race-targets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 24px; padding-top: 17px; border-top: 1px solid rgba(255,255,255,.15); }
+.race-edit-goal { margin-top: 17px; padding: 7px 11px; border: 1px solid rgba(255,255,255,.28); border-radius: 999px; color: #fff; background: rgba(255,255,255,.1); font: inherit; font-size: 9px; font-weight: 800; }
+.race-metric { min-width: 0; display: grid; gap: 4px; }
+.race-metric span { color: inherit; font-size: 10px; line-height: 1.25; opacity: .7; }
+.race-metric strong { overflow-wrap: anywhere; color: inherit; font-size: 14px; line-height: 1.3; }
+
+.race-section, .race-week, .race-plan-missing { margin-top: 18px; padding: 19px; border: 1px solid rgba(196,216,233,.78); border-radius: 21px; background: rgba(255,255,255,.88); box-shadow: 0 12px 28px rgba(46,77,111,.06); }
+.race-section-heading { display: flex; justify-content: space-between; align-items: end; gap: 15px; }
+.race-section-heading p, .race-plan-missing p { margin: 0 0 5px; color: #1f79b2; font-size: 10px; font-weight: 850; letter-spacing: .12em; }
+.race-section-heading h2, .race-plan-missing h2 { margin: 0; color: #1d3b5b; font-size: 19px; line-height: 1.25; }
+.race-section-heading > span { color: #237da5; font-size: 15px; font-weight: 800; }
+.race-progress { height: 7px; overflow: hidden; margin: 18px 0; border-radius: 99px; background: #e7eef4; }
+.race-progress i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #2c85c2, #28a9a5); }
+.race-progress-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; color: #1d3b5b; }
+.race-progress-facts .race-metric { padding: 12px; border-radius: 14px; background: #f4f8fb; }
+.race-plan-refresh { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 17px; padding-top: 15px; border-top: 1px solid #e6edf3; }
+.race-plan-refresh > span { color: #71849a; font-size: 10px; font-weight: 650; }
+.race-plan-refresh button { display: flex; align-items: center; gap: 6px; padding: 7px 10px; border: 1px solid #bddbea; border-radius: 999px; color: #1f7da7; background: #edf8fc; font: inherit; font-size: 10px; font-weight: 800; }
+.race-plan-refresh button:disabled { opacity: .6; }
+.race-plan-refresh ion-spinner { width: 13px; height: 13px; }
+.race-refresh-error { margin-top: 10px; padding: 9px 11px; border-radius: 11px; color: #a44756; background: #fff0f2; font-size: 10px; line-height: 1.45; }
+.race-plan-missing > span { display: block; margin-top: 7px; color: #71849a; font-size: 12px; line-height: 1.5; }
+
+.race-week-list { margin: 16px -19px -19px; }
+.race-workout { width: 100%; min-height: 66px; display: grid; grid-template-columns: 44px minmax(0,1fr) auto; align-items: center; gap: 10px; padding: 12px 19px; border: 0; border-top: 1px solid #e8eef4; color: inherit; background: transparent; font: inherit; text-align: left; cursor: pointer; }
+.race-workout-today { background: #f0f8fc; box-shadow: inset 3px 0 #2a89b8; }
+.race-workout > span:first-child { width: 38px; padding: 7px 4px; border-radius: 10px; color: #217ca9; background: #e8f5fb; font-size: 10px; font-weight: 850; text-align: center; }
+.race-workout > div { min-width: 0; display: grid; gap: 3px; }
+.race-workout strong { color: #1d3b5b; font-size: 14px; line-height: 1.3; }
+.race-workout small { overflow: hidden; color: #71849a; font-size: 11px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.race-workout em { padding: 5px 8px; border-radius: 999px; color: #1e789f; background: #d9f0fa; font-size: 10px; font-style: normal; font-weight: 800; }
+.race-workout-action { display: flex; align-items: center; gap: 5px; color: #91a6b8; }
+.race-workout-action ion-icon { font-size: 15px; }
+.race-workout:focus-visible { outline: 2px solid #2a89b8; outline-offset: -2px; }
+
+.workout-plan-modal { --width: min(100%, 560px); --height: min(720px, 88%); --border-radius: 24px 24px 0 0; align-items: end; }
+.workout-plan-header ion-toolbar { --background: rgba(247,250,253,.96); --border-color: #e4edf4; --min-height: 56px; }
+.workout-plan-header ion-title { color: #142a46; font-size: 16px; font-weight: 800; }
+.workout-plan-header ion-button { --color: #347da8; }
+.workout-plan-content { --background: radial-gradient(circle at 50% -12%, #e5f4ff 0, #f4f8fc 40%, #f7f9fc 100%); }
+.workout-plan-shell { padding: 26px 20px calc(32px + env(safe-area-inset-bottom)); }
+.workout-plan-shell > header p, .workout-plan-guidance > p { margin: 0 0 6px; color: #1f79b2; font-size: 10px; font-weight: 850; letter-spacing: .12em; }
+.workout-plan-shell > header h1 { margin: 0; color: #183653; font-size: 25px; line-height: 1.2; }
+.workout-plan-shell > header > span { display: block; margin-top: 8px; color: #667d93; font-size: 12px; }
+.workout-plan-metrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin-top: 20px; }
+.workout-plan-metrics div { min-width: 0; display: grid; gap: 5px; padding: 14px; border: 1px solid #d9e6f0; border-radius: 16px; background: rgba(255,255,255,.88); }
+.workout-plan-metrics span { color: #71849a; font-size: 10px; }
+.workout-plan-metrics strong { overflow-wrap: anywhere; color: #1d3b5b; font-size: 14px; }
+.workout-plan-guidance { margin-top: 18px; padding: 18px; border: 1px solid #d6e4ef; border-radius: 19px; background: rgba(255,255,255,.9); }
+.workout-plan-guidance h2 { margin: 0 0 15px; color: #1d3b5b; font-size: 18px; }
+.workout-plan-guidance div { display: grid; gap: 5px; padding: 13px 0; border-top: 1px solid #e8eef4; }
+.workout-plan-guidance strong { color: #285a7e; font-size: 11px; }
+.workout-plan-guidance span { color: #60758c; font-size: 12px; line-height: 1.55; }
+
+.race-history { overflow: hidden; margin-top: 18px; border: 1px solid rgba(196,216,233,.78); border-radius: 21px; background: rgba(255,255,255,.88); box-shadow: 0 12px 28px rgba(46,77,111,.06); }
+.race-history-toggle { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 15px; padding: 18px 19px; border: 0; color: inherit; background: transparent; font: inherit; text-align: left; }
+.race-history-toggle p { margin: 0 0 5px; color: #1f79b2; font-size: 10px; font-weight: 850; letter-spacing: .12em; }
+.race-history-toggle h2 { margin: 0; color: #1d3b5b; font-size: 19px; }
+.race-history-toggle > span { display: flex; align-items: center; gap: 6px; color: #71849a; font-size: 11px; font-weight: 750; white-space: nowrap; }
+.race-history-toggle ion-icon { font-size: 17px; transition: transform 160ms ease; }
+.race-history-open .race-history-toggle ion-icon { transform: rotate(180deg); }
+.race-history-list { border-top: 1px solid #e8eef4; }
+.race-result { min-height: 76px; display: grid; grid-template-columns: 42px minmax(0,1fr) auto; align-items: center; gap: 11px; padding: 13px 16px; }
+.race-result + .race-result { border-top: 1px solid #e8eef4; }
+.race-result-date { width: 42px; min-height: 46px; display: grid; place-content: center; justify-items: center; border-radius: 12px; color: #257da6; background: #e8f5fb; }
+.race-result-date strong { font-size: 14px; line-height: 1; }
+.race-result-date span { margin-top: 3px; font-size: 8px; font-weight: 700; text-transform: uppercase; }
+.race-result-copy { min-width: 0; display: grid; gap: 4px; }
+.race-result-copy strong { overflow: hidden; color: #1d3b5b; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.race-result-copy span { overflow: hidden; color: #71849a; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.race-result-badge { padding: 5px 8px; border-radius: 999px; color: #60758b; background: #edf3f7; font-size: 9px; font-style: normal; font-weight: 800; white-space: nowrap; }
+.race-result-achieved { color: #167762; background: #e4f6f0; }
+.race-result-missed { color: #a65d24; background: #fff1df; }
+.race-result-completed { color: #23769c; background: #e7f4fa; }
+.race-history-error { display: flex; justify-content: space-between; gap: 12px; padding: 14px 18px; border-top: 1px solid #e8eef4; color: #a24958; font-size: 10px; }
+.race-history-error button { border: 0; color: #2676b8; background: transparent; font: inherit; font-weight: 800; }
+
+@media (max-width: 370px) {
+  .race-shell { padding-inline: 16px; }
+  .race-hero { padding-inline: 18px; }
+  .race-targets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .race-result { grid-template-columns: 40px minmax(0,1fr); }
+  .race-result-badge { grid-column: 2; justify-self: start; }
+}

@@ -16,11 +16,11 @@ import {
   useIonViewWillEnter,
   type RefresherEventDetail,
 } from '@ionic/react';
-import { alertCircleOutline, logOutOutline, moonOutline, refreshOutline, sunnyOutline } from 'ionicons/icons';
+import { alertCircleOutline, moonOutline, refreshOutline, sunnyOutline } from 'ionicons/icons';
 import { buildCoachContextFromSupabase, type CoachContext } from '@/lib/buildCoachContext';
 import { buildSupportCards } from '@/lib/recoverySupport';
 import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
-import { supabase } from '@/lib/supabaseClient';
+import { getTodayPlannedWorkout } from '@/lib/todayTrainingPlan';
 import { TodayTrainingPlanCard } from '@/components/TodayTrainingPlanCard';
 import './RecoveryPage.css';
 
@@ -55,9 +55,6 @@ const RecoveryPage: React.FC = () => {
       <IonHeader translucent className="recovery-header">
         <IonToolbar>
           <IonTitle>Recovery</IonTitle>
-          <IonButton slot="end" fill="clear" aria-label="Sign out" onClick={() => void supabase.auth.signOut()}>
-            <IonIcon slot="icon-only" icon={logOutOutline} />
-          </IonButton>
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen className="recovery-content">
@@ -79,9 +76,10 @@ const RecoveryPage: React.FC = () => {
           {!loading && !error && context?.recoverySystem && (
             <>
               <RecoveryDials recovery={context.recoverySystem} onSleepClick={() => history.push('/sleep')} />
-              <TodayTrainingPlanCard context={context} />
+              {getTodayPlannedWorkout(context)
+                ? <TodayTrainingPlanCard context={context} />
+                : <TrainingGuidance recovery={context.recoverySystem} />}
               <DailySupportCarousel context={context} />
-              <TrainingGuidance recovery={context.recoverySystem} />
               <RecoveryPlan recovery={context.recoverySystem} />
             </>
           )}
@@ -195,12 +193,14 @@ function RecoveryPlan({ recovery }: { recovery: RunMateRecoverySystem }) {
   const sleep = recovery.sleepPerformance;
   const sleepNeedHours = Math.floor(sleep.sleepNeedMinutes / 60);
   const sleepNeedMinutes = sleep.sleepNeedMinutes % 60;
-  const tomorrowHeadline = recovery.overallScore >= 67 ? 'Ready To Build' : recovery.overallScore >= 34 ? 'Keep It Controlled' : 'Recovery First';
-  const tomorrowSummary = recovery.overallScore >= 67
-    ? 'A consistent night of sleep should keep you ready for planned training.'
-    : recovery.overallScore >= 34
-      ? 'Meeting your Sleep Need can improve tomorrow’s readiness.'
-      : 'Reduce strain and meet your Sleep Need before adding intensity.';
+  const recoveryAvailable = recovery.scoreState === 'scored' || recovery.scoreState === 'calibrating';
+  const { tomorrowHeadline, tomorrowSummary } = !recoveryAvailable
+    ? { tomorrowHeadline: 'Focus On Tonight', tomorrowSummary: 'Recovery isn’t scored yet — hitting your Sleep Need tonight is the best lever you have for tomorrow.' }
+    : recovery.overallScore >= 67
+      ? { tomorrowHeadline: 'On Track', tomorrowSummary: 'Hitting your Sleep Need tonight should hold this Recovery steady for tomorrow.' }
+      : recovery.overallScore >= 34
+        ? { tomorrowHeadline: 'Sleep Is The Lever', tomorrowSummary: 'Meeting your Sleep Need tonight is the fastest way to lift tomorrow’s Recovery.' }
+        : { tomorrowHeadline: 'Prioritize Sleep Tonight', tomorrowSummary: 'Recovery is low — tonight’s sleep matters more than usual before adding any intensity tomorrow.' };
   return (
     <section aria-labelledby="plan-heading" className="loop-section">
       <div className="section-heading"><div><p>Recovery Plan</p><h2 id="plan-heading">Tonight And Tomorrow</h2></div></div>

@@ -76,7 +76,9 @@ The Android platform exists under `android/` and registers `com.runmate.mobile:/
 6. Tapping the Sleep dial opens `/sleep`, a separate Sleep Details view for current and historical sleep records.
 7. `src/components/MainTabs.tsx` provides the authenticated bottom navigation:
    - `/tabs/recovery`
+   - `/tabs/upload`
    - `/tabs/activity`
+   - `/tabs/more`
 8. `/tabs/activity` is a read-only Daily Activity view that defaults to today's records. It intentionally has no category chips because the page already focuses on a single day. A compact date navigator moves to the previous/next date that contains activity, the center date opens the calendar, and an inline `Current` button appears after the right arrow on historical dates. Date changes show a short loading transition. `/tabs/history` remains only as a compatibility redirect. Editing and deleting records are intentionally not part of this slice.
 9. Workout and Strength rows open `/activity/workout/:id`, a read-only Workout Detail page with available metrics, exercises, coach notes, and provenance. Missing metrics remain absent rather than being synthesized.
 10. Sleep rows open `/sleep?date=YYYY-MM-DD&from=activity`, preselect that historical night, and return to Activity. Opening Sleep Details from the Recovery dial still returns to Recovery.
@@ -352,11 +354,28 @@ Prefer a concise Today's Training Plan over porting the full Coach chat first. T
 
 ### Step 1 implemented: Today's Training Plan card
 
-- `src/lib/todayTrainingPlan.ts` ports `getTodayPlannedWorkout()` (date match → weekday-label match → `planStartDate` offset, mirroring runmate-ai's `todayPlanning.ts`) plus new `isTodayPlannedWorkoutCompleted()` and `buildTodayTrainingPlanGuidance()`.
-- `src/components/TodayTrainingPlanCard.tsx` renders on `RecoveryPage` directly below the three dials, sized to match a single Recovery Support Carousel card (`min-height: 112px`) rather than a full section — states: no active race goal, planned session with metrics (distance/pace/HR), and completed-today.
+- `src/lib/todayTrainingPlan.ts` ports `getTodayPlannedWorkout()` (date match → weekday-label match → `planStartDate` offset, mirroring runmate-ai's `todayPlanning.ts`) plus new `getTodayTrainingPlanStatus()` and `buildTodayTrainingPlanGuidance()`.
+- `src/components/TodayTrainingPlanCard.tsx` renders on `RecoveryPage` directly below the three dials as a compact action card (`min-height: 88px`) rather than a full section.
 - `translatePlanFieldToEnglish()` translates common Thai tokens in `targetPace`/`targetHR` (e.g. "โซน" → "Zone", "ไม่เกิน" → "Max") at the presentation boundary, since those fields come from runmate-ai's Thai-first plan generator but the mobile UI is English-only.
-- **Guidance must not duplicate Training Guidance**: `buildTodayTrainingPlanGuidance()` returns `null` when Recovery is in the green zone (≥67) because `TrainingGuidance`'s "Ready For Planned Training" guardrail already says the same thing. It only returns session-specific action text (scale back / keep controlled) for moderate/low Recovery, and a not-yet-scored note when Recovery has no score.
-- Tests in `src/lib/todayTrainingPlan.test.ts` (14 cases) cover all three matching strategies, completion detection, guidance-by-zone, and the translation helper.
+- **Guidance must not duplicate Training Guidance**: when a workout is planned for today, the Training Plan card is the only training action shown and the separate `TrainingGuidance` section is hidden. When no plan exists, `TrainingGuidance` becomes the fallback. `buildTodayTrainingPlanGuidance()` only adds session-specific action text (scale back / keep controlled) for moderate/low Recovery, and a not-yet-scored note when Recovery has no score.
+- **Card has 4 states**, driven by `getTodayTrainingPlanStatus()` which returns `'pending' | 'completed' | 'logged_different'`:
+  1. No active race goal/plan → "No Active Plan" empty state.
+  2. `pending` (plan exists, nothing logged today yet) → planned session name, metrics (distance/pace/HR), and the guidance line above.
+  3. `completed` (something logged today matches the planned workout type) → green-tinted card, title shows the actual logged workout's name.
+  4. `logged_different` (something WAS logged today, but it doesn't match the planned type — e.g. plan said Easy Run, user logged Strength) → amber-tinted card (`--dial-color` of the Strain dial, `#ffd26f`), title shows the actual logged workout's name, body explains the mismatch. This state must stay distinct from `pending` — silently showing "still to do" on a day the user already trained differently would be misleading. Originally ported from runmate-ai's `checkPlannedWorkoutMatching()` `isUncertain` case, which was dropped during the initial port and had to be added back.
+- **Title reflects what was actually logged, not just the plan**: for `completed`/`logged_different`, the card's bold title is `context.todayPrimaryWorkout.label`, not `planned.workoutType` — only the `pending` state shows the planned name as the title. This required fixing `todayWorkouts[].label` in `buildCoachContext.ts`, which previously came from `workoutKindLabel()` — a generic Thai string (e.g. "เวทเทรนนิ่ง") that ignored the AI-detected `extracted.workoutName` (e.g. "Weight machines") entirely and violated the English-only UI rule. New `englishWorkoutLabel()` prefers `workoutName` and falls back to an English kind label; `workoutKindLabel()` was removed since nothing else called it.
+- Tests in `src/lib/todayTrainingPlan.test.ts` (16 cases) cover all three matching strategies, all three completion statuses, guidance-by-zone, translation, and half-minute pace formatting.
+
+## More And Race Goal
+
+- `More` is the fourth authenticated tab and keeps long-term planning/settings out of the daily Recovery screen. Race Goal and the read-only Health Data Test are available; Profile & Settings and Notifications remain visibly marked `Planned`. Sign Out lives in More.
+- More typography is intentionally compact: 21-23px page heading, 13px menu titles, 11px summaries, 38px icons, and 72px minimum menu rows.
+- `/race-goal` supports one active race goal, Create/Edit, profile-derived longest-run refresh, target time/pace, countdown, training-build progress, the next seven sessions, a separate Refresh Plan action, and completed-race history.
+- Create/Edit and Refresh invoke the deployed `generate-race-plan` Supabase Edge Function. It uses `gemini-3.1-flash-lite` when configured and a conservative deterministic fallback when AI is unavailable.
+- Pace boundaries are constrained to 30-second increments ending in `:00` or `:30`. The function prompt requires this and server normalization enforces it; the presentation layer also normalizes older saved plans.
+- Rest and Recovery rows never show meaningless `0 km`, `0 min`, or `N/A`: Rest renders `Rest Day`, while timed Recovery renders `<duration> min · Easy Recovery`.
+- Every weekly session row opens a Session Details sheet. It displays only relevant metrics plus the saved plan's description, purpose, and adjustment guidance. Opening details does not call AI again, so guidance stays consistent with the generated plan and works with deterministic fallback plans.
+- `generate-race-plan` is deployed. Any future function change must be redeployed before mobile clients can receive the new behavior.
 
 ## Latest Meal Upload Work
 
@@ -480,6 +499,22 @@ Two separate bugs combined to make an uploaded Strength workout (e.g. "Weight ma
 
 `ActivityPage` and `RecoveryPage` each loaded their data once in a plain `useEffect` on mount. Ionic's `IonTabs`/`IonRouterOutlet` keeps tab pages alive instead of remounting them on tab switch, so a workout/meal/sleep saved elsewhere never appeared until a manual pull-to-refresh. Fixed by adding Ionic's `useIonViewWillEnter()` lifecycle hook alongside the existing `useEffect` in both pages — it fires every time the tab becomes active again, not just on first mount.
 
+### Recovery Plan "Tomorrow" tile duplicated Training Guidance and ignored staleness
+
+`RecoveryPlan`'s Tomorrow tile in `RecoveryPage.tsx` computed its own headline/summary straight from `recovery.overallScore`, independent of `TrainingGuidance`. Two problems:
+
+1. **Duplicate copy**: for the 34-66 and <34 score bands, the headline text was word-for-word identical to `TrainingGuidance`'s guardrail title ("Keep It Controlled", "Recovery First") — two cards on the same screen saying the same thing.
+2. **No freshness gating**: `TrainingGuidance` skips itself entirely when `scoreState` is `'stale'` or `'unscorable'`, but the Tomorrow tile had no such check and would confidently render a score-based headline even while the Recovery dial right above it shows `—` for the same reason — a direct contradiction of the Recovery data-freshness contract documented above.
+
+Fixed: Tomorrow's copy now focuses on what this tile actually controls — tonight's sleep — instead of restating overall Recovery status (e.g. "Hitting your Sleep Need tonight should hold this Recovery steady for tomorrow" instead of "Ready To Build"). It also gates on the same `scoreState === 'scored' || 'calibrating'` condition as the Recovery dial, falling back to a neutral "Focus On Tonight" message when Recovery isn't reliably scored.
+
+### Recovery and Upload page font sizes rebalanced
+
+Both pages had accumulated too many near-duplicate font sizes with awkward jumps between them:
+
+- **RecoveryPage**: section headings (`Training Guidance`, `Recovery Plan`) were 21px, towering over the 13-17px card/item titles directly beneath them. Reduced to 18px. Dial numbers (`clamp(25px, 7vw, 35px)`) also nudged down slightly (`clamp(24px, 6.4vw, 32px)`) to soften the jump to the now-smaller headings.
+- **UploadPage**: had 7 distinct sizes (25/17/16/11/10/9/8px) where several were only 1px apart and visually indistinguishable. Consolidated to 4 (25/16/11/9px) — all former 17px and 8px values merged into 16px/9px, all former 10px values merged into 11px.
+
 ## Android Build
 
 - The Android launcher icon and app name previously shipped as the default Capacitor placeholder (blue X mark, label `runmate-mobile`). Both are now branded:
@@ -495,3 +530,38 @@ Two separate bugs combined to make an uploaded Strength workout (e.g. "Weight ma
 - This is a development APK signed with the Android debug certificate; a separately signed release build is still required for Play Store distribution.
 - Native Google OAuth returns through `com.runmate.mobile://auth/callback`. Android registers this URI on `MainActivity` with a browsable `VIEW` intent filter, while `App.tsx` exchanges the callback session and closes the system browser.
 - Supabase Authentication URL Configuration must also allow the exact redirect URL `com.runmate.mobile://auth/callback`. Google Cloud continues to use the Supabase callback URL; the custom mobile URI does not belong in Google Cloud Authorized Redirect URIs.
+
+## Wearable Data Research & Health Connect Spike
+
+RunMate's Recovery/Strain/Sleep models are repeatedly documented above as *estimates* because the mobile app currently only has data the user manually uploads as a screenshot (analyzed by Gemini). Two paths were researched for pulling real continuous wearable data instead:
+
+### Open Wearables (evaluated, not adopted)
+
+[openwearables.io](https://openwearables.io/docs) is a self-hosted (MIT license, free), unified wearable-data hub — one normalized REST API + webhooks for Garmin, Polar, Suunto, Whoop, Strava, Fitbit, Oura, Ultrahuman, Apple Health, and Google Health Connect. Rejected for now because:
+
+- It requires standing up and maintaining separate infrastructure (FastAPI + PostgreSQL + Redis + Celery via Docker Compose) beyond the current Supabase project.
+- It only ships official SDKs for Flutter and React Native, not Ionic/Capacitor. The SDKs are thin wrappers around native HealthKit/Health Connect calls, so a Capacitor plugin *could* replicate the behavior, but there's no off-the-shelf one.
+- Direct Garmin/Fitbit/Whoop integration would additionally require registering and getting approved for OAuth apps with each provider.
+
+Conclusion: a good fit for data quality, but a disproportionately large infra + native-code investment for what it unlocks beyond Health Connect alone.
+
+### Samsung Health → Health Connect → Capacitor (the practical path)
+
+Samsung Health has synced its data into Android's system-level **Health Connect** store since app version 6.22.5 (Oct 2022). This means Samsung Health data can be read **without any Samsung partnership approval** — Samsung's own direct SDK ("Samsung Health Data SDK", the old one deprecated 2025-07-31) does require partnership approval for write access, but Health Connect read access does not. Apple HealthKit is the iOS equivalent, fed by Apple Watch and any third-party app that writes into it.
+
+Chosen plugin: **`@capgo/capacitor-health`** — reads/writes Health Connect (Android 8.0+ / API 26+) and HealthKit (iOS 14+) through one TypeScript API (`isAvailable`, `requestAuthorization`, `checkAuthorization`, `readSamples`, `saveSample`, `queryWorkouts`, `queryAggregated`). Supports steps, distance, calories, heartRate, restingHeartRate, heartRateVariability, respiratoryRate, oxygenSaturation, vo2Max, sleep (with per-stage `SleepStage[]`: asleep/awake/rem/deep/light), blood pressure, blood glucose, body temperature/weight/height/fat, and `queryWorkouts` session data — covers essentially everything the Recovery model's "estimate" caveats are waiting on, except skin temperature specifically.
+
+**Multi-source caveat**: Health Connect/HealthKit aggregate data from *every* app the user has connected (Samsung Health, Garmin Connect, Fitbit, etc. all at once). Each `HealthSample`/`Workout` carries `sourceName`/`sourceId`/`platformId`, but the plugin does **not** dedupe across sources itself — if a user has both Samsung Health and Garmin Connect connected, the same run or the same night's sleep can come back twice. RunMate already has this exact problem solved once for Samsung Health CSV import (`runmate-ai`'s `parseSamsungHealth.ts`: source filtering + same-exerciseType-same-minute dedup) and once for mobile sleep (`src/lib/sleepDedupe.ts`) — a Health Connect integration will need the same kind of source-aware dedup before writing into `history_items`, not treat every sample as independent.
+
+### `HealthTestPage` spike (read-only, not wired into the app yet)
+
+To inspect real values before committing to a mapping/dedup design, a standalone spike page was added — deliberately **not** connected to `buildCoachContext()`, `history_items`, or any Supabase write:
+
+- `npm install @capgo/capacitor-health`, synced via `npx cap sync android`.
+- `src/pages/HealthTestPage.tsx` + `.css`: buttons for `isAvailable`, `requestAuthorization` (steps/sleep/heartRate/restingHeartRate/heartRateVariability/respiratoryRate/oxygenSaturation/workouts, with `requestHistoryAccess: true`), `checkAuthorization`, `readSamples` per data type (7-day windows), and `queryWorkouts` (30-day window). Each result renders as raw JSON in a scrollable log so real device values can be eyeballed.
+- Routed at `/health-test` in `App.tsx` (same pattern as `/race-goal` — requires `session`, redirects to `/login` otherwise) and reachable from the `More` tab (`src/pages/MorePage.tsx`) as "Health Data Test".
+- `android/app/src/main/AndroidManifest.xml` gained `android.permission.health.READ_HEALTH_DATA_HISTORY` (lets Health Connect return more than ~30 days of history on supporting providers). The plugin's own manifest merges in every per-data-type `READ_*`/`WRITE_*` Health Connect permission automatically — nothing else to declare by hand.
+- **`android/variables.gradle` `minSdkVersion` raised from 24 to 26.** This is a real, unavoidable product trade-off, not a build tweak: Health Connect requires Android 8.0 (API 26)+, so the app can no longer install on Android 7.0/7.1 devices. The build fails with a manifest-merger error (`uses-sdk:minSdkVersion 24 cannot be smaller than version 26`) without this change.
+- Debug APK rebuilt successfully at `android/app/build/outputs/apk/debug/app-debug.apk` with the plugin included.
+
+**Next step, not yet done**: install this APK on a device with Samsung Health connected to Health Connect and confirm real sleep/steps/HR values come back (empty arrays are expected otherwise). Only after inspecting real values should the mapping-into-`history_items` and cross-source dedup work begin — do not skip straight to wiring this into `buildCoachContext()`.

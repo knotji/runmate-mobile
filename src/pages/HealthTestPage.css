@@ -1,0 +1,13 @@
+.health-test-content { --background: #f4f8fc; }
+.health-test-shell { width: min(100%, 600px); margin: 0 auto; padding: 16px 16px 40px; }
+.health-test-note { margin: 0 0 16px; padding: 12px 14px; border: 1px solid #dce7f1; border-radius: 14px; color: #55708d; background: #fff; font-size: 11px; line-height: 1.6; }
+.health-test-actions { display: grid; gap: 8px; margin-bottom: 20px; }
+.health-test-divider { height: 1px; margin: 4px 0; background: #dce7f1; }
+.health-test-log { display: grid; gap: 10px; }
+.health-test-empty { color: #8497a9; font-size: 11px; text-align: center; padding: 20px 0; }
+.health-test-entry { padding: 12px 14px; border: 1px solid #dce7f1; border-radius: 14px; background: #fff; }
+.health-test-entry header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.health-test-entry header strong { color: #203d59; font-size: 12px; }
+.health-test-entry header span { color: #8497a9; font-size: 9px; }
+.health-test-entry pre { margin: 0; max-height: 300px; overflow: auto; padding: 10px; border-radius: 10px; background: #0f1f2e; color: #cfe6f7; font-size: 10px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.health-test-error { margin: 0; color: #9a4f5c; font-size: 11px; }

@@ -92,7 +92,7 @@ export async function saveRaceGoalAndPlan(goal: RaceGoal, plan: RacePlan): Promi
   if (!session.ok) return { ok: false, error: sessionMessage(session) };
 
   const goalPayload = {
-    id: goal.id,
+    ...(goal.id ? { id: goal.id } : {}),
     user_id: session.userId,
     race_name: goal.raceName,
     race_date: goal.raceDate,

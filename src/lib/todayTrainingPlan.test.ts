@@ -4,7 +4,7 @@ import type { RacePlan, WeekWorkout } from '@/types/race';
 import {
   buildTodayTrainingPlanGuidance,
   getTodayPlannedWorkout,
-  isTodayPlannedWorkoutCompleted,
+  getTodayTrainingPlanStatus,
   translatePlanFieldToEnglish,
 } from '@/lib/todayTrainingPlan';
 
@@ -113,19 +113,24 @@ describe('getTodayPlannedWorkout', () => {
   });
 });
 
-describe('isTodayPlannedWorkoutCompleted', () => {
-  it('is false when nothing was logged today', () => {
-    expect(isTodayPlannedWorkoutCompleted(planContext(), workout({ workoutType: 'Easy Run' }))).toBe(false);
+describe('getTodayTrainingPlanStatus', () => {
+  it('is pending when nothing was logged today', () => {
+    expect(getTodayTrainingPlanStatus(planContext(), workout({ workoutType: 'Easy Run' }))).toBe('pending');
   });
 
-  it('is true when a run is logged and the plan calls for a run', () => {
+  it('is completed when a run is logged and the plan calls for a run', () => {
     const context = planContext({ todayWorkouts: [{ kind: 'run' } as CoachContext['todayWorkouts'][number]] });
-    expect(isTodayPlannedWorkoutCompleted(context, workout({ workoutType: 'Tempo Run' }))).toBe(true);
+    expect(getTodayTrainingPlanStatus(context, workout({ workoutType: 'Tempo Run' }))).toBe('completed');
   });
 
-  it('is false when a run is logged but the plan calls for strength', () => {
+  it('is logged_different when a run is logged but the plan calls for strength', () => {
     const context = planContext({ todayWorkouts: [{ kind: 'run' } as CoachContext['todayWorkouts'][number]] });
-    expect(isTodayPlannedWorkoutCompleted(context, workout({ workoutType: 'Strength' }))).toBe(false);
+    expect(getTodayTrainingPlanStatus(context, workout({ workoutType: 'Strength' }))).toBe('logged_different');
+  });
+
+  it('is logged_different when a strength session is logged but the plan calls for a recovery walk', () => {
+    const context = planContext({ todayWorkouts: [{ kind: 'strength' } as CoachContext['todayWorkouts'][number]] });
+    expect(getTodayTrainingPlanStatus(context, workout({ workoutType: 'Recovery Walk' }))).toBe('logged_different');
   });
 });
 
@@ -151,6 +156,11 @@ describe('buildTodayTrainingPlanGuidance', () => {
 });
 
 describe('translatePlanFieldToEnglish', () => {
+  it('normalizes pace ranges to half-minute boundaries', () => {
+    expect(translatePlanFieldToEnglish('5:15-5:25 min/km')).toBe('5:00-5:30 min/km');
+    expect(translatePlanFieldToEnglish('6:45-7:00 min/km')).toBe('6:30-7:00 min/km');
+  });
+
   it('translates common Thai HR/pace terms to English', () => {
     expect(translatePlanFieldToEnglish('โซน 2 · ไม่เกิน 145 bpm')).toBe('Zone 2 · Max 145 bpm');
   });

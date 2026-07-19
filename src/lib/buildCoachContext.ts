@@ -385,7 +385,7 @@ export function buildCoachContextFromData(input: {
       todayWorkouts.push({
         date,
         kind: workoutKindToTodayKind(ext.workoutKind),
-        label: workoutKindLabel(ext.workoutKind),
+        label: englishWorkoutLabel(ext.workoutName, ext.workoutKind),
         distanceKm,
         durationMin,
         durationText: typeof ext.duration === "string" && ext.duration.trim() ? ext.duration : null,
@@ -430,7 +430,7 @@ export function buildCoachContextFromData(input: {
       todayWorkouts.push({
         date,
         kind: "strength",
-        label: d.routineName ? `เวท (${d.routineName})` : "เวทเทรนนิ่ง",
+        label: d.routineName?.trim() || "Strength Training",
         distanceKm: null,
         durationMin,
         durationText: `${durationMin} นาที`,
@@ -894,14 +894,21 @@ function workoutKindToTodayKind(kind: WorkoutAnalysis["extracted"]["workoutKind"
   return "other";
 }
 
-function workoutKindLabel(kind: WorkoutAnalysis["extracted"]["workoutKind"]): string {
-  if (kind === "outdoor_run") return "วิ่งนอก";
-  if (kind === "treadmill") return "วิ่งลู่";
-  if (kind === "walk") return "เดิน";
-  if (kind === "strength") return "เวทเทรนนิ่ง";
-  if (kind === "cycling") return "ปั่นจักรยาน";
-  if (kind === "swimming") return "ว่ายน้ำ";
-  return "ออกกำลังกาย";
+/**
+ * English-only label for TodayCompletedWorkoutSummary — the mobile UI is English-only,
+ * so this prefers the AI-detected workout name (e.g. "Weight Machines") over a generic
+ * kind label.
+ */
+function englishWorkoutLabel(workoutName: string | null | undefined, kind: WorkoutAnalysis["extracted"]["workoutKind"]): string {
+  const name = workoutName?.trim();
+  if (name) return name;
+  if (kind === "outdoor_run") return "Outdoor Run";
+  if (kind === "treadmill") return "Treadmill Run";
+  if (kind === "walk") return "Walk";
+  if (kind === "strength") return "Strength Training";
+  if (kind === "cycling") return "Cycling";
+  if (kind === "swimming") return "Swimming";
+  return "Workout";
 }
 
 function pickTodayPrimaryWorkout(workouts: TodayCompletedWorkoutSummary[]): TodayCompletedWorkoutSummary | null {
