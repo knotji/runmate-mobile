@@ -13,6 +13,7 @@ import {
   IonSpinner,
   IonTitle,
   IonToolbar,
+  useIonViewWillEnter,
   type RefresherEventDetail,
 } from '@ionic/react';
 import { alertCircleOutline, logOutOutline, moonOutline, refreshOutline, sunnyOutline } from 'ionicons/icons';
@@ -20,6 +21,7 @@ import { buildCoachContextFromSupabase, type CoachContext } from '@/lib/buildCoa
 import { buildSupportCards } from '@/lib/recoverySupport';
 import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
 import { supabase } from '@/lib/supabaseClient';
+import { TodayTrainingPlanCard } from '@/components/TodayTrainingPlanCard';
 import './RecoveryPage.css';
 
 const RecoveryPage: React.FC = () => {
@@ -41,6 +43,7 @@ const RecoveryPage: React.FC = () => {
   }, []);
 
   useEffect(() => { void loadRecovery(); }, [loadRecovery]);
+  useIonViewWillEnter(() => { void loadRecovery(); });
 
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => {
     await loadRecovery();
@@ -76,6 +79,7 @@ const RecoveryPage: React.FC = () => {
           {!loading && !error && context?.recoverySystem && (
             <>
               <RecoveryDials recovery={context.recoverySystem} onSleepClick={() => history.push('/sleep')} />
+              <TodayTrainingPlanCard context={context} />
               <DailySupportCarousel context={context} />
               <TrainingGuidance recovery={context.recoverySystem} />
               <RecoveryPlan recovery={context.recoverySystem} />

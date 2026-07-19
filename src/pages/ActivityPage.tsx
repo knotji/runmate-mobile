@@ -13,6 +13,7 @@ import {
   IonSpinner,
   IonTitle,
   IonToolbar,
+  useIonViewWillEnter,
   type RefresherEventDetail,
 } from '@ionic/react';
 import { barbellOutline, bodyOutline, calendarClearOutline, chevronBackOutline, chevronForwardOutline, fastFoodOutline, fitnessOutline, heartOutline, moonOutline, trashOutline } from 'ionicons/icons';
@@ -42,6 +43,7 @@ const ActivityPage: React.FC = () => {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+  useIonViewWillEnter(() => { void load(); });
 
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => {
     await load();

@@ -36,7 +36,12 @@ export function buildWorkoutDetail(item: LocalHistoryItem) {
     return { name: string(exercise.name) ?? 'Exercise', detail: parts.join(' · ') || 'Recorded' };
   });
   const insights = isStrength
-    ? compactValues([['Notes', string(data.notes)], ['Coach Note', string(data.coachReason)]])
+    ? compactValues([
+      ['Notes', string(data.notes)],
+      ['Coach Note', string(data.coachReason) ?? string(coach.coachNote)],
+      ['Summary', string(coach.workoutSummary)], ['Intensity', string(coach.intensityAssessment)], ['Training Load', string(coach.trainingLoadNote)],
+      ['Recovery', string(coach.recoveryAdvice)], ['Nutrition', string(coach.nutritionAfterWorkout)], ['Next Workout', string(coach.nextWorkoutSuggestion)],
+    ])
     : compactValues([
       ['Summary', string(coach.workoutSummary)], ['Intensity', string(coach.intensityAssessment)], ['Training Load', string(coach.trainingLoadNote)],
       ['Recovery', string(coach.recoveryAdvice)], ['Nutrition', string(coach.nutritionAfterWorkout)], ['Next Workout', string(coach.nextWorkoutSuggestion)],

@@ -57,4 +57,20 @@ describe('workout detail presentation', () => {
     expect(detail.metrics).toContainEqual({ label: 'Average HR', value: '95 bpm' });
     expect(detail.metrics.some((metric) => metric.label === 'Distance')).toBe(false);
   });
+
+  it('shows the AI coach summary for a strength workout uploaded from a screenshot', () => {
+    const item: LocalHistoryItem = {
+      id: 'strength-upload-1', type: 'workout', createdAt: '2026-07-19T06:54:00.000Z',
+      data: {
+        extracted: { workoutKind: 'strength', workoutName: 'Weight Machines', duration: '39:41', avgHR: 110, maxHR: 136, calories: 272 },
+        coach: { workoutSummary: 'บันทึกแล้ว ออกแรงกลุ่มกล้ามเนื้อหลัก', intensityAssessment: 'ปานกลาง', coachNote: 'พักกล้ามเนื้อ 48 ชม.ก่อนซ้อมซ้ำ' },
+      },
+    };
+
+    const detail = buildWorkoutDetail(item);
+
+    expect(detail.isStrength).toBe(true);
+    expect(detail.insights).toContainEqual({ label: 'Summary', value: 'บันทึกแล้ว ออกแรงกลุ่มกล้ามเนื้อหลัก' });
+    expect(detail.insights).toContainEqual({ label: 'Coach Note', value: 'พักกล้ามเนื้อ 48 ชม.ก่อนซ้อมซ้ำ' });
+  });
 });

@@ -350,6 +350,14 @@ When extending the mobile app with more data and functionality from RunMate AI, 
 
 Prefer a concise Today's Training Plan over porting the full Coach chat first. The plan gives the Recovery screen one direct next action while avoiding guidance duplicated across multiple sections.
 
+### Step 1 implemented: Today's Training Plan card
+
+- `src/lib/todayTrainingPlan.ts` ports `getTodayPlannedWorkout()` (date match → weekday-label match → `planStartDate` offset, mirroring runmate-ai's `todayPlanning.ts`) plus new `isTodayPlannedWorkoutCompleted()` and `buildTodayTrainingPlanGuidance()`.
+- `src/components/TodayTrainingPlanCard.tsx` renders on `RecoveryPage` directly below the three dials, sized to match a single Recovery Support Carousel card (`min-height: 112px`) rather than a full section — states: no active race goal, planned session with metrics (distance/pace/HR), and completed-today.
+- `translatePlanFieldToEnglish()` translates common Thai tokens in `targetPace`/`targetHR` (e.g. "โซน" → "Zone", "ไม่เกิน" → "Max") at the presentation boundary, since those fields come from runmate-ai's Thai-first plan generator but the mobile UI is English-only.
+- **Guidance must not duplicate Training Guidance**: `buildTodayTrainingPlanGuidance()` returns `null` when Recovery is in the green zone (≥67) because `TrainingGuidance`'s "Ready For Planned Training" guardrail already says the same thing. It only returns session-specific action text (scale back / keep controlled) for moderate/low Recovery, and a not-yet-scored note when Recovery has no score.
+- Tests in `src/lib/todayTrainingPlan.test.ts` (14 cases) cover all three matching strategies, completion detection, guidance-by-zone, and the translation helper.
+
 ## Latest Meal Upload Work
 
 The mobile app now owns its Meal Upload flow rather than calling the RunMate AI Next.js API.
@@ -459,6 +467,19 @@ Upload type order is `Sleep | Workout | Meal`. The automatic default follows tod
 
 All Upload date controls render as `dd/MM/yyyy` while retaining ISO `YYYY-MM-DD` internally for browser inputs, Supabase persistence, routing, and date comparisons.
 
+## Recent Fixes
+
+### AI coach message missing for uploaded Strength workouts
+
+Two separate bugs combined to make an uploaded Strength workout (e.g. "Weight machines") show no AI coaching text at all in Workout Detail:
+
+1. **Client rendering**: `buildWorkoutDetail()` in `src/lib/workoutDetail.ts` only read `data.notes`/`data.coachReason` for Strength items — fields that belong to the saved-routine/AI-prescription flow (`src/types/strength.ts`). Workouts uploaded from a screenshot always carry their AI text under `data.coach.*` (`workoutSummary`, `coachNote`, etc.) regardless of workout kind, and that path was never read for Strength. Fixed: the Strength branch now reads both sources, so `insights` shows Summary/Intensity/Training Load/Recovery/Nutrition/Next Workout for AI-analyzed uploads in addition to Notes/Coach Note for template-based logs. Covered by a new test in `src/pages/WorkoutDetailPage.test.ts`.
+2. **AI prompt**: even after the rendering fix, a real screenshot with only session-level metrics (duration, calories, HR — no exercise list) came back from Gemini with every `coach.*` field as an empty string, confirmed by inspecting the live `analyze-workout` response body. The prompt in `supabase/functions/analyze-workout/index.ts` now explicitly requires `coach.workoutSummary` and `coach.coachNote` to never be empty, even with only session-level metrics, while still prohibiting the AI from inventing exercises it can't see. Redeployed with `supabase functions deploy analyze-workout --project-ref frczilqwvlketeplafoi` (project `runmate-ai`).
+
+### Activity and Recovery tabs went stale after switching tabs
+
+`ActivityPage` and `RecoveryPage` each loaded their data once in a plain `useEffect` on mount. Ionic's `IonTabs`/`IonRouterOutlet` keeps tab pages alive instead of remounting them on tab switch, so a workout/meal/sleep saved elsewhere never appeared until a manual pull-to-refresh. Fixed by adding Ionic's `useIonViewWillEnter()` lifecycle hook alongside the existing `useEffect` in both pages — it fires every time the tab becomes active again, not just on first mount.
+
 ## Android Build
 
 - The Android launcher icon and app name previously shipped as the default Capacitor placeholder (blue X mark, label `runmate-mobile`). Both are now branded:
@@ -467,6 +488,7 @@ All Upload date controls render as `dd/MM/yyyy` while retaining ISO `YYYY-MM-DD`
   - After pulling this change, run `npx cap sync android` and rebuild (`.\gradlew.bat assembleDebug`) so the new icon/name land in the APK; Android caches launcher icons aggressively, so uninstall the previous debug install (or reboot/clear launcher cache) if the old icon still appears.
 - Capacitor Android was added and synced under `android/` with app id `com.runmate.mobile`.
 - The local Android toolchain uses JDK 21, Android SDK Platform 36, and Android Build Tools 35/36.
+- A debug APK was distributed through Firebase App Distribution (project `runmate-mobile`, project number `276482893444`, Android app id `1:276482893444:android:5643c0971817db76a584d1`). Uploading via `firebase-tools appdistribution:distribute` from a bash/MSYS shell on Windows fails with `'C:\Program' is not recognized...` because paths containing spaces (e.g. `JAVA_HOME`, `PATH` entries under `C:\Program Files\...`) get mis-quoted crossing into `cmd.exe`; running the same command from PowerShell works. `firebase-tools login`/`login:ci` also both require a real interactive TTY — run them from the user's own terminal once, not through an automated/non-interactive shell.
 - Create fresh web assets with `npm.cmd run build`, then sync them with `npx.cmd cap sync android`.
 - Build a debug APK from `android/` with `.\gradlew.bat assembleDebug` after setting `JAVA_HOME` and `ANDROID_HOME`.
 - The verified debug artifact is generated at `android/app/build/outputs/apk/debug/app-debug.apk`.

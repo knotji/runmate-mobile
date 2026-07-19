@@ -1,0 +1,26 @@
+.plan-card {
+  min-height: 112px;
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  margin: 0 0 22px;
+  padding: 16px 18px;
+  border: 1px solid rgba(196, 216, 233, 0.7);
+  border-radius: 18px;
+  background: rgba(237, 247, 255, 0.85);
+  box-shadow: 0 10px 24px rgba(46, 77, 111, 0.06);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.plan-card.plan-card-completed {
+  background: rgba(227, 246, 234, 0.85);
+  border-color: #c7e9d4;
+}
+
+.plan-card span { color: #71849a; font-size: 9px; font-weight: 850; letter-spacing: 0.04em; text-transform: uppercase; }
+.plan-card strong { color: #1d3b5b; font-size: 15px; line-height: 1.25; }
+.plan-card p { max-width: 36rem; margin: 1px 0 0; color: #63778e; font-size: 11px; line-height: 1.55; }
+
+.plan-metrics-line { color: #2e5e85; font-weight: 650; }
+.plan-guidance-line { margin-top: 4px; }
