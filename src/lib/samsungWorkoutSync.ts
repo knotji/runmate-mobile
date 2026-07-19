@@ -165,6 +165,9 @@ export function mapSamsungWorkout(workout: Workout, heartRate: HealthSample[] = 
       platformId: workout.platformId,
       workoutStartTime: workout.startDate,
       workoutEndTime: workout.endDate,
+      heartRateSamples: heartRate
+        .map((sample) => ({ at: sample.startDate, bpm: Math.round(sample.value) }))
+        .filter((sample) => Number.isFinite(Date.parse(sample.at)) && sample.bpm >= 30 && sample.bpm <= 260),
       healthConnect: { workoutType: workout.workoutType, metadata: workout.metadata ?? null },
     },
   };

@@ -1,7 +1,8 @@
 import { getHistoryItemDateKey } from '@/lib/date';
+import { calculateHeartRateZones, type HeartRatePoint } from '@/lib/hrZones';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 
-export function buildWorkoutDetail(item: LocalHistoryItem) {
+export function buildWorkoutDetail(item: LocalHistoryItem, physiology?: { maxHr?: number | null; restingHr?: number | null }) {
   const data = record(item.data);
   const extracted = record(data.extracted);
   const coach = record(data.coach);
@@ -46,6 +47,17 @@ export function buildWorkoutDetail(item: LocalHistoryItem) {
       ['Summary', string(coach.workoutSummary)], ['Intensity', string(coach.intensityAssessment)], ['Training Load', string(coach.trainingLoadNote)],
       ['Recovery', string(coach.recoveryAdvice)], ['Nutrition', string(coach.nutritionAfterWorkout)], ['Next Workout', string(coach.nextWorkoutSuggestion)],
     ]);
+  const workoutStart = string(data.workoutStartTime);
+  const workoutEnd = string(data.workoutEndTime);
+  const heartRatePoints = Array.isArray(data.heartRateSamples)
+    ? data.heartRateSamples.map((value) => {
+      const point = record(value);
+      return { at: string(point.at), bpm: numeric(point.bpm) };
+    }).filter((point): point is HeartRatePoint => point.at !== null && point.bpm !== null)
+    : [];
+  const heartRateZones = workoutStart && workoutEnd && physiology?.maxHr && physiology.restingHr
+    ? calculateHeartRateZones({ points: heartRatePoints, workoutStart, workoutEnd, maxHr: physiology.maxHr, restingHr: physiology.restingHr })
+    : null;
   return {
     isStrength,
     isSwim,
@@ -56,6 +68,7 @@ export function buildWorkoutDetail(item: LocalHistoryItem) {
     metrics,
     exercises,
     insights,
+    heartRateZones,
     source: Array.isArray((item as LocalHistoryItem & { reconciledSources?: string[] }).reconciledSources)
       ? (item as LocalHistoryItem & { reconciledSources: string[] }).reconciledSources.join(' + ')
       : item.source?.provider ? titleCase(item.source.provider) : 'RunMate',
@@ -65,6 +78,7 @@ export function buildWorkoutDetail(item: LocalHistoryItem) {
 function record(value: unknown): Record<string, unknown> { return typeof value === 'object' && value !== null ? value as Record<string, unknown> : {}; }
 function string(value: unknown): string | null { return typeof value === 'string' && value.trim() ? value.trim() : null; }
 function number(value: unknown): string | null { return typeof value === 'number' && Number.isFinite(value) ? `${Math.round(value * 10) / 10}` : null; }
+function numeric(value: unknown): number | null { return typeof value === 'number' && Number.isFinite(value) ? value : null; }
 function unit(value: unknown, suffix: string): string | null { const result = number(value); return result ? `${result} ${suffix}` : null; }
 function titleCase(value: string): string { return value.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()); }
 function compactValues(values: Array<[string, string | null]>): Array<{ label: string; value: string }> { return values.filter((value): value is [string, string] => Boolean(value[1])).map(([label, value]) => ({ label, value })); }

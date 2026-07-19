@@ -670,7 +670,7 @@ A draft `runSyncCycle()` was sketched (not yet implemented) with these propertie
 - Samsung Health Sleep start/end timestamps are converted from ISO instants into `Asia/Bangkok` wall-clock time before bedtime/wake consistency and the typical wake time are calculated. This fixes UTC values such as `9:27 PM` appearing as a suggested wake time when the actual Bangkok wake time is early morning.
 - Final verification after these follow-ups: all 78 unit tests passed, ESLint passed, TypeScript/Vite production build passed, and `git diff --check` passed.
 
-## HR Zone Research: WHOOP's Methodology (not implemented yet)
+## HR Zone Research: WHOOP's Methodology
 
 Researched how WHOOP computes its 5 heart-rate zones, as a reference for a possible future RunMate feature (per-workout time-in-zone breakdown). Nothing described here is implemented — this is design research only.
 
@@ -710,7 +710,14 @@ gender?: string;
 1. **No logic anywhere computes or updates `maxHr`** from real workout history. Would need to derive it from the observed max of `heartRate` samples across workouts over time (the Health Connect integration already fetches per-workout maxHR — see the Health Connect spike section above), falling back to an age/gender-based formula only when there isn't enough real data yet.
 2. **No logic buckets heart-rate samples into zones at all.** The Health Connect spike's `deriveWorkoutMetrics()` only computes single avgHR/maxHR/minHR numbers for a workout, not time-in-zone. Doing so would mean: compute the 6 HRR thresholds from `maxHr`/`normalRestingHr`, then classify each `heartRate` sample within the workout's time range into a zone and sum durations per zone — using the same source-filtered sample set already fetched for maxHR/avgHR (no new Health Connect query needed, just new math over data already being pulled).
 
-**Next step, not yet done**: this is still just research; no code has been written for zone computation or a `maxHr` auto-update job. If pursued, it slots naturally alongside the workout mapping/dedup work already in progress (same `heartRate` samples, same `sourceId` filter, same per-workout window).
+### HRR Zones And Workout Load implementation (2026-07-19)
+
+- `src/lib/hrZones.ts` implements Zone 0–5 with Heart Rate Reserve (Karvonen): Restorative below 40%, then 40–60%, 60–70%, 70–80%, 80–90%, and 90%+ HRR.
+- Samsung workout sync persists the source-filtered workout HR timeline as compact `{ at, bpm }` points. Existing records require another Health Connect sync before their zone breakdown can appear.
+- Workout Detail calculates zones from the Profile Max HR and the median valid Resting HR from the latest 14 Sleep records. It does not substitute an age formula or workout minimum HR when either physiology value is missing.
+- Time between consecutive samples is assigned to the earlier sample and capped at 120 seconds. Longer gaps are excluded from measured coverage instead of being presented as continuous HR data.
+- RunMate Load is an explicitly estimated 0–100 session value: each measured minute is weighted by its zone number (Zone 0 = 0 through Zone 5 = 5), then divided by 3 and capped at 100. It is hidden until measured HR coverage reaches 50%.
+- This first release is presentation-only. Workout Load does not modify Recovery, Strain, Race Plan, or AI guidance until it has been checked against real Samsung workouts.
 
 ## Mobile Profile, Health Sync, And Planning Follow-Up (2026-07-19)
 

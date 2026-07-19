@@ -6,6 +6,9 @@ import { loadHistoryItems } from '@/lib/cloudHistory';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { buildWorkoutDetail } from '@/lib/workoutDetail';
 import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
+import { loadProfileFromSupabase } from '@/lib/profileStorage';
+import { restingHeartRateBaseline } from '@/lib/hrZones';
+import type { UserProfile } from '@/types/profile';
 import './WorkoutDetailPage.css';
 
 const WorkoutDetailPage: React.FC = () => {
@@ -14,13 +17,22 @@ const WorkoutDetailPage: React.FC = () => {
   const [item, setItem] = useState<LocalHistoryItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [restingHr, setRestingHr] = useState<number | null>(null);
 
   const load = useCallback(async () => {
-    const result = await loadHistoryItems(['workout', 'strength']);
+    const [result, profileResult] = await Promise.all([loadHistoryItems(['workout', 'strength', 'sleep']), loadProfileFromSupabase()]);
+    if (profileResult.ok) setProfile(profileResult.profile);
     if (!result.ok) setError(result.error);
     else {
+      const sleepRestingHr = result.items
+        .filter((record) => record.type === 'sleep')
+        .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+        .slice(0, 14)
+        .map((record) => numberValue(objectValue(objectValue(record.data).extracted).restingHR));
+      setRestingHr(restingHeartRateBaseline(sleepRestingHr) ?? (profileResult.ok ? profileResult.profile?.normalRestingHr ?? null : null));
       const requestedId = decodeURIComponent(id);
-      const match = dedupeWorkoutItems(result.items).find((record) => record.id === requestedId || record.sourceRecordIds?.includes(requestedId));
+      const match = dedupeWorkoutItems(result.items.filter((record) => record.type === 'workout' || record.type === 'strength')).find((record) => record.id === requestedId || record.sourceRecordIds?.includes(requestedId));
       if (match) setItem(match);
       else setError('This workout record could not be found.');
     }
@@ -28,7 +40,7 @@ const WorkoutDetailPage: React.FC = () => {
   }, [id]);
 
   useEffect(() => { void load(); }, [load]);
-  const detail = item ? buildWorkoutDetail(item) : null;
+  const detail = item ? buildWorkoutDetail(item, { maxHr: profile?.maxHr, restingHr }) : null;
 
   return (
     <IonPage>
@@ -49,6 +61,23 @@ const WorkoutDetailPage: React.FC = () => {
                 <div><p>{detail.isStrength ? 'Strength Training' : 'Workout'}</p><h1>{detail.title}</h1><span>{detail.date}</span></div>
                 {detail.intensity && <strong>{detail.intensity}</strong>}
               </section>
+
+              {detail.heartRateZones && (
+                <section className="workout-detail-section">
+                  <header><p>Heart Rate Reserve</p><h2>Heart Rate Zones</h2></header>
+                  <div className="workout-zone-card">
+                    <div className="workout-load-summary">
+                      <div><span>RunMate Load</span><strong>{detail.heartRateZones.load ? detail.heartRateZones.load.score : '—'}<small>/100</small></strong></div>
+                      <div><span>Coverage</span><strong>{detail.heartRateZones.coveragePercentage}<small>%</small></strong></div>
+                      <em>{detail.heartRateZones.load?.level ?? 'More HR Data Needed'}</em>
+                    </div>
+                    <div className="workout-zone-list">
+                      {[...detail.heartRateZones.zones].reverse().map((zone) => <div key={zone.zone} className={`workout-zone workout-zone-${zone.zone}`}><span>Z{zone.zone}</span><div><strong>{zone.label}</strong><small>{zoneRange(zone.lowerBpm, zone.upperBpm)}</small><i style={{ width: `${zone.percentage}%` }} /></div><b>{formatZoneDuration(zone.seconds)}<small>{zone.percentage}%</small></b></div>)}
+                    </div>
+                    <p className="workout-zone-note">Estimated with HRR using Max HR {detail.heartRateZones.maxHr} and 14-night Resting HR {detail.heartRateZones.restingHr}. Missing sample gaps are excluded.</p>
+                  </div>
+                </section>
+              )}
 
               <section className="workout-detail-section">
                 <header><p>Workout Metrics</p><h2>Session Overview</h2></header>
@@ -80,3 +109,8 @@ const WorkoutDetailPage: React.FC = () => {
 };
 
 export default WorkoutDetailPage;
+
+function objectValue(value: unknown): Record<string, unknown> { return typeof value === 'object' && value !== null ? value as Record<string, unknown> : {}; }
+function numberValue(value: unknown): number | null { return typeof value === 'number' && Number.isFinite(value) ? value : null; }
+function formatZoneDuration(seconds: number): string { const minutes = Math.floor(seconds / 60); const remainder = seconds % 60; return minutes > 0 ? `${minutes}m ${remainder ? `${remainder}s` : ''}`.trim() : `${remainder}s`; }
+function zoneRange(lower: number | null, upper: number | null): string { return lower == null ? `< ${upper == null ? '—' : upper + 1} bpm` : upper == null ? `${lower}+ bpm` : `${lower}–${upper} bpm`; }
