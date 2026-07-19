@@ -143,7 +143,7 @@ const HealthTestPage: React.FC = () => {
   const [copiedEntry, setCopiedEntry] = useState<string | null>(null);
   const [copyError, setCopyError] = useState<string | null>(null);
   const [connection, setConnection] = useState<ConnectionState | null>(null);
-  const [connectionBusy, setConnectionBusy] = useState<'status' | 'connect' | 'sync' | 'settings' | null>('status');
+  const [connectionBusy, setConnectionBusy] = useState<'status' | 'connect' | 'sync' | 'repair' | 'settings' | null>('status');
   const [connectionMessage, setConnectionMessage] = useState<string | null>(null);
   const [syncSummary, setSyncSummary] = useState<SyncSummary | null>(null);
 
@@ -199,6 +199,21 @@ const HealthTestPage: React.FC = () => {
     if (sleep.status === 'permission_required' || workouts.status === 'permission_required') setConnectionMessage('Update Health Connect access before syncing.');
     else if (sleep.error || workouts.error || weight.error) setConnectionMessage(sleep.error ?? workouts.error ?? weight.error ?? 'Could Not Sync Health Connect.');
     else if (weight.status === 'manual_override') setConnectionMessage(`Health Connect found ${weight.weightKg} kg. Your manually entered Body Weight was kept.`);
+    await refreshConnection();
+  };
+
+  const repairWorkouts = async () => {
+    setConnectionBusy('repair');
+    setConnectionMessage(null);
+    const workouts = await syncSamsungWorkouts(30);
+    await showSyncResult({ added: 0, updated: 0, unchanged: 0, failed: 0 }, workouts, setSyncSummary);
+    if (workouts.status === 'permission_required') {
+      setConnectionMessage('Allow Workout and Heart Rate access before repairing your history.');
+    } else if (workouts.error) {
+      setConnectionMessage(workouts.error);
+    } else {
+      setConnectionMessage(`Workout repair complete. Checked ${workouts.imported} records from the last 30 days.`);
+    }
     await refreshConnection();
   };
 
@@ -356,6 +371,12 @@ const HealthTestPage: React.FC = () => {
             <IonButton expand="block" disabled={connectionBusy !== null || !connection?.sleepAuthorized} onClick={() => void syncNow()}>
               {connectionBusy === 'sync' ? <IonSpinner name="crescent" /> : <><IonIcon slot="start" icon={syncOutline} />Sync Now</>}
             </IonButton>
+            <div className="health-repair-action">
+              <IonButton expand="block" fill="outline" disabled={connectionBusy !== null || !connection?.workoutsAuthorized} onClick={() => void repairWorkouts()}>
+                {connectionBusy === 'repair' ? <IonSpinner name="crescent" /> : <><IonIcon slot="start" icon={syncOutline} />Repair Last 30 Days</>}
+              </IonButton>
+              <p>Re-read Workout sessions and Heart Rate samples when older details are incomplete.</p>
+            </div>
             <IonButton expand="block" fill="outline" disabled={connectionBusy !== null || connection?.available === false} onClick={() => void managePermissions()}>
               {connectionBusy === 'settings' ? <IonSpinner name="crescent" /> : <><IonIcon slot="start" icon={settingsOutline} />Manage Permissions</>}
             </IonButton>

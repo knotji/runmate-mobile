@@ -68,13 +68,13 @@ const WorkoutDetailPage: React.FC = () => {
                   <div className="workout-zone-card">
                     <div className="workout-load-summary">
                       <div><span>RunMate Load</span><strong>{detail.heartRateZones.load ? detail.heartRateZones.load.score : '—'}<small>/100</small></strong></div>
-                      <div><span>Coverage</span><strong>{detail.heartRateZones.coveragePercentage}<small>%</small></strong></div>
+                      <div><span>HR Coverage</span><strong>{detail.heartRateZones.coveragePercentage}<small>%</small></strong></div>
                       <em>{detail.heartRateZones.load?.level ?? 'More HR Data Needed'}</em>
                     </div>
                     <div className="workout-zone-list">
-                      {[...detail.heartRateZones.zones].reverse().map((zone) => <div key={zone.zone} className={`workout-zone workout-zone-${zone.zone}`}><span>Z{zone.zone}</span><div><strong>{zone.label}</strong><small>{zoneRange(zone.lowerBpm, zone.upperBpm)}</small><i style={{ width: `${zone.percentage}%` }} /></div><b>{formatZoneDuration(zone.seconds)}<small>{zone.percentage}%</small></b></div>)}
+                      {[...detail.heartRateZones.zones].reverse().map((zone) => <div key={zone.zone} className={`workout-zone workout-zone-${zone.zone}${zone.seconds === 0 ? ' is-empty' : ''}`}><span>Z{zone.zone}</span><div><strong>{zone.label}</strong><small>{zoneRange(zone.lowerBpm, zone.upperBpm)}</small><i style={{ width: `${zone.percentage}%` }} /></div><b>{formatZoneDuration(zone.seconds)}<small>{zone.percentage}%</small></b></div>)}
                     </div>
-                    <p className="workout-zone-note">Estimated with HRR using Max HR {detail.heartRateZones.maxHr} and 14-night Resting HR {detail.heartRateZones.restingHr}. Missing sample gaps are excluded.</p>
+                    <p className="workout-zone-note"><strong>Estimated With HRR</strong><span>Max HR {detail.heartRateZones.maxHr} · Resting HR {detail.heartRateZones.restingHr} · Gaps excluded</span></p>
                   </div>
                 </section>
               )}

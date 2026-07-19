@@ -38,7 +38,7 @@ const WeeklySummaryPage: React.FC = () => {
     <IonContent fullscreen className="weekly-content">
       <IonRefresher slot="fixed" onIonRefresh={refresh}><IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" /></IonRefresher>
       <main className="weekly-shell">
-        <header className="weekly-heading"><p>Last 7 Days</p><h1>Your Training Week</h1><span>A factual summary of the Sleep, Workout, and Meal data logged in RunMate.</span></header>
+        <header className="weekly-heading"><p>Last 7 Days</p><h1>Your Training Week</h1><span>A factual summary of sleep, workouts, and meals logged in RunMate.</span></header>
         {loading && <div className="weekly-state"><IonSpinner name="crescent" /><p>Building Your Summary…</p></div>}
         {!loading && error && <div className="weekly-state weekly-error"><p>{error}</p><button type="button" onClick={() => void load()}>Try Again</button></div>}
         {!loading && summary && <>
@@ -55,7 +55,7 @@ const WeeklySummaryPage: React.FC = () => {
           <section className="weekly-card" aria-labelledby="weekly-recovery-heading">
             <div className="weekly-section-heading"><div><p>Recovery Base</p><h2 id="weekly-recovery-heading">Sleep Consistency</h2></div><IonIcon icon={bedOutline} /></div>
             <div className="weekly-inline-stats"><Metric value={summary.sleepAverageHours === null ? '—' : `${formatNumber(summary.sleepAverageHours)} h`} label="Average Sleep" /><Metric value={String(summary.sleepNights)} label="Nights Logged" /></div>
-            <p className="weekly-data-note">Averages include only the Sleep records available this week.</p>
+            <p className="weekly-data-note">Averages include only sleep records available this week.</p>
           </section>
 
           <section className="weekly-card" aria-labelledby="weekly-nutrition-heading">

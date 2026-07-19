@@ -46,6 +46,9 @@
 @media(max-width:390px){.health-sync-summary-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.health-sync-summary-grid .health-sync-metric:nth-child(n+4){grid-column:span 1}}
 .health-connect-primary-actions { display: grid; gap: 9px; margin-top: 18px; }
 .health-connect-primary-actions ion-button { min-height: 45px; margin: 0; font-size: 11px; font-weight: 800; }
+.health-repair-action { display: grid; gap: 7px; padding: 11px; border: 1px solid #d8e6ef; border-radius: 16px; background: rgba(255,255,255,.72); }
+.health-repair-action ion-button { --border-color: #9dcce1; --color: #247aa7; }
+.health-repair-action p { margin: 0 3px 2px; color: #71879b; font-size: 10px; line-height: 1.45; }
 .health-developer-details { margin-top: 28px; border-top: 1px solid #dce7f1; }
 .health-developer-details > summary { padding: 17px 2px; color: #52718d; cursor: pointer; font-size: 11px; font-weight: 800; }
 .health-developer-body { padding-top: 2px; }

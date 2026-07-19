@@ -2,6 +2,10 @@
 
 Last updated: 2026-07-19
 
+Before changing layout, typography, cards, or user-facing wording, read
+[`UI_GUIDELINES.md`](./UI_GUIDELINES.md). It is the shared app-wide standard for
+page hierarchy, font sizes, text case, spacing, and responsive review.
+
 ## Current state
 
 This repository is an Ionic React + TypeScript + Vite + Capacitor mobile client that uses the existing RunMate Supabase project. The first implemented slice is authentication plus a WHOOP-inspired Recovery dashboard.
@@ -649,6 +653,7 @@ A draft `runSyncCycle()` was sketched (not yet implemented) with these propertie
 ### Health Connect Sync Scope
 
 - `Sync Now` on the Health Connect page performs a 30-day Sleep and Workout backfill.
+- `Repair Last 30 Days` is a separate Workout-focused repair action. It re-reads every Samsung Workout and its in-session Heart Rate samples for the same 30-day window, then upserts the deterministic records so missing HR timelines can be filled without creating duplicate Activity rows.
 - Connecting and granting access also performs the default 30-day backfill.
 - Entering Recovery or Activity, and pull-to-refresh on either page, syncs only today's Bangkok-date records.
 - Today's Sleep query starts at noon on the previous Bangkok day and then retains only sessions attributed to today's wake date. This captures overnight sleep without importing older nights.
@@ -665,6 +670,7 @@ A draft `runSyncCycle()` was sketched (not yet implemented) with these propertie
 - `src/lib/weeklyTrainingSummary.ts` keeps weekly calculations separate from presentation and is unit-tested.
 - Verification: TypeScript/Vite production build passed, ESLint passed, and all 77 unit tests passed. Browser-based visual inspection could not run in this environment because no browser surface was available; real-device layout remains the final visual QA step.
 - Weekly Summary typography was subsequently rebalanced for mobile readability, and every app toolbar title now uses one shared viewport-centered rule. Back and Close actions reserve equal title space and remain independently clickable.
+- Weekly Summary now follows the shared app type hierarchy more closely: Training Load is the single focal card, supporting cards use quieter elevation, essential helper copy is at least 9px, and the 390px layout has dedicated spacing and metric sizing.
 - The weekly date window is strictly today plus the previous six Bangkok dates. Sessions, running distance, active time, active days, and Meal days are recalculated from records inside that window, preventing impossible output such as `8 / 7 Days Logged`.
 - Sleep Window no longer labels the Recovery engine's learned wake time as a Profile value. The action now says `Use Typical Wake Time` because it is derived from recent Sleep records.
 - Samsung Health Sleep start/end timestamps are converted from ISO instants into `Asia/Bangkok` wall-clock time before bedtime/wake consistency and the typical wake time are calculated. This fixes UTC values such as `9:27 PM` appearing as a suggested wake time when the actual Bangkok wake time is early morning.
@@ -718,6 +724,8 @@ gender?: string;
 - Time between consecutive samples is assigned to the earlier sample and capped at 120 seconds. Longer gaps are excluded from measured coverage instead of being presented as continuous HR data.
 - RunMate Load is an explicitly estimated 0–100 session value: each measured minute is weighted by its zone number (Zone 0 = 0 through Zone 5 = 5), then divided by 3 and capped at 100. It is hidden until measured HR coverage reaches 50%.
 - This first release is presentation-only. Workout Load does not modify Recovery, Strain, Race Plan, or AI guidance until it has been checked against real Samsung workouts.
+- Workout Detail was visually rebalanced after the first implementation: Session Overview appears before HR analysis, RunMate Load is the primary HR summary value, coverage is secondary, empty zones are muted, and the HRR methodology note is easier to scan.
+- `UI_GUIDELINES.md` is now the app-wide reference for font roles, Title Case versus Sentence case, spacing, card density, toolbar alignment, metrics, missing data, accessibility, and responsive review. Read it before future visual changes and migrate pages deliberately rather than mechanically rewriting all CSS.
 
 ## Mobile Profile, Health Sync, And Planning Follow-Up (2026-07-19)
 
