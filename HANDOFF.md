@@ -847,3 +847,12 @@ Final verification for this batch:
 - `git diff --check`
 
 All commands above must pass before the signed Android artifact is distributed. Physical-device review remains recommended for the narrowest supported Android viewport and system font scaling.
+
+## Weekly Workout Load Trend (2026-07-19)
+
+- Weekly Summary now includes a separate `Workout Load` card below `Movement At A Glance`. The volume card remains focused on sessions, running distance, and active time; the new card is explicitly about measured cardiovascular intensity.
+- The card totals estimated RunMate Load for the latest seven Bangkok dates, compares it with the previous seven dates, and labels the direction as Starting Point, Easing, Stable, Building, or Rising Quickly.
+- A compact seven-day bar chart distinguishes measured Load, sessions with insufficient HR coverage, and days with no Workout. Coverage copy states how many saved sessions contributed to the total.
+- Each session uses the same HRR calculation as Workout Detail: Profile Max HR, the median valid Resting HR from the latest 14 Sleep records, source HR samples, a 120-second gap cap, and a minimum 50% measured coverage before Load is accepted.
+- The result remains labeled `Estimated`. It does not change Recovery, Strain, Race Plan, Training Adherence, or AI guidance.
+- `src/lib/workoutLoadTrend.ts` owns the pure 7-day/previous-7-day aggregation and is covered by focused unit tests for measured, sparse, and missing-physiology cases.

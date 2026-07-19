@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonSpinner, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
-import { arrowBackOutline, barbellOutline, bedOutline, checkmarkCircleOutline, chevronDownOutline, fastFoodOutline, fitnessOutline, timeOutline } from 'ionicons/icons';
+import { arrowBackOutline, barbellOutline, bedOutline, checkmarkCircleOutline, chevronDownOutline, fastFoodOutline, fitnessOutline, pulseOutline, timeOutline } from 'ionicons/icons';
 import { buildCoachContextFromSupabase, type CoachContext } from '@/lib/buildCoachContext';
 import { buildWeeklyTrainingSummary } from '@/lib/weeklyTrainingSummary';
 import { syncSamsungSleep } from '@/lib/samsungSleepSync';
@@ -10,6 +10,9 @@ import { loadActiveRaceGoalAndPlan } from '@/lib/raceStorage';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
 import { buildTrainingAdherenceHistory, type TrainingAdherenceWeek } from '@/lib/trainingAdherence';
+import { restingHeartRateBaseline } from '@/lib/hrZones';
+import type { LocalHistoryItem } from '@/lib/localHistory';
+import { buildWorkoutLoadTrend } from '@/lib/workoutLoadTrend';
 import './WeeklySummaryPage.css';
 
 const WeeklySummaryPage: React.FC = () => {
@@ -18,6 +21,7 @@ const WeeklySummaryPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [adherenceWeeks, setAdherenceWeeks] = useState<TrainingAdherenceWeek[]>([]);
+  const [workoutItems, setWorkoutItems] = useState<LocalHistoryItem[]>([]);
   const [openAdherenceWeek, setOpenAdherenceWeek] = useState<number | null>(null);
 
   const load = useCallback(async () => {
@@ -25,8 +29,10 @@ const WeeklySummaryPage: React.FC = () => {
     try {
       await Promise.all([syncSamsungSleep('today'), syncSamsungWorkouts('today')]);
       const [nextContext, race, workoutHistory] = await Promise.all([buildCoachContextFromSupabase(), loadActiveRaceGoalAndPlan(), loadHistoryItems(['workout', 'strength'])]);
+      const canonicalWorkouts = workoutHistory.ok ? dedupeWorkoutItems(workoutHistory.items) : [];
       setContext(nextContext);
-      setAdherenceWeeks(race.ok && race.plan && workoutHistory.ok ? buildTrainingAdherenceHistory(race.plan, dedupeWorkoutItems(workoutHistory.items), nextContext.todayDate, 4) : []);
+      setWorkoutItems(canonicalWorkouts);
+      setAdherenceWeeks(race.ok && race.plan ? buildTrainingAdherenceHistory(race.plan, canonicalWorkouts, nextContext.todayDate, 4) : []);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Could Not Load Your Weekly Summary.');
     } finally {
@@ -36,6 +42,13 @@ const WeeklySummaryPage: React.FC = () => {
 
   useEffect(() => { void load(); }, [load]);
   const summary = useMemo(() => context ? buildWeeklyTrainingSummary(context) : null, [context]);
+  const loadTrend = useMemo(() => {
+    if (!context) return null;
+    const profile = context.profile ?? {};
+    const maxHr = finiteNumber(profile.maxHr);
+    const restingHr = restingHeartRateBaseline(context.sleepHistory.slice(0, 14).map((night) => night.restingHR)) ?? finiteNumber(profile.normalRestingHr);
+    return buildWorkoutLoadTrend({ items: workoutItems, todayDate: context.todayDate, maxHr, restingHr });
+  }, [context, workoutItems]);
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(); event.detail.complete(); };
 
   return <IonPage>
@@ -51,7 +64,7 @@ const WeeklySummaryPage: React.FC = () => {
         {!loading && error && <div className="weekly-state weekly-error"><p>{error}</p><button type="button" onClick={() => void load()}>Try Again</button></div>}
         {!loading && summary && <>
           <section className="weekly-hero" aria-labelledby="weekly-training-heading">
-            <div className="weekly-section-heading"><div><p>Training Load</p><h2 id="weekly-training-heading">Movement At A Glance</h2></div><IonIcon icon={fitnessOutline} /></div>
+            <div className="weekly-section-heading"><div><p>Training Volume</p><h2 id="weekly-training-heading">Movement At A Glance</h2></div><IonIcon icon={fitnessOutline} /></div>
             <div className="weekly-primary-metrics">
               <Metric value={String(summary.sessions)} label="Sessions" />
               <Metric value={`${formatNumber(summary.distanceKm)} km`} label="Running" />
@@ -59,6 +72,25 @@ const WeeklySummaryPage: React.FC = () => {
             </div>
             <p className="weekly-data-note">Recorded across {summary.activeDays} active {summary.activeDays === 1 ? 'day' : 'days'}.</p>
           </section>
+
+          {loadTrend && <section className="weekly-card weekly-load-card" aria-labelledby="weekly-load-heading">
+            <div className="weekly-section-heading"><div><p>Measured Intensity</p><h2 id="weekly-load-heading">Workout Load</h2></div><IonIcon icon={pulseOutline} /></div>
+            <div className="weekly-load-summary">
+              <div><strong>{loadTrend.total ?? '—'}</strong><span>{loadTrend.total == null ? '7-Day Total' : 'Load Points · 7-Day Total'}</span></div>
+              <div className={`weekly-load-status status-${loadTrend.status.toLowerCase().replaceAll(' ', '-')}`}><em>Estimated</em><strong>{loadStatusLabel(loadTrend.status)}</strong></div>
+            </div>
+            <div className="weekly-load-chart" role="img" aria-label={loadChartLabel(loadTrend.days)}>
+              {loadTrend.days.map((day) => {
+                const max = Math.max(1, ...loadTrend.days.map((value) => value.load ?? 0));
+                return <div className={`weekly-load-day${day.load != null ? ' has-load' : day.sessions ? ' needs-data' : ''}`} key={day.date}>
+                  <div><i style={{ height: day.load != null ? `${Math.max(8, (day.load / max) * 100)}%` : undefined }} /></div>
+                  <strong>{day.load ?? (day.sessions ? '—' : '')}</strong><span>{formatWeekday(day.date)}</span>
+                </div>;
+              })}
+            </div>
+            <div className="weekly-load-context"><strong>{loadComparison(loadTrend.changePercentage)}</strong><span>{loadTrend.measuredSessions} Of {loadTrend.sessions} Sessions Included</span></div>
+            <p className="weekly-data-note">Calculated only from sessions with at least 50% measured HR coverage. It does not change Recovery or your Training Plan.</p>
+          </section>}
 
           {adherenceWeeks.some((week) => week.planAvailable) && <section className="weekly-card weekly-adherence" aria-labelledby="weekly-adherence-heading">
             <div className="weekly-section-heading"><div><p>Plan Follow-Through</p><h2 id="weekly-adherence-heading">Training Adherence</h2></div><IonIcon icon={checkmarkCircleOutline} /></div>
@@ -110,5 +142,10 @@ function formatNumber(value: number): string { return new Intl.NumberFormat('en-
 function formatMinutes(minutes: number): string { if (!minutes) return '0 min'; const hours = Math.floor(minutes / 60); const rest = Math.round(minutes % 60); return hours ? `${hours}h ${rest}m` : `${rest} min`; }
 function formatShortDate(value: string): string { return new Intl.DateTimeFormat('en-US', { weekday: 'short', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T12:00:00Z`)); }
 function adherenceLabel(status: TrainingAdherenceWeek['days'][number]['status']): string { return ({ completed: 'Completed', modified: 'Adjusted', missed: 'Missed', upcoming: 'Upcoming', recovery: 'Support' })[status]; }
+function finiteNumber(value: unknown): number | null { return typeof value === 'number' && Number.isFinite(value) ? value : null; }
+function formatWeekday(value: string): string { return new Intl.DateTimeFormat('en-US', { weekday: 'narrow', timeZone: 'UTC' }).format(new Date(`${value}T12:00:00Z`)); }
+function loadComparison(change: number | null): string { if (change == null) return 'Building Your Baseline'; if (change === 0) return 'Same As Previous 7 Days'; return `${Math.abs(change)}% ${change > 0 ? 'Higher' : 'Lower'} Than Previous 7 Days`; }
+function loadStatusLabel(status: ReturnType<typeof buildWorkoutLoadTrend>['status']): string { return status === 'Starting Point' ? 'Baseline In Progress' : status; }
+function loadChartLabel(days: Array<{ date: string; load: number | null; sessions: number }>): string { return days.map((day) => `${day.date}: ${day.load == null ? day.sessions ? 'insufficient HR coverage' : 'no workout' : `${day.load} load points`}`).join('; '); }
 
 export default WeeklySummaryPage;
