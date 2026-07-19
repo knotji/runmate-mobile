@@ -1,5 +1,14 @@
 apply plugin: 'com.android.application'
 
+def runMatePackage = new groovy.json.JsonSlurper().parse(rootProject.file('../package.json'))
+def runMateVersionName = System.getenv('RUNMATE_VERSION_NAME') ?: runMatePackage.version
+def configuredVersionCode = System.getenv('RUNMATE_VERSION_CODE')
+def gitCommitCount = providers.exec {
+    workingDir rootProject.projectDir.parentFile
+    commandLine 'git', 'rev-list', '--count', 'HEAD'
+}.standardOutput.asText.get().trim().toInteger()
+def runMateVersionCode = configuredVersionCode ? configuredVersionCode.toInteger() : 1000 + gitCommitCount
+
 android {
     namespace = "com.runmate.mobile"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +16,8 @@ android {
         applicationId "com.runmate.mobile"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode runMateVersionCode
+        versionName runMateVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
