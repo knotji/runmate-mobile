@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type UIEvent } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   IonButton,
@@ -17,6 +17,7 @@ import {
 } from '@ionic/react';
 import { alertCircleOutline, logOutOutline, moonOutline, refreshOutline, sunnyOutline } from 'ionicons/icons';
 import { buildCoachContextFromSupabase, type CoachContext } from '@/lib/buildCoachContext';
+import { buildSupportCards } from '@/lib/recoverySupport';
 import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
 import { supabase } from '@/lib/supabaseClient';
 import './RecoveryPage.css';
@@ -75,7 +76,7 @@ const RecoveryPage: React.FC = () => {
           {!loading && !error && context?.recoverySystem && (
             <>
               <RecoveryDials recovery={context.recoverySystem} onSleepClick={() => history.push('/sleep')} />
-              <FuelInsight recovery={context.recoverySystem} />
+              <DailySupportCarousel context={context} />
               <TrainingGuidance recovery={context.recoverySystem} />
               <RecoveryPlan recovery={context.recoverySystem} />
             </>
@@ -122,29 +123,48 @@ function MetricDial({ label, value, max, tone, onClick }: { label: string; value
     : <div className={`metric-dial dial-${tone}`}>{content}</div>;
 }
 
-function FuelInsight({ recovery }: { recovery: RunMateRecoverySystem }) {
-  const copy = {
-    ready: { label: 'Well Supported', summary: 'Your logged nutrition supports today’s recovery.' },
-    top_up: { label: 'Top Up', summary: 'Add a little more fuel before taking on more strain.' },
-    low: { label: 'Fuel Needed', summary: 'Carbohydrate and protein intake are below target.' },
-    unknown: { label: 'Not Enough Data', summary: 'Log a meal to receive nutrition guidance.' },
-  }[recovery.fuelInsight.status];
+function DailySupportCarousel({ context }: { context: CoachContext }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const cards = buildSupportCards(context);
+
+  const updateActiveCard = (event: UIEvent<HTMLDivElement>) => {
+    const track = event.currentTarget;
+    const center = track.scrollLeft + track.clientWidth / 2;
+    const items = Array.from(track.querySelectorAll<HTMLElement>('.support-card'));
+    let nearest = 0;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    items.forEach((item, index) => {
+      const distance = Math.abs(item.offsetLeft + item.offsetWidth / 2 - center);
+      if (distance < nearestDistance) {
+        nearest = index;
+        nearestDistance = distance;
+      }
+    });
+    setActiveIndex(nearest);
+  };
+
   return (
-    <section className={`fuel-insight fuel-${recovery.fuelInsight.status}`} aria-label="Nutrition support">
-      <div className="fuel-copy">
-        <span>Nutrition support</span>
-        <strong>{copy.label}</strong>
-        <p>{copy.summary}</p>
+    <section className="support-carousel" aria-label="Today's support">
+      <div className={`support-track ${cards.length === 1 ? 'support-single' : ''}`} onScroll={updateActiveCard}>
+        {cards.map((card) => (
+          <article className={`support-card support-${card.category}`} key={card.category}>
+            <span>{card.eyebrow}</span>
+            <strong>{card.title}</strong>
+            <p>{card.summary}</p>
+          </article>
+        ))}
       </div>
+      {cards.length > 1 && (
+        <div className="support-dots" aria-label={`${activeIndex + 1} of ${cards.length}`}>
+          {cards.map((card, index) => <i className={index === activeIndex ? 'active' : ''} key={card.category} />)}
+        </div>
+      )}
     </section>
   );
 }
 
 function TrainingGuidance({ recovery }: { recovery: RunMateRecoverySystem }) {
   const guidance: Array<{ title: string; body: string }> = [];
-  if (recovery.scoreState === 'calibrating') guidance.push({ title: 'Baseline Calibrating', body: 'RunMate is still learning your patterns. Treat today’s score as an early estimate.' });
-  if (recovery.scoreState === 'unscorable') guidance.push({ title: 'More Data Needed', body: 'More overnight data is required for a reliable Recovery score.' });
-  if (recovery.scoreState === 'stale') guidance.push({ title: 'Today’s Recovery Is Unavailable', body: `The latest sleep record is ${recovery.dataFreshness.ageDays ?? 1} day(s) old. Open Sleep details to review it.` });
   if (recovery.scoreState !== 'stale' && recovery.scoreState !== 'unscorable') {
     if (recovery.overallScore < 34) guidance.push({ title: 'Recovery First', body: 'Keep today’s Strain low and prioritize recovery.' });
     else if (recovery.overallScore < 67) guidance.push({ title: 'Keep It Controlled', body: 'Your body is ready for moderate Strain. Avoid an all-out session.' });

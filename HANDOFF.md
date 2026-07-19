@@ -1,12 +1,12 @@
 # RunMate Mobile Handoff
 
-Last updated: 2026-07-18
+Last updated: 2026-07-19
 
 ## Current state
 
 This repository is an Ionic React + TypeScript + Vite + Capacitor mobile client that uses the existing RunMate Supabase project. The first implemented slice is authentication plus a WHOOP-inspired Recovery dashboard.
 
-The work is currently uncommitted on local branch `master`. The branch still points to the scaffold's single `Initial commit`; do not discard the working tree. Review `git status` before making changes.
+The maintained branch is `master`. Review `git status` before making changes and preserve any unrelated local work.
 
 ## How to run
 
@@ -61,7 +61,7 @@ Do not commit the Google client secret. It belongs only in Google Cloud/Supabase
 
 ### Native project requirement
 
-There are currently no `android/` or `ios/` platform directories in this repository. After creating a platform with `npx cap add android` or `npx cap add ios`, register the `com.runmate.mobile` custom URL scheme in the generated Android intent filter and iOS `CFBundleURLTypes`, then run `npx cap sync`. Until that platform-level scheme exists, web Google login can work, but a native browser callback cannot reopen the installed app.
+The Android platform exists under `android/` and registers `com.runmate.mobile://auth/callback` so Google OAuth can reopen the installed app. Run `npx cap sync android` after changing web code or Capacitor configuration. An iOS platform has not been added yet; when it is added, register the same callback through `CFBundleURLTypes` before testing native OAuth.
 
 ## Implemented product flow
 
@@ -72,7 +72,7 @@ There are currently no `android/` or `ios/` platform directories in this reposit
    - Recovery
    - Strain
    - Sleep
-5. Below the dial card, the page retains Nutrition Support, Training Guidance, and the Tonight/Tomorrow recovery plan.
+5. Below the dial card, the page shows a horizontal Daily Support carousel, Training Guidance, and the Tonight/Tomorrow recovery plan.
 6. Tapping the Sleep dial opens `/sleep`, a separate Sleep Details view for current and historical sleep records.
 7. `src/components/MainTabs.tsx` provides the authenticated bottom navigation:
    - `/tabs/recovery`
@@ -155,6 +155,20 @@ The current implementation enforces this contract in `recoverySystem.ts`: stale 
 - Fuel is a Nutrition Support insight, not a fourth readiness score.
 - Meal, carbohydrate, and protein data may change the nutrition copy.
 - Fuel must not increase or decrease the Recovery score.
+
+## Daily Support Carousel
+
+`src/lib/recoverySupport.ts` converts existing Recovery context into concise support cards without changing Recovery, Strain, Sleep, or Fuel calculations.
+
+- Cards display one at a time at full container width and use horizontal scroll snapping.
+- Position dots show the selected card when more than one card is available.
+- Priority is Body Alert, Fuel Support, Hydration Support, then Data Coverage; at most three cards are shown.
+- Body Alert appears only when a Pain or Sick record is active.
+- Fuel Support appears only when logged nutrition indicates `low` or `top_up`.
+- Hydration Support is always available. Because no structured hydration total exists, its low-Strain copy is explicitly a general reminder and never claims the user is dehydrated.
+- Data Coverage is always available and changes to Data Alert for stale/unscorable Recovery or missing Meal data.
+- Recovery freshness and calibration warnings were removed from Training Guidance because the carousel now owns those messages, avoiding duplicate warnings on the same screen.
+- `src/lib/recoverySupport.test.ts` covers the calm-state cards, missing-Recovery behavior, and the three-card priority limit.
 
 ## Sleep Details
 
@@ -262,7 +276,7 @@ git diff --check
 Results:
 
 - ESLint: passed with 0 errors.
-- Vitest: 4 files, 12 tests passed.
+- Vitest: 9 files, 33 tests passed.
 - TypeScript and Vite production build: passed.
 - `git diff --check`: passed.
 - Visible `.tsx`, `.css`, and Cypress text was audited for Thai text and common mojibake sequences.

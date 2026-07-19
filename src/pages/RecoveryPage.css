@@ -135,23 +135,66 @@
   font-weight: 700;
 }
 
-.fuel-insight {
-  display: block;
+.support-carousel {
   margin: 0 0 38px;
+}
+
+.support-track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 100%;
+  gap: 10px;
+  margin-inline: -2px;
+  padding: 0 2px 3px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: inline mandatory;
+  scrollbar-width: none;
+}
+
+.support-track::-webkit-scrollbar { display: none; }
+.support-track.support-single { grid-auto-columns: 100%; }
+
+.support-card {
+  min-height: 112px;
+  display: grid;
+  align-content: center;
+  gap: 5px;
   padding: 16px 18px;
   border: 1px solid rgba(196, 216, 233, 0.7);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.8);
   box-shadow: 0 10px 24px rgba(46, 77, 111, 0.06);
   backdrop-filter: blur(12px);
+  scroll-snap-align: start;
 }
 
-.fuel-copy { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 5px 18px; }
-.fuel-insight span { color: #71849a; font-size: 9px; font-weight: 850; letter-spacing: 0.04em; }
-.fuel-insight strong { grid-row: 2; color: #1d3b5b; font-size: 15px; line-height: 1.25; }
-.fuel-insight p { grid-row: 3; grid-column: 1 / -1; max-width: 36rem; margin: 1px 0 0; color: #63778e; font-size: 11px; line-height: 1.55; }
-.fuel-ready { border-color: #c9e8de; background: rgba(241, 250, 247, 0.88); }
-.fuel-low { border-color: #efd4cf; background: rgba(255, 247, 245, 0.9); }
+.support-card span { color: #71849a; font-size: 9px; font-weight: 850; letter-spacing: 0.04em; }
+.support-card strong { color: #1d3b5b; font-size: 15px; line-height: 1.25; }
+.support-card p { max-width: 36rem; margin: 1px 0 0; color: #63778e; font-size: 11px; line-height: 1.55; }
+.support-body { border-color: #efcdd2; background: rgba(255, 246, 247, 0.92); }
+.support-fuel { border-color: #efd4cf; background: rgba(255, 247, 245, 0.92); }
+.support-hydration { border-color: #c9e2f5; background: rgba(241, 248, 254, 0.92); }
+.support-data { border-color: #e3ddc4; background: rgba(253, 250, 239, 0.92); }
+
+.support-dots {
+  height: 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  margin-top: 9px;
+}
+
+.support-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: #c3d2df;
+  transition: width 160ms ease, background-color 160ms ease;
+}
+
+.support-dots i.active { width: 15px; background: #2c82b5; }
 
 .section-heading {
   margin: 0 2px 15px;
@@ -272,6 +315,5 @@
   .dial-grid { gap: 3px; }
   .dial-ring { padding: 6px; }
   .dial-label { font-size: 9px; }
-  .fuel-copy { grid-template-columns: 1fr; gap: 4px; }
-  .fuel-insight strong, .fuel-insight p { grid-row: auto; grid-column: auto; }
+  .support-track { grid-auto-columns: 100%; }
 }
