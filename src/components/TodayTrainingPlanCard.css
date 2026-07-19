@@ -1,31 +1,47 @@
 .plan-card {
-  min-height: 88px;
   display: grid;
-  align-content: center;
-  gap: 5px;
-  margin: 0 0 16px;
-  padding: 14px 17px;
+  gap: 13px;
+  margin: 0 0 20px;
+  padding: 16px 17px 12px;
   border: 1px solid rgba(196, 216, 233, 0.7);
   border-radius: 18px;
-  background: rgba(237, 247, 255, 0.85);
+  background: rgba(255, 255, 255, 0.88);
   box-shadow: 0 10px 24px rgba(46, 77, 111, 0.06);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
 }
 
+.plan-card-main { display: grid; gap: 5px; }
+
 .plan-card.plan-card-completed {
-  background: rgba(227, 246, 234, 0.85);
   border-color: #c7e9d4;
+  box-shadow: inset 3px 0 #5bb998, 0 10px 24px rgba(46, 77, 111, 0.06);
 }
 
 .plan-card.plan-card-different {
-  background: rgba(255, 249, 230, 0.85);
   border-color: #f3dfa8;
+  box-shadow: inset 3px 0 #e1ad3e, 0 10px 24px rgba(46, 77, 111, 0.06);
 }
 
-.plan-card span { color: #71849a; font-size: 9px; font-weight: 850; letter-spacing: 0.04em; text-transform: uppercase; }
+.plan-card-main > span { color: #2474b2; font-size: 9px; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; }
 .plan-card strong { color: #1d3b5b; font-size: 15px; line-height: 1.25; }
 .plan-card p { max-width: 36rem; margin: 1px 0 0; color: #63778e; font-size: 11px; line-height: 1.45; }
 
 .plan-metrics-line { color: #2e5e85; font-weight: 650; }
 .plan-guidance-line { margin-top: 4px; }
+
+.plan-support-details { border-top: 1px solid rgba(190, 211, 228, .65); }
+.plan-support-details summary { display: flex; align-items: center; justify-content: space-between; padding: 11px 0 2px; color: #54708a; font-size: 10px; font-weight: 800; cursor: pointer; list-style: none; }
+.plan-support-details summary::-webkit-details-marker { display: none; }
+.plan-support-details summary::after { content: '+'; color: #2b7fa9; font-size: 15px; line-height: 1; }
+.plan-support-details[open] summary::after { content: '−'; }
+.plan-support-details summary small { margin-left: auto; margin-right: 9px; padding: 2px 6px; border-radius: 999px; color: #2478a5; background: #e4f3fa; font-size: 8px; }
+.plan-support-list { display: grid; margin-top: 9px; }
+.plan-support-list > div { position: relative; display: grid; gap: 3px; padding: 10px 0 10px 14px; border-top: 1px solid rgba(215, 227, 237, .75); }
+.plan-support-list > div::before { content: ''; position: absolute; top: 15px; left: 1px; width: 6px; height: 6px; border-radius: 50%; background: #8ba7bb; }
+.plan-support-list .plan-support-body::before { background: #d96f7e; }
+.plan-support-list .plan-support-fuel::before { background: #d79b55; }
+.plan-support-list .plan-support-hydration::before { background: #4c9fd0; }
+.plan-support-list .plan-support-data::before { background: #65aa91; }
+.plan-support-list strong { font-size: 12px; }
+.plan-support-list p { margin: 0; }

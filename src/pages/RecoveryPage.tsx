@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type UIEvent } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   IonButton,
@@ -16,12 +16,11 @@ import {
   useIonViewWillEnter,
   type RefresherEventDetail,
 } from '@ionic/react';
-import { alertCircleOutline, moonOutline, refreshOutline, sunnyOutline } from 'ionicons/icons';
+import { alertCircleOutline, chevronForwardOutline, moonOutline, refreshOutline, sunnyOutline } from 'ionicons/icons';
 import { buildCoachContextFromSupabase, type CoachContext } from '@/lib/buildCoachContext';
-import { buildSupportCards } from '@/lib/recoverySupport';
 import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
-import { getTodayPlannedWorkout } from '@/lib/todayTrainingPlan';
 import { TodayTrainingPlanCard } from '@/components/TodayTrainingPlanCard';
+import { formatClockMinutes, loadTonightWakeOverride, parseClockMinutes, sleepWindowForWake } from '@/lib/sleepWindow';
 import './RecoveryPage.css';
 
 const RecoveryPage: React.FC = () => {
@@ -29,6 +28,7 @@ const RecoveryPage: React.FC = () => {
   const [context, setContext] = useState<CoachContext | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [wakeOverrideMinutes, setWakeOverrideMinutes] = useState<number | null>(() => loadTonightWakeOverride());
 
   const loadRecovery = useCallback(async () => {
     setError(null);
@@ -43,7 +43,10 @@ const RecoveryPage: React.FC = () => {
   }, []);
 
   useEffect(() => { void loadRecovery(); }, [loadRecovery]);
-  useIonViewWillEnter(() => { void loadRecovery(); });
+  useIonViewWillEnter(() => {
+    setWakeOverrideMinutes(loadTonightWakeOverride());
+    void loadRecovery();
+  });
 
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => {
     await loadRecovery();
@@ -76,11 +79,8 @@ const RecoveryPage: React.FC = () => {
           {!loading && !error && context?.recoverySystem && (
             <>
               <RecoveryDials recovery={context.recoverySystem} onSleepClick={() => history.push('/sleep')} />
-              {getTodayPlannedWorkout(context)
-                ? <TodayTrainingPlanCard context={context} />
-                : <TrainingGuidance recovery={context.recoverySystem} />}
-              <DailySupportCarousel context={context} />
-              <RecoveryPlan recovery={context.recoverySystem} />
+              <TodayTrainingPlanCard context={context} />
+              <RecoveryPlan recovery={context.recoverySystem} wakeOverrideMinutes={wakeOverrideMinutes} onOpen={() => history.push('/sleep-window')} />
             </>
           )}
         </main>
@@ -125,47 +125,7 @@ function MetricDial({ label, value, max, tone, onClick }: { label: string; value
     : <div className={`metric-dial dial-${tone}`}>{content}</div>;
 }
 
-function DailySupportCarousel({ context }: { context: CoachContext }) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const cards = buildSupportCards(context);
-
-  const updateActiveCard = (event: UIEvent<HTMLDivElement>) => {
-    const track = event.currentTarget;
-    const center = track.scrollLeft + track.clientWidth / 2;
-    const items = Array.from(track.querySelectorAll<HTMLElement>('.support-card'));
-    let nearest = 0;
-    let nearestDistance = Number.POSITIVE_INFINITY;
-    items.forEach((item, index) => {
-      const distance = Math.abs(item.offsetLeft + item.offsetWidth / 2 - center);
-      if (distance < nearestDistance) {
-        nearest = index;
-        nearestDistance = distance;
-      }
-    });
-    setActiveIndex(nearest);
-  };
-
-  return (
-    <section className="support-carousel" aria-label="Today's support">
-      <div className={`support-track ${cards.length === 1 ? 'support-single' : ''}`} onScroll={updateActiveCard}>
-        {cards.map((card) => (
-          <article className={`support-card support-${card.category}`} key={card.category}>
-            <span>{card.eyebrow}</span>
-            <strong>{card.title}</strong>
-            <p>{card.summary}</p>
-          </article>
-        ))}
-      </div>
-      {cards.length > 1 && (
-        <div className="support-dots" aria-label={`${activeIndex + 1} of ${cards.length}`}>
-          {cards.map((card, index) => <i className={index === activeIndex ? 'active' : ''} key={card.category} />)}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function TrainingGuidance({ recovery }: { recovery: RunMateRecoverySystem }) {
+export function TrainingGuidance({ recovery }: { recovery: RunMateRecoverySystem }) {
   const guidance: Array<{ title: string; body: string }> = [];
   if (recovery.scoreState !== 'stale' && recovery.scoreState !== 'unscorable') {
     if (recovery.overallScore < 34) guidance.push({ title: 'Recovery First', body: 'Keep today’s Strain low and prioritize recovery.' });
@@ -189,10 +149,13 @@ function TrainingGuidance({ recovery }: { recovery: RunMateRecoverySystem }) {
   );
 }
 
-function RecoveryPlan({ recovery }: { recovery: RunMateRecoverySystem }) {
+function RecoveryPlan({ recovery, wakeOverrideMinutes, onOpen }: { recovery: RunMateRecoverySystem; wakeOverrideMinutes: number | null; onOpen: () => void }) {
   const sleep = recovery.sleepPerformance;
   const sleepNeedHours = Math.floor(sleep.sleepNeedMinutes / 60);
   const sleepNeedMinutes = sleep.sleepNeedMinutes % 60;
+  const profileWakeMinutes = parseClockMinutes(sleep.targetWakeTime);
+  const wakeMinutes = wakeOverrideMinutes ?? profileWakeMinutes;
+  const window = wakeMinutes == null ? null : sleepWindowForWake(wakeMinutes, sleep.sleepNeedMinutes);
   const recoveryAvailable = recovery.scoreState === 'scored' || recovery.scoreState === 'calibrating';
   const { tomorrowHeadline, tomorrowSummary } = !recoveryAvailable
     ? { tomorrowHeadline: 'Focus On Tonight', tomorrowSummary: 'Recovery isn’t scored yet — hitting your Sleep Need tonight is the best lever you have for tomorrow.' }
@@ -203,25 +166,29 @@ function RecoveryPlan({ recovery }: { recovery: RunMateRecoverySystem }) {
         : { tomorrowHeadline: 'Prioritize Sleep Tonight', tomorrowSummary: 'Recovery is low — tonight’s sleep matters more than usual before adding any intensity tomorrow.' };
   return (
     <section aria-labelledby="plan-heading" className="loop-section">
-      <div className="section-heading"><div><p>Recovery Plan</p><h2 id="plan-heading">Tonight And Tomorrow</h2></div></div>
-      <div className="loop-card primary-loop">
+      <div className="section-heading"><div><p>Tonight</p><h2 id="plan-heading">Your Sleep Plan</h2></div></div>
+      <button type="button" className="loop-card primary-loop sleep-window-link" onClick={onOpen}>
         <IonIcon icon={moonOutline} />
         <div className="sleep-schedule">
           <span>Tonight</span>
-          <h3>{sleep.recommendedInBedTime ? `In Bed By ${sleep.recommendedInBedTime}` : `Sleep ${sleepNeedHours}h ${sleepNeedMinutes}m`}</h3>
-          {sleep.targetSleepTime && sleep.targetWakeTime ? (
+          <h3>{window ? `In Bed By ${formatClockMinutes(window.idealInBedMinutes)}` : `Sleep ${sleepNeedHours}h ${sleepNeedMinutes}m`}</h3>
+          {window ? (
             <div className="sleep-schedule-details">
-              <p className="sleep-times"><span>Asleep</span><strong>{sleep.targetSleepTime}</strong><i aria-hidden="true" /><span>Wake</span><strong>{sleep.targetWakeTime}</strong></p>
+              <p className="sleep-times"><span>Window</span><strong>{formatClockMinutes(window.windowStartMinutes)}–{formatClockMinutes(window.windowEndMinutes)}</strong><i aria-hidden="true" /><span>Wake</span><strong>{formatClockMinutes(window.wakeMinutes)}</strong></p>
               <p className="sleep-need-badge">Sleep Need <strong>{sleepNeedHours}h {sleepNeedMinutes}m</strong></p>
             </div>
           ) : <p className="sleep-schedule-fallback">Set a consistent wake time to unlock a personalized bedtime.</p>}
         </div>
-      </div>
+        <IonIcon className="sleep-window-chevron" icon={chevronForwardOutline} />
+      </button>
+      <details className="recovery-plan-details">
+        <summary>Tomorrow And Load</summary>
       <div className="loop-card">
         <IonIcon icon={sunnyOutline} />
         <div><span>Tomorrow</span><h3>{tomorrowHeadline}</h3><p>{tomorrowSummary}</p></div>
       </div>
       <div className="day-load-line"><span>Today’s Strain</span><strong>{recovery.strain.score.toFixed(1)}/21 · {strainLabel(recovery.strain.level)}</strong></div>
+      </details>
     </section>
   );
 }

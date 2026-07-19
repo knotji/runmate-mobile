@@ -16,6 +16,7 @@ import MealDetailPage from '@/pages/MealDetailPage';
 import HealthDetailPage from '@/pages/HealthDetailPage';
 import RaceGoalPage from '@/pages/RaceGoalPage';
 import HealthTestPage from '@/pages/HealthTestPage';
+import SleepWindowPage from '@/pages/SleepWindowPage';
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -84,6 +85,7 @@ const App: React.FC = () => {
             <Route exact path="/sleep">
               {session ? <SleepDetailPage /> : <Redirect to="/login" />}
             </Route>
+            <Route exact path="/sleep-window">{session ? <SleepWindowPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/activity/workout/:id">
               {session ? <WorkoutDetailPage /> : <Redirect to="/login" />}
             </Route>

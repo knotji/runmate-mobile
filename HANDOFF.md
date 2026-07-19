@@ -515,6 +515,12 @@ Both pages had accumulated too many near-duplicate font sizes with awkward jumps
 - **RecoveryPage**: section headings (`Training Guidance`, `Recovery Plan`) were 21px, towering over the 13-17px card/item titles directly beneath them. Reduced to 18px. Dial numbers (`clamp(25px, 7vw, 35px)`) also nudged down slightly (`clamp(24px, 6.4vw, 32px)`) to soften the jump to the now-smaller headings.
 - **UploadPage**: had 7 distinct sizes (25/17/16/11/10/9/8px) where several were only 1px apart and visually indistinguishable. Consolidated to 4 (25/16/11/9px) — all former 17px and 8px values merged into 16px/9px, all former 10px values merged into 11px.
 
+### Sleep Window and tonight-only wake time
+
+The Recovery Sleep Plan card is now a compact summary that opens `/sleep-window`. The dedicated page lets the user change tomorrow's wake time for tonight only, then immediately recalculates the recommended in-bed window and target asleep time from the current Sleep Need plus a 20-minute wind-down allowance. The override is stored under a Bangkok-date-scoped local-storage key, so it is reused when returning to Recovery but does not silently become the user's Profile wake time or carry into a later date. `Use Profile Time` clears the override.
+
+`src/lib/sleepWindow.ts` owns clock parsing/formatting, date-scoped storage, and the calculation. The page also shows an explicitly estimated cycle range and a collapsed Sleep Cycle Detail explaining how early-, middle-, and late-night stage composition commonly differs. Cycle guidance uses an 80–100 minute range only for education; it does not force bedtime into fixed 90-minute blocks or claim to predict a measured Sleep Stage timeline. Completed measured stages remain on Sleep Details.
+
 ## Android Build
 
 - The Android launcher icon and app name previously shipped as the default Capacitor placeholder (blue X mark, label `runmate-mobile`). Both are now branded:
@@ -523,7 +529,12 @@ Both pages had accumulated too many near-duplicate font sizes with awkward jumps
   - After pulling this change, run `npx cap sync android` and rebuild (`.\gradlew.bat assembleDebug`) so the new icon/name land in the APK; Android caches launcher icons aggressively, so uninstall the previous debug install (or reboot/clear launcher cache) if the old icon still appears.
 - Capacitor Android was added and synced under `android/` with app id `com.runmate.mobile`.
 - The local Android toolchain uses JDK 21, Android SDK Platform 36, and Android Build Tools 35/36.
-- A debug APK was distributed through Firebase App Distribution (project `runmate-mobile`, project number `276482893444`, Android app id `1:276482893444:android:5643c0971817db76a584d1`). Uploading via `firebase-tools appdistribution:distribute` from a bash/MSYS shell on Windows fails with `'C:\Program' is not recognized...` because paths containing spaces (e.g. `JAVA_HOME`, `PATH` entries under `C:\Program Files\...`) get mis-quoted crossing into `cmd.exe`; running the same command from PowerShell works. `firebase-tools login`/`login:ci` also both require a real interactive TTY — run them from the user's own terminal once, not through an automated/non-interactive shell.
+- A debug APK was distributed through Firebase App Distribution (project `runmate-mobile`, project number `276482893444`, Android app id `1:276482893444:android:5643c0971817db76a584d1`). Every new distribution must include `--testers "jirayuknot55@gmail.com"` so the owner receives access/notification; uploading a binary without `--testers` creates the release but does not distribute it. Uploading via `firebase-tools appdistribution:distribute` from a bash/MSYS shell on Windows fails with `'C:\Program' is not recognized...` because paths containing spaces (e.g. `JAVA_HOME`, `PATH` entries under `C:\Program Files\...`) get mis-quoted crossing into `cmd.exe`; running the same command from PowerShell works. `firebase-tools login`/`login:ci` also both require a real interactive TTY — run them from the user's own terminal once, not through an automated/non-interactive shell.
+- Recommended PowerShell distribution command:
+
+  ```powershell
+  npx.cmd firebase-tools appdistribution:distribute "android\app\build\outputs\apk\debug\app-debug.apk" --app "1:276482893444:android:5643c0971817db76a584d1" --testers "jirayuknot55@gmail.com" --release-notes "Describe this build."
+  ```
 - Create fresh web assets with `npm.cmd run build`, then sync them with `npx.cmd cap sync android`.
 - Build a debug APK from `android/` with `.\gradlew.bat assembleDebug` after setting `JAVA_HOME` and `ANDROID_HOME`.
 - The verified debug artifact is generated at `android/app/build/outputs/apk/debug/app-debug.apk`.
@@ -559,6 +570,7 @@ To inspect real values before committing to a mapping/dedup design, a standalone
 
 - `npm install @capgo/capacitor-health`, synced via `npx cap sync android`.
 - `src/pages/HealthTestPage.tsx` + `.css`: buttons for `isAvailable`, `requestAuthorization` (steps/sleep/heartRate/restingHeartRate/heartRateVariability/respiratoryRate/oxygenSaturation/workouts, with `requestHistoryAccess: true`), `checkAuthorization`, `readSamples` per data type (7-day windows), and `queryWorkouts` (30-day window). Each result renders as raw JSON in a scrollable log so real device values can be eyeballed.
+- Every result card has a `Copy` action that copies its formatted raw JSON (or error text), changes briefly to `Copied`, and shows an inline error if clipboard access fails. It uses the browser Clipboard API first and a hidden-textarea fallback for Android WebViews.
 - Routed at `/health-test` in `App.tsx` (same pattern as `/race-goal` — requires `session`, redirects to `/login` otherwise) and reachable from the `More` tab (`src/pages/MorePage.tsx`) as "Health Data Test".
 - `android/app/src/main/AndroidManifest.xml` gained `android.permission.health.READ_HEALTH_DATA_HISTORY` (lets Health Connect return more than ~30 days of history on supporting providers). The plugin's own manifest merges in every per-data-type `READ_*`/`WRITE_*` Health Connect permission automatically — nothing else to declare by hand.
 - **`android/variables.gradle` `minSdkVersion` raised from 24 to 26.** This is a real, unavoidable product trade-off, not a build tweak: Health Connect requires Android 8.0 (API 26)+, so the app can no longer install on Android 7.0/7.1 devices. The build fails with a manifest-merger error (`uses-sdk:minSdkVersion 24 cannot be smaller than version 26`) without this change.

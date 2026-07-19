@@ -4,10 +4,16 @@
 .health-test-actions { display: grid; gap: 8px; margin-bottom: 20px; }
 .health-test-divider { height: 1px; margin: 4px 0; background: #dce7f1; }
 .health-test-log { display: grid; gap: 10px; }
+.health-test-log > .health-copy-button { justify-self: end; margin-bottom: 2px; }
 .health-test-empty { color: #8497a9; font-size: 11px; text-align: center; padding: 20px 0; }
 .health-test-entry { padding: 12px 14px; border: 1px solid #dce7f1; border-radius: 14px; background: #fff; }
-.health-test-entry header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.health-test-entry header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.health-test-entry header > div { min-width: 0; display: grid; gap: 3px; }
 .health-test-entry header strong { color: #203d59; font-size: 12px; }
 .health-test-entry header span { color: #8497a9; font-size: 9px; }
+.health-copy-button { display: flex; align-items: center; gap: 5px; flex: 0 0 auto; padding: 6px 9px; border: 1px solid #c9dce9; border-radius: 999px; color: #247aa8; background: #eef8fc; font: inherit; font-size: 9px; font-weight: 800; }
+.health-copy-button ion-icon { font-size: 13px; }
+.health-copy-button.copied { border-color: #bfe5d8; color: #17745f; background: #eaf8f3; }
+.health-test-copy-error { margin: 0; padding: 9px 11px; border-radius: 10px; color: #9a4f5c; background: #fff0f2; font-size: 10px; }
 .health-test-entry pre { margin: 0; max-height: 300px; overflow: auto; padding: 10px; border-radius: 10px; background: #0f1f2e; color: #cfe6f7; font-size: 10px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
 .health-test-error { margin: 0; color: #9a4f5c; font-size: 11px; }
