@@ -103,7 +103,7 @@ const RecoveryPage: React.FC = () => {
           )}
           {!loading && !error && context?.recoverySystem && (
             <>
-              <RecoveryDials recovery={context.recoverySystem} onSleepClick={() => history.push('/sleep')} />
+              <RecoveryDials recovery={context.recoverySystem} onRecoveryClick={() => history.push('/recovery-trends')} onSleepClick={() => history.push('/sleep')} />
               <TodayTrainingPlanCard context={context} />
               <RecoveryPlan recovery={context.recoverySystem} wakeOverrideMinutes={wakeOverrideMinutes} onOpen={() => history.push('/sleep-window')} />
             </>
@@ -114,13 +114,13 @@ const RecoveryPage: React.FC = () => {
   );
 };
 
-function RecoveryDials({ recovery, onSleepClick }: { recovery: RunMateRecoverySystem; onSleepClick: () => void }) {
+function RecoveryDials({ recovery, onRecoveryClick, onSleepClick }: { recovery: RunMateRecoverySystem; onRecoveryClick: () => void; onSleepClick: () => void }) {
   const recoveryAvailable = recovery.scoreState === 'scored' || recovery.scoreState === 'calibrating';
   return (
     <IonCard className="recovery-dials">
       <IonCardContent>
         <div className="dial-grid">
-          <MetricDial label="Recovery" value={recoveryAvailable ? Math.round(recovery.overallScore) : null} max={100} tone="recovery" />
+          <MetricDial label="Recovery" value={recoveryAvailable ? Math.round(recovery.overallScore) : null} max={100} tone="recovery" onClick={onRecoveryClick} />
           <MetricDial label="Strain" value={recovery.strain.score} max={21} tone="strain" />
           <MetricDial label="Sleep" value={recovery.dataFreshness.status === 'today' ? recovery.sleepPerformance.score : null} max={100} tone="sleep" onClick={onSleepClick} />
         </div>
@@ -146,7 +146,7 @@ function MetricDial({ label, value, max, tone, onClick }: { label: string; value
     </>
   );
   return onClick
-    ? <button type="button" className={`metric-dial metric-dial-button dial-${tone}`} onClick={onClick} aria-label="Open Sleep details">{content}</button>
+    ? <button type="button" className={`metric-dial metric-dial-button dial-${tone}`} onClick={onClick} aria-label={`Open ${label} details`}>{content}</button>
     : <div className={`metric-dial dial-${tone}`}>{content}</div>;
 }
 

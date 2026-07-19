@@ -802,3 +802,12 @@ git push origin v1.0.1
 ```
 
 - Never move or reuse a published version tag. If a release fails after distribution, fix the cause, increment the version, and create a new tag.
+
+## Recovery Calibration And Trends
+
+- The Recovery dial on the main Recovery page now opens `/recovery-trends`; this is a detail route, not another bottom tab.
+- The page provides `7 Days` and `30 Days` ranges with one compact SVG chart for historical Recovery, recorded Sleep Score, and Workout Strain. Strain keeps its domain scale of 0–21 while being normalized only for chart positioning.
+- Historical Recovery is reconstructed per night from the available Sleep Score, HRV, Resting HR, and Respiratory Rate using the same physiological weights and a trailing personal baseline. It is labeled `Calibrating` until at least three older nights exist. Missing nights remain blank and are never converted to zero.
+- `Why Your Score Changed` compares the two latest nights with a Recovery score and describes factual signal movements rather than calling AI or claiming causation. The page also shows per-day score rows and data coverage such as `5/7 Nights`.
+- Pull to refresh performs the existing today-only Samsung Health sync before rebuilding the trend. The normal page load reads persisted history without launching a 30-day Health Connect sync.
+- Browser-based visual QA was unavailable in the implementation session because no browser backend was connected. Unit, type, lint, and build verification still apply; verify the page at 390px and a narrower physical-device viewport before release.

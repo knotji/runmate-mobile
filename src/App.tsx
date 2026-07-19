@@ -20,6 +20,7 @@ import SleepWindowPage from '@/pages/SleepWindowPage';
 import WeeklySummaryPage from '@/pages/WeeklySummaryPage';
 import ProfileSettingsPage from '@/pages/ProfileSettingsPage';
 import NotificationsPage from '@/pages/NotificationsPage';
+import RecoveryTrendsPage from '@/pages/RecoveryTrendsPage';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { refreshNotifications } from '@/lib/notificationService';
 
@@ -102,6 +103,7 @@ const App: React.FC = () => {
               {session ? <SleepDetailPage /> : <Redirect to="/login" />}
             </Route>
             <Route exact path="/sleep-window">{session ? <SleepWindowPage /> : <Redirect to="/login" />}</Route>
+            <Route exact path="/recovery-trends">{session ? <RecoveryTrendsPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/activity/workout/:id">
               {session ? <WorkoutDetailPage /> : <Redirect to="/login" />}
             </Route>
