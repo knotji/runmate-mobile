@@ -198,6 +198,7 @@ function planRowToPlan(row: TrainingPlanRow | null): RacePlan | null {
   if (!row?.phases_json) return null;
   return {
     ...row.phases_json,
+    planStartDate: row.start_date ?? row.phases_json.planStartDate ?? null,
     createdAt: row.created_at ?? row.phases_json.createdAt ?? null,
     updatedAt: row.updated_at ?? row.created_at ?? row.phases_json.updatedAt ?? null,
   };

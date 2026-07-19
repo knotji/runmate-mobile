@@ -94,9 +94,14 @@ const WorkoutDetailPage: React.FC = () => {
               )}
 
               {detail.insights.length > 0 && (
-                <section className="workout-detail-section">
-                  <header><p>Coach Notes</p><h2>Session Guidance</h2></header>
-                  <div className="workout-insight-list">{detail.insights.map((insight) => <div key={insight.label}><span>{insight.label}</span><p>{insight.value}</p></div>)}</div>
+                <section className="workout-detail-section workout-guidance-section">
+                  <details className="workout-guidance-disclosure">
+                    <summary>
+                      <div><p>Coach Notes</p><h2>Session Guidance</h2></div>
+                      <span>{detail.insights.length} {detail.insights.length === 1 ? 'Note' : 'Notes'}</span>
+                    </summary>
+                    <div className="workout-insight-list">{detail.insights.map((insight) => <div key={insight.label}><span>{insight.label}</span><p>{insight.value}</p></div>)}</div>
+                  </details>
                 </section>
               )}
 

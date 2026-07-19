@@ -819,6 +819,8 @@ git push origin v1.0.1
 - `View Week` reveals daily statuses only when requested. A compatible workout near the planned volume is Completed; a different workout or a meaningful distance/duration change is Modified; a past unmatched session is Missed; and a future unmatched session is Upcoming.
 - Rest and Recovery are supportive days. They remain visible in the weekly detail but are excluded from both the adherence denominator and the Missed count.
 - Matching is factual and local; it does not call AI, change the Race Plan, or alter Recovery and Strain calculations.
+- Weekly Summary now extends the same deterministic matching across the latest four calendar weeks. Each available plan week shows its adherence percentage and Completed, Adjusted, and Missed totals; tapping a week reveals the planned active sessions and their status.
+- Historical adherence uses the matching entry from `plan.weeks` based on `planStartDate`. Weeks before the active plan began remain `No Plan Available`; the app never applies the current schedule retroactively. Rest and Recovery are excluded from the denominator and hidden from the expanded active-session list.
 
 ## Bedtime Reminder Reliability Fix
 
@@ -826,3 +828,22 @@ git push origin v1.0.1
 - Notifications refresh whenever the native app returns to the foreground, so a retained login session no longer leaves the previous day's schedule stale.
 - Notifications shows a user-facing `Allow Exact Reminders` warning and Android Settings action when exact alarms are disabled. Notification Diagnostics also reports both display permission and exact-alarm status.
 - After installing this release, open `More > Notifications`, allow Exact Reminders if prompted, then use `Refresh Schedule` and confirm Bedtime Reminder has a pending delivery time.
+
+## App-Wide Layout And Density Sweep (2026-07-19)
+
+- Completed a final consistency pass across Recovery, Activity, Upload, More, Profile & Settings, Notifications, Health Connect, Race Goal, Weekly Summary, Recovery Trends, Sleep Detail, Sleep Window, Workout Detail, Meal Detail, Health Detail, and Sign In.
+- Page shells now share centered toolbar titles, a 600px maximum content width, balanced mobile spacing, readable secondary text, visible keyboard focus, and at least 44px interactive targets where practical.
+- Dense groups of bordered metric cards were consolidated into quieter panels or divided rows. Primary actions and current-day information remain visible while Data Coverage, guidance, diagnostics, history, and other secondary material use disclosures.
+- Sign In now presents Google as the primary path and keeps email/password access available behind a secondary disclosure. Detail pages use the same section-label, heading, body-copy, metric, and read-only-list hierarchy.
+- Weekly Summary now includes deterministic current and historical Training Adherence without retroactively applying the current plan to earlier weeks.
+- This pass did not change Recovery, Sleep, or Strain scoring; Health Connect reconciliation; notification scheduling; or AI prompts and analysis logic.
+
+Final verification for this batch:
+
+- `npm run test.unit -- --run`
+- `npx tsc --noEmit`
+- `npm run lint`
+- `npm run build`
+- `git diff --check`
+
+All commands above must pass before the signed Android artifact is distributed. Physical-device review remains recommended for the narrowest supported Android viewport and system font scaling.

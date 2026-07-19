@@ -94,7 +94,7 @@ const SleepWindowPage: React.FC = () => {
               {savedWake === wakeMinutes && <IonIcon icon={checkmarkCircleOutline} />}
               {saving ? 'Saving…' : savedWake === wakeMinutes ? 'Saved For Tonight' : 'Save For Tonight'}
             </button>
-            <p className="tonight-only-note">Saved to your account for tonight only.</p>
+            <p className="tonight-only-note">{savedWake === wakeMinutes ? 'Saved to your account for tonight only.' : 'This change applies to tonight only.'}</p>
           </section>
           <section className="sleep-window-summary">
             <div><span>Sleep Need</span><strong>{Math.floor(sleep.sleepNeedMinutes / 60)}h {sleep.sleepNeedMinutes % 60}m</strong></div>

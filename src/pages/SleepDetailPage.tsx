@@ -68,7 +68,7 @@ const SleepDetailPage: React.FC = () => {
       </IonHeader>
       <IonContent fullscreen className="sleep-detail-content">
         <main className="sleep-detail-shell">
-          {!context && !error && <div className="sleep-detail-loading"><IonSpinner name="crescent" /><p>Loading sleep details…</p></div>}
+          {!context && !error && <div className="sleep-detail-loading"><IonSpinner name="crescent" /><p>Loading Sleep Details…</p></div>}
           {error && <div className="sleep-detail-loading"><IonIcon icon={warningOutline} /><p>{error}</p></div>}
           {context && recovery && diagnostics && (
             <>
@@ -101,17 +101,14 @@ const SleepDetailPage: React.FC = () => {
                   <p>Recovery Status</p>
                   <h1>{displayedStatusTitle}</h1>
                   <span>{selectedNight
-                    ? `Viewing sleep recorded ${selectedNight.date}`
+                    ? (isLatestNight ? 'Using your latest recorded sleep.' : 'Reviewing a previous sleep record.')
                     : 'No recent sleep session found'}</span>
                 </div>
                 <span className="freshness-badge">{displayedStatusBadge}</span>
               </section>
 
               <section className="sleep-detail-section">
-                <header className="section-heading-row">
-                  <div><p>{isLatestNight ? 'Latest Night' : 'Historical Night'}</p><h2>{selectedNight ? formatDisplayDate(selectedNight.date) : 'No Sleep Data'}</h2></div>
-                  {selectedNight && <span className="night-type-badge">{isLatestNight ? 'Latest' : 'Historical'}</span>}
-                </header>
+                <header><p>{isLatestNight ? 'Latest Night' : 'Historical Night'}</p><h2>Sleep Summary</h2></header>
                 <div className="sleep-metric-grid">
                   <Metric label="Sleep Score" value={formatScore(selectedNight?.score)} suffix={selectedNight?.score == null ? undefined : '/100'} helper="Score recorded for this night" />
                   <Metric label="Sleep Duration" value={formatOptionalMinutes(selectedNight?.durationMinutes)} helper="Total time asleep" />
@@ -122,20 +119,25 @@ const SleepDetailPage: React.FC = () => {
 
               {selectedNight && <SleepStages night={selectedNight} />}
 
-              <section className="sleep-detail-section">
-                <header><p>Data Coverage</p><h2>Signals Available</h2></header>
-                <div className="coverage-list">
-                  {diagnostics.coverage.map((item) => (
-                    <div className="coverage-row" key={item.label}>
-                      <IonIcon icon={item.available ? checkmarkCircleOutline : warningOutline} className={item.available ? 'available' : 'missing'} />
-                      <div className="coverage-copy">
-                        <span>{item.label}</span>
-                        <small>{item.available ? 'Included in sleep analysis' : 'Not received from your data source'}</small>
+              <section className="sleep-detail-section sleep-coverage-section">
+                <details className="sleep-detail-disclosure">
+                  <summary>
+                    <div><p>Data Coverage</p><h2>Signals Available</h2></div>
+                    <span>{diagnostics.coverage.filter((item) => item.available).length}/{diagnostics.coverage.length} Signals</span>
+                  </summary>
+                  <div className="coverage-list">
+                    {diagnostics.coverage.map((item) => (
+                      <div className="coverage-row" key={item.label}>
+                        <IonIcon icon={item.available ? checkmarkCircleOutline : warningOutline} className={item.available ? 'available' : 'missing'} />
+                        <div className="coverage-copy">
+                          <span>{item.label}</span>
+                          <small>{item.available ? 'Included in sleep analysis' : 'Not received from your data source'}</small>
+                        </div>
+                        <strong className={item.available ? 'available' : 'missing'}>{item.value ?? 'Missing'}</strong>
                       </div>
-                      <strong className={item.available ? 'available' : 'missing'}>{item.value ?? 'Missing'}</strong>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                </details>
               </section>
 
               {diagnostics.warnings.length > 0 && (

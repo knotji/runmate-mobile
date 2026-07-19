@@ -58,6 +58,7 @@
   text-align: left;
 }
 .more-menu-button:active { background: #f3f8fc; }
+.more-menu-button:focus-visible { position: relative; z-index: 1; outline: 2px solid #2a89b8; outline-offset: -2px; }
 .more-menu-row + .more-menu-row { border-top: 1px solid #e7eef5; }
 .more-menu-icon {
   width: 38px;
@@ -85,9 +86,8 @@
 .more-account { margin: 24px 2px 0; }
 .more-account ion-button { height: 44px; margin: 0; --border-radius: 13px; font-size: 11px; font-weight: 750; }
 
-@media (max-width: 370px) {
+@media (max-width: 390px) {
   .more-shell { padding-inline: 16px; }
-  .more-menu-row { grid-template-columns: 36px minmax(0, 1fr); padding-inline: 12px; }
+  .more-menu-row { grid-template-columns: 36px minmax(0, 1fr) auto; padding-inline: 12px; }
   .more-menu-icon { width: 36px; height: 36px; }
-  .more-planned { grid-column: 2; justify-self: start; }
 }

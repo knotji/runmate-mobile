@@ -81,3 +81,54 @@
   .upload-review-metrics-section > header h2,
   .workout-review-card > header h2 { font-size: 16px; }
 }
+
+/* Keep the upload flows compact without reducing mobile touch targets. */
+.upload-type-switch button,
+.upload-meal-types button,
+.upload-date-control > button,
+.workout-review-card input,
+.workout-review-card select,
+.upload-review-metrics input {
+  min-height: 44px;
+}
+
+.upload-type-switch button:focus-visible,
+.upload-meal-types button:focus-visible,
+.upload-date-control > button:focus-visible,
+.upload-primary:focus-visible,
+.upload-actions button:focus-visible {
+  outline: 2px solid #2a89b8;
+  outline-offset: 2px;
+}
+
+.upload-picker:focus-within {
+  border-color: #2a89b8;
+  box-shadow: 0 0 0 3px rgba(42,137,184,.12);
+}
+
+.upload-preview-grid button {
+  top: 2px;
+  right: 2px;
+  width: 44px;
+  height: 44px;
+  color: #fff;
+  background: transparent;
+}
+
+.upload-preview-grid button:focus-visible {
+  outline: 2px solid #2a89b8;
+  outline-offset: -2px;
+}
+
+.upload-preview-grid button ion-icon {
+  width: 16px;
+  height: 16px;
+  padding: 7px;
+  border-radius: 999px;
+  background: rgba(24,48,69,.72);
+}
+
+@media (min-width: 351px) and (max-width: 390px) {
+  .upload-meal-types { grid-template-columns: repeat(4, 1fr); }
+  .workout-review-card { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

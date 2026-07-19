@@ -74,3 +74,44 @@
 .diagnostic-state-attention { color: #946524; background: #fff4df; }
 .notification-diagnostics-body > button { width: 100%; min-height: 38px; display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; border: 0; border-radius: 11px; color: #2479a5; background: #edf7fb; font-size: 9px; font-weight: 800; }
 .notification-diagnostics-body > button ion-icon { width: 14px; height: 14px; }
+
+/* Keep troubleshooting controls secondary while preserving readable status text. */
+.notifications-exact-warning button,
+.notification-diagnostics-body > button {
+  min-height: 44px;
+}
+
+.notification-diagnostics summary:focus-visible,
+.notifications-exact-warning button:focus-visible,
+.notifications-test:focus-visible,
+.notifications-refresh:focus-visible,
+.notification-diagnostics-body > button:focus-visible {
+  outline: 2px solid #2a89b8;
+  outline-offset: 2px;
+}
+
+.notification-diagnostics summary span,
+.notification-diagnostics summary small,
+.notification-diagnostics-meta,
+.notification-diagnostics-body article small,
+.diagnostic-state {
+  font-size: 9px;
+}
+
+.notification-diagnostics-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.notification-diagnostics-actions .notifications-test,
+.notification-diagnostics-actions .notifications-refresh {
+  min-height: 44px;
+  margin: 0;
+  padding: 8px;
+}
+
+@media (max-width: 350px) {
+  .notification-diagnostics-actions { grid-template-columns: 1fr; }
+}

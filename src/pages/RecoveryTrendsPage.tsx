@@ -66,12 +66,7 @@ const RecoveryTrendsPage: React.FC = () => {
             {trend.insight.factors.length > 0 && <div className="trend-factor-list">{trend.insight.factors.map((factor) => <div key={factor}><span aria-hidden="true" />{factor}</div>)}</div>}
           </section>
 
-          <section className="trend-history" aria-labelledby="trend-history-heading">
-            <div className="trend-section-heading"><div><p>Daily Detail</p><h2 id="trend-history-heading">Recent Scores</h2></div></div>
-            <div className="trend-history-columns" aria-hidden="true"><span>Date</span><span>Recovery</span><span>Sleep</span><span>Strain</span></div>
-            <div className="trend-history-list">{trend.points.slice().reverse().filter(hasAnyMetric).slice(0, days === 7 ? 7 : 10).map((point) => <TrendRow key={point.date} point={point} />)}</div>
-          </section>
-          <p className="trend-method-note"><IonIcon icon={informationCircleOutline} />Historical Recovery uses available physiological signals and the personal-baseline weighting. Sleep shows the recorded Sleep Score. Missing data stays blank.</p>
+          <TrendHistory points={trend.points} days={days} />
         </>}
       </main>
     </IonContent>
@@ -108,6 +103,17 @@ function TrendChart({ points, compact }: { points: RecoveryTrendPoint[]; compact
 }
 
 function Coverage({ points }: { points: RecoveryTrendPoint[] }) { const count = points.filter((point) => point.recovery != null).length; return <span className="trend-coverage">{count}/{points.length} Nights</span>; }
+function TrendHistory({ points, days }: { points: RecoveryTrendPoint[]; days: 7 | 30 }) {
+  const visiblePoints = points.slice().reverse().filter(hasAnyMetric).slice(0, days === 7 ? 7 : 10);
+  return <section className="trend-history">
+    <details className="trend-history-disclosure">
+      <summary><div><p>Daily Detail</p><h2>Recent Scores</h2></div><span>{visiblePoints.length} Days</span></summary>
+      <div className="trend-history-columns" aria-hidden="true"><span>Date</span><span>Recovery</span><span>Sleep</span><span>Strain</span></div>
+      <div className="trend-history-list">{visiblePoints.map((point) => <TrendRow key={point.date} point={point} />)}</div>
+      <p className="trend-method-note"><IonIcon icon={informationCircleOutline} />Historical Recovery uses available physiological signals and personal-baseline weighting. Sleep shows the recorded Sleep Score. Missing data stays blank.</p>
+    </details>
+  </section>;
+}
 function TrendRow({ point }: { point: RecoveryTrendPoint }) { return <div className="trend-history-row"><div><strong>{formatRowDate(point.date)}</strong><span>{point.state === 'calibrating' ? 'Calibrating' : point.state === 'scored' ? 'Scored' : 'No Recovery Score'}</span></div><Metric label="Recovery" value={point.recovery == null ? '—' : String(point.recovery)} tone="recovery" /><Metric label="Sleep" value={point.sleep == null ? '—' : String(Math.round(point.sleep))} tone="sleep" /><Metric label="Strain" value={point.strain == null ? '—' : point.strain.toFixed(1)} tone="strain" /></div>; }
 function Metric({ label, value, tone }: { label: string; value: string; tone: string }) { return <div className={`trend-row-metric ${tone}`} aria-label={`${label} ${value}`}><strong>{value}</strong></div>; }
 function hasAnyMetric(point: RecoveryTrendPoint): boolean { return point.recovery != null || point.sleep != null || point.strain != null; }

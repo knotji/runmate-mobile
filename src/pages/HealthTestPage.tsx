@@ -375,16 +375,20 @@ const HealthTestPage: React.FC = () => {
             <IonButton expand="block" disabled={connectionBusy !== null || !connection?.sleepAuthorized} onClick={() => void syncNow()}>
               {connectionBusy === 'sync' ? <IonSpinner name="crescent" /> : <><IonIcon slot="start" icon={syncOutline} />Sync Now</>}
             </IonButton>
-            <div className="health-repair-action">
-              <IonButton expand="block" fill="outline" disabled={connectionBusy !== null || !connection?.workoutsAuthorized} onClick={() => void repairWorkouts()}>
-                {connectionBusy === 'repair' ? <IonSpinner name="crescent" /> : <><IonIcon slot="start" icon={syncOutline} />Repair Last 30 Days</>}
-              </IonButton>
-              <p>Re-read Workout sessions and Heart Rate samples when older details are incomplete.</p>
-            </div>
             <IonButton expand="block" fill="outline" disabled={connectionBusy !== null || connection?.available === false} onClick={() => void managePermissions()}>
               {connectionBusy === 'settings' ? <IonSpinner name="crescent" /> : <><IonIcon slot="start" icon={settingsOutline} />Manage Permissions</>}
             </IonButton>
           </section>
+
+          <details className="health-sync-tools">
+            <summary>Sync Tools</summary>
+            <div className="health-repair-action">
+              <IonButton expand="block" fill="outline" disabled={connectionBusy !== null || !connection?.workoutsAuthorized} onClick={() => void repairWorkouts()}>
+                {connectionBusy === 'repair' ? <IonSpinner name="crescent" /> : <><IonIcon slot="start" icon={syncOutline} />Repair Last 30 Days</>}
+              </IonButton>
+              <p>Re-read workout sessions and heart rate samples when older details are incomplete.</p>
+            </div>
+          </details>
 
           <details className="health-developer-details">
             <summary>Developer Details</summary>

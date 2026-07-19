@@ -56,7 +56,7 @@ const LoginPage: React.FC = () => {
         <main className="login-shell">
           <section className="login-intro">
             <div className="brand-mark" aria-hidden="true"><IonIcon icon={pulseOutline} /></div>
-            <p className="eyebrow">RunMate Mobile</p>
+            <p className="eyebrow">RunMate</p>
             <h1>Know Your Body<br />Before You Train</h1>
             <p>See your Recovery, Strain, and Sleep metrics.</p>
           </section>
@@ -75,31 +75,35 @@ const LoginPage: React.FC = () => {
             >
               {googleSubmitting ? <IonSpinner name="crescent" /> : <><IonIcon slot="start" icon={logoGoogle} />Continue With Google</>}
             </IonButton>
-            <div className="login-divider"><span>Or Continue With Email</span></div>
-            <IonItem lines="none" className="login-field">
-              <IonInput
-                label="Email"
-                labelPlacement="stacked"
-                type="email"
-                autocomplete="email"
-                value={email}
-                onIonInput={(event) => setEmail(event.detail.value ?? '')}
-              />
-            </IonItem>
-            <IonItem lines="none" className="login-field">
-              <IonInput
-                label="Password"
-                labelPlacement="stacked"
-                type="password"
-                autocomplete="current-password"
-                value={password}
-                onIonInput={(event) => setPassword(event.detail.value ?? '')}
-              />
-            </IonItem>
+            <details className="login-email-disclosure">
+              <summary>Sign In With Email</summary>
+              <div className="login-email-fields">
+                <IonItem lines="none" className="login-field">
+                  <IonInput
+                    label="Email"
+                    labelPlacement="stacked"
+                    type="email"
+                    autocomplete="email"
+                    value={email}
+                    onIonInput={(event) => setEmail(event.detail.value ?? '')}
+                  />
+                </IonItem>
+                <IonItem lines="none" className="login-field">
+                  <IonInput
+                    label="Password"
+                    labelPlacement="stacked"
+                    type="password"
+                    autocomplete="current-password"
+                    value={password}
+                    onIonInput={(event) => setPassword(event.detail.value ?? '')}
+                  />
+                </IonItem>
+                <IonButton expand="block" type="submit" disabled={submitting || googleSubmitting} className="login-button">
+                  {submitting ? <IonSpinner name="crescent" /> : 'Sign In'}
+                </IonButton>
+              </div>
+            </details>
             {error && <IonText color="danger" className="login-error" role="alert">{error}</IonText>}
-            <IonButton expand="block" type="submit" disabled={submitting || googleSubmitting} className="login-button">
-              {submitting ? <IonSpinner name="crescent" /> : 'Sign In'}
-            </IonButton>
           </form>
         </main>
       </IonContent>

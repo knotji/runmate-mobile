@@ -90,9 +90,6 @@ const RecoveryPage: React.FC = () => {
           <IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" />
         </IonRefresher>
         <main className="recovery-shell metrics-only-shell">
-          <header className="page-heading">
-            <p className="eyebrow">Today's Overview</p>
-          </header>
           {loading && <div className="state-panel"><IonSpinner name="crescent" /><p>Calculating your metrics…</p></div>}
           {!loading && error && (
             <div className="state-panel error-panel">

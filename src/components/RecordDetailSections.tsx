@@ -9,6 +9,7 @@ export function DetailMetrics({ title, metrics, empty }: { title: string; metric
   return <section className="record-section"><header><p>Details</p><h2>{title}</h2></header>{metrics.length ? <div className="record-metric-grid">{metrics.map((metric) => <div key={metric.label}><span>{metric.label}</span><strong>{metric.value}</strong></div>)}</div> : <p className="record-empty">{empty}</p>}</section>;
 }
 
-export function DetailNotes({ title, notes }: { title: string; notes: Array<{ label: string; value: string }> }) {
+export function DetailNotes({ title, notes, collapsible = false }: { title: string; notes: Array<{ label: string; value: string }>; collapsible?: boolean }) {
+  if (collapsible) return <section className="record-section record-notes-section"><details className="record-notes-disclosure"><summary><div><p>Guidance</p><h2>{title}</h2></div><span>{notes.length} {notes.length === 1 ? 'Note' : 'Notes'}</span></summary><div className="record-notes">{notes.map((note) => <div key={note.label}><span>{note.label}</span><p>{note.value}</p></div>)}</div></details></section>;
   return <section className="record-section"><header><p>Guidance</p><h2>{title}</h2></header><div className="record-notes">{notes.map((note) => <div key={note.label}><span>{note.label}</span><p>{note.value}</p></div>)}</div></section>;
 }

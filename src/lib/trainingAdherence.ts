@@ -1,6 +1,6 @@
 import { getHistoryItemDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
-import type { WeekWorkout } from '@/types/race';
+import type { RacePlan, WeekWorkout } from '@/types/race';
 
 export type AdherenceStatus = 'completed' | 'modified' | 'missed' | 'upcoming' | 'recovery';
 
@@ -19,6 +19,30 @@ export type TrainingAdherence = {
   percentage: number;
   days: TrainingAdherenceDay[];
 };
+
+export type TrainingAdherenceWeek = TrainingAdherence & {
+  weekStart: string;
+  weekEnd: string;
+  label: string;
+  planAvailable: boolean;
+};
+
+export function buildTrainingAdherenceHistory(plan: RacePlan | null, actualItems: LocalHistoryItem[], today: string, count = 4): TrainingAdherenceWeek[] {
+  const currentStart = startOfWeek(today);
+  return Array.from({ length: count }, (_, index) => {
+    const weekStart = shiftDate(currentStart, index * -7);
+    const weekEnd = shiftDate(weekStart, 6);
+    const workouts = workoutsForWeek(plan, weekStart, index === 0);
+    const adherence = buildTrainingAdherence(workouts, actualItems, today < weekEnd ? today : weekEnd);
+    return {
+      ...adherence,
+      weekStart,
+      weekEnd,
+      label: index === 0 ? 'This Week' : formatWeekRange(weekStart, weekEnd),
+      planAvailable: workouts.length > 0,
+    };
+  });
+}
 
 export function buildTrainingAdherence(workouts: WeekWorkout[], actualItems: LocalHistoryItem[], today: string): TrainingAdherence {
   const actualByDate = new Map<string, LocalHistoryItem[]>();
@@ -68,6 +92,40 @@ function workoutDate(workout: WeekWorkout, today: string): string {
   const targetDay = weekday(workout.day);
   current.setDate(current.getDate() - current.getDay() + (targetDay >= 0 ? targetDay : current.getDay()));
   return localDateKey(current);
+}
+
+function workoutsForWeek(plan: RacePlan | null, weekStart: string, current: boolean): WeekWorkout[] {
+  if (!plan) return [];
+  if (current && Array.isArray(plan.weeklyPlan) && plan.weeklyPlan.length > 0) return plan.weeklyPlan;
+  if (!plan.planStartDate) return [];
+  const planStart = startOfWeek(plan.planStartDate.slice(0, 10));
+  const weekNumber = Math.floor(dateDiffDays(planStart, weekStart) / 7) + 1;
+  if (weekNumber < 1) return [];
+  return plan.weeks?.find((week) => week.weekNumber === weekNumber)?.workouts ?? [];
+}
+
+function startOfWeek(dateKey: string): string {
+  const date = new Date(`${dateKey}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - date.getUTCDay());
+  return date.toISOString().slice(0, 10);
+}
+
+function shiftDate(dateKey: string, days: number): string {
+  const date = new Date(`${dateKey}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function dateDiffDays(from: string, to: string): number {
+  return Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86_400_000);
+}
+
+function formatWeekRange(start: string, end: string): string {
+  const startDate = new Date(`${start}T12:00:00Z`);
+  const endDate = new Date(`${end}T12:00:00Z`);
+  const startLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(startDate);
+  const endLabel = new Intl.DateTimeFormat('en-US', { month: startDate.getUTCMonth() === endDate.getUTCMonth() ? undefined : 'short', day: 'numeric', timeZone: 'UTC' }).format(endDate);
+  return `${startLabel}–${endLabel}`;
 }
 
 function isSupportiveDay(value: string): boolean {

@@ -26,11 +26,7 @@
   width: min(100%, 600px);
   min-height: calc(100% - 56px);
   margin: 0 auto;
-  padding: 34px 20px max(52px, env(safe-area-inset-bottom));
-}
-
-.page-heading {
-  margin: 0 2px 18px;
+  padding: 24px 20px max(52px, env(safe-area-inset-bottom));
 }
 
 .page-heading .eyebrow,
@@ -62,7 +58,7 @@
 .error-panel > ion-icon { color: var(--ion-color-danger); }
 
 .recovery-dials {
-  margin: 0 0 18px;
+  margin: 0 0 24px;
   border: 0;
   border-radius: 30px;
   background:
@@ -272,6 +268,7 @@
 }
 
 .sleep-window-link { position: relative; width: 100%; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.sleep-window-link:focus-visible { outline: 2px solid #2a89b8; outline-offset: 2px; }
 .sleep-window-link .sleep-schedule { padding-right: 18px; }
 .sleep-window-link .sleep-window-chevron { position: absolute; top: 50%; right: 12px; width: 14px; height: 14px; padding: 0; transform: translateY(-50%); color: #5d91b5; background: transparent; }
 
@@ -303,7 +300,7 @@
 .sleep-times span { color: #8293a7; font-size: 9px; letter-spacing: .04em; text-transform: none; }
 .sleep-times strong { color: #3d5874; font-size: 11px; }
 .sleep-times i { width: 3px; height: 3px; margin: 0 4px; border-radius: 50%; background: #9eb1c5; align-self: center; }
-.sleep-need-badge { padding: 4px 7px; border: 1px solid #c8e0f3; border-radius: 999px; color: #55718d !important; background: rgba(255,255,255,.68); font-size: 8px !important; font-weight: 700; white-space: nowrap; }
+.sleep-need-badge { padding: 4px 7px; border: 1px solid #c8e0f3; border-radius: 999px; color: #55718d !important; background: rgba(255,255,255,.68); font-size: 9px !important; font-weight: 700; white-space: nowrap; }
 .sleep-need-badge strong { color: #265f91; }
 .sleep-schedule-fallback { margin-top: 7px !important; }
 
@@ -319,7 +316,8 @@
 .day-load-line strong { color: #344d68; }
 
 .recovery-plan-details { border-top: 1px solid #dce7f0; }
-.recovery-plan-details summary { display: flex; align-items: center; justify-content: space-between; padding: 12px 3px; color: #55718c; font-size: 10px; font-weight: 800; cursor: pointer; list-style: none; }
+.recovery-plan-details summary { min-height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 10px 3px; color: #55718c; font-size: 10px; font-weight: 800; cursor: pointer; list-style: none; }
+.recovery-plan-details summary:focus-visible { border-radius: 8px; outline: 2px solid #2a89b8; outline-offset: 2px; }
 .recovery-plan-details summary::-webkit-details-marker { display: none; }
 .recovery-plan-details summary::after { content: '+'; color: #247aa8; font-size: 16px; line-height: 1; }
 .recovery-plan-details[open] summary::after { content: '−'; }

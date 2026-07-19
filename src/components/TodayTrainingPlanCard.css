@@ -1,7 +1,7 @@
 .plan-card {
   display: grid;
   gap: 13px;
-  margin: 0 0 20px;
+  margin: 0 0 24px;
   padding: 16px 17px 12px;
   border: 1px solid rgba(196, 216, 233, 0.7);
   border-radius: 18px;
@@ -31,11 +31,12 @@
 .plan-guidance-line { margin-top: 4px; }
 
 .plan-support-details { border-top: 1px solid rgba(190, 211, 228, .65); }
-.plan-support-details summary { display: flex; align-items: center; justify-content: space-between; padding: 11px 0 2px; color: #54708a; font-size: 10px; font-weight: 800; cursor: pointer; list-style: none; }
+.plan-support-details summary { min-height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 9px 0 0; color: #54708a; font-size: 10px; font-weight: 800; cursor: pointer; list-style: none; }
+.plan-support-details summary:focus-visible { border-radius: 8px; outline: 2px solid #2a89b8; outline-offset: 2px; }
 .plan-support-details summary::-webkit-details-marker { display: none; }
 .plan-support-details summary::after { content: '+'; color: #2b7fa9; font-size: 15px; line-height: 1; }
 .plan-support-details[open] summary::after { content: '−'; }
-.plan-support-details summary small { margin-left: auto; margin-right: 9px; padding: 2px 6px; border-radius: 999px; color: #2478a5; background: #e4f3fa; font-size: 8px; }
+.plan-support-details summary small { margin-left: auto; margin-right: 9px; padding: 2px 6px; border-radius: 999px; color: #2478a5; background: #e4f3fa; font-size: 9px; }
 .plan-support-list { display: grid; margin-top: 9px; }
 .plan-support-list > div { position: relative; display: grid; gap: 3px; padding: 10px 0 10px 14px; border-top: 1px solid rgba(215, 227, 237, .75); }
 .plan-support-list > div::before { content: ''; position: absolute; top: 15px; left: 1px; width: 6px; height: 6px; border-radius: 50%; background: #8ba7bb; }

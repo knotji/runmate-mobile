@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonSpinner, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
-import { arrowBackOutline, barbellOutline, bedOutline, fastFoodOutline, fitnessOutline, timeOutline } from 'ionicons/icons';
+import { arrowBackOutline, barbellOutline, bedOutline, checkmarkCircleOutline, chevronDownOutline, fastFoodOutline, fitnessOutline, timeOutline } from 'ionicons/icons';
 import { buildCoachContextFromSupabase, type CoachContext } from '@/lib/buildCoachContext';
 import { buildWeeklyTrainingSummary } from '@/lib/weeklyTrainingSummary';
 import { syncSamsungSleep } from '@/lib/samsungSleepSync';
 import { syncSamsungWorkouts } from '@/lib/samsungWorkoutSync';
+import { loadActiveRaceGoalAndPlan } from '@/lib/raceStorage';
+import { loadHistoryItems } from '@/lib/cloudHistory';
+import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
+import { buildTrainingAdherenceHistory, type TrainingAdherenceWeek } from '@/lib/trainingAdherence';
 import './WeeklySummaryPage.css';
 
 const WeeklySummaryPage: React.FC = () => {
@@ -13,12 +17,16 @@ const WeeklySummaryPage: React.FC = () => {
   const [context, setContext] = useState<CoachContext | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [adherenceWeeks, setAdherenceWeeks] = useState<TrainingAdherenceWeek[]>([]);
+  const [openAdherenceWeek, setOpenAdherenceWeek] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
     try {
       await Promise.all([syncSamsungSleep('today'), syncSamsungWorkouts('today')]);
-      setContext(await buildCoachContextFromSupabase());
+      const [nextContext, race, workoutHistory] = await Promise.all([buildCoachContextFromSupabase(), loadActiveRaceGoalAndPlan(), loadHistoryItems(['workout', 'strength'])]);
+      setContext(nextContext);
+      setAdherenceWeeks(race.ok && race.plan && workoutHistory.ok ? buildTrainingAdherenceHistory(race.plan, dedupeWorkoutItems(workoutHistory.items), nextContext.todayDate, 4) : []);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Could Not Load Your Weekly Summary.');
     } finally {
@@ -52,6 +60,28 @@ const WeeklySummaryPage: React.FC = () => {
             <p className="weekly-data-note">Recorded across {summary.activeDays} active {summary.activeDays === 1 ? 'day' : 'days'}.</p>
           </section>
 
+          {adherenceWeeks.some((week) => week.planAvailable) && <section className="weekly-card weekly-adherence" aria-labelledby="weekly-adherence-heading">
+            <div className="weekly-section-heading"><div><p>Plan Follow-Through</p><h2 id="weekly-adherence-heading">Training Adherence</h2></div><IonIcon icon={checkmarkCircleOutline} /></div>
+            <div className="weekly-adherence-current">
+              <div><strong>{adherenceWeeks[0]?.percentage ?? 0}%</strong><span>This Week</span></div>
+              <p>{adherenceWeeks[0]?.planned ? `${adherenceWeeks[0].completed + adherenceWeeks[0].modified} Of ${adherenceWeeks[0].planned} Sessions Done` : 'No active sessions are planned this week.'}</p>
+            </div>
+            <div className="weekly-adherence-track"><i style={{ width: `${adherenceWeeks[0]?.percentage ?? 0}%` }} /></div>
+            <div className="weekly-adherence-history">
+              {adherenceWeeks.map((week, index) => ({ week, index })).filter(({ week, index }) => index === 0 || week.planAvailable).map(({ week, index }) => <div className={`weekly-adherence-week${openAdherenceWeek === index ? ' open' : ''}`} key={week.weekStart}>
+                <button type="button" disabled={!week.planAvailable} aria-expanded={openAdherenceWeek === index} onClick={() => setOpenAdherenceWeek((open) => open === index ? null : index)}>
+                  <span><strong>{index === 0 ? 'View This Week' : week.label}</strong><small>{`${week.completed} Completed · ${week.modified} Adjusted · ${week.missed} Missed`}</small></span>
+                  <em>{index === 0 ? 'Sessions' : `${week.percentage}%`}</em><IonIcon icon={chevronDownOutline} />
+                </button>
+                {openAdherenceWeek === index && <div className="weekly-adherence-details">
+                  {week.days.filter((day) => day.status !== 'recovery').map((day, dayIndex) => <div key={`${day.date}-${dayIndex}`}><span>{formatShortDate(day.date)}</span><strong>{day.workout.workoutType}</strong><em className={`status-${day.status}`}>{adherenceLabel(day.status)}</em></div>)}
+                </div>}
+              </div>)}
+            </div>
+            {!adherenceWeeks.slice(1).some((week) => week.planAvailable) && <p className="weekly-adherence-empty-history">Previous weeks will appear after you complete another week of this plan.</p>}
+            <p className="weekly-data-note">Rest and Recovery days are not counted toward adherence.</p>
+          </section>}
+
           <section className="weekly-card" aria-labelledby="weekly-recovery-heading">
             <div className="weekly-section-heading"><div><p>Recovery Base</p><h2 id="weekly-recovery-heading">Sleep Consistency</h2></div><IonIcon icon={bedOutline} /></div>
             <div className="weekly-inline-stats"><Metric value={summary.sleepAverageHours === null ? '—' : `${formatNumber(summary.sleepAverageHours)} h`} label="Average Sleep" /><Metric value={String(summary.sleepNights)} label="Nights Logged" /></div>
@@ -78,5 +108,7 @@ const WeeklySummaryPage: React.FC = () => {
 function Metric({ value, label }: { value: string; label: string }) { return <div className="weekly-metric"><strong>{value}</strong><span>{label}</span></div>; }
 function formatNumber(value: number): string { return new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(value); }
 function formatMinutes(minutes: number): string { if (!minutes) return '0 min'; const hours = Math.floor(minutes / 60); const rest = Math.round(minutes % 60); return hours ? `${hours}h ${rest}m` : `${rest} min`; }
+function formatShortDate(value: string): string { return new Intl.DateTimeFormat('en-US', { weekday: 'short', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T12:00:00Z`)); }
+function adherenceLabel(status: TrainingAdherenceWeek['days'][number]['status']): string { return ({ completed: 'Completed', modified: 'Adjusted', missed: 'Missed', upcoming: 'Upcoming', recovery: 'Support' })[status]; }
 
 export default WeeklySummaryPage;

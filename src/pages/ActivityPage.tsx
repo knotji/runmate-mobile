@@ -158,7 +158,7 @@ const ActivityPage: React.FC = () => {
             </section>
           )}
 
-          {loading && <div className="history-state"><IonSpinner name="crescent" /><p>Loading History…</p></div>}
+          {loading && <div className="history-state"><IonSpinner name="crescent" /><p>Loading Activity…</p></div>}
           {!loading && error && <div className="history-state history-error"><p>{error}</p><button type="button" onClick={() => void load()}>Try Again</button></div>}
           {!loading && !error && groupedItems.length === 0 && (
             <div className="history-empty"><IonIcon icon={fitnessOutline} /><h2>No Activity On This Date</h2><p>Choose another date to review previous activity.</p></div>

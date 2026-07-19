@@ -30,7 +30,7 @@ const plannedItems = [
   {
     icon: statsChartOutline,
     title: 'Weekly Summary',
-    summary: 'Review your last 7 days of training, Sleep, and logged Meals.',
+    summary: 'Review the last 7 days of training, sleep, and logged meals.',
     path: '/weekly-summary',
   },
   {
@@ -42,7 +42,7 @@ const plannedItems = [
   {
     icon: notificationsOutline,
     title: 'Notifications',
-    summary: 'Bedtime, missing sleep, workout, and Recovery reminders.',
+    summary: 'Bedtime, missing sleep, workout, and recovery reminders.',
     path: '/notifications',
   },
   {
@@ -65,8 +65,8 @@ const MorePage: React.FC = () => {
       <main className="more-shell">
         <header className="more-heading">
           <p>YOUR RUNMATE</p>
-          <h1>Goals And Preferences</h1>
-          <span>Keep long-term planning and account controls separate from your daily Recovery.</span>
+          <h1>Plan And Personalize</h1>
+          <span>Manage goals, connected health data, summaries, and app preferences.</span>
         </header>
 
         <section className="more-menu" aria-label="More Features">
