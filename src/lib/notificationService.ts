@@ -12,6 +12,21 @@ const CHANNEL = 'runmate-guidance';
 const RECOVERY_KEY = 'runmate:notification-recovery-snapshot:v1';
 const SENT_PREFIX = 'runmate:notification-sent:';
 
+export type NotificationDiagnostic = {
+  key: 'bedtime' | 'missingSleep' | 'plannedWorkout' | 'recoveryChange';
+  label: string;
+  state: 'scheduled' | 'monitoring' | 'off' | 'attention';
+  detail: string;
+  scheduledAt?: string;
+};
+
+export type NotificationDiagnostics = {
+  permission: PermissionState;
+  pendingCount: number;
+  checkedAt: string;
+  rows: NotificationDiagnostic[];
+};
+
 export async function getNotificationPermission(): Promise<PermissionState> {
   if (!Capacitor.isNativePlatform()) return 'prompt';
   return (await LocalNotifications.checkPermissions()).display;
@@ -44,6 +59,37 @@ export async function sendTestNotification(): Promise<boolean> {
   await LocalNotifications.createChannel({ id: CHANNEL, name: 'RunMate Guidance', description: 'Sleep, Workout, and Recovery guidance', importance: 3, visibility: 1 });
   await schedule(TEST_ID, 'RunMate Notifications Are Ready', 'This is a test. Your personal reminders will use the preferences you selected.', new Date(Date.now() + 1200), '/notifications');
   return true;
+}
+
+export async function getNotificationDiagnostics(): Promise<NotificationDiagnostics> {
+  const permission = await getNotificationPermission();
+  const prefs = loadNotificationPreferences();
+  const pending = Capacitor.isNativePlatform() && permission === 'granted'
+    ? (await LocalNotifications.getPending()).notifications
+    : [];
+  const pendingById = new Map(pending.map((notification) => [notification.id, notification]));
+  const definitions: Array<{ key: NotificationDiagnostic['key']; label: string; id: number }> = [
+    { key: 'bedtime', label: 'Bedtime Reminder', id: IDS.bedtime },
+    { key: 'missingSleep', label: 'Missing Sleep Alert', id: IDS.missingSleep },
+    { key: 'plannedWorkout', label: 'Planned Workout', id: IDS.workout },
+    { key: 'recoveryChange', label: 'Recovery Change', id: IDS.recovery },
+  ];
+  const rows = definitions.map(({ key, label, id }): NotificationDiagnostic => {
+    if (!prefs[key]) return { key, label, state: 'off', detail: 'Turned off in your notification preferences.' };
+    if (permission !== 'granted') return { key, label, state: 'attention', detail: 'Notification permission is required.' };
+    const notification = pendingById.get(id);
+    if (notification) return {
+      key,
+      label,
+      state: 'scheduled',
+      detail: notification.title,
+      scheduledAt: notification.schedule?.at ? new Date(notification.schedule.at).toISOString() : undefined,
+    };
+    if (key === 'recoveryChange') return { key, label, state: 'monitoring', detail: 'Waiting for fresh Recovery to change by 15 or more points.' };
+    if (key === 'plannedWorkout') return { key, label, state: 'monitoring', detail: 'No pending session needs a reminder right now.' };
+    return { key, label, state: 'attention', detail: 'No reminder is scheduled. Refresh the schedule to check again.' };
+  });
+  return { permission, pendingCount: pending.filter((notification) => Object.values(IDS).includes(notification.id)).length, checkedAt: new Date().toISOString(), rows };
 }
 
 async function scheduleBedtime(ctx: CoachContext): Promise<boolean> {

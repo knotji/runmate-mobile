@@ -3,7 +3,7 @@ import { useHistory } from 'react-router-dom';
 import { IonButton, IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToggle, IonToolbar, useIonViewWillEnter } from '@ionic/react';
 import { arrowBackOutline, barbellOutline, checkmarkCircleOutline, moonOutline, notificationsOutline, pulseOutline, refreshOutline } from 'ionicons/icons';
 import { loadNotificationPreferences, saveNotificationPreferences, type NotificationPreferences } from '@/lib/notificationPreferences';
-import { getNotificationPermission, refreshNotifications, requestNotificationPermission, sendTestNotification } from '@/lib/notificationService';
+import { getNotificationDiagnostics, getNotificationPermission, refreshNotifications, requestNotificationPermission, sendTestNotification, type NotificationDiagnostics } from '@/lib/notificationService';
 import type { PermissionState } from '@capacitor/core';
 import './NotificationsPage.css';
 import './NotificationsPage.actions.css';
@@ -21,7 +21,11 @@ const NotificationsPage: React.FC = () => {
   const [permission, setPermission] = useState<PermissionState>('prompt');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const load = useCallback(async () => setPermission(await getNotificationPermission()), []);
+  const [diagnostics, setDiagnostics] = useState<NotificationDiagnostics | null>(null);
+  const load = useCallback(async () => {
+    const [nextPermission, nextDiagnostics] = await Promise.all([getNotificationPermission(), getNotificationDiagnostics()]);
+    setPermission(nextPermission); setDiagnostics(nextDiagnostics);
+  }, []);
   useIonViewWillEnter(() => { void load(); });
 
   const enable = async () => {
@@ -31,6 +35,7 @@ const NotificationsPage: React.FC = () => {
     if (next === 'granted') {
       const result = await refreshNotifications();
       setMessage(result.scheduled.length ? `Ready: ${result.scheduled.join(', ')}.` : 'Notifications are enabled. RunMate will schedule guidance when matching data is available.');
+      await load();
     } else setMessage('Notification permission was not granted. You can enable it in Android App Settings.');
     setBusy(false);
   };
@@ -40,6 +45,7 @@ const NotificationsPage: React.FC = () => {
     if (permission === 'granted') {
       setBusy(true); const result = await refreshNotifications(); setBusy(false);
       setMessage(result.scheduled.length ? `Updated: ${result.scheduled.join(', ')}.` : 'Preferences saved. No reminder currently needs scheduling.');
+      await load();
     }
   };
   const testNotification = async () => {
@@ -47,6 +53,14 @@ const NotificationsPage: React.FC = () => {
     const sent = await sendTestNotification();
     setMessage(sent ? 'Test notification scheduled. It should appear in a moment.' : 'Allow notification access before sending a test.');
     setBusy(false);
+  };
+  const refreshSchedule = async () => {
+    setBusy(true);
+    try {
+      const result = await refreshNotifications();
+      setMessage(result.scheduled.length ? `Ready: ${result.scheduled.join(', ')}.` : 'No reminder currently needs scheduling.');
+      await load();
+    } finally { setBusy(false); }
   };
 
   return <IonPage>
@@ -57,9 +71,21 @@ const NotificationsPage: React.FC = () => {
       <section className="notification-list" aria-label="Notification Preferences">{rows.map((row) => <article key={row.key}><IonIcon icon={row.icon} /><div><h2>{row.title}</h2><p>{row.detail}</p><span>{row.timing}</span></div><IonToggle aria-label={row.title} checked={prefs[row.key]} disabled={busy} onIonChange={(event) => void update(row.key, event.detail.checked)} /></article>)}</section>
       {message && <p className="notifications-message" role="status">{message}</p>}
       {permission === 'granted' && <button className="notifications-test" type="button" disabled={busy} onClick={() => void testNotification()}><IonIcon icon={notificationsOutline} />Send Test Notification</button>}
-      {permission === 'granted' && <button className="notifications-refresh" type="button" disabled={busy} onClick={() => { setBusy(true); void refreshNotifications().then((result) => setMessage(result.scheduled.length ? `Ready: ${result.scheduled.join(', ')}.` : 'No reminder currently needs scheduling.')).finally(() => setBusy(false)); }}><IonIcon icon={refreshOutline} />{busy ? 'Refreshing…' : 'Refresh Schedule'}</button>}
+      {permission === 'granted' && <button className="notifications-refresh" type="button" disabled={busy} onClick={() => void refreshSchedule()}><IonIcon icon={refreshOutline} />{busy ? 'Refreshing…' : 'Refresh Schedule'}</button>}
+      <details className="notification-diagnostics">
+        <summary><div><span>Developer Details</span><strong>Notification Diagnostics</strong></div><small>{diagnostics?.pendingCount ?? 0} Scheduled</small></summary>
+        <div className="notification-diagnostics-body">
+          <p className="notification-diagnostics-meta">Checked {diagnostics ? formatDiagnosticTime(diagnostics.checkedAt) : 'Not Yet'} · Permission {permission}</p>
+          {diagnostics?.rows.map((row) => <article key={row.key}><span className={`diagnostic-state diagnostic-state-${row.state}`}>{row.state}</span><div><strong>{row.label}</strong><p>{row.scheduledAt ? `Next: ${formatDiagnosticTime(row.scheduledAt)}` : row.detail}</p>{row.scheduledAt && <small>{row.detail}</small>}</div></article>)}
+          <button type="button" disabled={busy} onClick={() => void load()}><IonIcon icon={refreshOutline} />Check Again</button>
+        </div>
+      </details>
       <p className="notifications-privacy">Preferences are device-specific. Health details stay in RunMate and are not included in notification text.</p>
     </main></IonContent>
   </IonPage>;
 };
+
+function formatDiagnosticTime(value: string): string {
+  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date(value));
+}
 export default NotificationsPage;

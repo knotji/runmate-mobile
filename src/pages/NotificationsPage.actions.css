@@ -22,3 +22,44 @@
 .notifications-test:disabled {
   opacity: .6;
 }
+
+.notification-diagnostics {
+  margin-top: 18px;
+  overflow: hidden;
+  border: 1px solid #d7e5ef;
+  border-radius: 17px;
+  background: rgba(255, 255, 255, .88);
+}
+
+.notification-diagnostics summary {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 15px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.notification-diagnostics summary::-webkit-details-marker { display: none; }
+.notification-diagnostics summary div { display: grid; gap: 3px; }
+.notification-diagnostics summary span { color: #2474a4; font-size: 8px; font-weight: 850; letter-spacing: .09em; text-transform: uppercase; }
+.notification-diagnostics summary strong { color: #1c3b56; font-size: 14px; }
+.notification-diagnostics summary small { padding: 5px 8px; border-radius: 999px; color: #39728f; background: #eaf5fa; font-size: 8px; font-weight: 800; white-space: nowrap; }
+
+.notification-diagnostics-body { padding: 0 15px 15px; border-top: 1px solid #e5edf3; }
+.notification-diagnostics-meta { margin: 0; padding: 11px 0; color: #7d90a1; font-size: 8px; text-transform: capitalize; }
+.notification-diagnostics-body article { display: grid; grid-template-columns: 68px minmax(0, 1fr); gap: 10px; padding: 11px 0; border-top: 1px solid #edf2f6; }
+.notification-diagnostics-body article:first-of-type { border-top: 0; }
+.notification-diagnostics-body article div { min-width: 0; }
+.notification-diagnostics-body article strong { display: block; color: #294861; font-size: 11px; }
+.notification-diagnostics-body article p { margin: 3px 0 0; color: #71879a; font-size: 9px; line-height: 1.4; }
+.notification-diagnostics-body article small { display: block; margin-top: 3px; color: #91a0ae; font-size: 8px; }
+.diagnostic-state { align-self: start; padding: 5px 6px; border-radius: 999px; font-size: 7px; font-weight: 850; text-align: center; text-transform: uppercase; }
+.diagnostic-state-scheduled { color: #177762; background: #e4f6f0; }
+.diagnostic-state-monitoring { color: #2b7298; background: #e8f5fb; }
+.diagnostic-state-off { color: #768797; background: #edf2f5; }
+.diagnostic-state-attention { color: #946524; background: #fff4df; }
+.notification-diagnostics-body > button { width: 100%; min-height: 38px; display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; border: 0; border-radius: 11px; color: #2479a5; background: #edf7fb; font-size: 9px; font-weight: 800; }
+.notification-diagnostics-body > button ion-icon { width: 14px; height: 14px; }
