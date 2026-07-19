@@ -5,6 +5,7 @@ import {
   buildTodayTrainingPlanGuidance,
   getTodayPlannedWorkout,
   getTodayTrainingPlanStatus,
+  isRestDayWorkout,
   translatePlanFieldToEnglish,
 } from '@/lib/todayTrainingPlan';
 
@@ -132,6 +133,11 @@ describe('getTodayTrainingPlanStatus', () => {
     const context = planContext({ todayWorkouts: [{ kind: 'strength' } as CoachContext['todayWorkouts'][number]] });
     expect(getTodayTrainingPlanStatus(context, workout({ workoutType: 'Recovery Walk' }))).toBe('logged_different');
   });
+
+  it('does not count a logged workout as completing a rest day', () => {
+    const context = planContext({ todayWorkouts: [{ kind: 'run' } as CoachContext['todayWorkouts'][number]] });
+    expect(getTodayTrainingPlanStatus(context, workout({ workoutType: 'Rest Day' }))).toBe('logged_different');
+  });
 });
 
 describe('buildTodayTrainingPlanGuidance', () => {
@@ -152,6 +158,22 @@ describe('buildTodayTrainingPlanGuidance', () => {
   it('defers to the plan as written when Recovery is not scorable', () => {
     const context = planContext({ scoreState: 'unscorable' });
     expect(buildTodayTrainingPlanGuidance(context, workout())?.headline).toBe('Follow The Plan');
+  });
+
+  it('gives recovery-specific guidance on a rest day without requiring a score', () => {
+    const context = planContext({ scoreState: 'unscorable' });
+    expect(buildTodayTrainingPlanGuidance(context, workout({ workoutType: 'Rest' }))).toEqual({
+      headline: 'Rest And Recover',
+      summary: 'Take today easy and focus on recovery.',
+    });
+  });
+});
+
+describe('isRestDayWorkout', () => {
+  it('recognizes explicit rest days without treating active recovery as rest', () => {
+    expect(isRestDayWorkout(workout({ workoutType: 'Rest Day' }))).toBe(true);
+    expect(isRestDayWorkout(workout({ workoutType: 'Recovery' }))).toBe(false);
+    expect(isRestDayWorkout(workout({ workoutType: 'Recovery Walk' }))).toBe(false);
   });
 });
 

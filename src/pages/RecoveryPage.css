@@ -79,6 +79,26 @@
   gap: 10px;
 }
 
+.recovery-waiting-message {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+  text-align: center;
+}
+
+.recovery-waiting-message span {
+  display: inline-flex;
+  justify-content: center;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.82);
+  background: rgba(10, 73, 94, 0.24);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+}
+
 .metric-dial {
   --dial-color: #aef2ff;
   min-width: 0;

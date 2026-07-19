@@ -80,6 +80,12 @@ function isPlannedRecoveryType(workoutType: string): boolean {
   );
 }
 
+export function isRestDayWorkout(workout: WeekWorkout | null): boolean {
+  if (!workout) return false;
+  const workoutType = (workout.workoutType ?? '').trim().toLowerCase();
+  return /^(rest|rest day)$/.test(workoutType) || /^(พัก|วันพัก)$/.test(workoutType);
+}
+
 export type TodayTrainingPlanStatus = 'pending' | 'completed' | 'logged_different';
 
 /**
@@ -93,6 +99,7 @@ export type TodayTrainingPlanStatus = 'pending' | 'completed' | 'logged_differen
  */
 export function getTodayTrainingPlanStatus(context: CoachContext, planned: WeekWorkout | null): TodayTrainingPlanStatus {
   if (!planned || context.todayWorkouts.length === 0) return 'pending';
+  if (isRestDayWorkout(planned)) return 'logged_different';
   const plannedType = (planned.workoutType ?? '').toLowerCase();
 
   const loggedStrength = context.todayWorkouts.some((w) => w.kind === 'strength');
@@ -152,6 +159,9 @@ export type TodayTrainingPlanGuidance = {
  */
 export function buildTodayTrainingPlanGuidance(context: CoachContext, planned: WeekWorkout | null): TodayTrainingPlanGuidance | null {
   if (!planned) return null;
+  if (isRestDayWorkout(planned)) {
+    return { headline: 'Rest And Recover', summary: 'Take today easy and focus on recovery.' };
+  }
   const recovery = context.recoverySystem;
   const scorable = recovery.scoreState === 'scored' || recovery.scoreState === 'calibrating';
   const score = scorable ? recovery.overallScore : null;

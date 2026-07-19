@@ -4,6 +4,7 @@ import {
   buildTodayTrainingPlanGuidance,
   getTodayPlannedWorkout,
   getTodayTrainingPlanStatus,
+  isRestDayWorkout,
   translatePlanFieldToEnglish,
 } from '@/lib/todayTrainingPlan';
 import './TodayTrainingPlanCard.css';
@@ -12,15 +13,16 @@ export function TodayTrainingPlanCard({ context }: { context: CoachContext }) {
   const planned = getTodayPlannedWorkout(context);
   const status = planned ? getTodayTrainingPlanStatus(context, planned) : null;
   const guidance = planned ? buildTodayTrainingPlanGuidance(context, planned) : null;
+  const restDay = isRestDayWorkout(planned);
   const supportCards = buildSupportCards(context);
-  const metrics = planned ? [
+  const metrics = planned && !restDay ? [
     planned.distanceKm != null ? `${planned.distanceKm} km` : null,
     planned.durationMin != null ? `${planned.durationMin} min` : null,
     planned.targetPace ? translatePlanFieldToEnglish(planned.targetPace) : null,
     planned.targetHR ? translatePlanFieldToEnglish(planned.targetHR) : null,
-  ].filter((metric): metric is string => Boolean(metric)) : [];
+  ].filter((metric): metric is string => typeof metric === 'string' && metric.length > 0 && !/^0 (km|min)$|^N\/A$/i.test(metric)) : [];
   const title = planned
-    ? status === 'pending' ? planned.workoutType : context.todayPrimaryWorkout?.label ?? planned.workoutType
+    ? restDay && status === 'pending' ? 'Rest Day' : status === 'pending' ? planned.workoutType : context.todayPrimaryWorkout?.label ?? planned.workoutType
     : fallbackFocus(context);
 
   return (

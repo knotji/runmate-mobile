@@ -113,6 +113,11 @@ const RecoveryPage: React.FC = () => {
 
 function RecoveryDials({ recovery, onRecoveryClick, onSleepClick }: { recovery: RunMateRecoverySystem; onRecoveryClick: () => void; onSleepClick: () => void }) {
   const recoveryAvailable = recovery.scoreState === 'scored' || recovery.scoreState === 'calibrating';
+  const waitingMessage = recoveryAvailable
+    ? null
+    : recovery.dataFreshness.status === 'today'
+      ? 'Waiting For Recovery Signals'
+      : 'Waiting For Last Night\'s Sleep';
   return (
     <IonCard className="recovery-dials">
       <IonCardContent>
@@ -121,6 +126,11 @@ function RecoveryDials({ recovery, onRecoveryClick, onSleepClick }: { recovery: 
           <MetricDial label="Strain" value={recovery.strain.score} max={21} tone="strain" />
           <MetricDial label="Sleep" value={recovery.dataFreshness.status === 'today' ? recovery.sleepPerformance.score : null} max={100} tone="sleep" onClick={onSleepClick} />
         </div>
+        {waitingMessage && (
+          <div className="recovery-waiting-message" role="status">
+            <span>{waitingMessage}</span>
+          </div>
+        )}
       </IonCardContent>
     </IonCard>
   );
