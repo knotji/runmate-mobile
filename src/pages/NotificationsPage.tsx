@@ -9,7 +9,7 @@ import './NotificationsPage.css';
 import './NotificationsPage.actions.css';
 
 const rows: Array<{ key: keyof NotificationPreferences; icon: string; title: string; detail: string; timing: string }> = [
-  { key: 'bedtime', icon: moonOutline, title: 'Bedtime Reminder', detail: 'Uses your Sleep Window and Default Wake Time.', timing: 'At The Start Of Your Sleep Window' },
+  { key: 'bedtime', icon: moonOutline, title: 'Bedtime Reminder', detail: 'Uses your Sleep Window and Default Wake Time.', timing: '1 Hour Before Your In-Bed Target' },
   { key: 'missingSleep', icon: notificationsOutline, title: 'Missing Sleep Alert', detail: 'Checks after the morning Health Connect refresh.', timing: 'After 8:00 AM · Once Per Day' },
   { key: 'plannedWorkout', icon: barbellOutline, title: 'Planned Workout', detail: 'Uses today’s Race Plan and Preferred Training Time.', timing: 'Only While The Session Is Pending' },
   { key: 'recoveryChange', icon: pulseOutline, title: 'Recovery Change', detail: 'Alerts only after a meaningful score movement.', timing: '15+ Points · Once Per Day' },

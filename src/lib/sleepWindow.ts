@@ -28,6 +28,10 @@ export function formatClockMinutes(minutes: number): string {
   return `${hour24 % 12 || 12}:${String(normalized % 60).padStart(2, '0')} ${hour24 >= 12 ? 'PM' : 'AM'}`;
 }
 
+export function bedtimeReminderMinutes(asleepMinutes: number, leadMinutes = 60): number {
+  return normalizeDayMinutes(asleepMinutes - leadMinutes);
+}
+
 export function sleepWindowForWake(wakeMinutes: number, sleepNeedMinutes: number) {
   const asleepMinutes = normalizeDayMinutes(wakeMinutes - sleepNeedMinutes);
   const idealInBedMinutes = normalizeDayMinutes(asleepMinutes - 20);

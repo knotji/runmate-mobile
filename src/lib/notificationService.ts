@@ -3,7 +3,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { buildCoachContextFromSupabase, type CoachContext } from '@/lib/buildCoachContext';
 import { getTodayPlannedWorkout, getTodayTrainingPlanStatus } from '@/lib/todayTrainingPlan';
 import { loadDefaultWakeTime, loadTonightWakePlan } from '@/lib/sleepWindowStorage';
-import { parseClockMinutes, sleepWindowForWake } from '@/lib/sleepWindow';
+import { bedtimeReminderMinutes, parseClockMinutes, sleepWindowForWake } from '@/lib/sleepWindow';
 import { isMeaningfulRecoveryChange, isRestWorkout, loadNotificationPreferences, preferredTrainingMinutes } from '@/lib/notificationPreferences';
 
 const IDS = { bedtime: 41001, workout: 41002, missingSleep: 41003, recovery: 41004 };
@@ -100,8 +100,9 @@ async function scheduleBedtime(ctx: CoachContext): Promise<boolean> {
   const wake = tonight.minutes ?? profileWake ?? derivedWake;
   if (wake == null) return false;
   const window = sleepWindowForWake(wake, sleep.sleepNeedMinutes);
-  const at = nextLocalClock(window.windowStartMinutes);
-  await schedule(IDS.bedtime, 'Your Sleep Window Is Starting', `Aim to be asleep by ${clockLabel(window.asleepMinutes)} for ${durationLabel(sleep.sleepNeedMinutes)} of sleep.`, at, '/sleep-window');
+  const reminderMinutes = bedtimeReminderMinutes(window.idealInBedMinutes);
+  const at = nextLocalClock(reminderMinutes);
+  await schedule(IDS.bedtime, 'Start Winding Down For Sleep', `Your in-bed target is ${clockLabel(window.idealInBedMinutes)}. You have 1 hour to get ready for ${durationLabel(sleep.sleepNeedMinutes)} of sleep.`, at, '/sleep-window');
   return true;
 }
 

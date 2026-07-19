@@ -747,6 +747,7 @@ Still requires physical-device confirmation: Samsung Health Body Weight should b
 - Notification taps route to Notifications, Sleep Window, or Recovery as appropriate. Android notification permission and reboot rescheduling are supplied by `@capacitor/local-notifications`.
 - Important platform boundary: this is not a hidden Samsung Health background import. Capacitor Background Runner cannot invoke the Health Connect plugin from its headless JavaScript runtime. Health Connect remains foreground-triggered; native notification scheduling provides the morning reminder while Recovery changes are evaluated after a real foreground sync. A true background Health Connect importer would require a dedicated native Android Worker that reproduces reconciliation and authenticated persistence.
 - Android release identity is now automatic: `versionName` comes from `package.json`, while `versionCode` defaults to `1000 + git commit count`. Build automation may override either value with `RUNMATE_VERSION_NAME` and `RUNMATE_VERSION_CODE`. Build distributable APKs only after committing so each distributed commit receives its final monotonic build number.
+- Bedtime Reminder is scheduled exactly 60 minutes before the calculated `In Bed By` target, including targets after midnight. Its notification opens Sleep Window so the user can review or adjust tonight's wake plan.
 
 ## Android Signed Release Pipeline (2026-07-19)
 
