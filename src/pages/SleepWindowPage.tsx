@@ -84,7 +84,7 @@ const SleepWindowPage: React.FC = () => {
           <section className="sleep-window-card">
             <div className="sleep-window-card-heading"><IonIcon icon={timeOutline} /><div><p>Tomorrow</p><h2>Choose Your Wake Time</h2></div></div>
             <label className="sleep-window-picker"><span>Wake Time</span><input type="time" value={formatTimeInput(window.wakeMinutes)} onChange={(event) => changeWake(event.target.value)} /></label>
-            {wakeOverride != null && profileWake != null && <button type="button" className="profile-wake-button" disabled={saving} onClick={() => void restoreProfileWake()}><IonIcon icon={refreshOutline} />Use Profile Time · {formatClockMinutes(profileWake)}</button>}
+            {wakeOverride != null && profileWake != null && <button type="button" className="profile-wake-button" disabled={saving} onClick={() => void restoreProfileWake()}><IonIcon icon={refreshOutline} />Use Typical Wake Time · {formatClockMinutes(profileWake)}</button>}
             {saveError && <p className="sleep-window-save-error">{saveError}</p>}
             <button type="button" className={`save-tonight-button ${savedWake === wakeMinutes ? 'saved' : ''}`} disabled={saving || savedWake === wakeMinutes} onClick={() => void saveForTonight()}>
               {savedWake === wakeMinutes && <IonIcon icon={checkmarkCircleOutline} />}

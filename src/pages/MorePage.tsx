@@ -14,6 +14,7 @@ import {
   logOutOutline,
   notificationsOutline,
   personCircleOutline,
+  statsChartOutline,
 } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
@@ -25,6 +26,12 @@ const plannedItems = [
     title: 'Race Goal',
     summary: 'Race date, distance, target time, and training progress.',
     path: '/race-goal',
+  },
+  {
+    icon: statsChartOutline,
+    title: 'Weekly Summary',
+    summary: 'Review your last 7 days of training, Sleep, and logged Meals.',
+    path: '/weekly-summary',
   },
   {
     icon: personCircleOutline,

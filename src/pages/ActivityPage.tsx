@@ -24,6 +24,7 @@ import { dedupeSleepItems } from '@/lib/sleepDedupe';
 import { syncSamsungSleep } from '@/lib/samsungSleepSync';
 import { syncSamsungWorkouts } from '@/lib/samsungWorkoutSync';
 import { dedupeWorkoutItems, type MergedWorkoutItem } from '@/lib/workoutDedupe';
+import { buildDailyNutritionSummary } from '@/lib/activityNutritionSummary';
 import './ActivityPage.css';
 
 const ActivityPage: React.FC = () => {
@@ -70,6 +71,7 @@ const ActivityPage: React.FC = () => {
     return [...groups.entries()].sort(([a], [b]) => b.localeCompare(a));
   }, [items, selectedDate]);
   const availableDates = useMemo(() => new Set([...items.map(getHistoryItemDateKey), todayDate]), [items, todayDate]);
+  const nutritionSummary = useMemo(() => buildDailyNutritionSummary(items, selectedDate), [items, selectedDate]);
   const sortedDates = useMemo(() => [...availableDates].sort(), [availableDates]);
   const selectedDateIndex = sortedDates.indexOf(selectedDate);
 
@@ -120,6 +122,24 @@ const ActivityPage: React.FC = () => {
             {selectedDate !== todayDate && <button type="button" className="activity-inline-current" disabled={dateLoading} onClick={() => moveToDate(todayDate)}>Current</button>}
           </nav>
 
+          {!loading && !error && nutritionSummary && (
+            <section className="daily-nutrition-summary" aria-labelledby="daily-nutrition-heading">
+              <header>
+                <div><p>Logged Nutrition</p><h2 id="daily-nutrition-heading">Daily Meal Total</h2></div>
+                <span>{nutritionSummary.mealCount} {nutritionSummary.mealCount === 1 ? 'Meal' : 'Meals'}</span>
+              </header>
+              <div className="daily-nutrition-calories">
+                <strong>{formatMetric(nutritionSummary.caloriesKcal)}</strong><span>kcal logged</span>
+              </div>
+              <div className="daily-nutrition-macros">
+                <NutritionMetric label="Protein" value={nutritionSummary.proteinG} />
+                <NutritionMetric label="Carbs" value={nutritionSummary.carbsG} />
+                <NutritionMetric label="Fat" value={nutritionSummary.fatG} />
+              </div>
+              <small>Based only on meals logged for this date.</small>
+            </section>
+          )}
+
           {loading && <div className="history-state"><IonSpinner name="crescent" /><p>Loading History…</p></div>}
           {!loading && error && <div className="history-state history-error"><p>{error}</p><button type="button" onClick={() => void load()}>Try Again</button></div>}
           {!loading && !error && groupedItems.length === 0 && (
@@ -156,6 +176,10 @@ const ActivityPage: React.FC = () => {
     </IonPage>
   );
 };
+
+function NutritionMetric({ label, value }: { label: string; value: number | null }) {
+  return <div><span>{label}</span><strong>{formatMetric(value)}{value !== null ? ' g' : ''}</strong></div>;
+}
 
 function HistoryRow({ item, deleting, onDelete }: { item: LocalHistoryItem; deleting: boolean; onDelete: () => void }) {
   const history = useHistory();
@@ -232,5 +256,6 @@ function workoutSourceLabel(item: LocalHistoryItem): string {
 function formatSelectedDate(date: string): string { return new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(`${date}T12:00:00`)); }
 function formatMonthDay(date: string): string { return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(`${date}T12:00:00`)); }
 function bangkokDate(offsetDays: number): string { return new Date(Date.now() + 7 * 60 * 60 * 1000 + offsetDays * 86_400_000).toISOString().slice(0, 10); }
+function formatMetric(value: number | null): string { return value === null ? '—' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(value); }
 
 export default ActivityPage;

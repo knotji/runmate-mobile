@@ -113,6 +113,23 @@ function median(values: number[]): number | null {
 
 function circularTimeMinutes(value: string | null): number | null {
   if (!value) return null;
+  if (value.includes('T')) {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Bangkok',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      }).formatToParts(date);
+      const hour = Number(parts.find((part) => part.type === 'hour')?.value);
+      const minute = Number(parts.find((part) => part.type === 'minute')?.value);
+      if (Number.isFinite(hour) && Number.isFinite(minute)) {
+        const localMinutes = hour * 60 + minute;
+        return localMinutes < 12 * 60 ? localMinutes + 24 * 60 : localMinutes;
+      }
+    }
+  }
   const match = value.match(/(?:T|^)(\d{1,2}):(\d{2})/);
   if (!match) return null;
   let minutes = Number(match[1]) * 60 + Number(match[2]);

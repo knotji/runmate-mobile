@@ -654,3 +654,18 @@ A draft `runSyncCycle()` was sketched (not yet implemented) with these propertie
 - Today's Sleep query starts at noon on the previous Bangkok day and then retains only sessions attributed to today's wake date. This captures overnight sleep without importing older nights.
 - Initial Recovery/Activity loading uses only Ionic's view-entry trigger, avoiding the previous duplicate request from both React mount and Ionic view entry.
 - Health Connect displays a Latest Sync summary after Connect or Sync Now: Added, Updated, Reconciled, Unchanged, and Failed. Added/Updated/Unchanged compare deterministic Samsung record IDs and semantic health fields while ignoring the changing import timestamp. Reconciled counts canonical Sleep/Workout sessions currently combining Samsung Health and Upload provenance.
+
+### Weekly Training And Daily Nutrition Summaries (2026-07-19)
+
+- Activity now shows a compact `Daily Meal Total` for the selected date whenever Meal records exist. Calories are the primary value, with Protein, Carbs, and Fat shown together below it.
+- The nutrition card totals only meals logged on that date. Missing nutrition fields remain `—`; they are never converted into zero. Copy explicitly labels the result as logged data rather than a full-day dietary estimate.
+- `src/lib/activityNutritionSummary.ts` owns the pure selected-date aggregation and has coverage for multiple meals, date filtering, and unavailable macros.
+- More now links to `/weekly-summary`. The new Weekly Summary page combines the already-deduplicated 7-day Coach Context into Sessions, Running Distance, Active Time, Active Days, Average Sleep, Nights Logged, Meal Logs, per-logged-day nutrition averages, and Training Mix.
+- Weekly Summary refreshes today's Samsung Sleep and Workout data before rebuilding the view. It does not invent historical Recovery averages, adherence, nutrition targets, or prior-week trends that are not currently available in the trusted context.
+- `src/lib/weeklyTrainingSummary.ts` keeps weekly calculations separate from presentation and is unit-tested.
+- Verification: TypeScript/Vite production build passed, ESLint passed, and all 77 unit tests passed. Browser-based visual inspection could not run in this environment because no browser surface was available; real-device layout remains the final visual QA step.
+- Weekly Summary typography was subsequently rebalanced for mobile readability, and every app toolbar title now uses one shared viewport-centered rule. Back and Close actions reserve equal title space and remain independently clickable.
+- The weekly date window is strictly today plus the previous six Bangkok dates. Sessions, running distance, active time, active days, and Meal days are recalculated from records inside that window, preventing impossible output such as `8 / 7 Days Logged`.
+- Sleep Window no longer labels the Recovery engine's learned wake time as a Profile value. The action now says `Use Typical Wake Time` because it is derived from recent Sleep records.
+- Samsung Health Sleep start/end timestamps are converted from ISO instants into `Asia/Bangkok` wall-clock time before bedtime/wake consistency and the typical wake time are calculated. This fixes UTC values such as `9:27 PM` appearing as a suggested wake time when the actual Bangkok wake time is early morning.
+- Final verification after these follow-ups: all 78 unit tests passed, ESLint passed, TypeScript/Vite production build passed, and `git diff --check` passed.

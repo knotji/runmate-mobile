@@ -60,6 +60,18 @@ describe('WHOOP-style Recovery Engine', () => {
     expect(recovery.sleepPerformance.efficiencyScore).toBe(94);
   });
 
+  it('converts Samsung UTC sleep times to Bangkok before deriving the typical wake time', () => {
+    const context = buildCoachContext();
+    context.sleep7d = [0, 1, 2].map((days) => sleepNight(dateBefore(context.todayDate, days), {
+      sleepEndTime: `${dateBefore(context.todayDate, days)}T21:27:00.000Z`,
+    }));
+    context.sleepBaseline30d = context.sleep7d;
+
+    const recovery = buildRunMateRecoverySystem(context);
+
+    expect(recovery.sleepPerformance.targetWakeTime).toBe('4:27 AM');
+  });
+
   it('maps workout effort onto a non-linear 0-21 Strain scale', () => {
     const context = buildCoachContext();
     context.todayWorkouts = [{

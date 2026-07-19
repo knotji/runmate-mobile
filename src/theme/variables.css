@@ -22,3 +22,21 @@
 .main-tab-bar ion-icon { width: 20px; height: 20px; }
 
 * { box-sizing: border-box; }
+
+/* Keep every page title centered to the viewport, independent of Back/Close actions. */
+ion-header ion-toolbar > ion-title {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 56px;
+  text-align: center;
+  pointer-events: none;
+}
+
+ion-header ion-toolbar > ion-buttons,
+ion-header ion-toolbar > ion-button {
+  position: relative;
+  z-index: 2;
+}
