@@ -521,6 +521,8 @@ The Recovery Sleep Plan card is now a compact summary that opens `/sleep-window`
 
 `src/lib/sleepWindow.ts` owns clock parsing/formatting, date-scoped storage, and the calculation. The page also shows an explicitly estimated cycle range and a collapsed Sleep Cycle Detail explaining how early-, middle-, and late-night stage composition commonly differs. Cycle guidance uses an 80–100 minute range only for education; it does not force bedtime into fixed 90-minute blocks or claim to predict a measured Sleep Stage timeline. Completed measured stages remain on Sleep Details.
 
+`Save For Tonight` now persists the selected wake time across devices through `public.sleep_window_plans`, keyed by `(user_id, target_date)` with `Asia/Bangkok` as the plan timezone. The table has RLS enabled and separate owner-only select/insert/update/delete policies. `src/lib/sleepWindowStorage.ts` loads the cloud value first with a date-scoped local fallback, distinguishes an unsynced local draft from a server-saved value, and upserts only after the explicit save action. `Use Profile Time` deletes tonight's cloud override as well as its local fallback. The migration source is `runmate-ai/supabase/migrations/020_sleep_window_plans.sql`; it was applied directly to Supabase through the linked Management API because the legacy remote migration history is not registered in the CLI migration table.
+
 ## Android Build
 
 - The Android launcher icon and app name previously shipped as the default Capacitor placeholder (blue X mark, label `runmate-mobile`). Both are now branded:
@@ -576,4 +578,24 @@ To inspect real values before committing to a mapping/dedup design, a standalone
 - **`android/variables.gradle` `minSdkVersion` raised from 24 to 26.** This is a real, unavoidable product trade-off, not a build tweak: Health Connect requires Android 8.0 (API 26)+, so the app can no longer install on Android 7.0/7.1 devices. The build fails with a manifest-merger error (`uses-sdk:minSdkVersion 24 cannot be smaller than version 26`) without this change.
 - Debug APK rebuilt successfully at `android/app/build/outputs/apk/debug/app-debug.apk` with the plugin included.
 
-**Next step, not yet done**: install this APK on a device with Samsung Health connected to Health Connect and confirm real sleep/steps/HR values come back (empty arrays are expected otherwise). Only after inspecting real values should the mapping-into-`history_items` and cross-source dedup work begin — do not skip straight to wiring this into `buildCoachContext()`.
+### Real-device verification results (2026-07-19)
+
+Tested on a Samsung SM-S918B with Samsung Health, Google Fit, Fitbit, and Strava all connected to Health Connect on the same account — a worst-case multi-source setup.
+
+**Steps — `queryAggregated` needs Bangkok-midnight-aligned buckets, then matches exactly.**
+
+The first attempt used `startDate: daysAgo(7)` (i.e. "now minus 7 days"), which produced totals that did **not** match Samsung Health's own daily totals at all (off by up to 40% in either direction on some days). Cause: `queryAggregated`'s `'day'` buckets are 24h windows starting exactly at the given `startDate` — they are not snapped to local midnight — so `daysAgo()` offset every bucket by the current time-of-day and mixed two calendar days per bucket. Fixed with `bangkokMidnightDaysAgo()` in `HealthTestPage.tsx` (converts to Bangkok wall-clock date, takes UTC midnight of that date, then shifts back by the UTC+7 offset). After the fix, 5 of 6 full days matched Samsung Health's displayed step count exactly, one day was off by 1 step (immaterial, likely a sync-boundary rounding), and the current partial day differed only because it was queried at a different moment than the screenshot. **Any future aggregated query (steps, calories, distance, etc.) must use Bangkok-midnight-aligned bucket boundaries, never `now - N days`.**
+
+**Sleep — raw `readSamples` matches Samsung Health exactly when the record actually comes from Samsung Health.**
+
+Three consecutive nights' `sourceId: "com.sec.android.app.shealth"` sleep records matched Samsung Health's displayed start time, end time, and duration to the minute. However, on a night where Google Fit was also active, Health Connect returned a **second, shorter fragment** for the same night (e.g. Samsung Health: 22:37–03:54, 317 min, full stage data; Google Fit: 22:37–23:59, 82 min, same start instant but stops early) — same physical sleep event, not two separate naps (confirmed by the identical start timestamps), just two apps disagreeing on how long it lasted. This is a different shape of duplicate than steps/workouts: it is **not** an exact `(startDate, endDate, value)` match, so that dedup key does not catch it.
+
+**Workouts — `queryWorkouts` duplicates are exact matches across sources, same as steps**, including N-way duplication (one session appeared under both Fitbit + Samsung Health; a separate "weightlifting" session appeared under Fitbit + Strava only, with no Samsung Health copy at all).
+
+**Decision: filter to `sourceId === "com.sec.android.app.shealth"` only, for sleep and workouts.**
+
+Rather than building general N-way/fuzzy dedup logic, sleep and workout records will be filtered to Samsung Health's own source before mapping into `history_items`; every other source's copy is discarded. Steps (and other simple sum types) keep using `queryAggregated` with Bangkok-aligned buckets and need no source filtering — Health Connect's own aggregation already produced numbers matching Samsung Health exactly without any client-side filtering.
+
+**Known limitation of this decision**: a workout logged through an app that never syncs into Samsung Health (e.g. this account's Fitbit+Strava-only "weightlifting" session) will be silently excluded once this filter ships. Acceptable for a Samsung-Health-centric user base; revisit if RunMate mobile users commonly rely on a non-Samsung primary tracker.
+
+**Next step, not yet done**: apply the same source-filtering verification to `queryWorkouts` output specifically (sleep is done; workouts still need a real side-by-side check against a known logged session before the mapping/dedup work begins). Do not skip straight to wiring this into `buildCoachContext()`.

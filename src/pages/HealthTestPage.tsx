@@ -53,6 +53,7 @@ const HealthTestPage: React.FC = () => {
     { label: 'read: restingHeartRate (7d)', title: 'Read Resting HR (7d)', action: () => Health.readSamples({ dataType: 'restingHeartRate', startDate: daysAgo(7), limit: 50 }) },
     { label: 'read: oxygenSaturation (7d)', title: 'Read SpO2 (7d)', action: () => Health.readSamples({ dataType: 'oxygenSaturation', startDate: daysAgo(7), limit: 50 }) },
     { label: 'queryWorkouts (30d)', title: 'Query Workouts (30d)', action: () => Health.queryWorkouts({ startDate: daysAgo(30), limit: 20 }) },
+    { label: 'queryWorkouts (today, Bangkok-aligned)', title: 'Query Workouts (Today Only)', action: () => Health.queryWorkouts({ startDate: bangkokMidnightDaysAgo(0), ascending: false, limit: 20 }) },
   ];
 
   const runAll = async () => {

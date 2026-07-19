@@ -21,6 +21,7 @@ import { buildCoachContextFromSupabase, type CoachContext } from '@/lib/buildCoa
 import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
 import { TodayTrainingPlanCard } from '@/components/TodayTrainingPlanCard';
 import { formatClockMinutes, loadTonightWakeOverride, parseClockMinutes, sleepWindowForWake } from '@/lib/sleepWindow';
+import { loadTonightWakePlan } from '@/lib/sleepWindowStorage';
 import './RecoveryPage.css';
 
 const RecoveryPage: React.FC = () => {
@@ -45,6 +46,7 @@ const RecoveryPage: React.FC = () => {
   useEffect(() => { void loadRecovery(); }, [loadRecovery]);
   useIonViewWillEnter(() => {
     setWakeOverrideMinutes(loadTonightWakeOverride());
+    void loadTonightWakePlan().then((plan) => setWakeOverrideMinutes(plan.minutes));
     void loadRecovery();
   });
 
