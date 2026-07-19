@@ -36,7 +36,8 @@ const plannedItems = [
   {
     icon: personCircleOutline,
     title: 'Profile & Settings',
-    summary: 'Max HR, wake time, timezone, and training preferences.',
+    summary: 'Max HR, body weight, and essential training preferences.',
+    path: '/profile-settings',
   },
   {
     icon: notificationsOutline,

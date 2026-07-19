@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { IonButton, IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
+import { IonButton, IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar, useIonViewWillEnter } from '@ionic/react';
 import { arrowBackOutline, checkmarkCircleOutline, moonOutline, refreshOutline, timeOutline } from 'ionicons/icons';
 import { buildCoachContextFromSupabase, type CoachContext } from '@/lib/buildCoachContext';
 import {
@@ -10,7 +10,7 @@ import {
   parseTimeInput,
   sleepWindowForWake,
 } from '@/lib/sleepWindow';
-import { deleteTonightWakePlan, loadTonightWakePlan, saveTonightWakePlan } from '@/lib/sleepWindowStorage';
+import { deleteTonightWakePlan, loadDefaultWakeTime, loadTonightWakePlan, saveTonightWakePlan } from '@/lib/sleepWindowStorage';
 import './SleepWindowPage.css';
 
 const SleepWindowPage: React.FC = () => {
@@ -19,21 +19,24 @@ const SleepWindowPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [wakeOverride, setWakeOverride] = useState<number | null>(null);
   const [savedWake, setSavedWake] = useState<number | null>(null);
+  const [defaultWake, setDefaultWake] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const load = useCallback(async () => {
     try {
-      const [nextContext, storedWake] = await Promise.all([buildCoachContextFromSupabase(), loadTonightWakePlan()]);
+      const [nextContext, storedWake, storedDefaultWake] = await Promise.all([buildCoachContextFromSupabase(), loadTonightWakePlan(), loadDefaultWakeTime()]);
       setContext(nextContext);
       setWakeOverride(storedWake.minutes);
       setSavedWake(storedWake.synced ? storedWake.minutes : null);
+      setDefaultWake(storedDefaultWake);
     }
     finally { setLoading(false); }
   }, []);
-  useEffect(() => { void load(); }, [load]);
+  useIonViewWillEnter(() => { setLoading(true); void load(); });
 
   const sleep = context?.recoverySystem?.sleepPerformance;
-  const profileWake = parseClockMinutes(sleep?.targetWakeTime ?? null);
+  const derivedWake = parseClockMinutes(sleep?.targetWakeTime ?? null);
+  const profileWake = defaultWake ?? derivedWake;
   const wakeMinutes = wakeOverride ?? profileWake;
   const window = wakeMinutes != null && sleep ? sleepWindowForWake(wakeMinutes, sleep.sleepNeedMinutes) : null;
 
@@ -84,7 +87,8 @@ const SleepWindowPage: React.FC = () => {
           <section className="sleep-window-card">
             <div className="sleep-window-card-heading"><IonIcon icon={timeOutline} /><div><p>Tomorrow</p><h2>Choose Your Wake Time</h2></div></div>
             <label className="sleep-window-picker"><span>Wake Time</span><input type="time" value={formatTimeInput(window.wakeMinutes)} onChange={(event) => changeWake(event.target.value)} /></label>
-            {wakeOverride != null && profileWake != null && <button type="button" className="profile-wake-button" disabled={saving} onClick={() => void restoreProfileWake()}><IonIcon icon={refreshOutline} />Use Typical Wake Time · {formatClockMinutes(profileWake)}</button>}
+            {wakeOverride != null && <p className="wake-source-note"><strong>Tonight Override</strong><span>This time replaces your default for tonight only.</span></p>}
+            {wakeOverride != null && profileWake != null && <button type="button" className="profile-wake-button" disabled={saving} onClick={() => void restoreProfileWake()}><IonIcon icon={refreshOutline} />Use {defaultWake != null ? 'Profile' : 'Typical'} Wake Time · {formatClockMinutes(profileWake)}</button>}
             {saveError && <p className="sleep-window-save-error">{saveError}</p>}
             <button type="button" className={`save-tonight-button ${savedWake === wakeMinutes ? 'saved' : ''}`} disabled={saving || savedWake === wakeMinutes} onClick={() => void saveForTonight()}>
               {savedWake === wakeMinutes && <IonIcon icon={checkmarkCircleOutline} />}

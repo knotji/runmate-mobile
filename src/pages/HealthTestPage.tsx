@@ -1,10 +1,11 @@
 import { useCallback, useState } from 'react';
 import { IonBackButton, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar, useIonViewWillEnter } from '@ionic/react';
-import { barbellOutline, checkmarkCircleOutline, checkmarkOutline, cloudOfflineOutline, copyOutline, heartOutline, moonOutline, settingsOutline, syncOutline } from 'ionicons/icons';
+import { barbellOutline, checkmarkCircleOutline, checkmarkOutline, cloudOfflineOutline, copyOutline, heartOutline, moonOutline, scaleOutline, settingsOutline, syncOutline } from 'ionicons/icons';
 import { Health } from '@capgo/capacitor-health';
 import type { HealthDataType, HealthSample, Workout } from '@capgo/capacitor-health';
 import { getSamsungSleepLastSyncedAt, syncSamsungSleep } from '@/lib/samsungSleepSync';
 import { getSamsungWorkoutLastSyncedAt, queryAllHealthConnectWorkouts, syncSamsungWorkouts } from '@/lib/samsungWorkoutSync';
+import { syncSamsungWeight } from '@/lib/samsungProfileSync';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import { dedupeSleepItems } from '@/lib/sleepDedupe';
 import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
@@ -14,14 +15,15 @@ import './HealthTestPage.css';
 
 type LogEntry = { label: string; result: unknown; error?: string; at: string };
 
-const READ_TYPES: HealthDataType[] = ['steps', 'distance', 'calories', 'sleep', 'heartRate', 'restingHeartRate', 'heartRateVariability', 'respiratoryRate', 'oxygenSaturation', 'vo2Max', 'workouts'];
-const PRODUCT_READ_TYPES: HealthDataType[] = ['sleep', 'heartRateVariability', 'restingHeartRate', 'respiratoryRate', 'workouts', 'heartRate', 'distance', 'calories', 'vo2Max'];
+const READ_TYPES: HealthDataType[] = ['steps', 'distance', 'calories', 'sleep', 'heartRate', 'restingHeartRate', 'heartRateVariability', 'respiratoryRate', 'oxygenSaturation', 'vo2Max', 'weight', 'workouts'];
+const PRODUCT_READ_TYPES: HealthDataType[] = ['sleep', 'heartRateVariability', 'restingHeartRate', 'respiratoryRate', 'workouts', 'heartRate', 'distance', 'calories', 'vo2Max', 'weight'];
 
 type ConnectionState = {
   available: boolean;
   sleepAuthorized: boolean;
   workoutsAuthorized: boolean;
   recoverySignalsAuthorized: boolean;
+  weightAuthorized: boolean;
   lastSyncedAt: string | null;
 };
 
@@ -149,7 +151,7 @@ const HealthTestPage: React.FC = () => {
     try {
       const availability = await Health.isAvailable();
       if (!availability.available) {
-        setConnection({ available: false, sleepAuthorized: false, workoutsAuthorized: false, recoverySignalsAuthorized: false, lastSyncedAt: latestSyncTime(getSamsungSleepLastSyncedAt(), getSamsungWorkoutLastSyncedAt()) });
+        setConnection({ available: false, sleepAuthorized: false, workoutsAuthorized: false, recoverySignalsAuthorized: false, weightAuthorized: false, lastSyncedAt: latestSyncTime(getSamsungSleepLastSyncedAt(), getSamsungWorkoutLastSyncedAt()) });
         return;
       }
       const authorization = await Health.checkAuthorization({ read: PRODUCT_READ_TYPES });
@@ -158,11 +160,12 @@ const HealthTestPage: React.FC = () => {
         sleepAuthorized: authorization.readAuthorized.includes('sleep'),
         workoutsAuthorized: ['workouts', 'heartRate', 'distance', 'calories', 'vo2Max'].every((type) => authorization.readAuthorized.includes(type as HealthDataType)),
         recoverySignalsAuthorized: ['heartRateVariability', 'restingHeartRate', 'respiratoryRate'].every((type) => authorization.readAuthorized.includes(type as HealthDataType)),
+        weightAuthorized: authorization.readAuthorized.includes('weight'),
         lastSyncedAt: latestSyncTime(getSamsungSleepLastSyncedAt(), getSamsungWorkoutLastSyncedAt()),
       });
     } catch (error) {
       setConnectionMessage(error instanceof Error ? error.message : 'Could Not Check Health Connect.');
-      setConnection({ available: false, sleepAuthorized: false, workoutsAuthorized: false, recoverySignalsAuthorized: false, lastSyncedAt: latestSyncTime(getSamsungSleepLastSyncedAt(), getSamsungWorkoutLastSyncedAt()) });
+      setConnection({ available: false, sleepAuthorized: false, workoutsAuthorized: false, recoverySignalsAuthorized: false, weightAuthorized: false, lastSyncedAt: latestSyncTime(getSamsungSleepLastSyncedAt(), getSamsungWorkoutLastSyncedAt()) });
     } finally {
       setConnectionBusy(null);
     }
@@ -176,9 +179,9 @@ const HealthTestPage: React.FC = () => {
     try {
       const authorization = await Health.requestAuthorization({ read: PRODUCT_READ_TYPES, requestHistoryAccess: true });
       if (authorization.readAuthorized.includes('sleep')) {
-        const [sleep, workouts] = await Promise.all([syncSamsungSleep(), syncSamsungWorkouts()]);
+        const [sleep, workouts, weight] = await Promise.all([syncSamsungSleep(), syncSamsungWorkouts(), syncSamsungWeight()]);
         await showSyncResult(sleep, workouts, setSyncSummary);
-        if (sleep.error || workouts.error) setConnectionMessage(sleep.error ?? workouts.error ?? 'Could Not Sync Health Connect.');
+        if (sleep.error || workouts.error || weight.error) setConnectionMessage(sleep.error ?? workouts.error ?? weight.error ?? 'Could Not Sync Health Connect.');
       } else {
         setConnectionMessage('Sleep permission was not granted. You can change it in Health Connect settings.');
       }
@@ -191,10 +194,11 @@ const HealthTestPage: React.FC = () => {
   const syncNow = async () => {
     setConnectionBusy('sync');
     setConnectionMessage(null);
-    const [sleep, workouts] = await Promise.all([syncSamsungSleep(), syncSamsungWorkouts()]);
+    const [sleep, workouts, weight] = await Promise.all([syncSamsungSleep(), syncSamsungWorkouts(), syncSamsungWeight()]);
     await showSyncResult(sleep, workouts, setSyncSummary);
     if (sleep.status === 'permission_required' || workouts.status === 'permission_required') setConnectionMessage('Update Health Connect access before syncing.');
-    else if (sleep.error || workouts.error) setConnectionMessage(sleep.error ?? workouts.error ?? 'Could Not Sync Health Connect.');
+    else if (sleep.error || workouts.error || weight.error) setConnectionMessage(sleep.error ?? workouts.error ?? weight.error ?? 'Could Not Sync Health Connect.');
+    else if (weight.status === 'manual_override') setConnectionMessage(`Health Connect found ${weight.weightKg} kg. Your manually entered Body Weight was kept.`);
     await refreshConnection();
   };
 
@@ -295,7 +299,7 @@ const HealthTestPage: React.FC = () => {
           <header className="health-connect-heading">
             <p>Connected Health</p>
             <h1>Samsung Health Sync</h1>
-            <span>Bring trusted Sleep and Workout data into RunMate automatically through Health Connect.</span>
+            <span>Bring trusted Sleep, Workout, and Body Weight data into RunMate through Health Connect.</span>
           </header>
 
           <section className={`health-connect-status ${connection?.sleepAuthorized ? 'is-connected' : ''}`}>
@@ -315,6 +319,7 @@ const HealthTestPage: React.FC = () => {
               <PermissionRow icon={moonOutline} title="Sleep" detail="Duration, schedule, and Sleep Stages" authorized={connection?.sleepAuthorized === true} note="Automatic Sync" />
               <PermissionRow icon={heartOutline} title="Recovery Signals" detail="HRV, Resting HR, and Respiratory Rate" authorized={connection?.recoverySignalsAuthorized === true} note="Matched To Your Sleep Window" />
               <PermissionRow icon={barbellOutline} title="Workout" detail="Sessions, Pace, Heart Rate, and VO2 Max" authorized={connection?.workoutsAuthorized === true} note="Automatic Sync" />
+              <PermissionRow icon={scaleOutline} title="Body Weight" detail="Latest Samsung Health measurement" authorized={connection?.weightAuthorized === true} note="Profile Sync" />
             </div>
           </section>
 
@@ -343,7 +348,7 @@ const HealthTestPage: React.FC = () => {
           )}
 
           <section className="health-connect-primary-actions">
-            {(!connection?.sleepAuthorized || !connection?.recoverySignalsAuthorized || !connection?.workoutsAuthorized) && (
+            {(!connection?.sleepAuthorized || !connection?.recoverySignalsAuthorized || !connection?.workoutsAuthorized || !connection?.weightAuthorized) && (
               <IonButton expand="block" disabled={connectionBusy !== null || connection?.available === false} onClick={() => void connect()}>
                 {connectionBusy === 'connect' ? <IonSpinner name="crescent" /> : connection?.sleepAuthorized ? 'Update Access' : 'Connect'}
               </IonButton>

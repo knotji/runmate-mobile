@@ -6,6 +6,7 @@ import { todayBangkokDateKey } from '@/lib/date';
 import { generateRacePlan } from '@/lib/racePlanGeneration';
 import { loadProfileFromSupabase } from '@/lib/profileStorage';
 import { saveRaceGoalAndPlan } from '@/lib/raceStorage';
+import { applyProfilePreferencesToRaceGoal } from '@/lib/raceProfilePreferences';
 import type { RaceDistance, RaceGoal, RacePlan } from '@/types/race';
 import './RaceGoalEditor.css';
 
@@ -25,6 +26,7 @@ export default function RaceGoalEditor({ isOpen, goal, onClose, onSaved }: Props
   const [error, setError] = useState<string | null>(null);
   const dateRef = useRef<HTMLInputElement>(null);
   const longestRunEdited = useRef(false);
+  const preferencesEdited = useRef(false);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [longestRunFromProfile, setLongestRunFromProfile] = useState(false);
 
@@ -33,12 +35,14 @@ export default function RaceGoalEditor({ isOpen, goal, onClose, onSaved }: Props
       setDraft(initialGoal(goal));
       setError(null);
       longestRunEdited.current = false;
+      preferencesEdited.current = false;
       setLongestRunFromProfile(false);
       setLoadingProfile(true);
       let active = true;
       void loadProfileFromSupabase().then((result) => {
-        if (!active || !result.ok || !result.profile || longestRunEdited.current) return;
-        if (result.profile.currentLongestRunKm != null) {
+        if (!active || !result.ok || !result.profile) return;
+        if (!goal && !preferencesEdited.current) setDraft((current) => applyProfilePreferencesToRaceGoal(current, result.profile!));
+        else if (!longestRunEdited.current && result.profile.currentLongestRunKm != null) {
           setDraft((current) => ({ ...current, currentLongestRunKm: result.profile!.currentLongestRunKm }));
           setLongestRunFromProfile(true);
         }
@@ -89,8 +93,8 @@ export default function RaceGoalEditor({ isOpen, goal, onClose, onSaved }: Props
         <div className="race-editor-divider" />
         <header className="race-editor-plan-heading"><p>PLAN SETUP</p><h2>Weekly Availability</h2></header>
         <div className="race-editor-grid">
-          <label><span>Training Days</span><input required type="number" min="1" max="7" inputMode="numeric" value={draft.trainingDaysPerWeek ?? 4} onChange={(event) => update('trainingDaysPerWeek', Number(event.target.value))} /></label>
-          <label><span>Long Run Day</span><select value={draft.preferredLongRunDay ?? 'Sunday'} onChange={(event) => update('preferredLongRunDay', event.target.value)}>{weekdays.map((day) => <option key={day}>{day}</option>)}</select></label>
+          <label><span>Training Days {!goal && loadingProfile ? <small>Loading Profile…</small> : null}</span><input required type="number" min="1" max="7" inputMode="numeric" value={draft.trainingDaysPerWeek ?? 4} onChange={(event) => { preferencesEdited.current = true; update('trainingDaysPerWeek', Number(event.target.value)); }} /></label>
+          <label><span>Long Run Day</span><select value={draft.preferredLongRunDay ?? 'Sunday'} onChange={(event) => { preferencesEdited.current = true; update('preferredLongRunDay', event.target.value); }}>{weekdays.map((day) => <option key={day}>{day}</option>)}</select></label>
         </div>
         <label><span>Current Longest Run (km) {loadingProfile ? <small>Loading Profile…</small> : longestRunFromProfile ? <small>From Profile</small> : null}</span><input type="number" min="0" step="0.01" inputMode="decimal" value={draft.currentLongestRunKm ?? ''} onChange={(event) => { longestRunEdited.current = true; setLongestRunFromProfile(false); update('currentLongestRunKm', event.target.value ? Number(event.target.value) : undefined); }} /></label>
 

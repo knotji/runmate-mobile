@@ -23,7 +23,9 @@ import { loadRaceResults } from '@/lib/raceResults';
 import { buildCoachContextFromSupabase } from '@/lib/buildCoachContext';
 import { generateRacePlan } from '@/lib/racePlanGeneration';
 import { translatePlanFieldToEnglish } from '@/lib/todayTrainingPlan';
+import { applyProfilePreferencesToRaceGoal } from '@/lib/raceProfilePreferences';
 import type { RaceGoal, RacePlan, RaceResult, WeekWorkout } from '@/types/race';
+import type { UserProfile } from '@/types/profile';
 import RaceGoalEditor from '@/components/RaceGoalEditor';
 import './RaceGoalPage.css';
 
@@ -68,13 +70,14 @@ const RaceGoalPage: React.FC = () => {
   const summary = goal ? buildMobileRaceSummary(goal, plan, today) : null;
   const progress = summary?.currentWeek && summary.totalWeeks ? Math.round(summary.currentWeek / summary.totalWeeks * 100) : 0;
 
-  const refreshPlan = async () => {
+  const refreshPlan = async (useLatestProfile: boolean) => {
     if (!goal || refreshingPlan) return;
     setRefreshingPlan(true); setRefreshError(null);
     try {
       const context = await buildCoachContextFromSupabase();
-      const nextPlan = await generateRacePlan(goal, context);
-      const saved = await saveRaceGoalAndPlan(goal, nextPlan);
+      const nextGoal = useLatestProfile && context.profile ? applyProfilePreferencesToRaceGoal(goal, context.profile as UserProfile) : goal;
+      const nextPlan = await generateRacePlan(nextGoal, context);
+      const saved = await saveRaceGoalAndPlan(nextGoal, nextPlan);
       if (!saved.ok) throw new Error(saved.error);
       setGoal(saved.goal);
       setPlan(saved.plan);
@@ -195,10 +198,11 @@ const RaceGoalPage: React.FC = () => {
         isOpen={refreshConfirmOpen}
         onDidDismiss={() => setRefreshConfirmOpen(false)}
         header="Refresh Training Plan?"
-        message="RunMate will rebuild the next seven days from today using your latest Recovery, training load, Pain, and Sick data."
+        message="Choose whether to keep this goal's current weekly setup or rebuild with the latest Training Days and Long Run Day from Profile."
         buttons={[
           { text: 'Cancel', role: 'cancel' },
-          { text: 'Refresh Plan', handler: () => { void refreshPlan(); } },
+          { text: 'Keep Current Setup', handler: () => { void refreshPlan(false); } },
+          { text: 'Use Latest Profile', handler: () => { void refreshPlan(true); } },
         ]}
       />
     </IonPage>

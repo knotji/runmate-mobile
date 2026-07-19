@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   IonButton,
@@ -13,6 +13,7 @@ import {
   IonSpinner,
   IonTitle,
   IonToolbar,
+  useIonViewDidLeave,
   useIonViewWillEnter,
   type RefresherEventDetail,
 } from '@ionic/react';
@@ -21,9 +22,8 @@ import { buildCoachContextFromSupabase, type CoachContext } from '@/lib/buildCoa
 import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
 import { TodayTrainingPlanCard } from '@/components/TodayTrainingPlanCard';
 import { formatClockMinutes, loadTonightWakeOverride, parseClockMinutes, sleepWindowForWake } from '@/lib/sleepWindow';
-import { loadTonightWakePlan } from '@/lib/sleepWindowStorage';
-import { syncSamsungSleep } from '@/lib/samsungSleepSync';
-import { syncSamsungWorkouts } from '@/lib/samsungWorkoutSync';
+import { loadDefaultWakeTime, loadTonightWakePlan } from '@/lib/sleepWindowStorage';
+import { syncTodayHealth } from '@/lib/todayHealthSync';
 import './RecoveryPage.css';
 
 const RecoveryPage: React.FC = () => {
@@ -32,14 +32,15 @@ const RecoveryPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [wakeOverrideMinutes, setWakeOverrideMinutes] = useState<number | null>(() => loadTonightWakeOverride());
+  const loadedRef = useRef(false);
+  const visibleRef = useRef(false);
+  const syncTimerRef = useRef<number | null>(null);
 
   const loadRecovery = useCallback(async () => {
     setError(null);
     try {
-      const [sleepSync, workoutSync] = await Promise.all([syncSamsungSleep('today'), syncSamsungWorkouts('today')]);
-      if (sleepSync.error) console.warn('[sleep-sync] Samsung Health sync failed', sleepSync.error);
-      if (workoutSync.error) console.warn('[workout-sync] Samsung Health sync failed', workoutSync.error);
       setContext(await buildCoachContextFromSupabase());
+      loadedRef.current = true;
     } catch (loadError) {
       console.error('[recovery] load failed', loadError);
       setError('Unable to load your latest metrics. Please try again.');
@@ -49,12 +50,27 @@ const RecoveryPage: React.FC = () => {
   }, []);
 
   useIonViewWillEnter(() => {
+    visibleRef.current = true;
     setWakeOverrideMinutes(loadTonightWakeOverride());
-    void loadTonightWakePlan().then((plan) => setWakeOverrideMinutes(plan.minutes));
-    void loadRecovery();
+    void Promise.all([loadTonightWakePlan(), loadDefaultWakeTime()]).then(([plan, defaultWake]) => setWakeOverrideMinutes(plan.minutes ?? defaultWake));
+    if (!loadedRef.current) void loadRecovery();
+    syncTimerRef.current = window.setTimeout(() => {
+      void syncTodayHealth().then((result) => {
+        if (result.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
+        if (result.workout?.error) console.warn('[workout-sync] Samsung Health sync failed', result.workout.error);
+        if (result.performed && visibleRef.current) void loadRecovery();
+      });
+    }, 1200);
+  });
+
+  useIonViewDidLeave(() => {
+    visibleRef.current = false;
+    if (syncTimerRef.current !== null) window.clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = null;
   });
 
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => {
+    await syncTodayHealth(true);
     await loadRecovery();
     event.detail.complete();
   };

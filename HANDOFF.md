@@ -669,3 +669,69 @@ A draft `runSyncCycle()` was sketched (not yet implemented) with these propertie
 - Sleep Window no longer labels the Recovery engine's learned wake time as a Profile value. The action now says `Use Typical Wake Time` because it is derived from recent Sleep records.
 - Samsung Health Sleep start/end timestamps are converted from ISO instants into `Asia/Bangkok` wall-clock time before bedtime/wake consistency and the typical wake time are calculated. This fixes UTC values such as `9:27 PM` appearing as a suggested wake time when the actual Bangkok wake time is early morning.
 - Final verification after these follow-ups: all 78 unit tests passed, ESLint passed, TypeScript/Vite production build passed, and `git diff --check` passed.
+
+## HR Zone Research: WHOOP's Methodology (not implemented yet)
+
+Researched how WHOOP computes its 5 heart-rate zones, as a reference for a possible future RunMate feature (per-workout time-in-zone breakdown). Nothing described here is implemented — this is design research only.
+
+**WHOOP uses Heart Rate Reserve (HRR), a.k.a. the Karvonen method** (Martti Karvonen, 1950s) — not a simple percentage of max HR:
+
+```text
+Target HR = ((Max HR − Resting HR) × %Intensity) + Resting HR
+```
+
+Zones as % of HRR: Zone 1 40-60% (very light/active recovery), Zone 2 60-70% (light-moderate, aerobic base), Zone 3 70-80% (moderate, aerobic), Zone 4 80-90% (vigorous, anaerobic), Zone 5 90-100% (max effort). WHOOP's own workout-detail breakdown chart appears to add an unofficial 6th bucket below Zone 1 — labeled "restorative" in some WHOOP support copy, and likely what shows as "Zone 0" in the app — for time below the 40% HRR floor; no official source gives an exact threshold for it beyond "below Zone 1."
+
+Key properties that make HRR more personalized than a flat max-HR percentage:
+
+- Uses each user's own **Resting HR**, not just Max HR — a fitter user (lower RHR) gets proportionally wider zones.
+- WHOOP **auto-adjusts Max HR** from the user's actual observed workout data over time rather than trusting a fixed age-based formula.
+- Zones are **recalculated on a rolling basis** (WHOOP uses a rolling 14-day RHR baseline) so they track current fitness, not fitness from a year ago.
+- A generic age-based Max HR formula (220 − age, or the more accurate Tanaka formula 208 − 0.7 × age) is only a fallback for users without enough observed data yet — WHOOP is explicit that this doesn't account for gender or individual genetics.
+
+### RunMate's schema already anticipates this — most fields exist, the logic doesn't
+
+Checked `src/types/profile.ts` and `src/lib/profileStorage.ts`: the profile schema already has almost every field this would need, unused so far:
+
+```ts
+maxHr?: number;
+normalRestingHr?: number;
+hrZoneMethod?: "auto" | "hrr" | "at_ant" | "max_hr" | "manual";  // "hrr" is already a valid value
+lactateThresholdHr?: number;
+aerobicThresholdHr?: number;
+anaerobicThresholdHr?: number;
+vo2max?: number;
+age?: number;
+gender?: string;
+```
+
+**What's actually missing** (confirmed by reading the code, not just the schema):
+
+1. **No logic anywhere computes or updates `maxHr`** from real workout history. Would need to derive it from the observed max of `heartRate` samples across workouts over time (the Health Connect integration already fetches per-workout maxHR — see the Health Connect spike section above), falling back to an age/gender-based formula only when there isn't enough real data yet.
+2. **No logic buckets heart-rate samples into zones at all.** The Health Connect spike's `deriveWorkoutMetrics()` only computes single avgHR/maxHR/minHR numbers for a workout, not time-in-zone. Doing so would mean: compute the 6 HRR thresholds from `maxHr`/`normalRestingHr`, then classify each `heartRate` sample within the workout's time range into a zone and sum durations per zone — using the same source-filtered sample set already fetched for maxHR/avgHR (no new Health Connect query needed, just new math over data already being pulled).
+
+**Next step, not yet done**: this is still just research; no code has been written for zone computation or a `maxHr` auto-update job. If pursued, it slots naturally alongside the workout mapping/dedup work already in progress (same `heartRate` samples, same `sourceId` filter, same per-workout window).
+
+## Mobile Profile, Health Sync, And Planning Follow-Up (2026-07-19)
+
+Implemented the next user-facing Profile and planning layer in `runmate-mobile`:
+
+- Added `/profile-settings` under More with only the values currently used by Recovery and planning: Max HR, Body Weight, Training Days, Preferred Long Run Day, Preferred Training Time, and Default Wake Time.
+- Body Weight now requests Health Connect `weight` access and imports the latest plausible Samsung Health measurement from the last year. A manually edited weight remains protected from automatic overwrite.
+- Max HR is never overwritten automatically. Profile shows the highest plausible HR observed in saved Workout/Strength records and requires the user to press `Use Value` before saving it.
+- Source badges distinguish `Samsung Health`, `Manual`, `Highest Observed`, and `Profile Default`. Profile also warns before discarding unsaved changes.
+- New Race Goals use Training Days, Preferred Long Run Day, and Current Longest Run from Profile as defaults.
+- Refresh Plan explicitly asks whether to `Keep Current Setup` or `Use Latest Profile`; active race settings are not silently changed.
+- Default Wake Time is stored account-side in `sleep_window_plans` using a reserved default row and is loaded by both Recovery and Sleep Window. A dated row remains the one-night `Save For Tonight` override.
+- Sleep Window reloads on every Ionic view entry, preventing stale Profile wake times when returning from Settings. It labels a dated value as `Tonight Override` and offers the current Profile wake time separately.
+- Recovery and Activity keep their page data mounted and delay/cool down automatic Health Connect sync, reducing tab-switch latency without removing pull-to-refresh or explicit Sync Now behavior.
+
+Verification for this batch:
+
+- `npm run test.unit -- --run`: 90/90 tests passed.
+- `npx tsc --noEmit`: passed.
+- `npm run lint`: passed with zero errors.
+- `npm run build`: passed (Vite reports only the existing large-chunk advisory).
+- `git diff --check`: passed.
+
+Still requires physical-device confirmation: Samsung Health Body Weight should be checked end-to-end with `Health Connect > Sync Now > Profile & Settings` once an Android device is connected over ADB.

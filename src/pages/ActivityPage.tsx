@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   IonContent,
@@ -13,6 +13,7 @@ import {
   IonSpinner,
   IonTitle,
   IonToolbar,
+  useIonViewDidLeave,
   useIonViewWillEnter,
   type RefresherEventDetail,
 } from '@ionic/react';
@@ -21,8 +22,7 @@ import { deleteHistoryItem, loadHistoryItems } from '@/lib/cloudHistory';
 import { getHistoryItemDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { dedupeSleepItems } from '@/lib/sleepDedupe';
-import { syncSamsungSleep } from '@/lib/samsungSleepSync';
-import { syncSamsungWorkouts } from '@/lib/samsungWorkoutSync';
+import { syncTodayHealth } from '@/lib/todayHealthSync';
 import { dedupeWorkoutItems, type MergedWorkoutItem } from '@/lib/workoutDedupe';
 import { buildDailyNutritionSummary } from '@/lib/activityNutritionSummary';
 import './ActivityPage.css';
@@ -38,25 +38,43 @@ const ActivityPage: React.FC = () => {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<LocalHistoryItem | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const loadedRef = useRef(false);
+  const visibleRef = useRef(false);
+  const syncTimerRef = useRef<number | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
-    const [sleepSync, workoutSync] = await Promise.all([syncSamsungSleep('today'), syncSamsungWorkouts('today')]);
-    if (sleepSync.error) console.warn('[sleep-sync] Samsung Health sync failed', sleepSync.error);
-    if (workoutSync.error) console.warn('[workout-sync] Samsung Health sync failed', workoutSync.error);
     const result = await loadHistoryItems();
     if (result.ok) {
       const sleep = dedupeSleepItems(result.items.filter((item) => item.type === 'sleep'));
       const workouts = dedupeWorkoutItems(result.items.filter((item) => item.type === 'workout' || item.type === 'strength'));
       setItems([...result.items.filter((item) => item.type !== 'sleep' && item.type !== 'workout' && item.type !== 'strength'), ...sleep, ...workouts]);
+      loadedRef.current = true;
     }
     else setError(result.error);
     setLoading(false);
   }, []);
 
-  useIonViewWillEnter(() => { void load(); });
+  useIonViewWillEnter(() => {
+    visibleRef.current = true;
+    if (!loadedRef.current) void load();
+    syncTimerRef.current = window.setTimeout(() => {
+      void syncTodayHealth().then((result) => {
+        if (result.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
+        if (result.workout?.error) console.warn('[workout-sync] Samsung Health sync failed', result.workout.error);
+        if (result.performed && visibleRef.current) void load();
+      });
+    }, 1200);
+  });
+
+  useIonViewDidLeave(() => {
+    visibleRef.current = false;
+    if (syncTimerRef.current !== null) window.clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = null;
+  });
 
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => {
+    await syncTodayHealth(true);
     await load();
     event.detail.complete();
   };

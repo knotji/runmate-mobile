@@ -94,7 +94,7 @@ export type UserProfile = {
   sleepNotes?: string;
 
   // Field source tracking (populated by history analysis vs manual)
-  fieldSources?: Partial<Record<string, "history_analysis" | "manual">>;
+  fieldSources?: Partial<Record<string, "history_analysis" | "health_connect" | "manual">>;
 
   // Auto Sync preference (persisted in Supabase; null/undefined → true)
   autoProfileSyncEnabled?: boolean;
