@@ -8,7 +8,6 @@ import type { LocalHistoryItem } from '@/lib/localHistory';
 import type { WorkoutAnalysis } from '@/types/logs';
 
 const SAMSUNG_HEALTH_SOURCE_ID = 'com.sec.android.app.shealth';
-const STRAVA_SOURCE_ID = 'com.strava';
 const DEFAULT_LOOKBACK_DAYS = 30;
 const CLOSED_WORKOUT_GRACE_MS = 2 * 60_000;
 const LAST_SYNC_KEY = 'runmate:samsung-workout-last-synced-at';
@@ -99,37 +98,21 @@ export async function queryAllHealthConnectWorkouts(options: Omit<QueryWorkoutsO
 
 async function readWorkoutHeartRate(workout: Workout): Promise<HealthSample[]> {
   const result = await Health.readSamples({ dataType: 'heartRate', startDate: workout.startDate, endDate: workout.endDate, ascending: true, limit: 2000 });
-  const exactSource = result.samples.filter((sample) => sample.sourceId === workout.sourceId);
-  if (exactSource.length) return exactSource;
-  // A Strava Workout recorded on a Samsung device can reference Samsung's
-  // Heart Rate stream rather than duplicating the samples under Strava.
-  return workout.sourceId === STRAVA_SOURCE_ID
-    ? result.samples.filter((sample) => sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID)
-    : [];
+  return result.samples.filter((sample) => sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID);
 }
 
 export function selectImportableHealthConnectWorkouts(workouts: Workout[]): Workout[] {
-  const samsung = workouts.filter((workout) => workout.sourceId === SAMSUNG_HEALTH_SOURCE_ID);
-  const stravaFallbacks = workouts.filter((workout) =>
-    workout.sourceId === STRAVA_SOURCE_ID
-    && !samsung.some((candidate) => sameHealthConnectSession(candidate, workout)),
-  );
-  return [...samsung, ...stravaFallbacks].sort((a, b) => Date.parse(a.startDate) - Date.parse(b.startDate));
-}
-
-function sameHealthConnectSession(a: Workout, b: Workout): boolean {
-  const startDifference = Math.abs(Date.parse(a.startDate) - Date.parse(b.startDate));
-  if (!Number.isFinite(startDifference) || startDifference > 2 * 60_000) return false;
-  const aKind = workoutKind(a.workoutType);
-  const bKind = workoutKind(b.workoutType);
-  return aKind === bKind || aKind === 'other' || bKind === 'other';
+  return workouts
+    .filter((workout) => workout.sourceId === SAMSUNG_HEALTH_SOURCE_ID)
+    .sort((a, b) => Date.parse(a.startDate) - Date.parse(b.startDate));
 }
 
 function supportedWorkoutSource(sourceId: string | undefined): boolean {
-  return sourceId === SAMSUNG_HEALTH_SOURCE_ID || sourceId === STRAVA_SOURCE_ID;
+  return sourceId === SAMSUNG_HEALTH_SOURCE_ID;
 }
 
 export function mapSamsungWorkout(workout: Workout, heartRate: HealthSample[] = [], vo2MaxSamples: HealthSample[] = []): LocalHistoryItem | null {
+  if (workout.sourceId !== SAMSUNG_HEALTH_SOURCE_ID) return null;
   const startMs = Date.parse(workout.startDate);
   const endMs = Date.parse(workout.endDate);
   if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) return null;
@@ -176,12 +159,12 @@ export function mapSamsungWorkout(workout: Workout, heartRate: HealthSample[] = 
     totalStrokes: null,
   };
   return {
-    id: `healthconnect-${workout.sourceId === SAMSUNG_HEALTH_SOURCE_ID ? 'samsung' : 'strava'}-workout-${stableKey(platformKey)}`,
+    id: `healthconnect-samsung-workout-${stableKey(platformKey)}`,
     type: 'workout',
     createdAt: workout.endDate,
     recordedAt: workout.startDate,
     dateKey: getBangkokDateKey(workout.startDate),
-    source: { provider: workout.sourceId === SAMSUNG_HEALTH_SOURCE_ID ? 'samsung_health' : 'strava', importType: 'health_connect', detectedFormat: 'Health Connect Workout', importedAt: new Date().toISOString() },
+    source: { provider: 'samsung_health', importType: 'health_connect', detectedFormat: 'Health Connect Workout', importedAt: new Date().toISOString() },
     data: {
       extracted,
       coach: emptyCoach(),

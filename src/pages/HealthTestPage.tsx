@@ -343,6 +343,10 @@ const HealthTestPage: React.FC = () => {
             <p>Recovery and Activity check today automatically. Sync Now checks the last 30 days.</p>
           </section>
 
+          <p className="health-connect-source-note">
+            RunMate imports records shared by Samsung Health through Health Connect. A workout visible in Samsung Health may not appear here if Samsung Health has not shared that record.
+          </p>
+
           {connectionMessage && <p className="health-connect-message" role="status">{connectionMessage}</p>}
 
           {syncSummary && (
@@ -483,7 +487,7 @@ function countReconciled(items: LocalHistoryItem[]): number {
   const workouts = dedupeWorkoutItems(items.filter((item) => item.type === 'workout' || item.type === 'strength'));
   return [...sleep, ...workouts].filter((item) => {
     const sources = item.reconciledSources ?? [];
-    return (sources.includes('Samsung Health') || sources.includes('Strava')) && (sources.includes('Manual Upload') || sources.includes('Upload'));
+    return sources.includes('Samsung Health') && (sources.includes('Manual Upload') || sources.includes('Upload'));
   }).length;
 }
 

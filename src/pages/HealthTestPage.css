@@ -28,6 +28,7 @@
 .health-connect-sync-card { margin-top: 14px; padding: 15px 16px; border: 1px solid #d4e4f0; border-radius: 16px; background: #fff; }
 .health-connect-sync-card div { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 7px; }
 .health-connect-sync-card strong { color: #203d59; font-size: 12px; }
+.health-connect-source-note { margin: 10px 2px 0; color: #6f879c; font-size: 10px; line-height: 1.5; }
 .health-connect-message { margin: 12px 0 0; padding: 11px 13px; border-radius: 12px; color: #37627f; background: #eaf5fb; font-size: 11px; line-height: 1.45; }
 .health-sync-summary { margin-top: 14px; padding: 16px; border: 1px solid #cfe2ee; border-radius: 18px; background: #fff; box-shadow: 0 10px 26px rgba(34,73,105,.05); }
 .health-sync-summary > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 13px; }

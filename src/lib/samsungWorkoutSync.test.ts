@@ -38,8 +38,8 @@ describe('Samsung Health workout importer', () => {
     expect(mapSamsungWorkout({ workoutType: 'walking', duration: 0, startDate: '2026-07-18T03:00:00Z', endDate: '2026-07-18T02:00:00Z' })).toBeNull();
   });
 
-  it('uses Strava as a fallback only when Samsung does not expose the same session', () => {
-    const stravaOnly: Workout = {
+  it('imports only Samsung Health sessions', () => {
+    const strava: Workout = {
       workoutType: 'running', duration: 1803, totalDistance: 5208,
       startDate: '2026-07-13T23:18:47Z', endDate: '2026-07-13T23:48:50Z',
       sourceId: 'com.strava', sourceName: 'samsung SM-S918B', platformId: 'strava-jul-14',
@@ -49,17 +49,11 @@ describe('Samsung Health workout importer', () => {
       startDate: '2026-07-17T23:32:06.685Z', endDate: '2026-07-18T00:33:36.611Z',
       sourceId: 'com.sec.android.app.shealth', platformId: 'samsung-jul-18',
     };
-    const duplicateStrava: Workout = {
-      ...samsung,
-      startDate: '2026-07-17T23:32:07Z',
-      sourceId: 'com.strava',
-      platformId: 'strava-jul-18',
-    };
-
-    const selected = selectImportableHealthConnectWorkouts([stravaOnly, duplicateStrava, samsung]);
-    expect(selected.map((workout) => workout.platformId)).toEqual(['strava-jul-14', 'samsung-jul-18']);
-    expect(mapSamsungWorkout(stravaOnly)?.source?.provider).toBe('strava');
-    expect(mapSamsungWorkout(stravaOnly)?.dateKey).toBe('2026-07-14');
+    const googleFit: Workout = { ...strava, sourceId: 'com.google.android.apps.fitness', platformId: 'google-fit-jul-14' };
+    const selected = selectImportableHealthConnectWorkouts([strava, googleFit, samsung]);
+    expect(selected.map((workout) => workout.platformId)).toEqual(['samsung-jul-18']);
+    expect(mapSamsungWorkout(strava)).toBeNull();
+    expect(mapSamsungWorkout(googleFit)).toBeNull();
   });
 
   it('follows every workout pagination anchor and sorts the complete result', async () => {

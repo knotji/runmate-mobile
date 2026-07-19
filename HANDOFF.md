@@ -654,7 +654,7 @@ A draft `runSyncCycle()` was sketched (not yet implemented) with these propertie
 
 - `Sync Now` on the Health Connect page performs a 30-day Sleep and Workout backfill.
 - `Repair Last 30 Days` is a separate Workout-focused repair action. It re-reads every Samsung Workout and its in-session Heart Rate samples for the same 30-day window, then upserts the deterministic records so missing HR timelines can be filled without creating duplicate Activity rows.
-- Health Connect can expose a Samsung-device Workout only through `com.strava` even when adjacent sessions also have a native `com.sec.android.app.shealth` record. Workout sync therefore prefers the native Samsung record for overlapping sessions and imports Strava only as a fallback when no matching Samsung start time exists. Fallback records retain honest `Strava` provenance and reconcile with matching Upload records; they may use an exact-source HR stream or the Samsung HR stream inside the same Workout window.
+- Workout sync accepts only records whose Health Connect source is `com.sec.android.app.shealth`. Strava and Google Fit records are intentionally excluded; a matching Manual Upload remains available when Samsung Health shows a workout internally but does not share it through Health Connect. The Health Connect page explains this provider boundary so a missing historical record is not mistaken for a failed repair.
 - Connecting and granting access also performs the default 30-day backfill.
 - Entering Recovery or Activity, and pull-to-refresh on either page, syncs only today's Bangkok-date records.
 - Today's Sleep query starts at noon on the previous Bangkok day and then retains only sessions attributed to today's wake date. This captures overnight sleep without importing older nights.
