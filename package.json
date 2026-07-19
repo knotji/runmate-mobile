@@ -9,7 +9,12 @@
     "preview": "vite preview",
     "test.e2e": "cypress run",
     "test.unit": "vitest",
-    "lint": "eslint"
+    "lint": "eslint",
+    "android:signing:setup": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-android-signing.ps1",
+    "android:release": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-android-release.ps1 -Artifact both",
+    "android:release:apk": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-android-release.ps1 -Artifact apk",
+    "android:release:aab": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-android-release.ps1 -Artifact aab",
+    "android:distribute": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/distribute-android-release.ps1"
   },
   "dependencies": {
     "@capacitor/app": "8.1.1",

@@ -32,3 +32,5 @@ yarn-error.log*
 .env
 /supabase/.temp
 /android/app/google-services.json
+/android/app/runmate-release.jks
+/android/keystore.properties

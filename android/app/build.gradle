@@ -8,6 +8,20 @@ def gitCommitCount = providers.exec {
     commandLine 'git', 'rev-list', '--count', 'HEAD'
 }.standardOutput.asText.get().trim().toInteger()
 def runMateVersionCode = configuredVersionCode ? configuredVersionCode.toInteger() : 1000 + gitCommitCount
+def signingPropertiesFile = rootProject.file('keystore.properties')
+def signingProperties = new Properties()
+if (signingPropertiesFile.exists()) {
+    signingPropertiesFile.withInputStream { signingProperties.load(it) }
+}
+def signingStoreFile = System.getenv('RUNMATE_KEYSTORE_FILE') ?: signingProperties.getProperty('storeFile')
+def signingStorePassword = System.getenv('RUNMATE_KEYSTORE_PASSWORD') ?: signingProperties.getProperty('storePassword')
+def signingKeyAlias = System.getenv('RUNMATE_KEY_ALIAS') ?: signingProperties.getProperty('keyAlias')
+def signingKeyPassword = System.getenv('RUNMATE_KEY_PASSWORD') ?: signingProperties.getProperty('keyPassword')
+def hasReleaseSigning = [signingStoreFile, signingStorePassword, signingKeyAlias, signingKeyPassword].every { it }
+def requestedReleaseBuild = gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }
+if (requestedReleaseBuild && !hasReleaseSigning) {
+    throw new GradleException('Release signing is not configured. Run: npm run android:signing:setup')
+}
 
 android {
     namespace = "com.runmate.mobile"
@@ -25,8 +39,19 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile rootProject.file(signingStoreFile)
+                storePassword signingStorePassword
+                keyAlias signingKeyAlias
+                keyPassword signingKeyPassword
+            }
+        }
+    }
     buildTypes {
         release {
+            if (hasReleaseSigning) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
