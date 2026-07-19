@@ -338,6 +338,18 @@ When changing scoring, add or update tests without weakening these safety proper
 8. Verify Meal Upload end-to-end with 1-photo and 4-photo signed-in examples.
 9. Reuse the Mobile Upload shell and authenticated Edge Function pattern for Workout Upload, then Sleep Upload.
 
+## Product Roadmap Priority
+
+When extending the mobile app with more data and functionality from RunMate AI, use this order:
+
+1. **Today's Training Plan** — Highest-value next step because it turns the Recovery score into a clear action for the user. Show the planned workout, duration or distance, target intensity, and why the plan fits today's Recovery.
+2. **Race Goal** — Bring over race date, distance, target finish time, and weeks remaining.
+3. **Weekly Training Summary** — Show total distance, session count, plan adherence, and training-load trend without duplicating the daily Recovery view.
+4. **Profile / Settings** — Support Max HR, preferred wake time, timezone, and training preferences needed by personalized calculations and guidance.
+5. **Notifications** — Add bedtime guidance, missing-sleep reminders, workout reminders, and meaningful Recovery alerts after the underlying settings and plans are available.
+
+Prefer a concise Today's Training Plan over porting the full Coach chat first. The plan gives the Recovery screen one direct next action while avoiding guidance duplicated across multiple sections.
+
 ## Latest Meal Upload Work
 
 The mobile app now owns its Meal Upload flow rather than calling the RunMate AI Next.js API.
