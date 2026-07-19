@@ -44,4 +44,15 @@ describe('workout reconciliation', () => {
     const samsung = item('samsung-strength', 'samsung_health', { workoutKind: 'strength', duration: '45:00' });
     expect(dedupeWorkoutItems([upload, samsung])).toHaveLength(2);
   });
+
+  it('reconciles a Strava Health Connect fallback with an uploaded session', () => {
+    const upload = item('upload-run', 'generic_image', { workoutKind: 'outdoor_run', duration: '28:50', distanceKm: 5.2 });
+    const strava = {
+      ...item('strava-run', 'samsung_health', { workoutKind: 'outdoor_run', duration: '30:03', distanceKm: 5.208 }),
+      source: { provider: 'strava' as const, importType: 'health_connect' as const, importedAt: '2026-07-18T04:00:00Z' },
+    };
+    const [merged] = dedupeWorkoutItems([upload, strava]);
+    expect(merged.sourceRecordIds).toEqual(expect.arrayContaining(['upload-run', 'strava-run']));
+    expect(merged.reconciledSources).toEqual(['Strava', 'Upload']);
+  });
 });

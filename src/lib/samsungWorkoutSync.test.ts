@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Health } from '@capgo/capacitor-health';
 import type { HealthSample, Workout } from '@capgo/capacitor-health';
-import { mapSamsungWorkout, queryAllHealthConnectWorkouts } from './samsungWorkoutSync';
+import { mapSamsungWorkout, queryAllHealthConnectWorkouts, selectImportableHealthConnectWorkouts } from './samsungWorkoutSync';
 
 vi.mock('@capgo/capacitor-health', () => ({ Health: { queryWorkouts: vi.fn() } }));
 
@@ -36,6 +36,30 @@ describe('Samsung Health workout importer', () => {
 
   it('rejects an invalid session interval', () => {
     expect(mapSamsungWorkout({ workoutType: 'walking', duration: 0, startDate: '2026-07-18T03:00:00Z', endDate: '2026-07-18T02:00:00Z' })).toBeNull();
+  });
+
+  it('uses Strava as a fallback only when Samsung does not expose the same session', () => {
+    const stravaOnly: Workout = {
+      workoutType: 'running', duration: 1803, totalDistance: 5208,
+      startDate: '2026-07-13T23:18:47Z', endDate: '2026-07-13T23:48:50Z',
+      sourceId: 'com.strava', sourceName: 'samsung SM-S918B', platformId: 'strava-jul-14',
+    };
+    const samsung: Workout = {
+      workoutType: 'running', duration: 3689, totalDistance: 10163,
+      startDate: '2026-07-17T23:32:06.685Z', endDate: '2026-07-18T00:33:36.611Z',
+      sourceId: 'com.sec.android.app.shealth', platformId: 'samsung-jul-18',
+    };
+    const duplicateStrava: Workout = {
+      ...samsung,
+      startDate: '2026-07-17T23:32:07Z',
+      sourceId: 'com.strava',
+      platformId: 'strava-jul-18',
+    };
+
+    const selected = selectImportableHealthConnectWorkouts([stravaOnly, duplicateStrava, samsung]);
+    expect(selected.map((workout) => workout.platformId)).toEqual(['strava-jul-14', 'samsung-jul-18']);
+    expect(mapSamsungWorkout(stravaOnly)?.source?.provider).toBe('strava');
+    expect(mapSamsungWorkout(stravaOnly)?.dateKey).toBe('2026-07-14');
   });
 
   it('follows every workout pagination anchor and sorts the complete result', async () => {

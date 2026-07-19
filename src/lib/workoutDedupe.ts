@@ -38,7 +38,7 @@ function mergeGroup(group: LocalHistoryItem[]): MergedWorkoutItem {
   }
   const coachSource = [...group].sort((a, b) => coachScore(b) - coachScore(a))[0];
   const sourceSet = new Set(group.map(sourceLabel));
-  const reconciledSources = ['Samsung Health', 'Structured Import', 'Upload'].filter((source) => sourceSet.has(source));
+  const reconciledSources = ['Samsung Health', 'Strava', 'Structured Import', 'Upload'].filter((source) => sourceSet.has(source));
   return {
     ...primary,
     data: {
@@ -92,11 +92,11 @@ function normalizedKind(item: LocalHistoryItem, ext: Record<string, unknown>): s
   return kind || null;
 }
 
-function sourceRank(item: LocalHistoryItem): number { return item.source?.provider === 'samsung_health' ? 3 : item.source?.importType === 'csv' ? 2 : 1; }
+function sourceRank(item: LocalHistoryItem): number { return item.source?.provider === 'samsung_health' || item.source?.provider === 'strava' ? 3 : item.source?.importType === 'csv' ? 2 : 1; }
 function fieldRank(item: LocalHistoryItem, field: string): number { return DEVICE_FIELDS.has(field) ? sourceRank(item) * 100 + completeness(item) : completeness(item); }
 function completeness(item: LocalHistoryItem): number { return Object.values(extracted(item)).filter(meaningful).length; }
 function coachScore(item: LocalHistoryItem): number { return Object.values(record(record(item.data).coach)).filter(meaningful).length; }
-function sourceLabel(item: LocalHistoryItem): string { return item.source?.provider === 'samsung_health' ? 'Samsung Health' : item.source?.importType === 'csv' ? 'Structured Import' : 'Upload'; }
+function sourceLabel(item: LocalHistoryItem): string { return item.source?.provider === 'samsung_health' ? 'Samsung Health' : item.source?.provider === 'strava' ? 'Strava' : item.source?.importType === 'csv' ? 'Structured Import' : 'Upload'; }
 function extracted(item: LocalHistoryItem): Record<string, unknown> { return record(record(item.data).extracted); }
 function workoutStart(item: LocalHistoryItem): number | null { const value = record(item.data).workoutStartTime; const parsed = typeof value === 'string' ? Date.parse(value) : NaN; return Number.isFinite(parsed) ? parsed : null; }
 function durationMinutes(value: unknown): number | null {

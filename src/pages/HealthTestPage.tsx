@@ -483,7 +483,7 @@ function countReconciled(items: LocalHistoryItem[]): number {
   const workouts = dedupeWorkoutItems(items.filter((item) => item.type === 'workout' || item.type === 'strength'));
   return [...sleep, ...workouts].filter((item) => {
     const sources = item.reconciledSources ?? [];
-    return sources.includes('Samsung Health') && (sources.includes('Manual Upload') || sources.includes('Upload'));
+    return (sources.includes('Samsung Health') || sources.includes('Strava')) && (sources.includes('Manual Upload') || sources.includes('Upload'));
   }).length;
 }
 
