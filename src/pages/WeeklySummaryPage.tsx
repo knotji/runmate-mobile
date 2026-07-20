@@ -5,8 +5,7 @@ import { arrowBackOutline, barbellOutline, bedOutline, checkmarkCircleOutline, c
 import type { CoachContext } from '@/lib/buildCoachContext';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { buildWeeklyTrainingSummary } from '@/lib/weeklyTrainingSummary';
-import { syncSamsungSleep } from '@/lib/samsungSleepSync';
-import { syncSamsungWorkouts } from '@/lib/samsungWorkoutSync';
+import { syncTodayHealth } from '@/lib/healthSyncService';
 import { loadActiveRaceGoalAndPlan } from '@/lib/raceStorage';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
@@ -28,7 +27,7 @@ const WeeklySummaryPage: React.FC = () => {
   const load = useCallback(async () => {
     setError(null);
     try {
-      await Promise.all([syncSamsungSleep('today'), syncSamsungWorkouts('today')]);
+      await syncTodayHealth(true);
       const [nextContext, race, workoutHistory] = await Promise.all([buildCoachContextFromSupabase(), loadActiveRaceGoalAndPlan(), loadHistoryItems(['workout', 'strength'])]);
       const canonicalWorkouts = workoutHistory.ok ? dedupeWorkoutItems(workoutHistory.items) : [];
       setContext(nextContext);

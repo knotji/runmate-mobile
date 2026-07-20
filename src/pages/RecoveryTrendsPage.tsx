@@ -6,7 +6,7 @@ import { loadHistoryItems } from '@/lib/cloudHistory';
 import { todayBangkokDateKey } from '@/lib/date';
 import { loadProfileFromSupabase } from '@/lib/profileStorage';
 import { buildRecoveryTrend, type RecoveryTrendPoint } from '@/lib/recoveryTrends';
-import { syncTodayHealth } from '@/lib/todayHealthSync';
+import { syncTodayHealth } from '@/lib/healthSyncService';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import './RecoveryTrendsPage.css';
 

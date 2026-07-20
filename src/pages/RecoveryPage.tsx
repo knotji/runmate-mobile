@@ -24,7 +24,7 @@ import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
 import { TodayTrainingPlanCard } from '@/components/TodayTrainingPlanCard';
 import { formatClockMinutes, loadTonightWakeOverride, parseClockMinutes, sleepWindowForWake } from '@/lib/sleepWindow';
 import { loadDefaultWakeTime, loadTonightWakePlan } from '@/lib/sleepWindowStorage';
-import { syncTodayHealth } from '@/lib/todayHealthSync';
+import { syncTodayHealth } from '@/lib/healthSyncService';
 import { refreshNotifications } from '@/lib/notificationService';
 import './RecoveryPage.css';
 

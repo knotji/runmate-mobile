@@ -22,7 +22,7 @@ import { deleteHistoryItem, loadHistoryItems } from '@/lib/cloudHistory';
 import { getHistoryItemDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { dedupeSleepItems } from '@/lib/sleepDedupe';
-import { syncTodayHealth } from '@/lib/todayHealthSync';
+import { syncTodayHealth } from '@/lib/healthSyncService';
 import { dedupeWorkoutItems, type MergedWorkoutItem } from '@/lib/workoutDedupe';
 import { buildDailyNutritionSummary } from '@/lib/activityNutritionSummary';
 import './ActivityPage.css';

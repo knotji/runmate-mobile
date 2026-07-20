@@ -3,9 +3,9 @@ import { IonBackButton, IonButton, IonButtons, IonContent, IonHeader, IonIcon, I
 import { barbellOutline, checkmarkCircleOutline, checkmarkOutline, cloudOfflineOutline, copyOutline, heartOutline, moonOutline, scaleOutline, settingsOutline, syncOutline } from 'ionicons/icons';
 import { Health } from '@capgo/capacitor-health';
 import type { HealthDataType, HealthSample, Workout } from '@capgo/capacitor-health';
-import { estimateSleepHeartRate, getSamsungSleepLastSyncedAt, selectLatestCanonicalSamsungSleepSample, syncSamsungSleep } from '@/lib/samsungSleepSync';
-import { getSamsungWorkoutLastSyncedAt, queryAllHealthConnectWorkouts, syncSamsungWorkouts } from '@/lib/samsungWorkoutSync';
-import { syncSamsungWeight } from '@/lib/samsungProfileSync';
+import { estimateSleepHeartRate, getSamsungSleepLastSyncedAt, selectLatestCanonicalSamsungSleepSample } from '@/lib/samsungSleepSync';
+import { getSamsungWorkoutLastSyncedAt, queryAllHealthConnectWorkouts } from '@/lib/samsungWorkoutSync';
+import { repairWorkoutHistory, syncHealthHistory } from '@/lib/healthSyncService';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import { dedupeSleepItems } from '@/lib/sleepDedupe';
 import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
@@ -258,7 +258,7 @@ const HealthTestPage: React.FC = () => {
     try {
       const authorization = await Health.requestAuthorization({ read: PRODUCT_READ_TYPES, requestHistoryAccess: true });
       if (authorization.readAuthorized.includes('sleep')) {
-        const [sleep, workouts, weight] = await Promise.all([syncSamsungSleep(), syncSamsungWorkouts(), syncSamsungWeight()]);
+        const { sleep, workout: workouts, weight } = await syncHealthHistory();
         await showSyncResult(sleep, workouts, setSyncSummary);
         if (sleep.error || workouts.error || weight.error) setConnectionMessage(sleep.error ?? workouts.error ?? weight.error ?? 'Could Not Sync Health Connect.');
       } else {
@@ -273,7 +273,7 @@ const HealthTestPage: React.FC = () => {
   const syncNow = async () => {
     setConnectionBusy('sync');
     setConnectionMessage(null);
-    const [sleep, workouts, weight] = await Promise.all([syncSamsungSleep(), syncSamsungWorkouts(), syncSamsungWeight()]);
+    const { sleep, workout: workouts, weight } = await syncHealthHistory();
     await showSyncResult(sleep, workouts, setSyncSummary);
     if (sleep.status === 'permission_required' || workouts.status === 'permission_required') setConnectionMessage('Update Health Connect access before syncing.');
     else if (sleep.error || workouts.error || weight.error) setConnectionMessage(sleep.error ?? workouts.error ?? weight.error ?? 'Could Not Sync Health Connect.');
@@ -284,7 +284,7 @@ const HealthTestPage: React.FC = () => {
   const repairWorkouts = async () => {
     setConnectionBusy('repair');
     setConnectionMessage(null);
-    const workouts = await syncSamsungWorkouts(30);
+    const workouts = await repairWorkoutHistory();
     await showSyncResult({ added: 0, updated: 0, unchanged: 0, failed: 0 }, workouts, setSyncSummary);
     if (workouts.status === 'permission_required') {
       setConnectionMessage('Allow Workout and Heart Rate access before repairing your history.');
