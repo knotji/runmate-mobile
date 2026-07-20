@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { HealthSample } from '@capgo/capacitor-health';
-import { mapSamsungSleepSample } from './samsungSleepSync';
+import { estimateSleepHeartRate, mapSamsungSleepSample } from './samsungSleepSync';
 
 describe('Samsung Health sleep importer', () => {
   it('maps a Samsung Health sample into an idempotent history item', () => {
@@ -78,11 +78,57 @@ describe('Samsung Health sleep importer', () => {
       ],
       restingHeartRate: [signal('restingHeartRate', 50, '2026-07-10T01:00:00.000Z', 'bpm')],
       respiratoryRate: [signal('respiratoryRate', 15.2, '2026-07-09T19:00:00.000Z', 'count')],
+      heartRate: [],
     });
     const extracted = (item?.data as { extracted: Record<string, unknown> }).extracted;
     expect(extracted.hrv).toBe(105);
     expect(extracted.avgSleepingHrv).toBe(105);
     expect(extracted.restingHR).toBe(50);
     expect(extracted.avgRespiratoryRate).toBe(15.2);
+  });
+
+  it('estimates resting HR from sufficiently covered Samsung sleep-window heart rate', () => {
+    const startMs = Date.parse('2026-07-09T16:00:00.000Z');
+    const endMs = Date.parse('2026-07-09T18:00:00.000Z');
+    const samples = Array.from({ length: 13 }, (_, index): HealthSample => ({
+      dataType: 'heartRate',
+      value: [64, 62, 61, 59, 58, 57, 56, 58, 60, 61, 63, 62, 60][index],
+      unit: 'bpm',
+      startDate: new Date(startMs + index * 10 * 60_000).toISOString(),
+      endDate: new Date(startMs + index * 10 * 60_000).toISOString(),
+      sourceId: 'com.sec.android.app.shealth',
+    }));
+    expect(estimateSleepHeartRate(samples, startMs, endMs)).toEqual({
+      average: 60,
+      resting: 58,
+      sampleCount: 13,
+      coveragePercent: 100,
+    });
+
+    const sleep: HealthSample = {
+      dataType: 'sleep', value: 110, unit: 'minute',
+      startDate: new Date(startMs).toISOString(), endDate: new Date(endMs).toISOString(),
+      sourceId: 'com.sec.android.app.shealth', platformId: 'sleep-with-generic-hr',
+    };
+    const item = mapSamsungSleepSample(sleep, {
+      heartRateVariability: [], restingHeartRate: [], respiratoryRate: [], heartRate: samples,
+    });
+    const extracted = (item?.data as { extracted: Record<string, unknown> }).extracted;
+    expect(extracted.restingHR).toBe(58);
+    expect(extracted.avgSleepingHeartRate).toBe(60);
+    expect(extracted.restingHRSource).toBe('estimated_sleep_hr');
+    expect(extracted.sleepHeartRateCoveragePercent).toBe(100);
+  });
+
+  it('does not estimate resting HR from sparse sleep-window samples', () => {
+    const startMs = Date.parse('2026-07-09T16:00:00.000Z');
+    const endMs = Date.parse('2026-07-09T22:00:00.000Z');
+    const samples = [0, 120, 240, 360].map((minutes): HealthSample => ({
+      dataType: 'heartRate', value: 60, unit: 'bpm',
+      startDate: new Date(startMs + minutes * 60_000).toISOString(),
+      endDate: new Date(startMs + minutes * 60_000).toISOString(),
+      sourceId: 'com.sec.android.app.shealth',
+    }));
+    expect(estimateSleepHeartRate(samples, startMs, endMs)).toBeNull();
   });
 });

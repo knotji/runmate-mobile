@@ -16,6 +16,7 @@ const DEVICE_MEASURED_FIELDS = new Set([
   "actualSleepDurationMinutes", "actualSleepDurationText", "sleepDuration", "sleepDurationSource",
   "timeInBedMinutes", "timeInBedText", "timeInBedDerived", "sleepStartTime", "sleepEndTime",
   "avgSleepingHeartRate", "avgSleepingHrv", "avgRespiratoryRate", "sleepLatencyMinutes",
+  "restingHRSource", "sleepHeartRateSampleCount", "sleepHeartRateCoveragePercent",
   "avgSpO2Percent", "lowestSpO2Percent", "skinTemperatureDeltaC", "sleepStageMinutes",
   "sleepStageAwakeMinutes", "sleepStageRemMinutes", "sleepStageLightMinutes", "sleepStageDeepMinutes",
   "restingHR", "hrv",

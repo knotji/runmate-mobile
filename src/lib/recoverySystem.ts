@@ -330,9 +330,10 @@ function buildRecovery(context: CoachContext, sleep: SleepPerformanceSummary, ov
   if (latest?.restingHR != null && rhrBaseline != null && rhrBaseline > 0) {
     const delta = (latest.restingHR - rhrBaseline) / rhrBaseline;
     const rhrScore = clamp(65 - delta * 180);
-    signalTotal += rhrScore * 0.25;
-    signalWeight += 0.25;
-    reasons.push(`RHR ${latest.restingHR} bpm เทียบ baseline ${round(rhrBaseline)} bpm (${delta >= 0 ? '+' : ''}${round(delta * 100)}%)`);
+    const rhrWeight = latest.restingHRSource === 'estimated_sleep_hr' ? 0.15 : 0.25;
+    signalTotal += rhrScore * rhrWeight;
+    signalWeight += rhrWeight;
+    reasons.push(`${latest.restingHRSource === 'estimated_sleep_hr' ? 'Estimated sleeping RHR' : 'RHR'} ${latest.restingHR} bpm เทียบ baseline ${round(rhrBaseline)} bpm (${delta >= 0 ? '+' : ''}${round(delta * 100)}%)`);
   } else missing.push('RHR baseline ส่วนตัว');
   if (latest?.respiratoryRate != null && respiratoryBaseline != null && respiratoryBaseline > 0) {
     const delta = (latest.respiratoryRate - respiratoryBaseline) / respiratoryBaseline;

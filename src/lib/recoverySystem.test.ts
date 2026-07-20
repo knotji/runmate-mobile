@@ -60,6 +60,21 @@ describe('WHOOP-style Recovery Engine', () => {
     expect(recovery.sleepPerformance.efficiencyScore).toBe(94);
   });
 
+  it('identifies sleep-window RHR estimates in the Recovery explanation', () => {
+    const context = buildCoachContext();
+    context.sleep7d = [
+      sleepNight(context.todayDate, { restingHR: 52, restingHRSource: 'estimated_sleep_hr' }),
+      sleepNight(dateBefore(context.todayDate, 1), { restingHR: 55, restingHRSource: 'estimated_sleep_hr' }),
+      sleepNight(dateBefore(context.todayDate, 2), { restingHR: 54, restingHRSource: 'estimated_sleep_hr' }),
+      sleepNight(dateBefore(context.todayDate, 3), { restingHR: 56, restingHRSource: 'estimated_sleep_hr' }),
+    ];
+    context.sleepBaseline30d = context.sleep7d;
+
+    const recovery = buildRunMateRecoverySystem(context);
+
+    expect(recovery.recovery.reasons.join(' ')).toContain('Estimated sleeping RHR');
+  });
+
   it('converts Samsung UTC sleep times to Bangkok before deriving the typical wake time', () => {
     const context = buildCoachContext();
     context.sleep7d = [0, 1, 2].map((days) => sleepNight(dateBefore(context.todayDate, days), {

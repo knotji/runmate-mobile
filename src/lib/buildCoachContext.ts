@@ -48,6 +48,7 @@ export type WeekSleepRow = {
   score: number | null;
   readiness: number | null;
   restingHR: number | null;
+  restingHRSource?: "measured" | "estimated_sleep_hr" | null;
   hrv: number | null;
   energyScore: number | null;
   sleepStartTime: string | null;
@@ -330,6 +331,7 @@ export function buildCoachContextFromData(input: {
       score: d?.extracted?.sleepScore ?? null,
       readiness: d?.coach?.readinessScore ?? null,
       restingHR: d?.extracted?.restingHR ?? null,
+      restingHRSource: d?.extracted?.restingHRSource ?? null,
       hrv: d?.extracted?.hrv ?? null,
       energyScore: d?.extracted?.energyScore ?? null,
       sleepStartTime: d?.extracted?.sleepStartTime ?? null,

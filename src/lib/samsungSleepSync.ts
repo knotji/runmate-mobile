@@ -10,11 +10,22 @@ const SAMSUNG_HEALTH_SOURCE_ID = 'com.sec.android.app.shealth';
 const DEFAULT_LOOKBACK_DAYS = 30;
 const LAST_SYNC_KEY = 'runmate:samsung-sleep-last-synced-at';
 const SIGNAL_TYPES = ['heartRateVariability', 'restingHeartRate', 'respiratoryRate'] as const;
+const SLEEP_HR_SAMPLE_SUPPORT_MS = 10 * 60_000;
+const MIN_SLEEP_HR_SAMPLES = 6;
+const MIN_SLEEP_HR_COVERAGE_PERCENT = 50;
 
 type SamsungSleepSignals = {
   heartRateVariability: HealthSample[];
   restingHeartRate: HealthSample[];
   respiratoryRate: HealthSample[];
+  heartRate: HealthSample[];
+};
+
+type SleepHeartRateEstimate = {
+  average: number;
+  resting: number;
+  sampleCount: number;
+  coveragePercent: number;
 };
 
 export type SamsungSleepSyncResult = HealthSyncCounts & {
@@ -40,7 +51,7 @@ async function runSamsungSleepSync(lookbackDays: number | 'today'): Promise<Sams
     const availability = await Health.isAvailable();
     if (!availability.available) return emptyResult('unavailable');
 
-    const authorization = await Health.checkAuthorization({ read: ['sleep', ...SIGNAL_TYPES] });
+    const authorization = await Health.checkAuthorization({ read: ['sleep', ...SIGNAL_TYPES, 'heartRate'] });
     if (!authorization.readAuthorized.includes('sleep')) {
       return emptyResult('permission_required');
     }
@@ -61,9 +72,18 @@ async function runSamsungSleepSync(lookbackDays: number | 'today'): Promise<Sams
       limit: 100,
     });
     const signals = await readAuthorizedSignals(authorization.readAuthorized, startDate, endDate);
-    const items = result.samples
-      .filter((sample) => sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID)
-      .map((sample) => mapSamsungSleepSample(sample, signals))
+    const samsungSamples = result.samples.filter((sample) => sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID);
+    const mappedItems: Array<LocalHistoryItem | null> = [];
+    // Query high-volume HR records per Sleep Window. A single 30-day read can
+    // exceed Health Connect's page limit and silently omit the latest nights.
+    for (let index = 0; index < samsungSamples.length; index += 4) {
+      const batch = await Promise.all(samsungSamples.slice(index, index + 4).map(async (sample) => {
+        const heartRate = await readSleepHeartRate(authorization.readAuthorized, sample);
+        return mapSamsungSleepSample(sample, { ...signals, heartRate });
+      }));
+      mappedItems.push(...batch);
+    }
+    const items = mappedItems
       .filter((item): item is LocalHistoryItem => item !== null)
       .filter((item) => !todayOnly || item.dateKey === today);
 
@@ -124,7 +144,9 @@ export function mapSamsungSleepSample(sample: HealthSample, signals?: SamsungSle
   const platformKey = sample.platformId?.trim() || `${sample.startDate}|${sample.endDate}`;
   const hrv = averageSignal(inSleepWindow(signals?.heartRateVariability ?? [], startMs, endMs));
   const respiratoryRate = averageSignal(inSleepWindow(signals?.respiratoryRate ?? [], startMs, endMs));
-  const restingHeartRate = nearestSignal(signals?.restingHeartRate ?? [], endMs, 12 * 60 * 60 * 1000);
+  const measuredRestingHeartRate = nearestSignal(signals?.restingHeartRate ?? [], endMs, 12 * 60 * 60 * 1000);
+  const sleepHeartRate = estimateSleepHeartRate(signals?.heartRate ?? [], startMs, endMs);
+  const restingHeartRate = measuredRestingHeartRate ?? sleepHeartRate?.resting ?? null;
 
   return {
     id: `healthconnect-samsung-sleep-${stableKey(platformKey)}`,
@@ -160,6 +182,10 @@ export function mapSamsungSleepSample(sample: HealthSample, signals?: SamsungSle
           deep: stageMinutes.deep,
         } : null,
         sleepDurationSource: 'actual',
+        avgSleepingHeartRate: sleepHeartRate?.average ?? null,
+        restingHRSource: measuredRestingHeartRate != null ? 'measured' : sleepHeartRate ? 'estimated_sleep_hr' : null,
+        sleepHeartRateSampleCount: sleepHeartRate?.sampleCount ?? null,
+        sleepHeartRateCoveragePercent: sleepHeartRate?.coveragePercent ?? null,
         avgSleepingHrv: hrv,
         avgRespiratoryRate: respiratoryRate,
         sleepScore: null,
@@ -194,7 +220,24 @@ async function readAuthorizedSignals(authorized: string[], startDate: string, en
     read('restingHeartRate'),
     read('respiratoryRate'),
   ]);
-  return { heartRateVariability, restingHeartRate, respiratoryRate };
+  return { heartRateVariability, restingHeartRate, respiratoryRate, heartRate: [] };
+}
+
+async function readSleepHeartRate(authorized: string[], sleep: HealthSample): Promise<HealthSample[]> {
+  if (!authorized.includes('heartRate')) return [];
+  try {
+    const result = await Health.readSamples({
+      dataType: 'heartRate',
+      startDate: sleep.startDate,
+      endDate: sleep.endDate,
+      ascending: true,
+      limit: 2000,
+    });
+    return result.samples.filter((sample) => sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID);
+  } catch (error) {
+    console.warn('[sleep-sync] Sleep-window heart rate read failed', error);
+    return [];
+  }
 }
 
 function inSleepWindow(samples: HealthSample[], startMs: number, endMs: number): HealthSample[] {
@@ -208,6 +251,34 @@ function averageSignal(samples: HealthSample[]): number | null {
   const values = samples.map((sample) => sample.value).filter((value) => Number.isFinite(value) && value > 0);
   if (!values.length) return null;
   return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length * 10) / 10;
+}
+
+export function estimateSleepHeartRate(samples: HealthSample[], startMs: number, endMs: number): SleepHeartRateEstimate | null {
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) return null;
+  const points = samples
+    .map((sample) => ({ at: Date.parse(sample.startDate), bpm: sample.value }))
+    .filter(({ at, bpm }) => Number.isFinite(at) && at >= startMs && at <= endMs && Number.isFinite(bpm) && bpm >= 30 && bpm <= 240)
+    .sort((a, b) => a.at - b.at);
+  if (points.length < MIN_SLEEP_HR_SAMPLES) return null;
+
+  let supportedMs = 0;
+  for (let index = 1; index < points.length; index += 1) {
+    supportedMs += Math.min(SLEEP_HR_SAMPLE_SUPPORT_MS, points[index].at - points[index - 1].at);
+  }
+  const coveragePercent = Math.min(100, Math.round(supportedMs / (endMs - startMs) * 100));
+  if (coveragePercent < MIN_SLEEP_HR_COVERAGE_PERCENT) return null;
+
+  const values = points.map((point) => point.bpm);
+  const average = Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+  const sortedValues = [...values].sort((a, b) => a - b);
+  const lowerBand = sortedValues.slice(0, Math.max(3, Math.ceil(sortedValues.length * 0.25)));
+  const resting = Math.round(medianValue(lowerBand));
+  return { average, resting, sampleCount: values.length, coveragePercent };
+}
+
+function medianValue(values: number[]): number {
+  const middle = Math.floor(values.length / 2);
+  return values.length % 2 === 1 ? values[middle] : (values[middle - 1] + values[middle]) / 2;
 }
 
 function nearestSignal(samples: HealthSample[], targetMs: number, maximumDistanceMs: number): number | null {

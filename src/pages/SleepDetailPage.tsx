@@ -131,7 +131,7 @@ const SleepDetailPage: React.FC = () => {
                         <IonIcon icon={item.available ? checkmarkCircleOutline : warningOutline} className={item.available ? 'available' : 'missing'} />
                         <div className="coverage-copy">
                           <span>{item.label}</span>
-                          <small>{item.available ? 'Included in sleep analysis' : 'Not received from your data source'}</small>
+                          <small>{item.available ? item.note ?? 'Included in sleep analysis' : 'Not received from your data source'}</small>
                         </div>
                         <strong className={item.available ? 'available' : 'missing'}>{item.value ?? 'Missing'}</strong>
                       </div>

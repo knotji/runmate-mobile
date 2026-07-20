@@ -4,6 +4,7 @@ export type SleepCoverageItem = {
   label: string;
   available: boolean;
   value: string | null;
+  note?: string;
 };
 
 export type SleepDiagnostics = {
@@ -22,7 +23,12 @@ export function buildSleepDiagnostics(context: CoachContext, selectedDate?: stri
     { label: 'Sleep Duration', available: latest?.durationMinutes != null, value: formatMinutes(latest?.durationMinutes ?? null) },
     { label: 'Time In Bed', available: latest?.timeInBedMinutes != null, value: formatMinutes(latest?.timeInBedMinutes ?? null) },
     { label: 'HRV', available: latest?.hrv != null, value: latest?.hrv == null ? null : `${latest.hrv} ms` },
-    { label: 'Resting Heart Rate', available: latest?.restingHR != null, value: latest?.restingHR == null ? null : `${latest.restingHR} bpm` },
+    {
+      label: 'Resting Heart Rate',
+      available: latest?.restingHR != null,
+      value: latest?.restingHR == null ? null : `${latest.restingHR} bpm`,
+      note: latest?.restingHRSource === 'estimated_sleep_hr' ? 'Estimated from sleep HR samples' : undefined,
+    },
     { label: 'Respiratory Rate', available: latest?.respiratoryRate != null, value: latest?.respiratoryRate == null ? null : `${latest.respiratoryRate}/min` },
     { label: 'Sleep Stages', available: hasStages, value: hasStages ? 'Available' : null },
     { label: 'Sleep Schedule', available: latest?.sleepStartTime != null && latest?.sleepEndTime != null, value: latest?.sleepStartTime && latest.sleepEndTime ? 'Available' : null },

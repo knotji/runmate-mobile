@@ -17,6 +17,7 @@ type LogEntry = { label: string; result: unknown; error?: string; at: string };
 
 const READ_TYPES: HealthDataType[] = ['steps', 'distance', 'calories', 'sleep', 'heartRate', 'restingHeartRate', 'heartRateVariability', 'respiratoryRate', 'oxygenSaturation', 'vo2Max', 'weight', 'workouts'];
 const PRODUCT_READ_TYPES: HealthDataType[] = ['sleep', 'heartRateVariability', 'restingHeartRate', 'respiratoryRate', 'workouts', 'heartRate', 'distance', 'calories', 'vo2Max', 'weight'];
+const VITAL_TYPES: HealthDataType[] = ['heartRate', 'heartRateVariability', 'restingHeartRate', 'respiratoryRate', 'oxygenSaturation'];
 
 type ConnectionState = {
   available: boolean;
@@ -137,6 +138,81 @@ async function buildIntegrationSnapshot() {
   };
 }
 
+function summarizeSources(samples: HealthSample[]) {
+  const counts = new Map<string, number>();
+  for (const sample of samples) {
+    const source = sample.sourceName || sample.sourceId || 'Unknown Source';
+    counts.set(source, (counts.get(source) ?? 0) + 1);
+  }
+  return [...counts.entries()].map(([source, sampleCount]) => ({ source, sampleCount }));
+}
+
+async function readVitalSamples(dataType: HealthDataType, startDate: string, endDate: string, limit: number) {
+  try {
+    const result = await Health.readSamples({ dataType, startDate, endDate, ascending: true, limit });
+    return {
+      status: 'ok' as const,
+      sampleCount: result.samples.length,
+      sources: summarizeSources(result.samples),
+      samples: result.samples,
+    };
+  } catch (error) {
+    return {
+      status: 'error' as const,
+      sampleCount: 0,
+      sources: [],
+      samples: [],
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+/**
+ * Diagnostic snapshot for the signals used by Recovery. Generic heart-rate
+ * samples are intentionally limited to the latest Sleep Window so the output
+ * remains copyable while still proving whether overnight HR is available.
+ */
+async function buildVitalsDiagnostic() {
+  const sevenDaysAgo = daysAgo(7);
+  const now = new Date().toISOString();
+  const [authorization, sleepResult] = await Promise.all([
+    Health.checkAuthorization({ read: ['sleep', ...VITAL_TYPES] }),
+    Health.readSamples({ dataType: 'sleep', startDate: sevenDaysAgo, endDate: now, ascending: false, limit: 50 }),
+  ]);
+  const latestSleep = [...sleepResult.samples].sort((a, b) => Date.parse(b.endDate) - Date.parse(a.endDate))[0] ?? null;
+  const heartRateWindow = latestSleep
+    ? { startDate: latestSleep.startDate, endDate: latestSleep.endDate, basis: 'Latest Sleep Window' }
+    : { startDate: daysAgo(1), endDate: now, basis: 'Last 24 Hours (No Sleep Record Found)' };
+
+  const [heartRate, heartRateVariability, restingHeartRate, respiratoryRate, oxygenSaturation] = await Promise.all([
+    readVitalSamples('heartRate', heartRateWindow.startDate, heartRateWindow.endDate, 2000),
+    readVitalSamples('heartRateVariability', sevenDaysAgo, now, 500),
+    readVitalSamples('restingHeartRate', sevenDaysAgo, now, 500),
+    readVitalSamples('respiratoryRate', sevenDaysAgo, now, 500),
+    readVitalSamples('oxygenSaturation', sevenDaysAgo, now, 500),
+  ]);
+
+  return {
+    queriedAt: now,
+    authorization: {
+      readAuthorized: authorization.readAuthorized.filter((type) => type === 'sleep' || VITAL_TYPES.includes(type)),
+      readDenied: authorization.readDenied.filter((type) => type === 'sleep' || VITAL_TYPES.includes(type)),
+    },
+    latestSleepWindow: latestSleep ? {
+      startDate: latestSleep.startDate,
+      endDate: latestSleep.endDate,
+      sourceName: latestSleep.sourceName,
+      sourceId: latestSleep.sourceId,
+      platformId: latestSleep.platformId,
+    } : null,
+    queryWindows: {
+      heartRate: heartRateWindow,
+      otherVitals: { startDate: sevenDaysAgo, endDate: now, basis: 'Last 7 Days' },
+    },
+    vitals: { heartRate, heartRateVariability, restingHeartRate, respiratoryRate, oxygenSaturation },
+  };
+}
+
 const HealthTestPage: React.FC = () => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
@@ -242,6 +318,7 @@ const HealthTestPage: React.FC = () => {
   };
 
   const readChecks: Array<{ label: string; title: string; action: () => Promise<unknown> }> = [
+    { label: 'queryVitals (latest sleep HR + 7d recovery signals)', title: 'Query Vitals', action: () => buildVitalsDiagnostic() },
     { label: 'aggregated: steps (7d, daily, Bangkok-aligned)', title: 'Read Steps Aggregated (7d, Bangkok-aligned)', action: () => Health.queryAggregated({ dataType: 'steps', startDate: bangkokMidnightDaysAgo(7), bucket: 'day', aggregation: 'sum' }) },
     { label: 'read: sleep (7d)', title: 'Read Sleep (7d)', action: () => Health.readSamples({ dataType: 'sleep', startDate: daysAgo(7), limit: 50 }) },
     { label: 'read: heartRate (1d)', title: 'Read Heart Rate (1d)', action: () => Health.readSamples({ dataType: 'heartRate', startDate: daysAgo(1), limit: 200 }) },
