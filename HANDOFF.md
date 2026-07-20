@@ -869,6 +869,8 @@ The same state treatment now covers Sleep Details, Sleep Window, Race Goal, and 
 
 Activity row navigation, record presentation, source labels, and delete affordance now live in `ActivityHistoryRow.tsx`; `ActivityPage.tsx` retains date selection, nutrition totals, loading, sync, and deletion orchestration.
 
+The authentication E2E contract now follows the current Login hierarchy: Google remains primary, email/password stays behind its disclosure, and the removed legacy account copy is no longer asserted.
+
 The next product feature is Adaptive Training Plan, but the agreed sequence is a short, bounded refactor first. This is not a rewrite and must not change Recovery, Sleep, Strain, Health Connect reconciliation, notification timing, Race Plan output, or AI prompts.
 
 Refactor priorities:
