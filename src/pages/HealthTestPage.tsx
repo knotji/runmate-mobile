@@ -3,7 +3,7 @@ import { IonBackButton, IonButton, IonButtons, IonContent, IonHeader, IonIcon, I
 import { barbellOutline, checkmarkCircleOutline, checkmarkOutline, cloudOfflineOutline, copyOutline, heartOutline, moonOutline, scaleOutline, settingsOutline, syncOutline } from 'ionicons/icons';
 import { Health } from '@capgo/capacitor-health';
 import type { HealthDataType, HealthSample, Workout } from '@capgo/capacitor-health';
-import { getSamsungSleepLastSyncedAt, syncSamsungSleep } from '@/lib/samsungSleepSync';
+import { estimateSleepHeartRate, getSamsungSleepLastSyncedAt, selectLatestCanonicalSamsungSleepSample, syncSamsungSleep } from '@/lib/samsungSleepSync';
 import { getSamsungWorkoutLastSyncedAt, queryAllHealthConnectWorkouts, syncSamsungWorkouts } from '@/lib/samsungWorkoutSync';
 import { syncSamsungWeight } from '@/lib/samsungProfileSync';
 import { loadHistoryItems } from '@/lib/cloudHistory';
@@ -179,7 +179,7 @@ async function buildVitalsDiagnostic() {
     Health.checkAuthorization({ read: ['sleep', ...VITAL_TYPES] }),
     Health.readSamples({ dataType: 'sleep', startDate: sevenDaysAgo, endDate: now, ascending: false, limit: 50 }),
   ]);
-  const latestSleep = [...sleepResult.samples].sort((a, b) => Date.parse(b.endDate) - Date.parse(a.endDate))[0] ?? null;
+  const latestSleep = selectLatestCanonicalSamsungSleepSample(sleepResult.samples);
   const heartRateWindow = latestSleep
     ? { startDate: latestSleep.startDate, endDate: latestSleep.endDate, basis: 'Latest Sleep Window' }
     : { startDate: daysAgo(1), endDate: now, basis: 'Last 24 Hours (No Sleep Record Found)' };
@@ -209,6 +209,9 @@ async function buildVitalsDiagnostic() {
       heartRate: heartRateWindow,
       otherVitals: { startDate: sevenDaysAgo, endDate: now, basis: 'Last 7 Days' },
     },
+    sleepHeartRateEstimate: latestSleep
+      ? estimateSleepHeartRate(heartRate.samples, Date.parse(latestSleep.startDate), Date.parse(latestSleep.endDate))
+      : null,
     vitals: { heartRate, heartRateVariability, restingHeartRate, respiratoryRate, oxygenSaturation },
   };
 }

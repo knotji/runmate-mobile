@@ -13,6 +13,7 @@ const SIGNAL_TYPES = ['heartRateVariability', 'restingHeartRate', 'respiratoryRa
 const SLEEP_HR_SAMPLE_SUPPORT_MS = 10 * 60_000;
 const MIN_SLEEP_HR_SAMPLES = 6;
 const MIN_SLEEP_HR_COVERAGE_PERCENT = 50;
+const MAX_SLEEP_HR_TIMELINE_POINTS = 360;
 
 type SamsungSleepSignals = {
   heartRateVariability: HealthSample[];
@@ -24,6 +25,7 @@ type SamsungSleepSignals = {
 type SleepHeartRateEstimate = {
   average: number;
   resting: number;
+  lowest: number;
   sampleCount: number;
   coveragePercent: number;
 };
@@ -146,6 +148,7 @@ export function mapSamsungSleepSample(sample: HealthSample, signals?: SamsungSle
   const respiratoryRate = averageSignal(inSleepWindow(signals?.respiratoryRate ?? [], startMs, endMs));
   const measuredRestingHeartRate = nearestSignal(signals?.restingHeartRate ?? [], endMs, 12 * 60 * 60 * 1000);
   const sleepHeartRate = estimateSleepHeartRate(signals?.heartRate ?? [], startMs, endMs);
+  const sleepHeartRateTimeline = sleepHeartRate ? buildSleepHeartRateTimeline(signals?.heartRate ?? [], startMs, endMs) : null;
   const restingHeartRate = measuredRestingHeartRate ?? sleepHeartRate?.resting ?? null;
 
   return {
@@ -183,6 +186,8 @@ export function mapSamsungSleepSample(sample: HealthSample, signals?: SamsungSle
         } : null,
         sleepDurationSource: 'actual',
         avgSleepingHeartRate: sleepHeartRate?.average ?? null,
+        lowestSleepingHeartRate: sleepHeartRate?.lowest ?? null,
+        sleepHeartRateTimeline,
         restingHRSource: measuredRestingHeartRate != null ? 'measured' : sleepHeartRate ? 'estimated_sleep_hr' : null,
         sleepHeartRateSampleCount: sleepHeartRate?.sampleCount ?? null,
         sleepHeartRateCoveragePercent: sleepHeartRate?.coveragePercent ?? null,
@@ -207,6 +212,29 @@ export function mapSamsungSleepSample(sample: HealthSample, signals?: SamsungSle
       },
     },
   };
+}
+
+/**
+ * Health Connect can expose more than one Samsung sleep record for the same
+ * Bangkok wake date. Match RunMate's canonical merge rule by selecting the
+ * longest valid Samsung record from the most recent wake date, rather than a
+ * shorter segment that merely ended later.
+ */
+export function selectLatestCanonicalSamsungSleepSample(samples: HealthSample[]): HealthSample | null {
+  const candidates = samples
+    .filter((sample) => sample.dataType === 'sleep' && sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID)
+    .map((sample) => ({
+      sample,
+      dateKey: getBangkokDateKey(sample.endDate),
+      durationMs: Date.parse(sample.endDate) - Date.parse(sample.startDate),
+    }))
+    .filter(({ durationMs }) => Number.isFinite(durationMs) && durationMs > 0);
+  if (!candidates.length) return null;
+
+  const latestDateKey = candidates.reduce((latest, candidate) => candidate.dateKey > latest ? candidate.dateKey : latest, candidates[0].dateKey);
+  return candidates
+    .filter((candidate) => candidate.dateKey === latestDateKey)
+    .sort((a, b) => b.durationMs - a.durationMs || Date.parse(b.sample.endDate) - Date.parse(a.sample.endDate))[0]?.sample ?? null;
 }
 
 async function readAuthorizedSignals(authorized: string[], startDate: string, endDate: string): Promise<SamsungSleepSignals> {
@@ -273,7 +301,22 @@ export function estimateSleepHeartRate(samples: HealthSample[], startMs: number,
   const sortedValues = [...values].sort((a, b) => a - b);
   const lowerBand = sortedValues.slice(0, Math.max(3, Math.ceil(sortedValues.length * 0.25)));
   const resting = Math.round(medianValue(lowerBand));
-  return { average, resting, sampleCount: values.length, coveragePercent };
+  return { average, resting, lowest: Math.round(sortedValues[0]), sampleCount: values.length, coveragePercent };
+}
+
+export function buildSleepHeartRateTimeline(samples: HealthSample[], startMs: number, endMs: number): { at: string; bpm: number }[] {
+  const points = samples
+    .map((sample) => ({ atMs: Date.parse(sample.startDate), bpm: sample.value }))
+    .filter(({ atMs, bpm }) => Number.isFinite(atMs) && atMs >= startMs && atMs <= endMs && Number.isFinite(bpm) && bpm >= 30 && bpm <= 240)
+    .sort((a, b) => a.atMs - b.atMs);
+  if (points.length <= MAX_SLEEP_HR_TIMELINE_POINTS) {
+    return points.map(({ atMs, bpm }) => ({ at: new Date(atMs).toISOString(), bpm: Math.round(bpm) }));
+  }
+
+  return Array.from({ length: MAX_SLEEP_HR_TIMELINE_POINTS }, (_, index) => {
+    const point = points[Math.round(index * (points.length - 1) / (MAX_SLEEP_HR_TIMELINE_POINTS - 1))];
+    return { at: new Date(point.atMs).toISOString(), bpm: Math.round(point.bpm) };
+  });
 }
 
 function medianValue(values: number[]): number {

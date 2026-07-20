@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { HealthSample } from '@capgo/capacitor-health';
-import { estimateSleepHeartRate, mapSamsungSleepSample } from './samsungSleepSync';
+import { buildSleepHeartRateTimeline, estimateSleepHeartRate, mapSamsungSleepSample, selectLatestCanonicalSamsungSleepSample } from './samsungSleepSync';
 
 describe('Samsung Health sleep importer', () => {
   it('maps a Samsung Health sample into an idempotent history item', () => {
@@ -101,6 +101,7 @@ describe('Samsung Health sleep importer', () => {
     expect(estimateSleepHeartRate(samples, startMs, endMs)).toEqual({
       average: 60,
       resting: 58,
+      lowest: 56,
       sampleCount: 13,
       coveragePercent: 100,
     });
@@ -116,6 +117,8 @@ describe('Samsung Health sleep importer', () => {
     const extracted = (item?.data as { extracted: Record<string, unknown> }).extracted;
     expect(extracted.restingHR).toBe(58);
     expect(extracted.avgSleepingHeartRate).toBe(60);
+    expect(extracted.lowestSleepingHeartRate).toBe(56);
+    expect(extracted.sleepHeartRateTimeline).toHaveLength(13);
     expect(extracted.restingHRSource).toBe('estimated_sleep_hr');
     expect(extracted.sleepHeartRateCoveragePercent).toBe(100);
   });
@@ -130,5 +133,31 @@ describe('Samsung Health sleep importer', () => {
       sourceId: 'com.sec.android.app.shealth',
     }));
     expect(estimateSleepHeartRate(samples, startMs, endMs)).toBeNull();
+  });
+
+  it('keeps only valid in-window points in the sleep heart-rate timeline', () => {
+    const startMs = Date.parse('2026-07-09T16:00:00.000Z');
+    const endMs = Date.parse('2026-07-09T17:00:00.000Z');
+    const point = (minutes: number, bpm: number): HealthSample => ({
+      dataType: 'heartRate', value: bpm, unit: 'bpm',
+      startDate: new Date(startMs + minutes * 60_000).toISOString(),
+      endDate: new Date(startMs + minutes * 60_000).toISOString(),
+    });
+    expect(buildSleepHeartRateTimeline([point(-1, 50), point(0, 52.4), point(30, 48.6), point(61, 55), point(40, 300)], startMs, endMs)).toEqual([
+      { at: '2026-07-09T16:00:00.000Z', bpm: 52 },
+      { at: '2026-07-09T16:30:00.000Z', bpm: 49 },
+    ]);
+  });
+
+  it('selects the longest Samsung sleep record for the latest Bangkok wake date', () => {
+    const sample = (startDate: string, endDate: string, platformId: string): HealthSample => ({
+      dataType: 'sleep', value: 1, unit: 'minute', startDate, endDate,
+      sourceId: 'com.sec.android.app.shealth', platformId,
+    });
+    const fullNight = sample('2026-07-19T16:07:00.000Z', '2026-07-19T21:34:00.000Z', 'full-night');
+    const laterFragment = sample('2026-07-19T23:07:00.000Z', '2026-07-20T00:03:00.000Z', 'later-fragment');
+    const olderNight = sample('2026-07-18T14:00:00.000Z', '2026-07-18T23:00:00.000Z', 'older-night');
+
+    expect(selectLatestCanonicalSamsungSleepSample([laterFragment, olderNight, fullNight])?.platformId).toBe('full-night');
   });
 });

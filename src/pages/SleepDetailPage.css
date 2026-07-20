@@ -61,6 +61,20 @@
 .sleep-stage-legend span { color: #617991; font-size: 10px; }
 .sleep-stage-legend strong { color: #284762; font-size: 11px; }
 .sleep-stages-empty { margin: 0; padding: 18px; border: 1px dashed #cfdae5; border-radius: 17px; color: #71869b; background: rgba(255,255,255,.62); font-size: 11px; line-height: 1.5; }
+.sleep-heart-rate-card { overflow: hidden; padding: 17px 18px 14px; border: 1px solid #dce7f1; border-radius: 19px; background: #fff; box-shadow: 0 8px 20px rgba(46,77,111,.04); }
+.sleep-heart-rate-summary { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); margin-bottom: 14px; }
+.sleep-heart-rate-summary > div { display: grid; gap: 5px; }
+.sleep-heart-rate-summary > div + div { padding-left: 18px; border-left: 1px solid #e8eff5; }
+.sleep-heart-rate-summary span { color: #71869a; font-size: 9px; font-weight: 700; }
+.sleep-heart-rate-summary strong { color: #183a5c; font-size: 22px; line-height: 1; letter-spacing: -.03em; }
+.sleep-heart-rate-summary strong small { margin-left: 4px; color: #70869a; font-size: 10px; letter-spacing: 0; }
+.sleep-heart-rate-chart-wrap { padding: 5px 4px 1px; border-radius: 14px; background: #f4f8fb; }
+.sleep-heart-rate-chart-wrap svg { display: block; width: 100%; }
+.sleep-heart-rate-grid { stroke: #dce7ef; stroke-width: 1; }
+.sleep-heart-rate-average { stroke: #a8d9e6; stroke-width: 1; stroke-dasharray: 4 4; }
+.sleep-heart-rate-line { fill: none; stroke: #2496b3; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.sleep-heart-rate-times { display: flex; justify-content: space-between; margin-top: 6px; color: #8295a8; font-size: 9px; font-weight: 650; }
+.sleep-heart-rate-card > p { margin: 12px 0 0; color: #7c90a3; font-size: 9px; line-height: 1.45; }
 .sleep-coverage-section { margin-bottom: 24px; }
 .sleep-detail-disclosure { overflow: hidden; border: 1px solid #dce7f1; border-radius: 19px; background: #fff; }
 .sleep-detail-disclosure summary { min-height: 70px; display: grid; grid-template-columns: minmax(0, 1fr) auto 20px; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; list-style: none; }

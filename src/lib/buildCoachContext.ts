@@ -53,6 +53,9 @@ export type WeekSleepRow = {
   energyScore: number | null;
   sleepStartTime: string | null;
   sleepEndTime: string | null;
+  avgSleepingHeartRate?: number | null;
+  lowestSleepingHeartRate?: number | null;
+  sleepHeartRateTimeline?: { at: string; bpm: number }[] | null;
   timeInBedMinutes: number | null;
   respiratoryRate: number | null;
   awakeMinutes: number | null;
@@ -336,6 +339,9 @@ export function buildCoachContextFromData(input: {
       energyScore: d?.extracted?.energyScore ?? null,
       sleepStartTime: d?.extracted?.sleepStartTime ?? null,
       sleepEndTime: d?.extracted?.sleepEndTime ?? null,
+      avgSleepingHeartRate: d?.extracted?.avgSleepingHeartRate ?? null,
+      lowestSleepingHeartRate: d?.extracted?.lowestSleepingHeartRate ?? null,
+      sleepHeartRateTimeline: d?.extracted?.sleepHeartRateTimeline ?? null,
       timeInBedMinutes: d?.extracted?.timeInBedMinutes ?? null,
       respiratoryRate: d?.extracted?.avgRespiratoryRate ?? null,
       awakeMinutes: d?.extracted?.sleepStageMinutes?.awake ?? d?.extracted?.sleepStageAwakeMinutes ?? null,

@@ -118,6 +118,7 @@ const SleepDetailPage: React.FC = () => {
               </section>
 
               {selectedNight && <SleepStages night={selectedNight} />}
+              {selectedNight && <SleepHeartRate night={selectedNight} />}
 
               <section className="sleep-detail-section sleep-coverage-section">
                 <details className="sleep-detail-disclosure">
@@ -214,6 +215,60 @@ function SleepStages({ night }: { night: WeekSleepRow }) {
   );
 }
 
+function SleepHeartRate({ night }: { night: WeekSleepRow }) {
+  const points = (night.sleepHeartRateTimeline ?? [])
+    .map((point) => ({ at: Date.parse(point.at), bpm: point.bpm }))
+    .filter((point) => Number.isFinite(point.at) && Number.isFinite(point.bpm) && point.bpm >= 30 && point.bpm <= 240)
+    .sort((a, b) => a.at - b.at);
+  if (points.length < 2) return null;
+
+  const average = night.avgSleepingHeartRate ?? Math.round(points.reduce((sum, point) => sum + point.bpm, 0) / points.length);
+  const lowest = night.lowestSleepingHeartRate ?? Math.round(Math.min(...points.map((point) => point.bpm)));
+  const width = 320;
+  const height = 118;
+  const left = 8;
+  const right = 8;
+  const top = 12;
+  const bottom = 12;
+  const startAt = Date.parse(night.sleepStartTime ?? '') || points[0].at;
+  const endAt = Date.parse(night.sleepEndTime ?? '') || points.at(-1)!.at;
+  const minBpm = Math.max(25, Math.floor(Math.min(...points.map((point) => point.bpm)) / 5) * 5 - 5);
+  const maxBpm = Math.ceil(Math.max(...points.map((point) => point.bpm)) / 5) * 5 + 5;
+  const x = (at: number) => left + Math.max(0, Math.min(1, (at - startAt) / Math.max(1, endAt - startAt))) * (width - left - right);
+  const y = (bpm: number) => top + (1 - (bpm - minBpm) / Math.max(1, maxBpm - minBpm)) * (height - top - bottom);
+  const paths: string[] = [];
+  let path = '';
+  points.forEach((point, index) => {
+    if (index > 0 && point.at - points[index - 1].at > 20 * 60_000) {
+      if (path) paths.push(path);
+      path = '';
+    }
+    path += `${path ? ' L' : 'M'} ${x(point.at).toFixed(1)} ${y(point.bpm).toFixed(1)}`;
+  });
+  if (path) paths.push(path);
+
+  return (
+    <section className="sleep-detail-section sleep-heart-rate-section">
+      <header><p>Overnight Vitals</p><h2>Sleep Heart Rate</h2></header>
+      <div className="sleep-heart-rate-card">
+        <div className="sleep-heart-rate-summary">
+          <div><span>Average</span><strong>{average}<small>bpm</small></strong></div>
+          <div><span>Lowest</span><strong>{lowest}<small>bpm</small></strong></div>
+        </div>
+        <div className="sleep-heart-rate-chart-wrap">
+          <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`Sleep heart rate. Average ${average} bpm and lowest ${lowest} bpm.`}>
+            {[.25, .5, .75].map((ratio) => <line key={ratio} x1={left} x2={width - right} y1={top + ratio * (height - top - bottom)} y2={top + ratio * (height - top - bottom)} className="sleep-heart-rate-grid" />)}
+            <line x1={left} x2={width - right} y1={y(average)} y2={y(average)} className="sleep-heart-rate-average" />
+            {paths.map((item, index) => <path key={index} d={item} className="sleep-heart-rate-line" />)}
+          </svg>
+        </div>
+        <div className="sleep-heart-rate-times"><span>{formatSleepTime(startAt)}</span><span>{formatSleepTime(endAt)}</span></div>
+        <p>Measured by Samsung Health during your recorded Sleep Window.</p>
+      </div>
+    </section>
+  );
+}
+
 function formatMinutes(value: number): string {
   return `${Math.floor(value / 60)}h ${Math.round(value % 60)}m`;
 }
@@ -234,6 +289,10 @@ function formatEfficiency(night: WeekSleepRow | null): string {
 function formatDisplayDate(value: string): string {
   const date = new Date(`${value}T12:00:00`);
   return new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).format(date);
+}
+
+function formatSleepTime(value: number): string {
+  return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Bangkok' }).format(new Date(value));
 }
 
 export default SleepDetailPage;

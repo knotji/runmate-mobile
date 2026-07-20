@@ -19,6 +19,8 @@ export type SleepAnalysis = {
     sleepStartTime?: string | null;
     sleepEndTime?: string | null;
     avgSleepingHeartRate?: number | null;
+    lowestSleepingHeartRate?: number | null;
+    sleepHeartRateTimeline?: { at: string; bpm: number }[] | null;
     restingHRSource?: "measured" | "estimated_sleep_hr" | null;
     sleepHeartRateSampleCount?: number | null;
     sleepHeartRateCoveragePercent?: number | null;

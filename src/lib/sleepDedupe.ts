@@ -15,7 +15,7 @@ type SleepSourceKind = "samsung_health" | "structured" | "manual_upload";
 const DEVICE_MEASURED_FIELDS = new Set([
   "actualSleepDurationMinutes", "actualSleepDurationText", "sleepDuration", "sleepDurationSource",
   "timeInBedMinutes", "timeInBedText", "timeInBedDerived", "sleepStartTime", "sleepEndTime",
-  "avgSleepingHeartRate", "avgSleepingHrv", "avgRespiratoryRate", "sleepLatencyMinutes",
+  "avgSleepingHeartRate", "lowestSleepingHeartRate", "sleepHeartRateTimeline", "avgSleepingHrv", "avgRespiratoryRate", "sleepLatencyMinutes",
   "restingHRSource", "sleepHeartRateSampleCount", "sleepHeartRateCoveragePercent",
   "avgSpO2Percent", "lowestSpO2Percent", "skinTemperatureDeltaC", "sleepStageMinutes",
   "sleepStageAwakeMinutes", "sleepStageRemMinutes", "sleepStageLightMinutes", "sleepStageDeepMinutes",
