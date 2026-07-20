@@ -1,7 +1,10 @@
+import { useMemo } from 'react';
 import type { CoachContext } from '@/lib/buildCoachContext';
+import {
+  buildAdaptiveTrainingRecommendation,
+} from '@/lib/adaptiveTrainingPlan';
 import { buildSupportCards } from '@/lib/recoverySupport';
 import {
-  buildTodayTrainingPlanGuidance,
   getTodayPlannedWorkout,
   getTodayTrainingPlanStatus,
   isRestDayWorkout,
@@ -12,23 +15,25 @@ import './TodayTrainingPlanCard.css';
 export function TodayTrainingPlanCard({ context }: { context: CoachContext }) {
   const planned = getTodayPlannedWorkout(context);
   const status = planned ? getTodayTrainingPlanStatus(context, planned) : null;
-  const guidance = planned ? buildTodayTrainingPlanGuidance(context, planned) : null;
-  const restDay = isRestDayWorkout(planned);
+  const recommendation = useMemo(() => buildAdaptiveTrainingRecommendation(context, planned), [context, planned]);
+  const appliedWorkout = recommendation?.suggestedWorkout ?? planned;
+  const restDay = isRestDayWorkout(appliedWorkout);
   const supportCards = buildSupportCards(context);
-  const metrics = planned && !restDay ? [
-    planned.distanceKm != null ? `${planned.distanceKm} km` : null,
-    planned.durationMin != null ? `${planned.durationMin} min` : null,
-    planned.targetPace ? translatePlanFieldToEnglish(planned.targetPace) : null,
-    planned.targetHR ? translatePlanFieldToEnglish(planned.targetHR) : null,
+  const metrics = appliedWorkout && !restDay ? [
+    appliedWorkout.distanceKm != null ? `${appliedWorkout.distanceKm} km` : null,
+    appliedWorkout.durationMin != null ? `${appliedWorkout.durationMin} min` : null,
+    appliedWorkout.targetPace ? translatePlanFieldToEnglish(appliedWorkout.targetPace) : null,
+    appliedWorkout.targetHR ? translatePlanFieldToEnglish(appliedWorkout.targetHR) : null,
   ].filter((metric): metric is string => typeof metric === 'string' && metric.length > 0 && !/^0 (km|min)$|^N\/A$/i.test(metric)) : [];
   const title = planned
-    ? restDay && status === 'pending' ? 'Rest Day' : status === 'pending' ? planned.workoutType : context.todayPrimaryWorkout?.label ?? planned.workoutType
+    ? recommendation && recommendation.action !== 'keep' ? recommendation.suggestedWorkout.workoutType
+      : restDay && status === 'pending' ? 'Rest Day' : status === 'pending' ? planned.workoutType : context.todayPrimaryWorkout?.label ?? planned.workoutType
     : fallbackFocus(context);
 
   return (
-    <section className={`plan-card ${status === 'completed' ? 'plan-card-completed' : status === 'logged_different' ? 'plan-card-different' : ''}`} aria-label="Today's Focus">
+    <section className={`plan-card ${status === 'completed' ? 'plan-card-completed' : status === 'logged_different' ? 'plan-card-different' : ''}${recommendation && recommendation.action !== 'keep' ? ' plan-card-adapted' : ''}`} aria-label="Today's Focus">
       <div className="plan-card-main">
-        <span>Today's Focus</span>
+        <div className="plan-card-eyebrow"><span>Today's Focus</span>{recommendation && status === 'pending' && <em className={`adaptive-action adaptive-action-${recommendation.action}`}>Adaptive · {recommendation.label}</em>}</div>
         <strong>{title}</strong>
         {!planned && <p>{fallbackSummary(context)}</p>}
         {planned && status === 'completed' && <p>Matches today's plan: {planned.workoutType}. Nice work.</p>}
@@ -36,7 +41,11 @@ export function TodayTrainingPlanCard({ context }: { context: CoachContext }) {
         {planned && status === 'pending' && (
           <>
             {metrics.length > 0 && <p className="plan-metrics-line">{metrics.join(' · ')}</p>}
-            {guidance && <p className="plan-guidance-line">{guidance.summary}</p>}
+            {recommendation && <div className="adaptive-guidance">
+              <p><strong>{recommendation.headline}</strong>{recommendation.summary}</p>
+              {recommendation.action !== 'keep' && <p className="adaptive-original-plan">Original Plan: {planned.workoutType}</p>}
+              {recommendation.reasons.length > 0 && <ul>{recommendation.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>}
+            </div>}
           </>
         )}
       </div>

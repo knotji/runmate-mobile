@@ -895,7 +895,18 @@ Adaptive Training Plan
 -> Play Store Readiness
 ```
 
-Adaptive plan changes must be suggestions (`Keep`, `Reduce`, `Swap`, or `Rest`) with a visible reason and explicit user confirmation. They must never silently rewrite the active Race Plan.
+Adaptive plan changes must remain visible suggestions (`Keep`, `Reduce`, `Swap`, or `Rest`) with a clear reason. They must never silently rewrite the active Race Plan.
+
+## Adaptive Training Plan (2026-07-20)
+
+- Recovery's existing `Today's Focus` card now owns the adaptive recommendation so the page does not gain another competing card.
+- `src/lib/adaptiveTrainingPlan.ts` produces one deterministic action: `Keep`, `Reduce`, `Swap`, or `Rest`. It does not call AI and does not change Recovery, Sleep, Strain, or Race Plan calculations.
+- Safety order is explicit: active Pain or Sick status caps the day at Rest; stale or insufficient Recovery never triggers an adjustment; low Recovery rests demanding sessions or swaps easy sessions for recovery movement; moderate Recovery reduces demanding sessions; already-high Strain can also reduce the remaining load.
+- `Reduce` keeps the workout type but targets about 70% of its distance/duration and easy Zone 1-2 effort. `Swap` becomes a short Recovery Walk. `Rest` removes workout metrics for today.
+- Adaptive guidance is shown immediately; there is no Review or Apply button because the feature does not modify the Race Plan. The adjusted metrics are a recommendation for today, and the original planned workout remains visible for context.
+- No adaptive decision state is persisted. The active Race Plan object remains untouched, and factual Training Adherence continues to use the workout the user actually logs.
+- Once a workout is logged, the adaptive prompt disappears and the existing factual completed/adjusted status takes over.
+- Coverage: pure decision tests cover all four actions, safety caps, missing data, and completed workouts; a component test verifies immediate adjusted metrics, no confirmation controls, and an unchanged Race Plan.
 
 ## Neutral Upload Entry State (2026-07-20)
 

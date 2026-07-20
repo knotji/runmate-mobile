@@ -12,6 +12,8 @@
 }
 
 .plan-card-main { display: grid; gap: 5px; }
+.plan-card-eyebrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.plan-card-eyebrow > span { color: #2474b2; font-size: 9px; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; }
 
 .plan-card.plan-card-completed {
   border-color: #c7e9d4;
@@ -23,12 +25,27 @@
   box-shadow: inset 3px 0 #e1ad3e, 0 10px 24px rgba(46, 77, 111, 0.06);
 }
 
-.plan-card-main > span { color: #2474b2; font-size: 9px; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; }
+.plan-card.plan-card-adapted {
+  border-color: #b9dfe8;
+  box-shadow: inset 3px 0 #278dab, 0 10px 24px rgba(46, 77, 111, 0.06);
+}
+
 .plan-card strong { color: #1d3b5b; font-size: 15px; line-height: 1.25; }
 .plan-card p { max-width: 36rem; margin: 1px 0 0; color: #63778e; font-size: 11px; line-height: 1.45; }
 
 .plan-metrics-line { color: #2e5e85; font-weight: 650; }
 .plan-guidance-line { margin-top: 4px; }
+
+.adaptive-action { flex: none; padding: 4px 8px; border-radius: 999px; color: #24769c; background: #e7f4fa; font-size: 9px; font-style: normal; font-weight: 850; }
+.adaptive-action-reduce { color: #93631b; background: #fff1d8; }
+.adaptive-action-swap { color: #4f6388; background: #edf0fa; }
+.adaptive-action-rest { color: #a04e5a; background: #fff0f2; }
+.adaptive-action-keep { color: #167762; background: #e4f6f0; }
+.adaptive-guidance { display: grid; gap: 8px; margin-top: 5px; padding: 11px 12px; border-radius: 13px; background: #f3f8fb; }
+.adaptive-guidance p { display: grid; gap: 3px; margin: 0; }
+.adaptive-guidance p strong { font-size: 11px; }
+.adaptive-guidance .adaptive-original-plan { color: #496b83; font-size: 10px; font-weight: 700; }
+.adaptive-guidance ul { display: grid; gap: 3px; margin: 0; padding-left: 16px; color: #60778d; font-size: 10px; line-height: 1.4; }
 
 .plan-support-details { border-top: 1px solid rgba(190, 211, 228, .65); }
 .plan-support-details summary { min-height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 9px 0 0; color: #54708a; font-size: 10px; font-weight: 800; cursor: pointer; list-style: none; }
