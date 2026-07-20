@@ -1,0 +1,7 @@
+.app-crash-shell { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 40px 28px; background: #f4f8fc; color: #172c49; text-align: center; }
+.app-crash-mark { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 18px; background: #e7f5fb; color: #167ea9; font-size: 26px; font-weight: 700; }
+.app-crash-shell p { margin: 8px 0 0; color: #2080aa; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.app-crash-shell h1 { margin: 0; font-size: 24px; line-height: 1.25; }
+.app-crash-shell span { max-width: 320px; margin-bottom: 14px; color: #6c8097; font-size: 13px; line-height: 1.55; }
+.app-crash-shell button { width: min(100%, 320px); min-height: 46px; border: 0; border-radius: 15px; background: #267fbb; color: #fff; font: inherit; font-size: 13px; font-weight: 700; }
+.app-crash-shell button.secondary { border: 1px solid #c9dbea; background: #fff; color: #34627f; }

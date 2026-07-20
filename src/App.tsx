@@ -11,6 +11,7 @@ import { completeNativeGoogleSignIn } from '@/lib/googleAuth';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { refreshNotifications } from '@/lib/notificationService';
 import { invalidateCoachContextCache } from '@/lib/coachContextService';
+import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -97,6 +98,7 @@ const App: React.FC = () => {
 
   return (
     <IonApp>
+      <AppErrorBoundary>
       <IonLoading isOpen={checkingSession} message="Checking your account…" />
       {!checkingSession && (
         <IonReactRouter>
@@ -133,6 +135,7 @@ const App: React.FC = () => {
           </Suspense>
         </IonReactRouter>
       )}
+      </AppErrorBoundary>
     </IonApp>
   );
 };
