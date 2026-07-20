@@ -7,11 +7,12 @@ function sleepItem(
   source: NonNullable<LocalHistoryItem["source"]>,
   extracted: Record<string, unknown>,
   coach?: Record<string, unknown>,
+  createdAt = "2026-07-18T06:00:00.000Z",
 ): LocalHistoryItem {
   return {
     id,
     type: "sleep",
-    createdAt: "2026-07-18T06:00:00.000Z",
+    createdAt,
     dateKey: "2026-07-18",
     source,
     data: { extracted, coach, confidence: "high", unclearFields: [] },
@@ -71,5 +72,56 @@ describe("sleep reconciliation", () => {
     expect(extracted.actualSleepDurationMinutes).toBe(353);
     expect(extracted.timeInBedMinutes).toBe(402);
     expect(extracted.sleepStageMinutes).toEqual({ awake: 42, rem: 37, light: 304, deep: 12 });
+  });
+
+  it("uses the latest non-empty manual values as corrections for the same night", () => {
+    const oldUpload = sleepItem("sleep-upload-old", {
+      provider: "generic_image", importType: "image", importedAt: "2026-07-18T06:00:00Z",
+    }, {
+      actualSleepDurationMinutes: 380,
+      sleepScore: 72,
+      energyScore: 68,
+      hrv: 80,
+    });
+    const latestUpload = sleepItem("sleep-upload-new", {
+      provider: "generic_image", importType: "image", importedAt: "2026-07-18T07:00:00Z",
+    }, {
+      actualSleepDurationMinutes: null,
+      sleepScore: 79,
+      energyScore: 83,
+      hrv: 102,
+    }, undefined, "2026-07-18T07:00:00.000Z");
+
+    const [result] = dedupeSleepItems([oldUpload, latestUpload]);
+    const extracted = (result.data as { extracted: Record<string, unknown> }).extracted;
+    expect(extracted.actualSleepDurationMinutes).toBe(380);
+    expect(extracted.sleepScore).toBe(79);
+    expect(extracted.energyScore).toBe(83);
+    expect(extracted.hrv).toBe(102);
+  });
+
+  it("keeps Samsung measurements authoritative after a newer manual upload", () => {
+    const samsung = sleepItem("healthconnect-samsung-sleep-full", {
+      provider: "samsung_health", importType: "health_connect", importedAt: "2026-07-18T06:00:00Z",
+    }, {
+      actualSleepDurationMinutes: 353,
+      timeInBedMinutes: 402,
+      sleepStageMinutes: { awake: 42, rem: 37, light: 304, deep: 12 },
+    });
+    const latestUpload = sleepItem("sleep-upload-new", {
+      provider: "generic_image", importType: "image", importedAt: "2026-07-18T07:00:00Z",
+    }, {
+      actualSleepDurationMinutes: 380,
+      timeInBedMinutes: 430,
+      sleepScore: 79,
+      energyScore: 83,
+    }, undefined, "2026-07-18T07:00:00.000Z");
+
+    const [result] = dedupeSleepItems([samsung, latestUpload]);
+    const extracted = (result.data as { extracted: Record<string, unknown> }).extracted;
+    expect(extracted.actualSleepDurationMinutes).toBe(353);
+    expect(extracted.timeInBedMinutes).toBe(402);
+    expect(extracted.sleepScore).toBe(79);
+    expect(extracted.energyScore).toBe(83);
   });
 });

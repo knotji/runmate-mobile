@@ -60,16 +60,42 @@ function sourceLabel(item: LocalHistoryItem): string {
   return kind === "samsung_health" ? "Samsung Health" : kind === "structured" ? "Structured Import" : "Manual Upload";
 }
 
+function sleepRecordTimestamp(item: LocalHistoryItem): number {
+  const importedAt = item.source?.importedAt ? Date.parse(item.source.importedAt) : Number.NaN;
+  if (Number.isFinite(importedAt)) return importedAt;
+  const createdAt = Date.parse(item.createdAt);
+  return Number.isFinite(createdAt) ? createdAt : 0;
+}
+
 function orderedForField(items: LocalHistoryItem[], field: string): LocalHistoryItem[] {
   return [...items].sort((a, b) => {
     if (DEVICE_MEASURED_FIELDS.has(field)) {
       const rank = { samsung_health: 3, structured: 2, manual_upload: 1 };
       const sourceOrder = rank[sleepSourceKind(b)] - rank[sleepSourceKind(a)];
       if (sourceOrder) return sourceOrder;
-      const durationOrder = measuredDurationMinutes(b) - measuredDurationMinutes(a);
-      if (durationOrder) return durationOrder;
+
+      // Prefer the complete device session when Health Connect returns both a
+      // short fragment and the full night. Manual screenshots are different:
+      // a later upload is an explicit correction or supplement for that night.
+      if (sleepSourceKind(a) !== "manual_upload") {
+        const durationOrder = measuredDurationMinutes(b) - measuredDurationMinutes(a);
+        if (durationOrder) return durationOrder;
+      } else {
+        const recencyOrder = sleepRecordTimestamp(b) - sleepRecordTimestamp(a);
+        if (recencyOrder) return recencyOrder;
+      }
+    } else {
+      // Sleep Score and Energy Score are normally screenshot-only values. A
+      // newer non-empty upload must update an older upload for the same night.
+      const manualA = sleepSourceKind(a) === "manual_upload";
+      const manualB = sleepSourceKind(b) === "manual_upload";
+      if (manualA && manualB) {
+        const recencyOrder = sleepRecordTimestamp(b) - sleepRecordTimestamp(a);
+        if (recencyOrder) return recencyOrder;
+      }
     }
-    return scoreSleepRecord(b) - scoreSleepRecord(a);
+    return scoreSleepRecord(b) - scoreSleepRecord(a)
+      || sleepRecordTimestamp(b) - sleepRecordTimestamp(a);
   });
 }
 
