@@ -2,7 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { Health } from '@capgo/capacitor-health';
 import type { HealthSample, SleepStage } from '@capgo/capacitor-health';
 import { loadHistoryItems, saveHistoryItems } from '@/lib/cloudHistory';
-import { classifyHealthSyncItems, type HealthSyncCounts } from '@/lib/healthSyncSummary';
+import { classifyHealthSyncItems, selectChangedHealthSyncItems, type HealthSyncCounts } from '@/lib/healthSyncSummary';
 import { getBangkokDateKey, todayBangkokDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 
@@ -90,13 +90,15 @@ async function runSamsungSleepSync(lookbackDays: number | 'today'): Promise<Sams
       .filter((item) => !todayOnly || item.dateKey === today);
 
     const existing = await loadHistoryItems(['sleep']);
-    const counts = classifyHealthSyncItems(items, existing.ok ? existing.items : []);
-    if (!items.length) {
+    const existingItems = existing.ok ? existing.items : [];
+    const counts = classifyHealthSyncItems(items, existingItems);
+    const changedItems = selectChangedHealthSyncItems(items, existingItems);
+    if (!changedItems.length) {
       recordSuccessfulSync();
-      return { status: 'synced', imported: 0, ...counts };
+      return { status: 'synced', imported: items.length, ...counts };
     }
-    const saved = await saveHistoryItems(items);
-    if (!saved.ok) return { status: 'synced', imported: 0, added: 0, updated: 0, unchanged: 0, failed: items.length, error: saved.error };
+    const saved = await saveHistoryItems(changedItems);
+    if (!saved.ok) return { status: 'synced', imported: 0, added: 0, updated: 0, unchanged: 0, failed: changedItems.length, error: saved.error };
     recordSuccessfulSync();
     return { status: 'synced', imported: items.length, ...counts };
   } catch (error) {

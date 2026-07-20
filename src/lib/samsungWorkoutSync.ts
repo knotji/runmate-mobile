@@ -2,7 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { Health } from '@capgo/capacitor-health';
 import type { HealthDataType, HealthSample, QueryWorkoutsOptions, Workout, WorkoutType } from '@capgo/capacitor-health';
 import { loadHistoryItems, saveHistoryItems } from '@/lib/cloudHistory';
-import { classifyHealthSyncItems, type HealthSyncCounts } from '@/lib/healthSyncSummary';
+import { classifyHealthSyncItems, selectChangedHealthSyncItems, type HealthSyncCounts } from '@/lib/healthSyncSummary';
 import { getBangkokDateKey, todayBangkokDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import type { WorkoutAnalysis } from '@/types/logs';
@@ -56,10 +56,12 @@ async function runSync(lookbackDays: number | 'today'): Promise<SamsungWorkoutSy
     }));
     const validItems = items.filter((item): item is LocalHistoryItem => item !== null);
     const existing = await loadHistoryItems(['workout', 'strength']);
-    const counts = classifyHealthSyncItems(validItems, existing.ok ? existing.items : []);
-    if (validItems.length) {
-      const saved = await saveHistoryItems(validItems);
-      if (!saved.ok) return { status: 'synced', imported: 0, added: 0, updated: 0, unchanged: 0, failed: validItems.length, error: saved.error };
+    const existingItems = existing.ok ? existing.items : [];
+    const counts = classifyHealthSyncItems(validItems, existingItems);
+    const changedItems = selectChangedHealthSyncItems(validItems, existingItems);
+    if (changedItems.length) {
+      const saved = await saveHistoryItems(changedItems);
+      if (!saved.ok) return { status: 'synced', imported: 0, added: 0, updated: 0, unchanged: 0, failed: changedItems.length, error: saved.error };
     }
     recordSuccessfulSync();
     return { status: 'synced', imported: validItems.length, ...counts };

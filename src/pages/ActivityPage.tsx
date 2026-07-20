@@ -62,7 +62,7 @@ const ActivityPage: React.FC = () => {
       void syncTodayHealth().then((result) => {
         if (result.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
         if (result.workout?.error) console.warn('[workout-sync] Samsung Health sync failed', result.workout.error);
-        if (result.performed && visibleRef.current) void load();
+        if (result.changed && visibleRef.current) void load();
       });
     }, 1200);
   });

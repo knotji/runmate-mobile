@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { App as CapacitorApp, type URLOpenListenerEvent } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { Capacitor, type PluginListenerHandle } from '@capacitor/core';
@@ -8,21 +8,9 @@ import { IonApp, IonLoading, IonRouterOutlet, setupIonicReact } from '@ionic/rea
 import { IonReactRouter } from '@ionic/react-router';
 import { supabase } from '@/lib/supabaseClient';
 import { completeNativeGoogleSignIn } from '@/lib/googleAuth';
-import LoginPage from '@/pages/LoginPage';
-import SleepDetailPage from '@/pages/SleepDetailPage';
-import MainTabs from '@/components/MainTabs';
-import WorkoutDetailPage from '@/pages/WorkoutDetailPage';
-import MealDetailPage from '@/pages/MealDetailPage';
-import HealthDetailPage from '@/pages/HealthDetailPage';
-import RaceGoalPage from '@/pages/RaceGoalPage';
-import HealthTestPage from '@/pages/HealthTestPage';
-import SleepWindowPage from '@/pages/SleepWindowPage';
-import WeeklySummaryPage from '@/pages/WeeklySummaryPage';
-import ProfileSettingsPage from '@/pages/ProfileSettingsPage';
-import NotificationsPage from '@/pages/NotificationsPage';
-import RecoveryTrendsPage from '@/pages/RecoveryTrendsPage';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { refreshNotifications } from '@/lib/notificationService';
+import { invalidateCoachContextCache } from '@/lib/buildCoachContext';
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -38,6 +26,20 @@ import './theme/variables.css';
 
 setupIonicReact();
 
+const LoginPage = lazy(() => import('@/pages/LoginPage'));
+const MainTabs = lazy(() => import('@/components/MainTabs'));
+const SleepDetailPage = lazy(() => import('@/pages/SleepDetailPage'));
+const WorkoutDetailPage = lazy(() => import('@/pages/WorkoutDetailPage'));
+const MealDetailPage = lazy(() => import('@/pages/MealDetailPage'));
+const HealthDetailPage = lazy(() => import('@/pages/HealthDetailPage'));
+const RaceGoalPage = lazy(() => import('@/pages/RaceGoalPage'));
+const HealthTestPage = lazy(() => import('@/pages/HealthTestPage'));
+const SleepWindowPage = lazy(() => import('@/pages/SleepWindowPage'));
+const WeeklySummaryPage = lazy(() => import('@/pages/WeeklySummaryPage'));
+const ProfileSettingsPage = lazy(() => import('@/pages/ProfileSettingsPage'));
+const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
+const RecoveryTrendsPage = lazy(() => import('@/pages/RecoveryTrendsPage'));
+
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
@@ -49,6 +51,7 @@ const App: React.FC = () => {
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      invalidateCoachContextCache();
       setSession(nextSession);
       setCheckingSession(false);
     });
@@ -58,7 +61,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!session || !Capacitor.isNativePlatform()) return;
-    void refreshNotifications().catch((error) => console.warn('[notifications] refresh failed', error));
+    const refreshTimer = window.setTimeout(() => {
+      void refreshNotifications().catch((error) => console.warn('[notifications] refresh failed', error));
+    }, 2500);
     let listener: PluginListenerHandle | null = null;
     let stateListener: PluginListenerHandle | null = null;
     void LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
@@ -68,7 +73,7 @@ const App: React.FC = () => {
     void CapacitorApp.addListener('appStateChange', ({ isActive }) => {
       if (isActive) void refreshNotifications().catch((error) => console.warn('[notifications] resume refresh failed', error));
     }).then((handle) => { stateListener = handle; });
-    return () => { void listener?.remove(); void stateListener?.remove(); };
+    return () => { window.clearTimeout(refreshTimer); void listener?.remove(); void stateListener?.remove(); };
   }, [session]);
 
   useEffect(() => {
@@ -95,7 +100,8 @@ const App: React.FC = () => {
       <IonLoading isOpen={checkingSession} message="Checking your account…" />
       {!checkingSession && (
         <IonReactRouter>
-          <IonRouterOutlet>
+          <Suspense fallback={<IonLoading isOpen message="Loading RunMate..." />}>
+            <IonRouterOutlet>
             <Route exact path="/login">
               {session ? <Redirect to="/tabs/recovery" /> : <LoginPage />}
             </Route>
@@ -123,7 +129,8 @@ const App: React.FC = () => {
             <Route exact path="/">
               <Redirect to={session ? '/tabs/recovery' : '/login'} />
             </Route>
-          </IonRouterOutlet>
+            </IonRouterOutlet>
+          </Suspense>
         </IonReactRouter>
       )}
     </IonApp>

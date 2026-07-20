@@ -28,6 +28,11 @@ export type NotificationDiagnostics = {
   rows: NotificationDiagnostic[];
 };
 
+type NotificationRefreshResult = { permission: PermissionState; scheduled: string[] };
+const NOTIFICATION_REFRESH_COOLDOWN_MS = 60_000;
+let activeNotificationRefresh: Promise<NotificationRefreshResult> | null = null;
+let lastNotificationRefresh: { result: NotificationRefreshResult; completedAt: number } | null = null;
+
 export async function getNotificationPermission(): Promise<PermissionState> {
   if (!Capacitor.isNativePlatform()) return 'prompt';
   return (await LocalNotifications.checkPermissions()).display;
@@ -49,7 +54,26 @@ export async function requestExactReminderPermission(): Promise<PermissionState>
   return (await LocalNotifications.checkExactNotificationSetting()).exact_alarm;
 }
 
-export async function refreshNotifications(context?: CoachContext): Promise<{ permission: PermissionState; scheduled: string[] }> {
+export function refreshNotifications(context?: CoachContext, force = false): Promise<NotificationRefreshResult> {
+  if (activeNotificationRefresh) {
+    return force
+      ? activeNotificationRefresh.then(() => refreshNotifications(context, true))
+      : activeNotificationRefresh;
+  }
+  if (!force && lastNotificationRefresh && Date.now() - lastNotificationRefresh.completedAt < NOTIFICATION_REFRESH_COOLDOWN_MS) {
+    return Promise.resolve(lastNotificationRefresh.result);
+  }
+
+  activeNotificationRefresh = performNotificationRefresh(context)
+    .then((result) => {
+      lastNotificationRefresh = { result, completedAt: Date.now() };
+      return result;
+    })
+    .finally(() => { activeNotificationRefresh = null; });
+  return activeNotificationRefresh;
+}
+
+async function performNotificationRefresh(context?: CoachContext): Promise<NotificationRefreshResult> {
   const permission = await getNotificationPermission();
   if (!Capacitor.isNativePlatform() || permission !== 'granted') return { permission, scheduled: [] };
   await LocalNotifications.createChannel({ id: CHANNEL, name: 'RunMate Guidance', description: 'Sleep, Workout, and Recovery guidance', importance: 3, visibility: 1 });

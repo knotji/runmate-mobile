@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { LocalHistoryItem } from './localHistory';
-import { classifyHealthSyncItems } from './healthSyncSummary';
+import { classifyHealthSyncItems, selectChangedHealthSyncItems } from './healthSyncSummary';
 
 function item(id: string, distanceKm: number, importedAt: string): LocalHistoryItem {
   return {
@@ -15,5 +15,6 @@ describe('Health Sync Summary', () => {
     const existing = [item('same', 5, '2026-07-19T02:00:00Z'), item('changed', 5, '2026-07-19T02:00:00Z')];
     const incoming = [item('same', 5, '2026-07-19T03:00:00Z'), item('changed', 5.2, '2026-07-19T03:00:00Z'), item('new', 3, '2026-07-19T03:00:00Z')];
     expect(classifyHealthSyncItems(incoming, existing)).toEqual({ added: 1, updated: 1, unchanged: 1, failed: 0 });
+    expect(selectChangedHealthSyncItems(incoming, existing).map((entry) => entry.id)).toEqual(['changed', 'new']);
   });
 });

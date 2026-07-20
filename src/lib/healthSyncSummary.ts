@@ -21,6 +21,14 @@ export function classifyHealthSyncItems(incoming: LocalHistoryItem[], existing: 
   return { added, updated, unchanged, failed: 0 };
 }
 
+export function selectChangedHealthSyncItems(incoming: LocalHistoryItem[], existing: LocalHistoryItem[]): LocalHistoryItem[] {
+  const byId = new Map(existing.map((item) => [item.id, item]));
+  return incoming.filter((item) => {
+    const previous = byId.get(item.id);
+    return !previous || syncFingerprint(previous) !== syncFingerprint(item);
+  });
+}
+
 function syncFingerprint(item: LocalHistoryItem): string {
   const data = record(item.data);
   return JSON.stringify({

@@ -37,12 +37,12 @@ const RecoveryPage: React.FC = () => {
   const visibleRef = useRef(false);
   const syncTimerRef = useRef<number | null>(null);
 
-  const loadRecovery = useCallback(async () => {
+  const loadRecovery = useCallback(async (force = false) => {
     setError(null);
     try {
-      const nextContext = await buildCoachContextFromSupabase();
+      const nextContext = await buildCoachContextFromSupabase({ force });
       setContext(nextContext);
-      void refreshNotifications(nextContext).catch((notificationError) => console.warn('[notifications] refresh failed', notificationError));
+      void refreshNotifications(nextContext, force).catch((notificationError) => console.warn('[notifications] refresh failed', notificationError));
       loadedRef.current = true;
     } catch (loadError) {
       console.error('[recovery] load failed', loadError);
@@ -61,7 +61,7 @@ const RecoveryPage: React.FC = () => {
       void syncTodayHealth().then((result) => {
         if (result.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
         if (result.workout?.error) console.warn('[workout-sync] Samsung Health sync failed', result.workout.error);
-        if (result.performed && visibleRef.current) void loadRecovery();
+        if (result.changed && visibleRef.current) void loadRecovery(true);
       });
     }, 1200);
   });
@@ -74,7 +74,7 @@ const RecoveryPage: React.FC = () => {
 
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => {
     await syncTodayHealth(true);
-    await loadRecovery();
+    await loadRecovery(true);
     event.detail.complete();
   };
 

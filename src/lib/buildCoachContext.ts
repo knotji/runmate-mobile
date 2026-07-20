@@ -291,7 +291,38 @@ export function buildCoachContext(): CoachContext {
   return ctx;
 }
 
-export async function buildCoachContextFromSupabase(): Promise<CoachContext> {
+const COACH_CONTEXT_CACHE_MS = 30_000;
+let cachedCoachContext: { value: CoachContext; loadedAt: number } | null = null;
+let activeCoachContextLoad: Promise<CoachContext> | null = null;
+let coachContextRevision = 0;
+
+export function invalidateCoachContextCache(): void {
+  cachedCoachContext = null;
+  coachContextRevision += 1;
+}
+
+export function buildCoachContextFromSupabase(options: { force?: boolean } = {}): Promise<CoachContext> {
+  const now = Date.now();
+  if (!options.force && cachedCoachContext && now - cachedCoachContext.loadedAt < COACH_CONTEXT_CACHE_MS) {
+    return Promise.resolve(cachedCoachContext.value);
+  }
+  if (activeCoachContextLoad) {
+    return options.force
+      ? activeCoachContextLoad.then(() => buildCoachContextFromSupabase({ force: true }))
+      : activeCoachContextLoad;
+  }
+
+  const loadRevision = coachContextRevision;
+  activeCoachContextLoad = loadCoachContextFromSupabase()
+    .then((value) => {
+      if (loadRevision === coachContextRevision) cachedCoachContext = { value, loadedAt: Date.now() };
+      return value;
+    })
+    .finally(() => { activeCoachContextLoad = null; });
+  return activeCoachContextLoad;
+}
+
+async function loadCoachContextFromSupabase(): Promise<CoachContext> {
   const [historyResult, profileResult, raceResult, completedRaceResult] = await Promise.all([
     loadHistoryItems(["sleep", "workout", "body", "meal", "pain", "strength", "health_check", "sick"]),
     loadProfileFromSupabase(),
@@ -306,6 +337,10 @@ export async function buildCoachContextFromSupabase(): Promise<CoachContext> {
     racePlan: raceResult.ok ? raceResult.plan : null,
     raceResults: completedRaceResult.ok ? completedRaceResult.results : [],
   });
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('runmate:cloud-data-updated', invalidateCoachContextCache);
 }
 
 export function buildCoachContextFromData(input: {
