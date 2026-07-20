@@ -878,6 +878,8 @@ Refactor priorities:
 5. Add an app-level Error Boundary and user-safe runtime diagnostics before expanding the audience.
 6. Add integration coverage for app startup, rapid Recovery/Activity tab switching, changed-data refresh, empty data, and failed sync.
 
+Health sync integration coverage now locks the trigger contract: foreground calls use `today`, explicit Sync Now uses 30 days plus Weight, and Repair uses only the 30-day Workout path. The remaining interaction-focused coverage can build on this service boundary without invoking the native plugin in page tests.
+
 The first refactor slice moves Coach Context network/cache orchestration into `src/lib/coachContextService.ts`; `buildCoachContext.ts` remains responsible for deterministic context construction and scoring inputs. Existing callers use the service without changing calculated output. Continue refactoring in small verified slices rather than reorganizing the entire repository at once.
 
 After the stability release, proceed in this order:
