@@ -1,6 +1,7 @@
 import { Capacitor, type PermissionState } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
-import { buildCoachContextFromSupabase, type CoachContext } from '@/lib/buildCoachContext';
+import type { CoachContext } from '@/lib/buildCoachContext';
+import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { getTodayPlannedWorkout, getTodayTrainingPlanStatus } from '@/lib/todayTrainingPlan';
 import { loadDefaultWakeTime, loadTonightWakePlan } from '@/lib/sleepWindowStorage';
 import { bedtimeReminderMinutes, parseClockMinutes, sleepWindowForWake } from '@/lib/sleepWindow';

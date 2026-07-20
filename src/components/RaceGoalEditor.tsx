@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { IonButton, IonHeader, IonIcon, IonModal, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
 import { calendarClearOutline, closeOutline } from 'ionicons/icons';
-import { buildCoachContextFromSupabase } from '@/lib/buildCoachContext';
+import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { todayBangkokDateKey } from '@/lib/date';
 import { generateRacePlan } from '@/lib/racePlanGeneration';
 import { loadProfileFromSupabase } from '@/lib/profileStorage';

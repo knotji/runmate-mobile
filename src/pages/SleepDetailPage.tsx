@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { IonButton, IonContent, IonDatetime, IonHeader, IonIcon, IonModal, IonPage, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
 import { arrowBackOutline, calendarClearOutline, checkmarkCircleOutline, chevronBackOutline, chevronForwardOutline, warningOutline } from 'ionicons/icons';
-import { buildCoachContextFromSupabase, type CoachContext, type WeekSleepRow } from '@/lib/buildCoachContext';
+import type { CoachContext, WeekSleepRow } from '@/lib/buildCoachContext';
+import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { buildSleepDiagnostics } from '@/lib/sleepDiagnostics';
 import './SleepDetailPage.css';
 

@@ -2,7 +2,8 @@ import { useCallback, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonButton, IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar, useIonViewWillEnter } from '@ionic/react';
 import { arrowBackOutline, checkmarkCircleOutline, moonOutline, refreshOutline, timeOutline } from 'ionicons/icons';
-import { buildCoachContextFromSupabase, type CoachContext } from '@/lib/buildCoachContext';
+import type { CoachContext } from '@/lib/buildCoachContext';
+import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import {
   formatClockMinutes,
   formatTimeInput,

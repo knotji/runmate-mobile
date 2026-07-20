@@ -18,7 +18,8 @@ import {
   type RefresherEventDetail,
 } from '@ionic/react';
 import { alertCircleOutline, chevronForwardOutline, moonOutline, refreshOutline, sunnyOutline } from 'ionicons/icons';
-import { buildCoachContextFromSupabase, type CoachContext } from '@/lib/buildCoachContext';
+import type { CoachContext } from '@/lib/buildCoachContext';
+import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
 import { TodayTrainingPlanCard } from '@/components/TodayTrainingPlanCard';
 import { formatClockMinutes, loadTonightWakeOverride, parseClockMinutes, sleepWindowForWake } from '@/lib/sleepWindow';

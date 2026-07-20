@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { completeNativeGoogleSignIn } from '@/lib/googleAuth';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { refreshNotifications } from '@/lib/notificationService';
-import { invalidateCoachContextCache } from '@/lib/buildCoachContext';
+import { invalidateCoachContextCache } from '@/lib/coachContextService';
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';

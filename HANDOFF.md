@@ -1,6 +1,6 @@
 # RunMate Mobile Handoff
 
-Last updated: 2026-07-19
+Last updated: 2026-07-20
 
 Before changing layout, typography, cards, or user-facing wording, read
 [`UI_GUIDELINES.md`](./UI_GUIDELINES.md). It is the shared app-wide standard for
@@ -856,3 +856,35 @@ All commands above must pass before the signed Android artifact is distributed. 
 - Each session uses the same HRR calculation as Workout Detail: Profile Max HR, the median valid Resting HR from the latest 14 Sleep records, source HR samples, a 120-second gap cap, and a minimum 50% measured coverage before Load is accepted.
 - The result remains labeled `Estimated`. It does not change Recovery, Strain, Race Plan, Training Adherence, or AI guidance.
 - `src/lib/workoutLoadTrend.ts` owns the pure 7-day/previous-7-day aggregation and is covered by focused unit tests for measured, sparse, and missing-physiology cases.
+
+## Focused Refactor Roadmap (2026-07-20)
+
+The next product feature is Adaptive Training Plan, but the agreed sequence is a short, bounded refactor first. This is not a rewrite and must not change Recovery, Sleep, Strain, Health Connect reconciliation, notification timing, Race Plan output, or AI prompts.
+
+Refactor priorities:
+
+1. Separate Coach Context calculation from Supabase loading, cache ownership, and invalidation.
+2. Route Coach Context reads and refreshes through one shared service so pages do not create competing cache policies.
+3. Consolidate Health Connect sync orchestration and make trigger scope explicit: today on foreground/page refresh, 30 days only from Health Connect actions.
+4. Standardize trustworthy-data state as Measured, Estimated, or Missing at the presentation boundary.
+5. Add an app-level Error Boundary and user-safe runtime diagnostics before expanding the audience.
+6. Add integration coverage for app startup, rapid Recovery/Activity tab switching, changed-data refresh, empty data, and failed sync.
+
+The first refactor slice moves Coach Context network/cache orchestration into `src/lib/coachContextService.ts`; `buildCoachContext.ts` remains responsible for deterministic context construction and scoring inputs. Existing callers use the service without changing calculated output. Continue refactoring in small verified slices rather than reorganizing the entire repository at once.
+
+After the stability release, proceed in this order:
+
+```text
+Adaptive Training Plan
+-> Workout Load Calibration
+-> Nutrition Goals And Trends
+-> Play Store Readiness
+```
+
+Adaptive plan changes must be suggestions (`Keep`, `Reduce`, `Swap`, or `Rest`) with a visible reason and explicit user confirmation. They must never silently rewrite the active Race Plan.
+
+## Neutral Upload Entry State (2026-07-20)
+
+- Upload no longer chooses Sleep, Workout, or Meal from the time of day or today's saved records.
+- The page opens with all three choices unselected and asks the user which record type to upload.
+- Selecting a type reveals the existing flow; Meal Time can still use its Bangkok-time default after the user explicitly chooses Meal.

@@ -20,7 +20,7 @@ import { todayBangkokDateKey } from '@/lib/date';
 import { buildMobileRaceSummary, formatRaceWorkoutMetric, isRaceWorkoutToday } from '@/lib/mobileRaceGoal';
 import { loadActiveRaceGoalAndPlan, saveRaceGoalAndPlan } from '@/lib/raceStorage';
 import { loadRaceResults } from '@/lib/raceResults';
-import { buildCoachContextFromSupabase } from '@/lib/buildCoachContext';
+import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { generateRacePlan } from '@/lib/racePlanGeneration';
 import { translatePlanFieldToEnglish } from '@/lib/todayTrainingPlan';
 import { applyProfilePreferencesToRaceGoal } from '@/lib/raceProfilePreferences';
