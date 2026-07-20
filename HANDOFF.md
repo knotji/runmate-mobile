@@ -927,3 +927,14 @@ Adaptive plan changes must remain visible suggestions (`Keep`, `Reduce`, `Swap`,
 - Fuel answers include a dedicated `Next Meal` section with Bangkok-time awareness, the meals already logged today, and two or three practical Thai meal options. Sleep durations are sent in display-ready hour/minute form so AI copy does not expose raw totals such as `259 minutes`.
 - AI Coach is advisory only. It must never claim to change the Race Plan, Recovery score, saved records, notifications, or scoring logic. Pain and illness always take priority over performance advice.
 - Verification for this slice: all 139 unit tests pass, lint passes with zero errors, production build passes, and the `ai-coach` Edge Function was deployed successfully.
+
+## Nutrition Trends (2026-07-20)
+
+- Activity's `Daily Meal Total` card now links to the authenticated `/nutrition-trends` detail route. Nutrition Trends is not a bottom tab and does not add content to Recovery.
+- The page provides 7-day and 30-day ranges built from saved Meal, Workout, and Strength history. Missing dates remain blank and are never interpreted as zero intake.
+- `Your Logged Nutrition` shows logged-day coverage, total Meals, and the number of logged days that contain Protein data. Daily averages for Calories, Protein, Carbs, and Fat use only days where each value is available.
+- Calories and Protein use separate compact bar charts with independent scales so the two units are not visually compared as though they share a common axis.
+- `Training And Rest Days` compares average logged Calories and Protein by factual Workout presence. It is explicitly presented as context, not a nutrition target or a causal claim.
+- The deterministic pattern card reports low logging coverage or a meaningful logged Protein difference between training and rest days. It does not invent calorie, macro, body-composition, or medical targets.
+- The page links to AI Coach for practical next-meal guidance. AI remains user-triggered and separate from the factual trend calculation.
+- `src/lib/nutritionTrends.ts` owns date-window aggregation and missing-data behavior, with focused tests covering exact ranges, averages, training/rest classification, and unknown macros.

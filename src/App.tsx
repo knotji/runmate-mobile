@@ -41,6 +41,7 @@ const ProfileSettingsPage = lazy(() => import('@/pages/ProfileSettingsPage'));
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 const RecoveryTrendsPage = lazy(() => import('@/pages/RecoveryTrendsPage'));
 const AiCoachPage = lazy(() => import('@/pages/AiCoachPage'));
+const NutritionTrendsPage = lazy(() => import('@/pages/NutritionTrendsPage'));
 
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -128,6 +129,7 @@ const App: React.FC = () => {
             <Route exact path="/profile-settings">{session ? <ProfileSettingsPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/notifications">{session ? <NotificationsPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/ai-coach">{session ? <AiCoachPage /> : <Redirect to="/login" />}</Route>
+            <Route exact path="/nutrition-trends">{session ? <NutritionTrendsPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/health-test"><Redirect to="/health-connect" /></Route>
             <Route exact path="/history/workout/:id"><Redirect to="/tabs/activity" /></Route>
             <Route exact path="/">

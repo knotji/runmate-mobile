@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import {
   IonContent,
   IonAlert,
@@ -30,6 +31,7 @@ import { describeHistoryItem } from '@/lib/activityHistoryPresentation';
 import './ActivityPage.css';
 
 const ActivityPage: React.FC = () => {
+  const history = useHistory();
   const todayDate = bangkokDate(0);
   const [items, setItems] = useState<LocalHistoryItem[]>([]);
   const [selectedDate, setSelectedDate] = useState(todayDate);
@@ -157,6 +159,7 @@ const ActivityPage: React.FC = () => {
                 <NutritionMetric label="Fat" value={nutritionSummary.fatG} />
               </div>
               <small>Based only on meals logged for this date.</small>
+              <button type="button" className="daily-nutrition-trends-link" onClick={() => history.push('/nutrition-trends')}>View Nutrition Trends<IonIcon icon={chevronForwardOutline} /></button>
             </section>
           )}
 
