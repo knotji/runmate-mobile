@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { IonButton, IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar, useIonViewWillEnter } from '@ionic/react';
+import { IonButton, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar, useIonViewWillEnter } from '@ionic/react';
 import { arrowBackOutline, checkmarkCircleOutline, moonOutline, refreshOutline, timeOutline } from 'ionicons/icons';
 import type { CoachContext } from '@/lib/buildCoachContext';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
@@ -12,6 +12,7 @@ import {
   sleepWindowForWake,
 } from '@/lib/sleepWindow';
 import { deleteTonightWakePlan, loadDefaultWakeTime, loadTonightWakePlan, saveTonightWakePlan } from '@/lib/sleepWindowStorage';
+import { PageState } from '@/components/PageState';
 import './SleepWindowPage.css';
 
 const SleepWindowPage: React.FC = () => {
@@ -23,14 +24,17 @@ const SleepWindowPage: React.FC = () => {
   const [defaultWake, setDefaultWake] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const load = useCallback(async () => {
     try {
+      setLoadError(null);
       const [nextContext, storedWake, storedDefaultWake] = await Promise.all([buildCoachContextFromSupabase(), loadTonightWakePlan(), loadDefaultWakeTime()]);
       setContext(nextContext);
       setWakeOverride(storedWake.minutes);
       setSavedWake(storedWake.synced ? storedWake.minutes : null);
       setDefaultWake(storedDefaultWake);
     }
+    catch (error) { setLoadError(error instanceof Error ? error.message : 'Could Not Build Your Sleep Window.'); }
     finally { setLoading(false); }
   }, []);
   useIonViewWillEnter(() => { setLoading(true); void load(); });
@@ -76,8 +80,9 @@ const SleepWindowPage: React.FC = () => {
         <IonTitle>Sleep Window</IonTitle>
       </IonToolbar></IonHeader>
       <IonContent fullscreen className="sleep-window-content"><main className="sleep-window-shell">
-        {loading && <div className="sleep-window-state"><IonSpinner name="crescent" />Calculating Your Sleep Window…</div>}
-        {!loading && window && sleep && <>
+        {loading && <PageState kind="loading" title="Calculating Your Sleep Window…" className="sleep-window-state" />}
+        {!loading && loadError && <PageState kind="error" title="Sleep Window Is Unavailable" detail={loadError} actionLabel="Try Again" onAction={() => { setLoading(true); void load(); }} className="sleep-window-state" />}
+        {!loading && !loadError && window && sleep && <>
           <header className="sleep-window-intro"><p>Tonight</p><h1>Plan Around Your Wake Time</h1><span>Your Sleep Need sets the target. Sleep cycles are shown only as an estimate.</span></header>
           <section className="sleep-window-hero">
             <IonIcon icon={moonOutline} />
@@ -115,7 +120,7 @@ const SleepWindowPage: React.FC = () => {
             </div>
           </details>
         </>}
-        {!loading && !window && <div className="sleep-window-state">A consistent wake time is needed before we can build your Sleep Window.</div>}
+        {!loading && !loadError && !window && <PageState kind="empty" title="Wake Time Needed" detail="Add a consistent wake time before RunMate builds your Sleep Window." className="sleep-window-state" />}
       </main></IonContent>
     </IonPage>
   );

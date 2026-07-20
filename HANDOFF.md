@@ -863,6 +863,8 @@ Health Connect sync triggers now share `healthSyncService.ts`: foreground pages 
 
 Loading, error, retry, and empty presentations now share `PageState.tsx` across the primary data-heavy pages while retaining each page's existing data flow.
 
+The same state treatment now covers Sleep Details, Sleep Window, Race Goal, and Meal/Health record details. Sleep Window also surfaces load failures with an explicit retry instead of leaving an unhandled blank state.
+
 `AppErrorBoundary.tsx` now prevents an unexpected render failure from leaving the app blank. It offers Reload and Return To Recovery actions and stores only a compact, session-scoped error summary (time, route, error name, and message) for safe diagnostics.
 
 The next product feature is Adaptive Training Plan, but the agreed sequence is a short, bounded refactor first. This is not a rewrite and must not change Recovery, Sleep, Strain, Health Connect reconciliation, notification timing, Race Plan output, or AI prompts.

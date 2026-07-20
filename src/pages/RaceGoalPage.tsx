@@ -15,7 +15,7 @@ import {
   IonToolbar,
   type RefresherEventDetail,
 } from '@ionic/react';
-import { arrowBackOutline, calendarClearOutline, chevronDownOutline, chevronForwardOutline, closeOutline, flagOutline, refreshOutline } from 'ionicons/icons';
+import { arrowBackOutline, calendarClearOutline, chevronDownOutline, chevronForwardOutline, closeOutline, flagOutline } from 'ionicons/icons';
 import { todayBangkokDateKey } from '@/lib/date';
 import { buildMobileRaceSummary, formatRaceWorkoutMetric, isRaceWorkoutToday } from '@/lib/mobileRaceGoal';
 import { loadActiveRaceGoalAndPlan, saveRaceGoalAndPlan } from '@/lib/raceStorage';
@@ -31,6 +31,7 @@ import type { RaceGoal, RacePlan, RaceResult, WeekWorkout } from '@/types/race';
 import type { UserProfile } from '@/types/profile';
 import RaceGoalEditor from '@/components/RaceGoalEditor';
 import './RaceGoalPage.css';
+import { PageState } from '@/components/PageState';
 
 const RaceGoalPage: React.FC = () => {
   const history = useHistory();
@@ -111,8 +112,8 @@ const RaceGoalPage: React.FC = () => {
           <IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" />
         </IonRefresher>
         <main className="race-shell">
-          {loading && <div className="race-state"><IonSpinner name="crescent" /><p>Loading Race Goal…</p></div>}
-          {!loading && error && <div className="race-state race-error"><p>{error}</p><IonButton fill="outline" onClick={() => void load()}><IonIcon slot="start" icon={refreshOutline} />Try Again</IonButton></div>}
+          {loading && <PageState kind="loading" title="Loading Race Goal…" className="race-state" />}
+          {!loading && error && <PageState kind="error" title="Race Goal Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="race-state race-error" />}
           {!loading && !error && !goal && (
             <section className="race-empty">
               <div><IonIcon icon={flagOutline} /></div>

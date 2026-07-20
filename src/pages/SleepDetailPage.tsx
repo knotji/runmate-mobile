@@ -5,6 +5,7 @@ import { arrowBackOutline, calendarClearOutline, checkmarkCircleOutline, chevron
 import type { CoachContext, WeekSleepRow } from '@/lib/buildCoachContext';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { buildSleepDiagnostics } from '@/lib/sleepDiagnostics';
+import { PageState } from '@/components/PageState';
 import './SleepDetailPage.css';
 
 const SleepDetailPage: React.FC = () => {
@@ -69,8 +70,8 @@ const SleepDetailPage: React.FC = () => {
       </IonHeader>
       <IonContent fullscreen className="sleep-detail-content">
         <main className="sleep-detail-shell">
-          {!context && !error && <div className="sleep-detail-loading"><IonSpinner name="crescent" /><p>Loading Sleep Details…</p></div>}
-          {error && <div className="sleep-detail-loading"><IonIcon icon={warningOutline} /><p>{error}</p></div>}
+          {!context && !error && <PageState kind="loading" title="Loading Sleep Details…" className="sleep-detail-loading" />}
+          {error && <PageState kind="error" title="Sleep Details Are Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="sleep-detail-loading" />}
           {context && recovery && diagnostics && (
             <>
               {selectedNight && (

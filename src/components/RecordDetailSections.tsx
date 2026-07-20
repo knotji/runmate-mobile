@@ -1,8 +1,7 @@
-import { IonIcon, IonSpinner } from '@ionic/react';
-import { warningOutline } from 'ionicons/icons';
+import { PageState } from '@/components/PageState';
 
-export function DetailState({ text, spinner }: { text: string; spinner?: boolean }) {
-  return <div className="record-detail-state">{spinner ? <IonSpinner name="crescent" /> : <IonIcon icon={warningOutline} />}<p>{text}</p></div>;
+export function DetailState({ text, spinner, onRetry }: { text: string; spinner?: boolean; onRetry?: () => void }) {
+  return <PageState kind={spinner ? 'loading' : 'error'} title={spinner ? text : 'Record Is Unavailable'} detail={spinner ? undefined : text} actionLabel={onRetry ? 'Try Again' : undefined} onAction={onRetry} className="record-detail-state" />;
 }
 
 export function DetailMetrics({ title, metrics, empty }: { title: string; metrics: Array<{ label: string; value: string }>; empty: string }) {
