@@ -867,6 +867,8 @@ The same state treatment now covers Sleep Details, Sleep Window, Race Goal, and 
 
 `AppErrorBoundary.tsx` now prevents an unexpected render failure from leaving the app blank. It offers Reload and Return To Recovery actions and stores only a compact, session-scoped error summary (time, route, error name, and message) for safe diagnostics.
 
+Activity row navigation, record presentation, source labels, and delete affordance now live in `ActivityHistoryRow.tsx`; `ActivityPage.tsx` retains date selection, nutrition totals, loading, sync, and deletion orchestration.
+
 The next product feature is Adaptive Training Plan, but the agreed sequence is a short, bounded refactor first. This is not a rewrite and must not change Recovery, Sleep, Strain, Health Connect reconciliation, notification timing, Race Plan output, or AI prompts.
 
 Refactor priorities:
