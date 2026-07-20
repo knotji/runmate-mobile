@@ -14,6 +14,7 @@ import {
   logOutOutline,
   notificationsOutline,
   personCircleOutline,
+  sparklesOutline,
   statsChartOutline,
 } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
@@ -21,6 +22,12 @@ import { supabase } from '@/lib/supabaseClient';
 import './MorePage.css';
 
 const plannedItems = [
+  {
+    icon: sparklesOutline,
+    title: 'AI Coach',
+    summary: 'Get a data-aware recommendation for training, Recovery, nutrition, or your Race Goal.',
+    path: '/ai-coach',
+  },
   {
     icon: flagOutline,
     title: 'Race Goal',

@@ -914,3 +914,16 @@ Adaptive plan changes must remain visible suggestions (`Keep`, `Reduce`, `Swap`,
 - The page opens with all three choices unselected and asks the user which record type to upload.
 - Selecting a type reveals the existing flow; Meal Time can still use its Bangkok-time default after the user explicitly chooses Meal.
 - Meal photo selection, AI review, editable food lines, nutrition review, and save behavior now live in `MealUploadFlow.tsx`; `UploadPage.tsx` only owns the neutral Sleep / Workout / Meal selection shell.
+
+## AI Coach (2026-07-20)
+
+- `More > AI Coach` is a separate authenticated detail route. It is not a bottom tab and does not add more content to Recovery.
+- The page offers five bounded questions: what to do today, why Recovery changed, whether to adjust today's Workout, how to fuel today, and whether training is on track for the active Race Goal.
+- AI calls are user-triggered only. Opening the page loads the existing cached Coach Context but does not call Gemini.
+- `src/lib/aiCoach.ts` builds a compact coaching payload containing only today's Recovery summary, planned and completed Workout summaries, seven-day aggregate training, today's logged nutrition, active Race metadata, and concise Pain/Sick guardrails.
+- Raw Health Connect samples, full history records, account identifiers, email, image URLs, and profile notes are never included in the AI payload.
+- The `ai-coach` Supabase Edge Function authenticates the caller, validates the selected topic, limits payload and answer size, and uses `gemini-3.1-flash-lite` unless the deployed `GEMINI_MODEL` overrides it.
+- UI controls remain English while the generated recommendation is Thai. The response contract contains one headline, summary, up to four actions and reasons, explicit missing data, an optional caution, and short follow-up suggestions.
+- Fuel answers include a dedicated `Next Meal` section with Bangkok-time awareness, the meals already logged today, and two or three practical Thai meal options. Sleep durations are sent in display-ready hour/minute form so AI copy does not expose raw totals such as `259 minutes`.
+- AI Coach is advisory only. It must never claim to change the Race Plan, Recovery score, saved records, notifications, or scoring logic. Pain and illness always take priority over performance advice.
+- Verification for this slice: all 139 unit tests pass, lint passes with zero errors, production build passes, and the `ai-coach` Edge Function was deployed successfully.
