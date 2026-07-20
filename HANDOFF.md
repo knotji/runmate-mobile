@@ -896,3 +896,4 @@ Adaptive plan changes must be suggestions (`Keep`, `Reduce`, `Swap`, or `Rest`) 
 - Upload no longer chooses Sleep, Workout, or Meal from the time of day or today's saved records.
 - The page opens with all three choices unselected and asks the user which record type to upload.
 - Selecting a type reveals the existing flow; Meal Time can still use its Bangkok-time default after the user explicitly chooses Meal.
+- Meal photo selection, AI review, editable food lines, nutrition review, and save behavior now live in `MealUploadFlow.tsx`; `UploadPage.tsx` only owns the neutral Sleep / Workout / Meal selection shell.
