@@ -9,6 +9,7 @@ import { loadHistoryItems } from '@/lib/cloudHistory';
 import { findHighestObservedHeartRate, type ObservedHeartRate } from '@/lib/observedHeartRate';
 import { loadDefaultWakeTime, saveDefaultWakeTime } from '@/lib/sleepWindowStorage';
 import { formatTimeInput, parseTimeInput } from '@/lib/sleepWindow';
+import { PageState } from '@/components/PageState';
 import './ProfileSettingsPage.css';
 
 const emptyDraft: ProfileSettingsDraft = { maxHr: '', weightKg: '', weeklyTrainingDays: '', preferredLongRunDay: '', preferredRunTime: '', defaultWakeTime: '' };
@@ -76,7 +77,7 @@ const ProfileSettingsPage: React.FC = () => {
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="profile-settings-content"><main className="profile-settings-shell">
       <header className="profile-settings-intro"><p>Your RunMate</p><h1>Essential Profile</h1><span>Only settings that directly improve Recovery and training guidance are shown here.</span></header>
-      {loading && <div className="profile-settings-state"><IonSpinner name="crescent" /><span>Loading Your Profile…</span></div>}
+      {loading && <PageState kind="loading" title="Loading Your Profile…" className="profile-settings-state" />}
       {!loading && profile && <>
         <section className="profile-settings-card">
           <header><IonIcon icon={heartOutline} /><div><p>Recovery</p><h2>Physiology</h2></div></header>
@@ -106,7 +107,7 @@ const ProfileSettingsPage: React.FC = () => {
         {error && <p className="profile-settings-error">{error}</p>}
         <button type="button" className={`profile-settings-save${saved ? ' saved' : ''}`} disabled={saving || !hasChanges} onClick={() => void save()}>{saving ? <IonSpinner name="crescent" /> : saved ? <IonIcon icon={checkmarkCircleOutline} /> : <IonIcon icon={scaleOutline} />}{saving ? 'Saving…' : saved ? 'Profile Saved' : hasChanges ? 'Save Profile' : 'No Changes'}</button>
       </>}
-      {!loading && !profile && <div className="profile-settings-state profile-settings-failed"><span>{error ?? 'Could Not Load Your Profile.'}</span><button type="button" onClick={() => void load()}>Try Again</button></div>}
+      {!loading && !profile && <PageState kind="error" title="Profile Is Unavailable" detail={error ?? 'Could Not Load Your Profile.'} actionLabel="Try Again" onAction={() => void load()} className="profile-settings-state profile-settings-failed" />}
     </main></IonContent>
     <IonAlert isOpen={discardOpen} onDidDismiss={() => setDiscardOpen(false)} header="Discard Unsaved Changes?" message="Your latest Profile changes have not been saved." buttons={[{ text: 'Keep Editing', role: 'cancel' }, { text: 'Discard', role: 'destructive', handler: () => { setSavedDraft(draft); window.setTimeout(() => history.push('/tabs/more'), 0); } }]} />
   </IonPage>;

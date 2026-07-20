@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
-  IonButton,
   IonCard,
   IonCardContent,
   IonContent,
@@ -10,18 +9,18 @@ import {
   IonPage,
   IonRefresher,
   IonRefresherContent,
-  IonSpinner,
   IonTitle,
   IonToolbar,
   useIonViewDidLeave,
   useIonViewWillEnter,
   type RefresherEventDetail,
 } from '@ionic/react';
-import { alertCircleOutline, chevronForwardOutline, moonOutline, refreshOutline, sunnyOutline } from 'ionicons/icons';
+import { chevronForwardOutline, moonOutline, sunnyOutline } from 'ionicons/icons';
 import type { CoachContext } from '@/lib/buildCoachContext';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
 import { TodayTrainingPlanCard } from '@/components/TodayTrainingPlanCard';
+import { PageState } from '@/components/PageState';
 import { formatClockMinutes, loadTonightWakeOverride, parseClockMinutes, sleepWindowForWake } from '@/lib/sleepWindow';
 import { loadDefaultWakeTime, loadTonightWakePlan } from '@/lib/sleepWindowStorage';
 import { syncTodayHealth } from '@/lib/healthSyncService';
@@ -91,14 +90,8 @@ const RecoveryPage: React.FC = () => {
           <IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" />
         </IonRefresher>
         <main className="recovery-shell metrics-only-shell">
-          {loading && <div className="state-panel"><IonSpinner name="crescent" /><p>Calculating your metrics…</p></div>}
-          {!loading && error && (
-            <div className="state-panel error-panel">
-              <IonIcon icon={alertCircleOutline} />
-              <p>{error}</p>
-              <IonButton fill="outline" onClick={() => void loadRecovery()}><IonIcon slot="start" icon={refreshOutline} />Try Again</IonButton>
-            </div>
-          )}
+          {loading && <PageState kind="loading" title="Calculating Your Metrics…" className="state-panel" />}
+          {!loading && error && <PageState kind="error" title="Recovery Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void loadRecovery()} className="state-panel error-panel" />}
           {!loading && !error && context?.recoverySystem && (
             <>
               <RecoveryDials recovery={context.recoverySystem} onRecoveryClick={() => history.push('/recovery-trends')} onSleepClick={() => history.push('/sleep')} />

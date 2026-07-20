@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonSpinner, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
+import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
 import { arrowBackOutline, barbellOutline, bedOutline, checkmarkCircleOutline, chevronDownOutline, fastFoodOutline, fitnessOutline, pulseOutline, timeOutline } from 'ionicons/icons';
 import type { CoachContext } from '@/lib/buildCoachContext';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
@@ -13,6 +13,7 @@ import { buildTrainingAdherenceHistory, type TrainingAdherenceWeek } from '@/lib
 import { restingHeartRateBaseline } from '@/lib/hrZones';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { buildWorkoutLoadTrend } from '@/lib/workoutLoadTrend';
+import { PageState } from '@/components/PageState';
 import './WeeklySummaryPage.css';
 
 const WeeklySummaryPage: React.FC = () => {
@@ -60,8 +61,8 @@ const WeeklySummaryPage: React.FC = () => {
       <IonRefresher slot="fixed" onIonRefresh={refresh}><IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" /></IonRefresher>
       <main className="weekly-shell">
         <header className="weekly-heading"><p>Last 7 Days</p><h1>Your Training Week</h1><span>A factual summary of sleep, workouts, and meals logged in RunMate.</span></header>
-        {loading && <div className="weekly-state"><IonSpinner name="crescent" /><p>Building Your Summary…</p></div>}
-        {!loading && error && <div className="weekly-state weekly-error"><p>{error}</p><button type="button" onClick={() => void load()}>Try Again</button></div>}
+        {loading && <PageState kind="loading" title="Building Your Summary…" className="weekly-state" />}
+        {!loading && error && <PageState kind="error" title="Summary Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="weekly-state weekly-error" />}
         {!loading && summary && <>
           <section className="weekly-hero" aria-labelledby="weekly-training-heading">
             <div className="weekly-section-heading"><div><p>Training Volume</p><h2 id="weekly-training-heading">Movement At A Glance</h2></div><IonIcon icon={fitnessOutline} /></div>

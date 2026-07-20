@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonSpinner, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
+import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
 import { arrowBackOutline, informationCircleOutline, trendingDownOutline, trendingUpOutline } from 'ionicons/icons';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import { todayBangkokDateKey } from '@/lib/date';
@@ -8,6 +8,7 @@ import { loadProfileFromSupabase } from '@/lib/profileStorage';
 import { buildRecoveryTrend, type RecoveryTrendPoint } from '@/lib/recoveryTrends';
 import { syncTodayHealth } from '@/lib/healthSyncService';
 import type { LocalHistoryItem } from '@/lib/localHistory';
+import { PageState } from '@/components/PageState';
 import './RecoveryTrendsPage.css';
 
 const RecoveryTrendsPage: React.FC = () => {
@@ -51,8 +52,8 @@ const RecoveryTrendsPage: React.FC = () => {
           <button type="button" className={days === 7 ? 'active' : ''} aria-pressed={days === 7} onClick={() => setDays(7)}>7 Days</button>
           <button type="button" className={days === 30 ? 'active' : ''} aria-pressed={days === 30} onClick={() => setDays(30)}>30 Days</button>
         </div>
-        {loading && <div className="recovery-trends-state"><IonSpinner name="crescent" /><p>Building Your Trends…</p></div>}
-        {!loading && error && <div className="recovery-trends-state"><p>{error}</p><button type="button" onClick={() => void load()}>Try Again</button></div>}
+        {loading && <PageState kind="loading" title="Building Your Trends…" className="recovery-trends-state" />}
+        {!loading && error && <PageState kind="error" title="Trends Are Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="recovery-trends-state" />}
         {!loading && trend && <>
           <section className="trend-chart-card" aria-labelledby="trend-chart-heading">
             <div className="trend-section-heading"><div><p>Last {days} Days</p><h2 id="trend-chart-heading">Recovery At A Glance</h2></div><Coverage points={trend.points} /></div>

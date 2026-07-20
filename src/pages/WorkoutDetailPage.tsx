@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useHistory, useParams } from 'react-router-dom';
-import { IonButton, IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
-import { arrowBackOutline, barbellOutline, fitnessOutline, warningOutline } from 'ionicons/icons';
+import { IonButton, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar } from '@ionic/react';
+import { arrowBackOutline, barbellOutline, fitnessOutline } from 'ionicons/icons';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { buildWorkoutDetail } from '@/lib/workoutDetail';
@@ -9,6 +9,7 @@ import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
 import { loadProfileFromSupabase } from '@/lib/profileStorage';
 import { restingHeartRateBaseline } from '@/lib/hrZones';
 import type { UserProfile } from '@/types/profile';
+import { PageState } from '@/components/PageState';
 import './WorkoutDetailPage.css';
 
 const WorkoutDetailPage: React.FC = () => {
@@ -52,8 +53,8 @@ const WorkoutDetailPage: React.FC = () => {
       </IonHeader>
       <IonContent fullscreen className="workout-detail-content">
         <main className="workout-detail-shell">
-          {loading && <div className="workout-detail-state"><IonSpinner name="crescent" /><p>Loading Workout…</p></div>}
-          {!loading && error && <div className="workout-detail-state"><IonIcon icon={warningOutline} /><p>{error}</p><button type="button" onClick={() => history.push('/tabs/activity')}>Back To Activity</button></div>}
+          {loading && <PageState kind="loading" title="Loading Workout…" className="workout-detail-state" />}
+          {!loading && error && <PageState kind="error" title="Workout Is Unavailable" detail={error} actionLabel="Back To Activity" onAction={() => history.push('/tabs/activity')} className="workout-detail-state" />}
           {detail && (
             <>
               <section className={`workout-hero workout-hero-${detail.tone}`}>

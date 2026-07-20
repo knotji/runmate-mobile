@@ -861,6 +861,8 @@ All commands above must pass before the signed Android artifact is distributed. 
 
 Health Connect sync triggers now share `healthSyncService.ts`: foreground pages sync today with the existing cooldown, Sync Now checks 30 days plus Weight, and Repair Last 30 Days reconciles Workout history only.
 
+Loading, error, retry, and empty presentations now share `PageState.tsx` across the primary data-heavy pages while retaining each page's existing data flow.
+
 The next product feature is Adaptive Training Plan, but the agreed sequence is a short, bounded refactor first. This is not a rewrite and must not change Recovery, Sleep, Strain, Health Connect reconciliation, notification timing, Race Plan output, or AI prompts.
 
 Refactor priorities:

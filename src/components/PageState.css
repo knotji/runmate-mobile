@@ -1,0 +1,13 @@
+.app-page-state {
+  width: 100%; min-height: 148px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; padding: 28px 22px; border: 1px solid #d8e5f0; border-radius: 22px;
+  background: rgba(255, 255, 255, .9); color: #173453; text-align: center;
+  box-shadow: 0 14px 32px rgba(41, 75, 110, .06);
+}
+.app-page-state ion-spinner, .app-page-state > ion-icon { width: 26px; height: 26px; color: #2688b8; }
+.app-page-state > div { display: grid; gap: 5px; }
+.app-page-state h2 { margin: 0; font-size: 17px; line-height: 1.3; font-weight: 600; }
+.app-page-state p { margin: 0; color: #6e8298; font-size: 13px; line-height: 1.55; }
+.app-page-state button { min-height: 38px; padding: 0 18px; border: 1px solid #9bcbe3; border-radius: 999px; background: #f4fbff; color: #1477a7; font: inherit; font-size: 12px; font-weight: 700; }
+.app-page-state-error > ion-icon { color: #c94b61; }
+.app-page-state-empty > ion-icon { color: #6f91aa; }

@@ -25,6 +25,7 @@ import { dedupeSleepItems } from '@/lib/sleepDedupe';
 import { syncTodayHealth } from '@/lib/healthSyncService';
 import { dedupeWorkoutItems, type MergedWorkoutItem } from '@/lib/workoutDedupe';
 import { buildDailyNutritionSummary } from '@/lib/activityNutritionSummary';
+import { PageState } from '@/components/PageState';
 import './ActivityPage.css';
 
 const ActivityPage: React.FC = () => {
@@ -158,10 +159,10 @@ const ActivityPage: React.FC = () => {
             </section>
           )}
 
-          {loading && <div className="history-state"><IonSpinner name="crescent" /><p>Loading Activity…</p></div>}
-          {!loading && error && <div className="history-state history-error"><p>{error}</p><button type="button" onClick={() => void load()}>Try Again</button></div>}
+          {loading && <PageState kind="loading" title="Loading Activity…" className="history-state" />}
+          {!loading && error && <PageState kind="error" title="Activity Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="history-state history-error" />}
           {!loading && !error && groupedItems.length === 0 && (
-            <div className="history-empty"><IonIcon icon={fitnessOutline} /><h2>No Activity On This Date</h2><p>Choose another date to review previous activity.</p></div>
+            <PageState kind="empty" icon={fitnessOutline} title="No Activity On This Date" detail="Choose another date to review previous activity." className="history-empty" />
           )}
           {deleteError && <div className="history-delete-error"><span>{deleteError}</span><button type="button" onClick={() => setDeleteError(null)}>Dismiss</button></div>}
           {!loading && !error && groupedItems.map(([date, dateItems]) => (
