@@ -1,12 +1,10 @@
-import { lazy } from 'react';
 import { Redirect, Route } from 'react-router-dom';
 import { IonIcon, IonLabel, IonRouterOutlet, IonTabBar, IonTabButton, IonTabs } from '@ionic/react';
 import { addCircleOutline, ellipsisHorizontalCircleOutline, pulseOutline, todayOutline } from 'ionicons/icons';
-
-const RecoveryPage = lazy(() => import('@/pages/RecoveryPage'));
-const ActivityPage = lazy(() => import('@/pages/ActivityPage'));
-const UploadPage = lazy(() => import('@/pages/UploadPage'));
-const MorePage = lazy(() => import('@/pages/MorePage'));
+import RecoveryPage from '@/pages/RecoveryPage';
+import ActivityPage from '@/pages/ActivityPage';
+import UploadPage from '@/pages/UploadPage';
+import MorePage from '@/pages/MorePage';
 
 const MainTabs: React.FC = () => (
   <IonTabs>
