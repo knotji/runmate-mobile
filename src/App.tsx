@@ -13,6 +13,8 @@ import { refreshNotifications } from '@/lib/notificationService';
 import { invalidateCoachContextCache } from '@/lib/coachContextService';
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { AppBootScreen } from '@/components/AppBootScreen';
+import { RouteLoadingScreen } from '@/components/RouteLoadingScreen';
+import { loadMorePage } from '@/lib/morePageLoaders';
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -34,14 +36,14 @@ const SleepDetailPage = lazy(() => import('@/pages/SleepDetailPage'));
 const WorkoutDetailPage = lazy(() => import('@/pages/WorkoutDetailPage'));
 const MealDetailPage = lazy(() => import('@/pages/MealDetailPage'));
 const HealthDetailPage = lazy(() => import('@/pages/HealthDetailPage'));
-const RaceGoalPage = lazy(() => import('@/pages/RaceGoalPage'));
-const HealthTestPage = lazy(() => import('@/pages/HealthTestPage'));
+const RaceGoalPage = lazy(() => loadMorePage('/race-goal'));
+const HealthTestPage = lazy(() => loadMorePage('/health-connect'));
 const SleepWindowPage = lazy(() => import('@/pages/SleepWindowPage'));
-const WeeklySummaryPage = lazy(() => import('@/pages/WeeklySummaryPage'));
-const ProfileSettingsPage = lazy(() => import('@/pages/ProfileSettingsPage'));
-const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
+const WeeklySummaryPage = lazy(() => loadMorePage('/weekly-summary'));
+const ProfileSettingsPage = lazy(() => loadMorePage('/profile-settings'));
+const NotificationsPage = lazy(() => loadMorePage('/notifications'));
 const RecoveryTrendsPage = lazy(() => import('@/pages/RecoveryTrendsPage'));
-const AiCoachPage = lazy(() => import('@/pages/AiCoachPage'));
+const AiCoachPage = lazy(() => loadMorePage('/ai-coach'));
 const NutritionTrendsPage = lazy(() => import('@/pages/NutritionTrendsPage'));
 
 const App: React.FC = () => {
@@ -105,7 +107,7 @@ const App: React.FC = () => {
       {checkingSession && <AppBootScreen message="Checking Your Account" />}
       {!checkingSession && (
         <IonReactRouter>
-          <Suspense fallback={<AppBootScreen />}>
+          <Suspense fallback={<RouteLoadingScreen />}>
             <IonRouterOutlet>
             <Route exact path="/login">
               {session ? <Redirect to="/tabs/recovery" /> : <LoginPage />}

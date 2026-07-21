@@ -10,6 +10,7 @@ import { findHighestObservedHeartRate, type ObservedHeartRate } from '@/lib/obse
 import { loadDefaultWakeTime, saveDefaultWakeTime } from '@/lib/sleepWindowStorage';
 import { formatTimeInput, parseTimeInput } from '@/lib/sleepWindow';
 import { PageState } from '@/components/PageState';
+import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import './ProfileSettingsPage.css';
 
 const emptyDraft: ProfileSettingsDraft = { maxHr: '', weightKg: '', weeklyTrainingDays: '', preferredLongRunDay: '', preferredRunTime: '', defaultWakeTime: '' };
@@ -77,7 +78,7 @@ const ProfileSettingsPage: React.FC = () => {
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="profile-settings-content"><main className="profile-settings-shell">
       <header className="profile-settings-intro"><p>Your RunMate</p><h1>Essential Profile</h1><span>Only settings that directly improve Recovery and training guidance are shown here.</span></header>
-      {loading && <PageState kind="loading" title="Loading Your Profile…" className="profile-settings-state" />}
+      {loading && <PageDataSkeleton variant="profile" label="Loading Your Profile" />}
       {!loading && profile && <>
         <section className="profile-settings-card">
           <header><IonIcon icon={heartOutline} /><div><p>Recovery</p><h2>Physiology</h2></div></header>

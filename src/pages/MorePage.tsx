@@ -18,10 +18,17 @@ import {
   statsChartOutline,
 } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
+import { useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { loadMorePage, preloadMorePages, type MorePagePath } from '@/lib/morePageLoaders';
 import './MorePage.css';
 
-const plannedItems = [
+const plannedItems: Array<{
+  icon: string;
+  title: string;
+  summary: string;
+  path: MorePagePath;
+}> = [
   {
     icon: sparklesOutline,
     title: 'AI Coach',
@@ -63,6 +70,14 @@ const plannedItems = [
 const MorePage: React.FC = () => {
   const history = useHistory();
 
+  useEffect(() => {
+    void preloadMorePages().catch(() => undefined);
+  }, []);
+
+  const openPage = (path: MorePagePath) => {
+    void loadMorePage(path).catch(() => undefined).finally(() => history.push(path));
+  };
+
   return (
   <IonPage>
     <IonHeader translucent className="more-header">
@@ -77,8 +92,8 @@ const MorePage: React.FC = () => {
         </header>
 
         <section className="more-menu" aria-label="More Features">
-          {plannedItems.map((item) => item.path ? (
-            <button className="more-menu-row more-menu-button" type="button" onClick={() => history.push(item.path)} key={item.title}>
+          {plannedItems.map((item) => (
+            <button className="more-menu-row more-menu-button" type="button" onPointerDown={() => { void loadMorePage(item.path).catch(() => undefined); }} onClick={() => openPage(item.path)} key={item.title}>
               <div className="more-menu-icon"><IonIcon icon={item.icon} /></div>
               <div className="more-menu-copy">
                 <strong>{item.title}</strong>
@@ -86,12 +101,6 @@ const MorePage: React.FC = () => {
               </div>
               <IonIcon className="more-chevron" icon={chevronForwardOutline} />
             </button>
-          ) : (
-            <div className="more-menu-row" key={item.title}>
-              <div className="more-menu-icon"><IonIcon icon={item.icon} /></div>
-              <div className="more-menu-copy"><strong>{item.title}</strong><span>{item.summary}</span></div>
-              <span className="more-planned">Planned</span>
-            </div>
           ))}
         </section>
 

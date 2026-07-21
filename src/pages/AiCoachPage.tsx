@@ -3,6 +3,7 @@ import { useHistory } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
 import { arrowBackOutline, checkmarkCircleOutline, helpCircleOutline, sparklesOutline, warningOutline } from 'ionicons/icons';
 import { PageState } from '@/components/PageState';
+import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { AI_COACH_TOPICS, askAiCoach, type AiCoachAnswer, type AiCoachTopic } from '@/lib/aiCoach';
 import type { CoachContext } from '@/lib/buildCoachContext';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
@@ -48,7 +49,7 @@ const AiCoachPage: React.FC = () => {
           <div><p>RUNMATE AI</p><h1>Ask Your Coach</h1><span>Choose one question. Your answer uses only the RunMate data available right now.</span></div>
         </header>
 
-        {loadingContext && <PageState kind="loading" title="Preparing Your Coaching Context…" className="ai-coach-state" />}
+        {loadingContext && <PageDataSkeleton variant="coach" label="Preparing Your Coaching Context" />}
         {!loadingContext && !context && <PageState kind="error" title="Coach Context Is Unavailable" detail={error ?? undefined} actionLabel="Try Again" onAction={() => void loadContext()} className="ai-coach-state" />}
 
         {!loadingContext && context && <>

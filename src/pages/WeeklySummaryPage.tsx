@@ -14,6 +14,7 @@ import { restingHeartRateBaseline } from '@/lib/hrZones';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { buildWorkoutLoadTrend } from '@/lib/workoutLoadTrend';
 import { PageState } from '@/components/PageState';
+import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import './WeeklySummaryPage.css';
 
 const WeeklySummaryPage: React.FC = () => {
@@ -61,7 +62,7 @@ const WeeklySummaryPage: React.FC = () => {
       <IonRefresher slot="fixed" onIonRefresh={refresh}><IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" /></IonRefresher>
       <main className="weekly-shell">
         <header className="weekly-heading"><p>Last 7 Days</p><h1>Your Training Week</h1><span>A factual summary of sleep, workouts, and meals logged in RunMate.</span></header>
-        {loading && <PageState kind="loading" title="Building Your Summary…" className="weekly-state" />}
+        {loading && <PageDataSkeleton variant="summary" label="Building Your Summary" />}
         {!loading && error && <PageState kind="error" title="Summary Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="weekly-state weekly-error" />}
         {!loading && summary && <>
           <section className="weekly-hero" aria-labelledby="weekly-training-heading">

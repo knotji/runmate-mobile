@@ -32,6 +32,7 @@ import type { UserProfile } from '@/types/profile';
 import RaceGoalEditor from '@/components/RaceGoalEditor';
 import './RaceGoalPage.css';
 import { PageState } from '@/components/PageState';
+import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 
 const RaceGoalPage: React.FC = () => {
   const history = useHistory();
@@ -112,7 +113,7 @@ const RaceGoalPage: React.FC = () => {
           <IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" />
         </IonRefresher>
         <main className="race-shell">
-          {loading && <PageState kind="loading" title="Loading Race Goal…" className="race-state" />}
+          {loading && <PageDataSkeleton variant="race" label="Loading Race Goal" />}
           {!loading && error && <PageState kind="error" title="Race Goal Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="race-state race-error" />}
           {!loading && !error && !goal && (
             <section className="race-empty">

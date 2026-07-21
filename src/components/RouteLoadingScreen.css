@@ -1,0 +1,26 @@
+.route-loading-content {
+  --background: radial-gradient(circle at 50% -12%,#e6f4fc 0,#f4f8fc 35%,#f7f9fc 76%);
+}
+
+.route-loading-page ion-toolbar {
+  --background: rgba(247,250,253,.9);
+  --border-color: rgba(173,194,217,.22);
+  --min-height: 56px;
+  backdrop-filter: blur(18px);
+}
+
+.route-loading-page ion-title {
+  color: #142a46;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.route-loading-shell {
+  margin: 0 auto;
+  padding: 26px 20px 48px;
+  width: min(100%,600px);
+}
+
+@media (max-width:390px) {
+  .route-loading-shell { padding-inline: 16px; }
+}

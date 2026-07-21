@@ -958,3 +958,11 @@ Verification completed for this release candidate:
 - `npm run build`: passed.
 - `npx cap sync android`: passed.
 - Android debug assembly passed before the signed release pipeline.
+
+## More Page Loading Experience (2026-07-22)
+
+- AI Coach, Race Goal, Weekly Summary, and Profile & Settings no longer replace their page content with a centered Ionic spinner while data loads. They render the page header immediately and use a shared structured skeleton matched to each page's content hierarchy.
+- More preloads the lazy route chunks for AI Coach, Race Goal, Weekly Summary, Profile & Settings, Notifications, and Health Connect. Pressing a row also starts the selected preload before navigation.
+- Router-level lazy loading no longer reuses the full-screen RunMate boot logo. The branded boot screen is reserved for initial account/session startup; lazy navigation uses a lightweight destination header and structured skeleton instead.
+- Notifications and Health Connect retain only local action/status spinners for real work such as permission checks, Sync Now, and notification scheduling.
+- Focused component coverage verifies both the structured data skeleton and that Health Connect route loading does not render the app boot logo.
