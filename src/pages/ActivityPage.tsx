@@ -23,7 +23,7 @@ import { getHistoryItemDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { syncTodayHealth } from '@/lib/healthSyncService';
 import { buildDailyNutritionSummary } from '@/lib/activityNutritionSummary';
-import { activityRecentHistoryOptions, mergeActivityHistoryItems, prepareActivityHistoryItems } from '@/lib/activityHistoryLoad';
+import { activityRecentHistoryOptions, mergeActivityHistoryItems, prepareActivityHistoryItems, uploadedActivityDateFromEvent } from '@/lib/activityHistoryLoad';
 import { PageState } from '@/components/PageState';
 import { ActivityHistoryRow } from '@/components/ActivityHistoryRow';
 import { describeHistoryItem } from '@/lib/activityHistoryPresentation';
@@ -49,6 +49,7 @@ const ActivityPage: React.FC = () => {
   const archiveLoadingRef = useRef(false);
   const visibleRef = useRef(false);
   const syncTimerRef = useRef<number | null>(null);
+  const cloudDataDirtyRef = useRef(false);
 
   const loadRecent = useCallback(async () => {
     setError(null);
@@ -97,9 +98,22 @@ const ActivityPage: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => {
+    const markCloudDataDirty = (event: Event) => {
+      cloudDataDirtyRef.current = true;
+      const uploadedDate = uploadedActivityDateFromEvent(event);
+      if (uploadedDate) setSelectedDate(uploadedDate);
+    };
+    window.addEventListener('runmate:cloud-data-updated', markCloudDataDirty);
+    return () => window.removeEventListener('runmate:cloud-data-updated', markCloudDataDirty);
+  }, []);
+
   useIonViewWillEnter(() => {
     visibleRef.current = true;
-    if (!loadedRef.current) void loadRecent();
+    if (!loadedRef.current || cloudDataDirtyRef.current) {
+      cloudDataDirtyRef.current = false;
+      void loadRecent();
+    }
     syncTimerRef.current = window.setTimeout(() => {
       void measurePerformanceDiagnostic(
         'activity_health_sync',
@@ -111,7 +125,10 @@ const ActivityPage: React.FC = () => {
       ).then((result) => {
         if (result.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
         if (result.workout?.error) console.warn('[workout-sync] Samsung Health sync failed', result.workout.error);
-        if (result.changed && visibleRef.current) void loadRecent();
+        if (result.changed && visibleRef.current) {
+          cloudDataDirtyRef.current = false;
+          void loadRecent();
+        }
       });
     }, 1200);
   });
@@ -128,6 +145,7 @@ const ActivityPage: React.FC = () => {
       () => syncTodayHealth(true),
       (syncResult) => ({ detail: syncResult.changed ? 'Pull to refresh changed records' : 'Pull to refresh found no changes' }),
     );
+    cloudDataDirtyRef.current = false;
     await loadRecent();
     event.detail.complete();
   };
@@ -173,7 +191,10 @@ const ActivityPage: React.FC = () => {
     const target = pendingDelete;
     setPendingDelete(null); setDeletingId(target.id); setDeleteError(null);
     const result = await deleteHistoryItem(target.id);
-    if (result.ok) setItems((current) => current.filter((item) => item.id !== target.id));
+    if (result.ok) {
+      cloudDataDirtyRef.current = false;
+      setItems((current) => current.filter((item) => item.id !== target.id));
+    }
     else setDeleteError(result.error ?? 'Could Not Delete This Activity. Please Try Again.');
     setDeletingId(null);
   };

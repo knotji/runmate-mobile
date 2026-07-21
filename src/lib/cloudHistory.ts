@@ -38,6 +38,15 @@ type HistoryRow = {
   data: unknown;
 };
 
+export type CloudHistoryUpdateDetail = {
+  action: "save" | "delete";
+  savedItems?: Array<{
+    id: string;
+    dateKey?: string;
+    provider?: string;
+  }>;
+};
+
 export function createHistoryItem(type: HistoryType, data: unknown, createdAt?: string): LocalHistoryItem {
   const resolvedDate = createdAt && !Number.isNaN(new Date(createdAt).getTime())
     ? new Date(createdAt).toISOString()
@@ -83,7 +92,16 @@ export async function saveHistoryItems(items: LocalHistoryItem[]): Promise<{ ok:
     return { ok: false, error: friendlySupabaseError(error) };
   }
   logSupabaseSyncSuccess({ table: "history_items", operation: "upsert", userId: session.userId, count: rows.length });
-  window.dispatchEvent(new Event("runmate:cloud-data-updated"));
+  window.dispatchEvent(new CustomEvent<CloudHistoryUpdateDetail>("runmate:cloud-data-updated", {
+    detail: {
+      action: "save",
+      savedItems: uniqueItems.map((item) => ({
+        id: item.id,
+        dateKey: item.dateKey,
+        provider: item.source?.provider,
+      })),
+    },
+  }));
 
   return { ok: true };
 }
@@ -150,7 +168,9 @@ export async function deleteHistoryItem(id: string): Promise<{ ok: boolean; erro
   if (error) {
     return { ok: false, error: friendlySupabaseError(error) };
   }
-  window.dispatchEvent(new Event("runmate:cloud-data-updated"));
+  window.dispatchEvent(new CustomEvent<CloudHistoryUpdateDetail>("runmate:cloud-data-updated", {
+    detail: { action: "delete" },
+  }));
   return { ok: true };
 }
 
