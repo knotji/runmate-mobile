@@ -8,6 +8,8 @@ import type { LocalHistoryItem } from '@/lib/localHistory';
 
 const SAMSUNG_HEALTH_SOURCE_ID = 'com.sec.android.app.shealth';
 const DEFAULT_LOOKBACK_DAYS = 30;
+const EXISTING_RECORD_BUFFER_DAYS = 2;
+const EXISTING_RECORD_LIMIT = 500;
 const LAST_SYNC_KEY = 'runmate:samsung-sleep-last-synced-at';
 const SIGNAL_TYPES = ['heartRateVariability', 'restingHeartRate', 'respiratoryRate'] as const;
 const SLEEP_HR_SAMPLE_SUPPORT_MS = 10 * 60_000;
@@ -89,7 +91,10 @@ async function runSamsungSleepSync(lookbackDays: number | 'today'): Promise<Sams
       .filter((item): item is LocalHistoryItem => item !== null)
       .filter((item) => !todayOnly || item.dateKey === today);
 
-    const existing = await loadHistoryItems(['sleep']);
+    const existing = await loadHistoryItems(['sleep'], {
+      createdAfter: new Date(Date.parse(startDate) - EXISTING_RECORD_BUFFER_DAYS * 86_400_000).toISOString(),
+      limit: EXISTING_RECORD_LIMIT,
+    });
     const existingItems = existing.ok ? existing.items : [];
     const counts = classifyHealthSyncItems(items, existingItems);
     const changedItems = selectChangedHealthSyncItems(items, existingItems);

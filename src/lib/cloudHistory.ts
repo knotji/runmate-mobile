@@ -88,7 +88,14 @@ export async function saveHistoryItems(items: LocalHistoryItem[]): Promise<{ ok:
   return { ok: true };
 }
 
-export async function loadHistoryItems(types?: HistoryType[]): Promise<{ ok: true; items: LocalHistoryItem[] } | { ok: false; error: string }> {
+export type HistoryLoadOptions = {
+  /** Limits rows before they are transferred from Supabase. */
+  limit?: number;
+  /** Filters by persisted creation time. Event-date filtering still happens in the caller. */
+  createdAfter?: string;
+};
+
+export async function loadHistoryItems(types?: HistoryType[], options: HistoryLoadOptions = {}): Promise<{ ok: true; items: LocalHistoryItem[] } | { ok: false; error: string }> {
   const session = await ensureSupabaseProfileSession();
   if (!session.ok) {
     return { ok: false, error: sessionMessage(session) };
@@ -100,9 +107,10 @@ export async function loadHistoryItems(types?: HistoryType[]): Promise<{ ok: tru
     .select("id, type, created_at, data")
     .eq("user_id", session.userId)
     .order("created_at", { ascending: false })
-    .limit(MAX_HISTORY_ROWS);
+    .limit(Math.max(1, Math.min(MAX_HISTORY_ROWS, options.limit ?? MAX_HISTORY_ROWS)));
 
   if (types?.length) query = query.in("type", types);
+  if (options.createdAfter) query = query.gte("created_at", options.createdAfter);
 
   const { data, error } = await query;
   if (error) {

@@ -3,8 +3,12 @@ import { loadHistoryItems } from '@/lib/cloudHistory';
 import { loadProfileFromSupabase } from '@/lib/profileStorage';
 import { loadRaceResults } from '@/lib/raceResults';
 import { loadActiveRaceGoalAndPlan } from '@/lib/raceStorage';
+import type { LocalHistoryItem } from '@/lib/localHistory';
 
 const COACH_CONTEXT_CACHE_MS = 30_000;
+export const RECOVERY_CONTEXT_LOOKBACK_DAYS = 45;
+const RECOVERY_CORE_ROW_LIMIT = 500;
+const RECOVERY_SECONDARY_ROW_LIMIT = 700;
 let cachedCoachContext: { value: CoachContext; loadedAt: number } | null = null;
 let activeCoachContextLoad: Promise<CoachContext> | null = null;
 let coachContextRevision = 0;
@@ -35,6 +39,56 @@ export function buildCoachContextFromSupabase(options: { force?: boolean } = {})
   return activeCoachContextLoad;
 }
 
+/**
+ * Fast path for the three Recovery dials. It keeps every physiological and
+ * safety input, while leaving nutrition, race, and long-form coaching data for
+ * the progressive page load.
+ */
+export async function buildRecoveryCoreContextFromSupabase(): Promise<CoachContext> {
+  const [historyResult, profileResult] = await Promise.all([
+    loadHistoryItems(
+      ['sleep', 'workout', 'pain', 'strength', 'sick'],
+      recoveryHistoryOptions(RECOVERY_CORE_ROW_LIMIT),
+    ),
+    loadProfileFromSupabase(),
+  ]);
+
+  return buildCoachContextFromData({
+    items: historyResult.ok ? historyResult.items : [],
+    profile: profileResult.ok ? profileResult.profile ?? null : null,
+    raceGoal: null,
+    racePlan: null,
+    raceResults: [],
+  });
+}
+
+/** Loads the rest of the Recovery page without downloading the full history table. */
+export async function buildRecoveryPageContextFromSupabase(): Promise<CoachContext> {
+  const loadRevision = coachContextRevision;
+  const [recentResult, durableResult, profileResult, raceResult, completedRaceResult] = await Promise.all([
+    loadHistoryItems(
+      ['sleep', 'workout', 'meal', 'pain', 'strength', 'sick'],
+      recoveryHistoryOptions(RECOVERY_SECONDARY_ROW_LIMIT),
+    ),
+    loadHistoryItems(['body', 'health_check'], { limit: 10 }),
+    loadProfileFromSupabase(),
+    loadActiveRaceGoalAndPlan(),
+    loadRaceResults(5),
+  ]);
+  const value = buildCoachContextFromData({
+    items: mergeHistoryItems(
+      recentResult.ok ? recentResult.items : [],
+      durableResult.ok ? durableResult.items : [],
+    ),
+    profile: profileResult.ok ? profileResult.profile ?? null : null,
+    raceGoal: raceResult.ok ? raceResult.goal : null,
+    racePlan: raceResult.ok ? raceResult.plan : null,
+    raceResults: completedRaceResult.ok ? completedRaceResult.results : [],
+  });
+  if (loadRevision === coachContextRevision) cachedCoachContext = { value, loadedAt: Date.now() };
+  return value;
+}
+
 async function loadCoachContextFromSupabase(): Promise<CoachContext> {
   const [historyResult, profileResult, raceResult, completedRaceResult] = await Promise.all([
     loadHistoryItems(['sleep', 'workout', 'body', 'meal', 'pain', 'strength', 'health_check', 'sick']),
@@ -50,6 +104,19 @@ async function loadCoachContextFromSupabase(): Promise<CoachContext> {
     racePlan: raceResult.ok ? raceResult.plan : null,
     raceResults: completedRaceResult.ok ? completedRaceResult.results : [],
   });
+}
+
+function recoveryHistoryOptions(limit: number) {
+  return {
+    limit,
+    createdAfter: new Date(Date.now() - RECOVERY_CONTEXT_LOOKBACK_DAYS * 86_400_000).toISOString(),
+  };
+}
+
+function mergeHistoryItems(...groups: LocalHistoryItem[][]): LocalHistoryItem[] {
+  const byId = new Map<string, LocalHistoryItem>();
+  for (const item of groups.flat()) byId.set(item.id, item);
+  return [...byId.values()];
 }
 
 if (typeof window !== 'undefined') {

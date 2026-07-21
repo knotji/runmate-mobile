@@ -4,7 +4,7 @@ import { Browser } from '@capacitor/browser';
 import { Capacitor, type PluginListenerHandle } from '@capacitor/core';
 import type { Session } from '@supabase/supabase-js';
 import { Redirect, Route } from 'react-router-dom';
-import { IonApp, IonLoading, IonRouterOutlet, setupIonicReact } from '@ionic/react';
+import { IonApp, IonRouterOutlet, setupIonicReact } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
 import { supabase } from '@/lib/supabaseClient';
 import { completeNativeGoogleSignIn } from '@/lib/googleAuth';
@@ -12,6 +12,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { refreshNotifications } from '@/lib/notificationService';
 import { invalidateCoachContextCache } from '@/lib/coachContextService';
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
+import { AppBootScreen } from '@/components/AppBootScreen';
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -101,10 +102,10 @@ const App: React.FC = () => {
   return (
     <IonApp>
       <AppErrorBoundary>
-      <IonLoading isOpen={checkingSession} message="Checking your account…" />
+      {checkingSession && <AppBootScreen message="Checking Your Account" />}
       {!checkingSession && (
         <IonReactRouter>
-          <Suspense fallback={<IonLoading isOpen message="Loading RunMate..." />}>
+          <Suspense fallback={<AppBootScreen />}>
             <IonRouterOutlet>
             <Route exact path="/login">
               {session ? <Redirect to="/tabs/recovery" /> : <LoginPage />}

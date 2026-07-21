@@ -1,6 +1,12 @@
 import { vi } from 'vitest';
 import { loadHistoryItems } from '@/lib/cloudHistory';
-import { buildCoachContextFromSupabase, invalidateCoachContextCache } from '@/lib/coachContextService';
+import {
+  buildCoachContextFromSupabase,
+  buildRecoveryCoreContextFromSupabase,
+  buildRecoveryPageContextFromSupabase,
+  invalidateCoachContextCache,
+  RECOVERY_CONTEXT_LOOKBACK_DAYS,
+} from '@/lib/coachContextService';
 
 vi.mock('@/lib/cloudHistory', () => ({ loadHistoryItems: vi.fn(async () => ({ ok: true, items: [] })) }));
 vi.mock('@/lib/profileStorage', () => ({ loadProfileFromSupabase: vi.fn(async () => ({ ok: true, profile: null })) }));
@@ -31,5 +37,39 @@ describe('coachContextService', () => {
     await buildCoachContextFromSupabase();
 
     expect(loadHistoryItems).toHaveBeenCalledTimes(2);
+  });
+
+  it('uses a bounded physiological fast path for the Recovery dials', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-21T05:00:00.000Z'));
+
+    await buildRecoveryCoreContextFromSupabase();
+
+    expect(loadHistoryItems).toHaveBeenCalledWith(
+      ['sleep', 'workout', 'pain', 'strength', 'sick'],
+      {
+        limit: 500,
+        createdAfter: new Date(Date.now() - RECOVERY_CONTEXT_LOOKBACK_DAYS * 86_400_000).toISOString(),
+      },
+    );
+    vi.useRealTimers();
+  });
+
+  it('loads secondary Recovery content with recent and durable queries', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-21T05:00:00.000Z'));
+
+    await buildRecoveryPageContextFromSupabase();
+
+    expect(loadHistoryItems).toHaveBeenNthCalledWith(
+      1,
+      ['sleep', 'workout', 'meal', 'pain', 'strength', 'sick'],
+      {
+        limit: 700,
+        createdAfter: new Date(Date.now() - RECOVERY_CONTEXT_LOOKBACK_DAYS * 86_400_000).toISOString(),
+      },
+    );
+    expect(loadHistoryItems).toHaveBeenNthCalledWith(2, ['body', 'health_check'], { limit: 10 });
+    vi.useRealTimers();
   });
 });

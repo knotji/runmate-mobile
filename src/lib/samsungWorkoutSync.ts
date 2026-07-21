@@ -9,6 +9,8 @@ import type { WorkoutAnalysis } from '@/types/logs';
 
 const SAMSUNG_HEALTH_SOURCE_ID = 'com.sec.android.app.shealth';
 const DEFAULT_LOOKBACK_DAYS = 30;
+const EXISTING_RECORD_BUFFER_DAYS = 2;
+const EXISTING_RECORD_LIMIT = 700;
 const CLOSED_WORKOUT_GRACE_MS = 2 * 60_000;
 const LAST_SYNC_KEY = 'runmate:samsung-workout-last-synced-at';
 const WORKOUT_READ_TYPES: HealthDataType[] = ['workouts', 'heartRate', 'distance', 'calories', 'vo2Max'];
@@ -55,7 +57,10 @@ async function runSync(lookbackDays: number | 'today'): Promise<SamsungWorkoutSy
       return mapSamsungWorkout(workout, heartRate, vo2MaxSamples);
     }));
     const validItems = items.filter((item): item is LocalHistoryItem => item !== null);
-    const existing = await loadHistoryItems(['workout', 'strength']);
+    const existing = await loadHistoryItems(['workout', 'strength'], {
+      createdAfter: new Date(Date.parse(startDate) - EXISTING_RECORD_BUFFER_DAYS * 86_400_000).toISOString(),
+      limit: EXISTING_RECORD_LIMIT,
+    });
     const existingItems = existing.ok ? existing.items : [];
     const counts = classifyHealthSyncItems(validItems, existingItems);
     const changedItems = selectChangedHealthSyncItems(validItems, existingItems);

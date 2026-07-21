@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   IonContent,
@@ -21,13 +21,13 @@ import { calendarClearOutline, chevronBackOutline, chevronForwardOutline, fitnes
 import { deleteHistoryItem, loadHistoryItems } from '@/lib/cloudHistory';
 import { getHistoryItemDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
-import { dedupeSleepItems } from '@/lib/sleepDedupe';
 import { syncTodayHealth } from '@/lib/healthSyncService';
-import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
 import { buildDailyNutritionSummary } from '@/lib/activityNutritionSummary';
+import { activityRecentHistoryOptions, mergeActivityHistoryItems, prepareActivityHistoryItems } from '@/lib/activityHistoryLoad';
 import { PageState } from '@/components/PageState';
 import { ActivityHistoryRow } from '@/components/ActivityHistoryRow';
 import { describeHistoryItem } from '@/lib/activityHistoryPresentation';
+import { measurePerformanceDiagnostic, recordPerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import './ActivityPage.css';
 
 const ActivityPage: React.FC = () => {
@@ -36,6 +36,8 @@ const ActivityPage: React.FC = () => {
   const [items, setItems] = useState<LocalHistoryItem[]>([]);
   const [selectedDate, setSelectedDate] = useState(todayDate);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [archiveLoading, setArchiveLoading] = useState(false);
+  const [archiveError, setArchiveError] = useState<string | null>(null);
   const [dateLoading, setDateLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,30 +45,73 @@ const ActivityPage: React.FC = () => {
   const [pendingDelete, setPendingDelete] = useState<LocalHistoryItem | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const loadedRef = useRef(false);
+  const archiveLoadedRef = useRef(false);
+  const archiveLoadingRef = useRef(false);
   const visibleRef = useRef(false);
   const syncTimerRef = useRef<number | null>(null);
 
-  const load = useCallback(async () => {
+  const loadRecent = useCallback(async () => {
     setError(null);
-    const result = await loadHistoryItems();
+    const result = await measurePerformanceDiagnostic(
+      'activity_records',
+      async () => {
+        const historyResult = await loadHistoryItems(undefined, activityRecentHistoryOptions());
+        if (!historyResult.ok) return historyResult;
+        return { ...historyResult, items: prepareActivityHistoryItems(historyResult.items) };
+      },
+      (historyResult) => ({ detail: historyResult.ok ? `${historyResult.items.length} recent records prepared` : 'Activity query failed' }),
+    );
     if (result.ok) {
-      const sleep = dedupeSleepItems(result.items.filter((item) => item.type === 'sleep'));
-      const workouts = dedupeWorkoutItems(result.items.filter((item) => item.type === 'workout' || item.type === 'strength'));
-      setItems([...result.items.filter((item) => item.type !== 'sleep' && item.type !== 'workout' && item.type !== 'strength'), ...sleep, ...workouts]);
+      setItems((current) => mergeActivityHistoryItems(current, result.items));
       loadedRef.current = true;
     }
     else setError(result.error);
     setLoading(false);
   }, []);
 
+  const loadArchive = useCallback(async () => {
+    if (archiveLoadedRef.current || archiveLoadingRef.current) return;
+    archiveLoadingRef.current = true;
+    setArchiveLoading(true);
+    setArchiveError(null);
+    try {
+      const result = await measurePerformanceDiagnostic(
+        'activity_archive',
+        async () => {
+          const historyResult = await loadHistoryItems();
+          return historyResult.ok ? { ...historyResult, items: prepareActivityHistoryItems(historyResult.items) } : historyResult;
+        },
+        (historyResult) => ({ detail: historyResult.ok ? `${historyResult.items.length} archive records prepared` : 'Archive query failed' }),
+      );
+      if (result.ok) {
+        setItems(result.items);
+        archiveLoadedRef.current = true;
+      } else {
+        setArchiveError('Older Activity dates could not be loaded. Please try again.');
+      }
+    } catch {
+      setArchiveError('Older Activity dates could not be loaded. Please try again.');
+    } finally {
+      archiveLoadingRef.current = false;
+      setArchiveLoading(false);
+    }
+  }, []);
+
   useIonViewWillEnter(() => {
     visibleRef.current = true;
-    if (!loadedRef.current) void load();
+    if (!loadedRef.current) void loadRecent();
     syncTimerRef.current = window.setTimeout(() => {
-      void syncTodayHealth().then((result) => {
+      void measurePerformanceDiagnostic(
+        'activity_health_sync',
+        () => syncTodayHealth(),
+        (syncResult) => ({
+          status: syncResult.performed ? 'success' : 'skipped',
+          detail: syncResult.performed ? syncResult.changed ? 'Background sync changed records' : 'Background sync found no changes' : 'Cooldown reused latest sync',
+        }),
+      ).then((result) => {
         if (result.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
         if (result.workout?.error) console.warn('[workout-sync] Samsung Health sync failed', result.workout.error);
-        if (result.changed && visibleRef.current) void load();
+        if (result.changed && visibleRef.current) void loadRecent();
       });
     }, 1200);
   });
@@ -78,8 +123,12 @@ const ActivityPage: React.FC = () => {
   });
 
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => {
-    await syncTodayHealth(true);
-    await load();
+    await measurePerformanceDiagnostic(
+      'activity_health_sync',
+      () => syncTodayHealth(true),
+      (syncResult) => ({ detail: syncResult.changed ? 'Pull to refresh changed records' : 'Pull to refresh found no changes' }),
+    );
+    await loadRecent();
     event.detail.complete();
   };
 
@@ -93,7 +142,20 @@ const ActivityPage: React.FC = () => {
     return [...groups.entries()].sort(([a], [b]) => b.localeCompare(a));
   }, [items, selectedDate]);
   const availableDates = useMemo(() => new Set([...items.map(getHistoryItemDateKey), todayDate]), [items, todayDate]);
-  const nutritionSummary = useMemo(() => buildDailyNutritionSummary(items, selectedDate), [items, selectedDate]);
+  const nutritionMeasurement = useMemo(() => {
+    const startedAt = performance.now();
+    const value = buildDailyNutritionSummary(items, selectedDate);
+    return { value, durationMs: performance.now() - startedAt };
+  }, [items, selectedDate]);
+  const nutritionSummary = nutritionMeasurement.value;
+  useEffect(() => {
+    recordPerformanceDiagnostic(
+      'activity_nutrition',
+      nutritionMeasurement.durationMs,
+      'success',
+      nutritionSummary ? `${nutritionSummary.mealCount} meals summarized` : 'No meals for selected date',
+    );
+  }, [nutritionMeasurement.durationMs, nutritionSummary, selectedDate]);
   const sortedDates = useMemo(() => [...availableDates].sort(), [availableDates]);
   const selectedDateIndex = sortedDates.indexOf(selectedDate);
 
@@ -136,7 +198,7 @@ const ActivityPage: React.FC = () => {
 
           <nav className={`activity-date-navigator${selectedDate !== todayDate ? ' has-current' : ''}`} aria-label="Choose Activity Date">
             <button type="button" className="activity-date-arrow" aria-label="Previous Activity Date" disabled={dateLoading || selectedDateIndex <= 0} onClick={() => moveToDate(sortedDates[selectedDateIndex - 1])}><IonIcon icon={chevronBackOutline} /></button>
-            <button type="button" className="activity-date-button" disabled={dateLoading} onClick={() => setCalendarOpen(true)}>
+            <button type="button" className="activity-date-button" disabled={dateLoading} onClick={() => { setCalendarOpen(true); void loadArchive(); }}>
               {dateLoading ? <IonSpinner name="crescent" /> : <IonIcon icon={calendarClearOutline} />}
               <span><small>{dateLoading ? 'Loading Date' : 'Selected Date'}</small><strong>{dateLoading ? 'Updating…' : selectedDate === todayDate ? `Today, ${formatMonthDay(selectedDate)}` : formatSelectedDate(selectedDate)}</strong></span>
             </button>
@@ -164,7 +226,7 @@ const ActivityPage: React.FC = () => {
           )}
 
           {loading && <PageState kind="loading" title="Loading Activity…" className="history-state" />}
-          {!loading && error && <PageState kind="error" title="Activity Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="history-state history-error" />}
+          {!loading && error && <PageState kind="error" title="Activity Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void loadRecent()} className="history-state history-error" />}
           {!loading && !error && groupedItems.length === 0 && (
             <PageState kind="empty" icon={fitnessOutline} title="No Activity On This Date" detail="Choose another date to review previous activity." className="history-empty" />
           )}
@@ -180,6 +242,11 @@ const ActivityPage: React.FC = () => {
         </main>
       </IonContent>
       <IonModal className="history-date-modal" isOpen={calendarOpen} onDidDismiss={() => setCalendarOpen(false)}>
+        {(archiveLoading || archiveError) && (
+          <div className={archiveError ? 'history-archive-status is-error' : 'history-archive-status'} role="status">
+            {archiveLoading ? <><IonSpinner name="crescent" />Loading Older Datesâ€¦</> : <><span>{archiveError}</span><button type="button" onClick={() => void loadArchive()}>Retry</button></>}
+          </div>
+        )}
         <IonDatetime
           presentation="date"
           value={selectedDate}

@@ -17,7 +17,7 @@ import {
 } from '@ionic/react';
 import { chevronForwardOutline, moonOutline, sunnyOutline } from 'ionicons/icons';
 import type { CoachContext } from '@/lib/buildCoachContext';
-import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
+import { buildRecoveryCoreContextFromSupabase, buildRecoveryPageContextFromSupabase } from '@/lib/coachContextService';
 import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
 import { TodayTrainingPlanCard } from '@/components/TodayTrainingPlanCard';
 import { PageState } from '@/components/PageState';
@@ -25,45 +25,115 @@ import { formatClockMinutes, loadTonightWakeOverride, parseClockMinutes, sleepWi
 import { loadDefaultWakeTime, loadTonightWakePlan } from '@/lib/sleepWindowStorage';
 import { syncTodayHealth } from '@/lib/healthSyncService';
 import { refreshNotifications } from '@/lib/notificationService';
+import { getBangkokDateKey } from '@/lib/date';
+import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import './RecoveryPage.css';
 
 const RecoveryPage: React.FC = () => {
   const history = useHistory();
   const [context, setContext] = useState<CoachContext | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingStage, setLoadingStage] = useState<'syncing' | 'calculating'>('syncing');
   const [error, setError] = useState<string | null>(null);
+  const [secondaryLoading, setSecondaryLoading] = useState(true);
+  const [secondaryError, setSecondaryError] = useState<string | null>(null);
   const [wakeOverrideMinutes, setWakeOverrideMinutes] = useState<number | null>(() => loadTonightWakeOverride());
   const loadedRef = useRef(false);
+  const loadedDateRef = useRef<string | null>(null);
   const visibleRef = useRef(false);
   const syncTimerRef = useRef<number | null>(null);
 
-  const loadRecovery = useCallback(async (force = false) => {
+  const loadSecondaryRecovery = useCallback(async (showPlaceholder = false) => {
+    if (showPlaceholder) setSecondaryLoading(true);
+    setSecondaryError(null);
+    try {
+      const nextContext = await measurePerformanceDiagnostic(
+        'recovery_secondary',
+        () => buildRecoveryPageContextFromSupabase(),
+        () => ({ detail: showPlaceholder ? 'Foreground guidance load' : 'Background guidance refresh' }),
+      );
+      setContext(nextContext);
+      void refreshNotifications(nextContext, true).catch((notificationError) => console.warn('[notifications] refresh failed', notificationError));
+    } catch (loadError) {
+      console.error('[recovery] secondary load failed', loadError);
+      setSecondaryError('Today\'s guidance is still loading. Your scores are already available.');
+    } finally {
+      setSecondaryLoading(false);
+    }
+  }, []);
+
+  const loadRecovery = useCallback(async (showSecondaryPlaceholder = false) => {
     setError(null);
     try {
-      const nextContext = await buildCoachContextFromSupabase({ force });
+      const nextContext = await measurePerformanceDiagnostic(
+        'recovery_core',
+        () => buildRecoveryCoreContextFromSupabase(),
+      );
       setContext(nextContext);
-      void refreshNotifications(nextContext, force).catch((notificationError) => console.warn('[notifications] refresh failed', notificationError));
       loadedRef.current = true;
+      loadedDateRef.current = getBangkokDateKey(Date.now());
+      setLoading(false);
+      await loadSecondaryRecovery(showSecondaryPlaceholder);
     } catch (loadError) {
       console.error('[recovery] load failed', loadError);
       setError('Unable to load your latest metrics. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadSecondaryRecovery]);
+
+  const loadInitialRecovery = useCallback(async (forceContext = false) => {
+    setLoading(true);
+    setLoadingStage('syncing');
+    setError(null);
+    let healthChanged = false;
+    try {
+      const result = await measurePerformanceDiagnostic(
+        'health_sync',
+        () => syncTodayHealth(),
+        (syncResult) => ({
+          status: syncResult.performed ? 'success' : 'skipped',
+          detail: syncResult.performed ? syncResult.changed ? 'Today sync changed records' : 'Today sync found no changes' : 'Cooldown reused latest sync',
+        }),
+      );
+      healthChanged = result.changed;
+      if (result.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
+      if (result.workout?.error) console.warn('[workout-sync] Samsung Health sync failed', result.workout.error);
+    } catch (syncError) {
+      console.warn('[health-sync] Today sync failed before Recovery load', syncError);
+    }
+    setLoadingStage('calculating');
+    await loadRecovery(forceContext || healthChanged);
+  }, [loadRecovery]);
+
+  const retryRecovery = useCallback(async () => {
+    await loadInitialRecovery(true);
+  }, [loadInitialRecovery]);
 
   useIonViewWillEnter(() => {
     visibleRef.current = true;
     setWakeOverrideMinutes(loadTonightWakeOverride());
     void Promise.all([loadTonightWakePlan(), loadDefaultWakeTime()]).then(([plan, defaultWake]) => setWakeOverrideMinutes(plan.minutes ?? defaultWake));
-    if (!loadedRef.current) void loadRecovery();
-    syncTimerRef.current = window.setTimeout(() => {
-      void syncTodayHealth().then((result) => {
-        if (result.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
-        if (result.workout?.error) console.warn('[workout-sync] Samsung Health sync failed', result.workout.error);
-        if (result.changed && visibleRef.current) void loadRecovery(true);
-      });
-    }, 1200);
+    const today = getBangkokDateKey(Date.now());
+    const needsFreshDay = loadedDateRef.current !== null && loadedDateRef.current !== today;
+    if (!loadedRef.current || needsFreshDay) {
+      void loadInitialRecovery(needsFreshDay);
+    } else {
+      syncTimerRef.current = window.setTimeout(() => {
+        void measurePerformanceDiagnostic(
+          'health_sync',
+          () => syncTodayHealth(),
+          (syncResult) => ({
+            status: syncResult.performed ? 'success' : 'skipped',
+            detail: syncResult.performed ? syncResult.changed ? 'Background sync changed records' : 'Background sync found no changes' : 'Cooldown reused latest sync',
+          }),
+        ).then((result) => {
+          if (result.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
+          if (result.workout?.error) console.warn('[workout-sync] Samsung Health sync failed', result.workout.error);
+          if (result.changed && visibleRef.current) void loadRecovery(false);
+        });
+      }, 1200);
+    }
   });
 
   useIonViewDidLeave(() => {
@@ -73,8 +143,12 @@ const RecoveryPage: React.FC = () => {
   });
 
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => {
-    await syncTodayHealth(true);
-    await loadRecovery(true);
+    await measurePerformanceDiagnostic(
+      'health_sync',
+      () => syncTodayHealth(true),
+      (syncResult) => ({ detail: syncResult.changed ? 'Pull to refresh changed records' : 'Pull to refresh found no changes' }),
+    );
+    await loadRecovery(false);
     event.detail.complete();
   };
 
@@ -90,13 +164,15 @@ const RecoveryPage: React.FC = () => {
           <IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" />
         </IonRefresher>
         <main className="recovery-shell metrics-only-shell">
-          {loading && <PageState kind="loading" title="Calculating Your Metrics…" className="state-panel" />}
-          {!loading && error && <PageState kind="error" title="Recovery Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void loadRecovery()} className="state-panel error-panel" />}
+          {loading && <RecoveryLoadingDials stage={loadingStage} />}
+          {!loading && error && <PageState kind="error" title="Recovery Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void retryRecovery()} className="state-panel error-panel" />}
           {!loading && !error && context?.recoverySystem && (
             <>
               <RecoveryDials recovery={context.recoverySystem} onRecoveryClick={() => history.push('/recovery-trends')} onSleepClick={() => history.push('/sleep')} />
-              <TodayTrainingPlanCard context={context} />
-              <RecoveryPlan recovery={context.recoverySystem} wakeOverrideMinutes={wakeOverrideMinutes} onOpen={() => history.push('/sleep-window')} />
+              {secondaryLoading ? <RecoverySecondaryLoading /> : secondaryError ? <RecoverySecondaryError message={secondaryError} onRetry={() => void loadSecondaryRecovery(true)} /> : <>
+                <TodayTrainingPlanCard context={context} />
+                <RecoveryPlan recovery={context.recoverySystem} wakeOverrideMinutes={wakeOverrideMinutes} onOpen={() => history.push('/sleep-window')} />
+              </>}
             </>
           )}
         </main>
@@ -104,6 +180,37 @@ const RecoveryPage: React.FC = () => {
     </IonPage>
   );
 };
+
+function RecoveryLoadingDials({ stage }: { stage: 'syncing' | 'calculating' }) {
+  return (
+    <IonCard className="recovery-dials recovery-dials-loading" role="status" aria-live="polite">
+      <IonCardContent>
+        <div className="dial-grid" aria-hidden="true">
+          <MetricDial label="Recovery" value={null} max={100} tone="recovery" loading />
+          <MetricDial label="Strain" value={null} max={21} tone="strain" loading />
+          <MetricDial label="Sleep" value={null} max={100} tone="sleep" loading />
+        </div>
+        <div className="recovery-loading-copy">
+          <strong>{stage === 'syncing' ? 'Syncing Today\'s Health Data' : 'Calculating Your Metrics'}</strong>
+          <span>{stage === 'syncing' ? 'Checking Sleep and Workout records from Health Connect.' : 'Turning your latest signals into today\'s scores.'}</span>
+        </div>
+      </IonCardContent>
+    </IonCard>
+  );
+}
+
+function RecoverySecondaryLoading() {
+  return (
+    <section className="recovery-secondary-loading" role="status" aria-label="Loading today's guidance">
+      <div><i /><span /></div>
+      <div><i /><span /></div>
+    </section>
+  );
+}
+
+function RecoverySecondaryError({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return <section className="recovery-secondary-error" role="status"><span>{message}</span><button type="button" onClick={onRetry}>Try Again</button></section>;
+}
 
 function RecoveryDials({ recovery, onRecoveryClick, onSleepClick }: { recovery: RunMateRecoverySystem; onRecoveryClick: () => void; onSleepClick: () => void }) {
   const recoveryAvailable = recovery.scoreState === 'scored' || recovery.scoreState === 'calibrating';
@@ -130,19 +237,21 @@ function RecoveryDials({ recovery, onRecoveryClick, onSleepClick }: { recovery: 
   );
 }
 
-function MetricDial({ label, value, max, tone, onClick }: { label: string; value: number | null; max: number; tone: 'recovery' | 'strain' | 'sleep'; onClick?: () => void }) {
+function MetricDial({ label, value, max, tone, onClick, loading = false }: { label: string; value: number | null; max: number; tone: 'recovery' | 'strain' | 'sleep'; onClick?: () => void; loading?: boolean }) {
   const percentage = value == null ? 0 : Math.max(0, Math.min(100, value / max * 100));
   const displayValue = value == null ? '—' : Math.round(value).toString();
   const content = (
     <>
       <span className="dial-label">{label}</span>
       <div
-        className="dial-ring"
-        style={{ background: `conic-gradient(var(--dial-color) ${percentage}%, rgba(255,255,255,.18) 0)` }}
+        className={`dial-ring${loading ? ' dial-ring-loading' : ''}`}
+        style={loading ? undefined : { background: `conic-gradient(var(--dial-color) ${percentage}%, rgba(255,255,255,.18) 0)` }}
         role="img"
-        aria-label={`${label} ${displayValue} out of ${max}`}
+        aria-label={loading ? `${label} is being calculated` : `${label} ${displayValue} out of ${max}`}
       >
-        <div className="dial-center"><strong>{displayValue}</strong><small>/{max}</small></div>
+        <div className="dial-center">
+          {loading ? <span className="dial-thinking"><i /><i /><i /></span> : <><strong>{displayValue}</strong><small>/{max}</small></>}
+        </div>
       </div>
     </>
   );

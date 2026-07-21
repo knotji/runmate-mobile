@@ -15,6 +15,10 @@
 .activity-date-button small { font-size: 9px; }
 .activity-inline-current { align-self: center; min-height: 44px; padding: 0 10px; border-radius: 12px; color: #2479a7 !important; background: #edf7fc !important; font-size: 9px; font-weight: 750; box-shadow: none !important; }.activity-inline-current:disabled { opacity: .5; cursor: wait; }
 .history-date-modal { --width: min(84vw,330px); --height: auto; --border-radius: 20px; }.history-date-modal ion-datetime { width: 100%; max-width: 330px; margin: 0 auto; --background: #fff; }
+.history-archive-status { min-height: 42px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 14px 0; color: #66839a; background: #fff; font-size: 9px; font-weight: 700; }
+.history-archive-status ion-spinner { width: 14px; height: 14px; color: #2586b4; }
+.history-archive-status.is-error { justify-content: space-between; color: #925361; }
+.history-archive-status button { min-height: 36px; padding: 0 9px; border: 0; border-radius: 9px; color: #247aa8; background: #edf7fc; font: inherit; font-size: 9px; font-weight: 800; }
 .daily-nutrition-summary { margin: -2px 0 20px; padding: 16px; border: 1px solid #d4e9e3; border-radius: 18px; background: linear-gradient(145deg,#fff 0%,#f3fbf8 100%); box-shadow: 0 8px 20px rgba(46,77,111,.04); }
 .daily-nutrition-summary > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }.daily-nutrition-summary header p { margin: 0 0 3px; color: #33816e; font-size: 9px; font-weight: 850; letter-spacing: .09em; text-transform: uppercase; }.daily-nutrition-summary h2 { margin: 0; color: #193b50; font-size: 16px; line-height: 1.25; }.daily-nutrition-summary header > span { padding: 5px 8px; border-radius: 999px; color: #377966; background: #e5f5ef; font-size: 9px; font-weight: 750; white-space: nowrap; }
 .daily-nutrition-calories { display: flex; align-items: baseline; gap: 6px; margin: 15px 0 12px; }.daily-nutrition-calories strong { color: #163a50; font-size: 27px; line-height: 1; letter-spacing: -.03em; }.daily-nutrition-calories span { color: #72899b; font-size: 9px; }

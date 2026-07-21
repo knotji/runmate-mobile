@@ -938,3 +938,23 @@ Adaptive plan changes must remain visible suggestions (`Keep`, `Reduce`, `Swap`,
 - The deterministic pattern card reports low logging coverage or a meaningful logged Protein difference between training and rest days. It does not invent calorie, macro, body-composition, or medical targets.
 - The page links to AI Coach for practical next-meal guidance. AI remains user-triggered and separate from the factual trend calculation.
 - `src/lib/nutritionTrends.ts` owns date-window aggregation and missing-data behavior, with focused tests covering exact ranges, averages, training/rest classification, and unknown macros.
+
+## Startup And Tab Performance (2026-07-21)
+
+- App startup now uses a dedicated RunMate boot screen and the Android native splash uses the same pulse-logo branding instead of a generic loading surface.
+- Recovery startup is split into a fast core path and progressive secondary work. A new-day Health Connect sync completes before Recovery is calculated, while guidance refreshes after the three primary rings become usable.
+- The Recovery loading state uses animated Recovery, Strain, and Sleep rings so the UI communicates active calculation without presenting stale scores.
+- Recovery history reads are bounded to the latest 45 days, and Samsung Sleep/Workout reconciliation limits duplicate checks to the active sync window instead of scanning the full account history.
+- Activity now loads the latest 45 days first and preserves that prepared state across tab switches. Older history is fetched only when the date calendar is opened, with explicit loading, retry, and error states.
+- Activity refresh merges recent Health Connect records without discarding an already loaded archive.
+- `Health Connect > Developer Details` now includes on-device Page Performance Diagnostics for Health Sync, Recovery Core, Secondary Content, Activity Health Sync, Activity Records, Activity Archive, and Nutrition Summary. It stores at most 30 compact timing samples and exposes a Copy action for debugging.
+- Device diagnostics reduced Activity record preparation from about 3.0 seconds to about 1.3 seconds in the measured test account. Recovery Core measured about 1.9 seconds and Secondary Content about 1.3 seconds after the split. These are device-specific observations, not performance guarantees.
+- Coverage includes focused tests for the branded boot screen, performance diagnostics retention/averages, recent-first Activity loading, and Coach Context boundary behavior.
+
+Verification completed for this release candidate:
+
+- `npm run test.unit -- --run`: 42 files and 149 tests passed.
+- `npm run lint`: passed with zero errors.
+- `npm run build`: passed.
+- `npx cap sync android`: passed.
+- Android debug assembly passed before the signed release pipeline.

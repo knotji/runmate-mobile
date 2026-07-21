@@ -11,6 +11,7 @@ import { dedupeSleepItems } from '@/lib/sleepDedupe';
 import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
 import type { HealthSyncCounts } from '@/lib/healthSyncSummary';
 import type { LocalHistoryItem } from '@/lib/localHistory';
+import { getPerformanceDiagnosticSummaries, type PerformanceDiagnosticPhase, type PerformanceDiagnosticSummary } from '@/lib/performanceDiagnostics';
 import './HealthTestPage.css';
 
 type LogEntry = { label: string; result: unknown; error?: string; at: string };
@@ -225,6 +226,7 @@ const HealthTestPage: React.FC = () => {
   const [connectionBusy, setConnectionBusy] = useState<'status' | 'connect' | 'sync' | 'repair' | 'settings' | null>('status');
   const [connectionMessage, setConnectionMessage] = useState<string | null>(null);
   const [syncSummary, setSyncSummary] = useState<SyncSummary | null>(null);
+  const [performanceSummaries, setPerformanceSummaries] = useState<PerformanceDiagnosticSummary[]>(() => getPerformanceDiagnosticSummaries());
 
   const refreshConnection = useCallback(async () => {
     try {
@@ -250,7 +252,10 @@ const HealthTestPage: React.FC = () => {
     }
   }, []);
 
-  useIonViewWillEnter(() => { void refreshConnection(); });
+  useIonViewWillEnter(() => {
+    setPerformanceSummaries(getPerformanceDiagnosticSummaries());
+    void refreshConnection();
+  });
 
   const connect = async () => {
     setConnectionBusy('connect');
@@ -381,6 +386,18 @@ const HealthTestPage: React.FC = () => {
     }
   };
 
+  const copyPerformanceDiagnostics = async () => {
+    try {
+      await copyToClipboard(JSON.stringify(performanceSummaries, null, 2));
+      setCopyError(null);
+      setCopiedEntry('__performance__');
+      window.setTimeout(() => setCopiedEntry((current) => current === '__performance__' ? null : current), 1800);
+    } catch {
+      setCopiedEntry(null);
+      setCopyError('Could Not Copy Performance Diagnostics. Please Try Again.');
+    }
+  };
+
   return (
     <IonPage>
       <IonHeader translucent>
@@ -473,6 +490,26 @@ const HealthTestPage: React.FC = () => {
           <details className="health-developer-details">
             <summary>Developer Details</summary>
             <div className="health-developer-body">
+          <section className="health-performance-diagnostics" aria-labelledby="performance-diagnostics-heading">
+            <header>
+              <div><span>Recovery And Activity</span><h2 id="performance-diagnostics-heading">Page Performance Diagnostics</h2></div>
+              {performanceSummaries.length > 0 && (
+                <button type="button" className={copiedEntry === '__performance__' ? 'health-copy-button copied' : 'health-copy-button'} onClick={() => void copyPerformanceDiagnostics()}>
+                  <IonIcon icon={copiedEntry === '__performance__' ? checkmarkOutline : copyOutline} />{copiedEntry === '__performance__' ? 'Copied' : 'Copy'}
+                </button>
+              )}
+            </header>
+            {performanceSummaries.length === 0 ? (
+              <p>Open Recovery and Activity once to record Sync and page-loading timings.</p>
+            ) : (
+              <div className="health-performance-list">
+                {performanceSummaries.map((summary) => (
+                  <PerformanceTimingRow summary={summary} key={summary.phase} />
+                ))}
+              </div>
+            )}
+            <small>Latest duration and average of up to five runs. Timings stay on this device.</small>
+          </section>
           <p className="health-test-note">
             Raw Health Connect inspection tools. These results are for diagnostics and are not shown in the normal RunMate experience.
           </p>
@@ -547,6 +584,41 @@ function PermissionRow({ icon, title, detail, authorized, note }: { icon: string
 
 function SyncMetric({ label, value, tone }: { label: string; value: number; tone?: string }) {
   return <div className={`health-sync-metric${tone ? ` health-sync-metric-${tone}` : ''}`}><strong>{value}</strong><span>{label}</span></div>;
+}
+
+function PerformanceTimingRow({ summary }: { summary: PerformanceDiagnosticSummary }) {
+  return (
+    <div className="health-performance-row">
+      <div>
+        <strong>{performancePhaseLabel(summary.phase)}</strong>
+        <span>{summary.latest.detail ?? performanceStatusLabel(summary.latest.status)}</span>
+      </div>
+      <div>
+        <strong>{formatDiagnosticDuration(summary.latest.durationMs)}</strong>
+        <span>{summary.sampleCount > 1 ? `${formatDiagnosticDuration(summary.averageMs)} avg` : 'First sample'}</span>
+      </div>
+    </div>
+  );
+}
+
+function performancePhaseLabel(phase: PerformanceDiagnosticPhase): string {
+  if (phase === 'health_sync') return 'Health Sync';
+  if (phase === 'recovery_core') return 'Recovery Core';
+  if (phase === 'recovery_secondary') return 'Secondary Content';
+  if (phase === 'activity_health_sync') return 'Activity Health Sync';
+  if (phase === 'activity_records') return 'Activity Records';
+  if (phase === 'activity_archive') return 'Activity Archive';
+  return 'Nutrition Summary';
+}
+
+function performanceStatusLabel(status: PerformanceDiagnosticSummary['latest']['status']): string {
+  if (status === 'failed') return 'Failed';
+  if (status === 'skipped') return 'Skipped';
+  return 'Completed';
+}
+
+function formatDiagnosticDuration(milliseconds: number): string {
+  return milliseconds < 1000 ? `${milliseconds} ms` : `${(milliseconds / 1000).toFixed(milliseconds < 10_000 ? 1 : 0)} s`;
 }
 
 async function showSyncResult(
