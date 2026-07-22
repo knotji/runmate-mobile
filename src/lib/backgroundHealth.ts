@@ -58,6 +58,7 @@ interface BackgroundHealthNativePlugin {
   setEnabled(options: { enabled: boolean }): Promise<BackgroundHealthStatus>;
   runNow(): Promise<{ workId: string }>;
   getPreparedSnapshot(): Promise<{ snapshot: PreparedHealthSnapshot | null }>;
+  acknowledgeRecords(options: { sleepKeys?: string[]; workoutKeys?: string[] }): Promise<void>;
 }
 
 const BackgroundHealth = registerPlugin<BackgroundHealthNativePlugin>('BackgroundHealth');
@@ -81,6 +82,20 @@ export async function setBackgroundHealthEnabled(enabled: boolean): Promise<Back
 
 export async function runBackgroundHealthNow(): Promise<{ workId: string }> {
   return BackgroundHealth.runNow();
+}
+
+export async function acknowledgeBackgroundHealthRecords(options: { sleepKeys?: string[]; workoutKeys?: string[] }): Promise<void> {
+  if (!backgroundHealthSupported()) return;
+  try {
+    await BackgroundHealth.acknowledgeRecords(options);
+  } catch {
+    // Foreground reconciliation remains successful if native notification bookkeeping fails.
+  }
+}
+
+export function backgroundHealthRecordKey(record: Pick<HealthSample | Workout, 'platformId' | 'sourceId' | 'startDate' | 'endDate'> & { workoutType?: string }): string {
+  return record.platformId?.trim()
+    || [record.sourceId ?? '', record.startDate, record.endDate, record.workoutType ?? ''].join('|');
 }
 
 export async function runBackgroundHealthTest(timeoutMs = 45_000, pollIntervalMs = 750): Promise<BackgroundHealthTestResult> {

@@ -5,7 +5,7 @@ import { loadHistoryItems, saveHistoryItems } from '@/lib/cloudHistory';
 import { classifyHealthSyncItems, selectChangedHealthSyncItems, type HealthSyncCounts } from '@/lib/healthSyncSummary';
 import { getBangkokDateKey, todayBangkokDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
-import { getFreshPreparedHealthSnapshot, type PreparedHealthSnapshot } from '@/lib/backgroundHealth';
+import { acknowledgeBackgroundHealthRecords, backgroundHealthRecordKey, getFreshPreparedHealthSnapshot, type PreparedHealthSnapshot } from '@/lib/backgroundHealth';
 
 const SAMSUNG_HEALTH_SOURCE_ID = 'com.sec.android.app.shealth';
 const DEFAULT_LOOKBACK_DAYS = 30;
@@ -106,11 +106,13 @@ async function runSamsungSleepSync(lookbackDays: number | 'today'): Promise<Sams
     const changedItems = selectChangedHealthSyncItems(items, existingItems);
     if (!changedItems.length) {
       recordSuccessfulSync();
+      await acknowledgeBackgroundHealthRecords({ sleepKeys: samsungSamples.map(backgroundHealthRecordKey) });
       return { status: 'synced', imported: items.length, dataSource, ...counts };
     }
     const saved = await saveHistoryItems(changedItems);
     if (!saved.ok) return { status: 'synced', imported: 0, dataSource, added: 0, updated: 0, unchanged: 0, failed: changedItems.length, error: saved.error };
     recordSuccessfulSync();
+    await acknowledgeBackgroundHealthRecords({ sleepKeys: samsungSamples.map(backgroundHealthRecordKey) });
     return { status: 'synced', imported: items.length, dataSource, ...counts };
   } catch (error) {
     return {

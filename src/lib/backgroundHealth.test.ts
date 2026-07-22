@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { backgroundHealthSupported, describeBackgroundHealthIssue, isPreparedHealthSnapshotFresh, type BackgroundHealthStatus } from './backgroundHealth';
+import { backgroundHealthRecordKey, backgroundHealthSupported, describeBackgroundHealthIssue, isPreparedHealthSnapshotFresh, type BackgroundHealthStatus } from './backgroundHealth';
 
 describe('background health', () => {
+  it('uses the same stable record key as native notification dedupe', () => {
+    expect(backgroundHealthRecordKey({ platformId: ' sleep-1 ', sourceId: 'source', startDate: 'start', endDate: 'end' })).toBe('sleep-1');
+    expect(backgroundHealthRecordKey({ sourceId: 'source', startDate: 'start', endDate: 'end', workoutType: 'running' })).toBe('source|start|end|running');
+  });
   it('stays unavailable in the browser test environment', () => {
     expect(backgroundHealthSupported()).toBe(false);
   });

@@ -6,7 +6,7 @@ import { classifyHealthSyncItems, selectChangedHealthSyncItems, type HealthSyncC
 import { getBangkokDateKey, todayBangkokDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import type { WorkoutAnalysis } from '@/types/logs';
-import { getFreshPreparedHealthSnapshot } from '@/lib/backgroundHealth';
+import { acknowledgeBackgroundHealthRecords, backgroundHealthRecordKey, getFreshPreparedHealthSnapshot } from '@/lib/backgroundHealth';
 
 const SAMSUNG_HEALTH_SOURCE_ID = 'com.sec.android.app.shealth';
 const DEFAULT_LOOKBACK_DAYS = 30;
@@ -85,6 +85,7 @@ async function runSync(lookbackDays: number | 'today'): Promise<SamsungWorkoutSy
       if (!saved.ok) return { status: 'synced', imported: 0, dataSource, added: 0, updated: 0, unchanged: 0, failed: changedItems.length, error: saved.error };
     }
     recordSuccessfulSync();
+    await acknowledgeBackgroundHealthRecords({ workoutKeys: workouts.map(backgroundHealthRecordKey) });
     return { status: 'synced', imported: validItems.length, dataSource, ...counts };
   } catch (error) {
     return { ...emptyResult('unavailable'), dataSource, error: error instanceof Error ? error.message : 'Samsung Health workout sync failed.' };

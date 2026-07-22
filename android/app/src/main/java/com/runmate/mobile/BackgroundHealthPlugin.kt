@@ -96,6 +96,13 @@ class BackgroundHealthPlugin : Plugin() {
         call.resolve(JSObject().apply { put("snapshot", snapshot) })
     }
 
+    @PluginMethod
+    fun acknowledgeRecords(call: PluginCall) {
+        BackgroundHealthStore.acknowledgeRecordKeys(context, "sleep", call.stringArray("sleepKeys"))
+        BackgroundHealthStore.acknowledgeRecordKeys(context, "workouts", call.stringArray("workoutKeys"))
+        call.resolve()
+    }
+
     private suspend fun buildStatus(): JSObject {
         val base = BackgroundHealthStore.status(context)
         val sdkAvailable = HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE
@@ -139,6 +146,13 @@ class BackgroundHealthPlugin : Plugin() {
             ExistingPeriodicWorkPolicy.KEEP,
             request,
         )
+    }
+
+    private fun PluginCall.stringArray(key: String): List<String> {
+        val values = data.optJSONArray(key) ?: return emptyList()
+        return (0 until values.length()).mapNotNull { index ->
+            values.optString(index).takeIf { it.isNotBlank() }
+        }
     }
 
     private companion object {

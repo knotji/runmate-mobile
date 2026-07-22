@@ -27,12 +27,14 @@ import { describeTodayHealthSyncPerformance, syncTodayHealth } from '@/lib/healt
 import { refreshNotifications } from '@/lib/notificationService';
 import { getBangkokDateKey } from '@/lib/date';
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
+import { loadRecoveryStartupSnapshot, saveRecoveryStartupSnapshot } from '@/lib/recoveryStartupCache';
 import './RecoveryPage.css';
 
 const RecoveryPage: React.FC = () => {
   const history = useHistory();
   const [context, setContext] = useState<CoachContext | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [startupRecovery, setStartupRecovery] = useState<RunMateRecoverySystem | null>(() => loadRecoveryStartupSnapshot());
+  const [loading, setLoading] = useState(() => startupRecovery === null);
   const [loadingStage, setLoadingStage] = useState<'syncing' | 'calculating'>('syncing');
   const [error, setError] = useState<string | null>(null);
   const [secondaryLoading, setSecondaryLoading] = useState(true);
@@ -62,17 +64,23 @@ const RecoveryPage: React.FC = () => {
     }
   }, []);
 
+  const loadRecoveryCore = useCallback(async () => {
+    const nextContext = await measurePerformanceDiagnostic(
+      'recovery_core',
+      () => buildRecoveryCoreContextFromSupabase(),
+    );
+    setContext(nextContext);
+    setStartupRecovery(nextContext.recoverySystem);
+    saveRecoveryStartupSnapshot(nextContext.recoverySystem);
+    loadedRef.current = true;
+    loadedDateRef.current = getBangkokDateKey(Date.now());
+    setLoading(false);
+  }, []);
+
   const loadRecovery = useCallback(async (showSecondaryPlaceholder = false) => {
     setError(null);
     try {
-      const nextContext = await measurePerformanceDiagnostic(
-        'recovery_core',
-        () => buildRecoveryCoreContextFromSupabase(),
-      );
-      setContext(nextContext);
-      loadedRef.current = true;
-      loadedDateRef.current = getBangkokDateKey(Date.now());
-      setLoading(false);
+      await loadRecoveryCore();
       await loadSecondaryRecovery(showSecondaryPlaceholder);
     } catch (loadError) {
       console.error('[recovery] load failed', loadError);
@@ -80,28 +88,50 @@ const RecoveryPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [loadSecondaryRecovery]);
+  }, [loadRecoveryCore, loadSecondaryRecovery]);
 
   const loadInitialRecovery = useCallback(async (forceContext = false) => {
-    setLoading(true);
+    setLoading(startupRecovery === null);
     setLoadingStage('syncing');
     setError(null);
-    let healthChanged = false;
-    try {
-      const result = await measurePerformanceDiagnostic(
-        'health_sync',
-        () => syncTodayHealth(),
-        (syncResult) => describeTodayHealthSyncPerformance(syncResult),
-      );
-      healthChanged = result.changed;
-      if (result.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
-      if (result.workout?.error) console.warn('[workout-sync] Samsung Health sync failed', result.workout.error);
-    } catch (syncError) {
+    const healthSync = measurePerformanceDiagnostic(
+      'health_sync',
+      () => syncTodayHealth(),
+      (syncResult) => describeTodayHealthSyncPerformance(syncResult),
+    ).catch((syncError) => {
       console.warn('[health-sync] Today sync failed before Recovery load', syncError);
-    }
+      return null;
+    });
+
+    // Health Connect can take several seconds on a cold Android start. Load the
+    // account-backed dials in parallel so the page is useful while sync finishes.
     setLoadingStage('calculating');
-    await loadRecovery(forceContext || healthChanged);
-  }, [loadRecovery]);
+    try {
+      await loadRecoveryCore();
+    } catch (loadError) {
+      console.error('[recovery] initial core load failed', loadError);
+      if (startupRecovery) {
+        setSecondaryError('Unable to refresh right now. Showing today\'s latest saved scores.');
+        setSecondaryLoading(false);
+      } else {
+        setError('Unable to load your latest metrics. Please try again.');
+      }
+      setLoading(false);
+      return;
+    }
+
+    const result = await healthSync;
+    if (result?.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
+    if (result?.workout?.error) console.warn('[workout-sync] Samsung Health sync failed', result.workout.error);
+    if (result?.changed || forceContext) {
+      try {
+        await loadRecoveryCore();
+      } catch (refreshError) {
+        console.warn('[recovery] post-sync core refresh failed', refreshError);
+      }
+    }
+    await loadSecondaryRecovery(forceContext || Boolean(result?.changed));
+  }, [loadRecoveryCore, loadSecondaryRecovery, startupRecovery]);
 
   const retryRecovery = useCallback(async () => {
     await loadInitialRecovery(true);
@@ -146,6 +176,8 @@ const RecoveryPage: React.FC = () => {
     event.detail.complete();
   };
 
+  const visibleRecovery = context?.recoverySystem ?? startupRecovery;
+
   return (
     <IonPage>
       <IonHeader translucent className="recovery-header">
@@ -158,14 +190,14 @@ const RecoveryPage: React.FC = () => {
           <IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" />
         </IonRefresher>
         <main className="recovery-shell metrics-only-shell">
-          {loading && <RecoveryLoadingDials stage={loadingStage} />}
-          {!loading && error && <PageState kind="error" title="Recovery Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void retryRecovery()} className="state-panel error-panel" />}
-          {!loading && !error && context?.recoverySystem && (
+          {loading && !visibleRecovery && <RecoveryLoadingDials stage={loadingStage} />}
+          {!loading && error && !visibleRecovery && <PageState kind="error" title="Recovery Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void retryRecovery()} className="state-panel error-panel" />}
+          {!error && visibleRecovery && (
             <>
-              <RecoveryDials recovery={context.recoverySystem} onRecoveryClick={() => history.push('/recovery-trends')} onSleepClick={() => history.push('/sleep')} />
-              {secondaryLoading ? <RecoverySecondaryLoading /> : secondaryError ? <RecoverySecondaryError message={secondaryError} onRetry={() => void loadSecondaryRecovery(true)} /> : <>
+              <RecoveryDials recovery={visibleRecovery} onRecoveryClick={() => history.push('/recovery-trends')} onSleepClick={() => history.push('/sleep')} />
+              {secondaryLoading ? <RecoverySecondaryLoading /> : secondaryError ? <RecoverySecondaryError message={secondaryError} onRetry={() => void loadSecondaryRecovery(true)} /> : !context ? <RecoverySecondaryLoading /> : <>
                 <TodayTrainingPlanCard context={context} />
-                <RecoveryPlan recovery={context.recoverySystem} wakeOverrideMinutes={wakeOverrideMinutes} onOpen={() => history.push('/sleep-window')} />
+                <RecoveryPlan recovery={visibleRecovery} wakeOverrideMinutes={wakeOverrideMinutes} onOpen={() => history.push('/sleep-window')} />
               </>}
             </>
           )}

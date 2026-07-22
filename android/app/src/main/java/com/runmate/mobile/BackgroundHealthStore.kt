@@ -14,6 +14,8 @@ internal object BackgroundHealthStore {
     private const val LAST_ERROR = "last_error"
     private const val NEXT_EXPECTED = "next_expected"
     private const val SNAPSHOT = "snapshot"
+    private const val ACKNOWLEDGED_SLEEP = "acknowledged_sleep"
+    private const val ACKNOWLEDGED_WORKOUTS = "acknowledged_workouts"
 
     private fun preferences(context: Context) =
         context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
@@ -60,6 +62,16 @@ internal object BackgroundHealthStore {
         return try { JSObject(raw) } catch (_: Exception) { null }
     }
 
+    fun acknowledgedRecordKeys(context: Context, kind: String): Set<String> =
+        preferences(context).getStringSet(acknowledgedKey(kind), emptySet())?.toSet() ?: emptySet()
+
+    fun acknowledgeRecordKeys(context: Context, kind: String, keys: Collection<String>) {
+        if (keys.isEmpty()) return
+        val merged = acknowledgedRecordKeys(context, kind).toMutableSet()
+        merged.addAll(keys.filter { it.isNotBlank() })
+        preferences(context).edit().putStringSet(acknowledgedKey(kind), merged).apply()
+    }
+
     fun status(context: Context): JSObject {
         val prefs = preferences(context)
         val prepared = snapshot(context)
@@ -89,4 +101,7 @@ internal object BackgroundHealthStore {
 
     private fun JSObject?.countArray(objectKey: String, arrayKey: String): Int =
         this?.optJSONObject(objectKey)?.optJSONArray(arrayKey)?.length() ?: 0
+
+    private fun acknowledgedKey(kind: String): String =
+        if (kind == "sleep") ACKNOWLEDGED_SLEEP else ACKNOWLEDGED_WORKOUTS
 }

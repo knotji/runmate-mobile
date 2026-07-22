@@ -18,6 +18,7 @@ class BackgroundHealthWorker(
 ) : CoroutineWorker(appContext, workerParams) {
     override suspend fun doWork(): Result {
         val capturedAt = Instant.now()
+        val previousSnapshot = BackgroundHealthStore.snapshot(applicationContext)
         BackgroundHealthStore.recordAttempt(applicationContext, capturedAt.toString())
         if (!BackgroundHealthStore.isEnabled(applicationContext)) return Result.success()
 
@@ -57,6 +58,9 @@ class BackgroundHealthWorker(
             }
 
             BackgroundHealthStore.recordSuccess(applicationContext, capturedAt.toString(), payload)
+            runCatching {
+                BackgroundHealthNotifier.notifyNewRecords(applicationContext, previousSnapshot, payload)
+            }
             Result.success()
         } catch (error: SecurityException) {
             BackgroundHealthStore.recordError(applicationContext, capturedAt.toString(), "permission_changed", error.message ?: "Health Connect permission changed.")

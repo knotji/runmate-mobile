@@ -15,6 +15,8 @@ import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { AppBootScreen } from '@/components/AppBootScreen';
 import { RouteLoadingScreen } from '@/components/RouteLoadingScreen';
 import { loadMorePage } from '@/lib/morePageLoaders';
+import { notificationRouteFromUrl } from '@/lib/nativeNavigation';
+import { clearRecoveryStartupSnapshot } from '@/lib/recoveryStartupCache';
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -58,6 +60,7 @@ const App: React.FC = () => {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       invalidateCoachContextCache();
+      if (_event === 'SIGNED_OUT') clearRecoveryStartupSnapshot();
       setSession(nextSession);
       setCheckingSession(false);
     });
@@ -87,6 +90,11 @@ const App: React.FC = () => {
     let listener: PluginListenerHandle | null = null;
     const handleOpenUrl = async ({ url }: URLOpenListenerEvent) => {
       try {
+        const notificationRoute = notificationRouteFromUrl(url);
+        if (notificationRoute) {
+          window.location.assign(notificationRoute);
+          return;
+        }
         const completed = await completeNativeGoogleSignIn(url);
         if (completed) await Browser.close();
       } catch (authError) {
