@@ -12,6 +12,7 @@ import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
 import type { HealthSyncCounts } from '@/lib/healthSyncSummary';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { getPerformanceDiagnosticSummaries, type PerformanceDiagnosticPhase, type PerformanceDiagnosticSummary } from '@/lib/performanceDiagnostics';
+import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import './HealthTestPage.css';
 
 type LogEntry = { label: string; result: unknown; error?: string; at: string };
@@ -414,6 +415,7 @@ const HealthTestPage: React.FC = () => {
             <span>Bring trusted Sleep, Workout, and Body Weight data into RunMate through Health Connect.</span>
           </header>
 
+          {connectionBusy === 'status' && !connection ? <PageDataSkeleton variant="health" label="Checking Health Connect" /> : <>
           <section className={`health-connect-status ${connection?.sleepAuthorized ? 'is-connected' : ''}`}>
             <div className="health-connect-status-icon">
               {connectionBusy === 'status' ? <IonSpinner name="crescent" /> : <IonIcon icon={connection?.sleepAuthorized ? checkmarkCircleOutline : cloudOfflineOutline} />}
@@ -566,6 +568,7 @@ const HealthTestPage: React.FC = () => {
           </section>
             </div>
           </details>
+          </>}
         </main>
       </IonContent>
     </IonPage>

@@ -13,6 +13,7 @@ import {
 } from '@/lib/sleepWindow';
 import { deleteTonightWakePlan, loadDefaultWakeTime, loadTonightWakePlan, saveTonightWakePlan } from '@/lib/sleepWindowStorage';
 import { PageState } from '@/components/PageState';
+import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import './SleepWindowPage.css';
 
 const SleepWindowPage: React.FC = () => {
@@ -80,7 +81,7 @@ const SleepWindowPage: React.FC = () => {
         <IonTitle>Sleep Window</IonTitle>
       </IonToolbar></IonHeader>
       <IonContent fullscreen className="sleep-window-content"><main className="sleep-window-shell">
-        {loading && <PageState kind="loading" title="Calculating Your Sleep Window…" className="sleep-window-state" />}
+        {loading && <PageDataSkeleton variant="sleep" label="Preparing Your Sleep Window" />}
         {!loading && loadError && <PageState kind="error" title="Sleep Window Is Unavailable" detail={loadError} actionLabel="Try Again" onAction={() => { setLoading(true); void load(); }} className="sleep-window-state" />}
         {!loading && !loadError && window && sleep && <>
           <header className="sleep-window-intro"><p>Tonight</p><h1>Plan Around Your Wake Time</h1><span>Your Sleep Need sets the target. Sleep cycles are shown only as an estimate.</span></header>

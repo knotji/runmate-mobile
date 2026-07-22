@@ -1,6 +1,7 @@
 import type { LocalHistoryItem } from "@/lib/localHistory";
 import type { SleepAnalysis } from "@/types/logs";
 import { getHistoryItemDateKey } from "@/lib/date";
+import { historyRecordTimestamp, isUserCorrectedField } from "@/lib/reconciliationPolicy";
 
 export type MergedSleepItem = LocalHistoryItem & {
   mergedFromDuplicates?: boolean;
@@ -60,15 +61,14 @@ function sourceLabel(item: LocalHistoryItem): string {
   return kind === "samsung_health" ? "Samsung Health" : kind === "structured" ? "Structured Import" : "Manual Upload";
 }
 
-function sleepRecordTimestamp(item: LocalHistoryItem): number {
-  const importedAt = item.source?.importedAt ? Date.parse(item.source.importedAt) : Number.NaN;
-  if (Number.isFinite(importedAt)) return importedAt;
-  const createdAt = Date.parse(item.createdAt);
-  return Number.isFinite(createdAt) ? createdAt : 0;
-}
-
 function orderedForField(items: LocalHistoryItem[], field: string): LocalHistoryItem[] {
   return [...items].sort((a, b) => {
+    const correctedOrder = Number(isUserCorrectedField(b, field)) - Number(isUserCorrectedField(a, field));
+    if (correctedOrder) return correctedOrder;
+    if (isUserCorrectedField(a, field) && isUserCorrectedField(b, field)) {
+      const correctionRecency = historyRecordTimestamp(b) - historyRecordTimestamp(a);
+      if (correctionRecency) return correctionRecency;
+    }
     if (DEVICE_MEASURED_FIELDS.has(field)) {
       const rank = { samsung_health: 3, structured: 2, manual_upload: 1 };
       const sourceOrder = rank[sleepSourceKind(b)] - rank[sleepSourceKind(a)];
@@ -81,7 +81,7 @@ function orderedForField(items: LocalHistoryItem[], field: string): LocalHistory
         const durationOrder = measuredDurationMinutes(b) - measuredDurationMinutes(a);
         if (durationOrder) return durationOrder;
       } else {
-        const recencyOrder = sleepRecordTimestamp(b) - sleepRecordTimestamp(a);
+        const recencyOrder = historyRecordTimestamp(b) - historyRecordTimestamp(a);
         if (recencyOrder) return recencyOrder;
       }
     } else {
@@ -90,12 +90,12 @@ function orderedForField(items: LocalHistoryItem[], field: string): LocalHistory
       const manualA = sleepSourceKind(a) === "manual_upload";
       const manualB = sleepSourceKind(b) === "manual_upload";
       if (manualA && manualB) {
-        const recencyOrder = sleepRecordTimestamp(b) - sleepRecordTimestamp(a);
+        const recencyOrder = historyRecordTimestamp(b) - historyRecordTimestamp(a);
         if (recencyOrder) return recencyOrder;
       }
     }
     return scoreSleepRecord(b) - scoreSleepRecord(a)
-      || sleepRecordTimestamp(b) - sleepRecordTimestamp(a);
+      || historyRecordTimestamp(b) - historyRecordTimestamp(a);
   });
 }
 
@@ -108,11 +108,14 @@ function measuredDurationMinutes(item: LocalHistoryItem): number {
 function mergeSleepStages(items: LocalHistoryItem[], fieldSources: Record<string, string>): Record<string, unknown> | null {
   const result: Record<string, unknown> = {};
   for (const stage of ["awake", "rem", "light", "deep"]) {
-    for (const item of orderedForField(items, "sleepStageMinutes")) {
-      const stages = getSleepExtracted(item).sleepStageMinutes as Record<string, unknown> | null | undefined;
-      if (stages?.[stage] != null) {
-        result[stage] = stages[stage];
-        fieldSources[`sleepStageMinutes.${stage}`] = sourceLabel(item);
+    const flatField = `sleepStage${stage[0].toUpperCase()}${stage.slice(1)}Minutes`;
+    for (const item of orderedForField(items, flatField)) {
+      const extracted = getSleepExtracted(item);
+      const stages = extracted.sleepStageMinutes as Record<string, unknown> | null | undefined;
+      const value = stages?.[stage] ?? extracted[flatField];
+      if (value != null) {
+        result[stage] = value;
+        fieldSources[`sleepStageMinutes.${stage}`] = fieldSourceLabel(item, flatField);
         break;
       }
     }
@@ -134,12 +137,16 @@ function mergeExtractedFields(items: LocalHistoryItem[]): { extracted: Record<st
       const value = getSleepExtracted(item)[key];
       if (value != null) {
         extracted[key] = value;
-        fieldSources[key] = sourceLabel(item);
+        fieldSources[key] = fieldSourceLabel(item, key);
         break;
       }
     }
   }
   return { extracted, fieldSources };
+}
+
+function fieldSourceLabel(item: LocalHistoryItem, field: string): string {
+  return isUserCorrectedField(item, field) ? "User Corrected" : sourceLabel(item);
 }
 
 function pickBestCoach(items: LocalHistoryItem[]): unknown {

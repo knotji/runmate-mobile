@@ -108,7 +108,10 @@ const App: React.FC = () => {
       {!checkingSession && (
         <IonReactRouter>
           <Suspense fallback={<RouteLoadingScreen />}>
-            <IonRouterOutlet>
+            {/* The root outlet swaps the complete tab shell for standalone pages.
+                Animating that swap also moves/resizes the tab bar, which causes a
+                visible jump when opening or closing a detail page. */}
+            <IonRouterOutlet animated={false}>
             <Route exact path="/login">
               {session ? <Redirect to="/tabs/recovery" /> : <LoginPage />}
             </Route>

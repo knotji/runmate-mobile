@@ -58,6 +58,13 @@ export function buildWorkoutDetail(item: LocalHistoryItem, physiology?: { maxHr?
   const heartRateZones = workoutStart && workoutEnd && physiology?.maxHr && physiology.restingHr
     ? calculateHeartRateZones({ points: heartRatePoints, workoutStart, workoutEnd, maxHr: physiology.maxHr, restingHr: physiology.restingHr })
     : null;
+  const reconciledSources = Array.isArray((item as LocalHistoryItem & { reconciledSources?: string[] }).reconciledSources)
+    ? (item as LocalHistoryItem & { reconciledSources: string[] }).reconciledSources
+    : [];
+  const fieldSources = (item as LocalHistoryItem & { fieldSources?: Record<string, string> }).fieldSources ?? {};
+  const source = reconciledSources.length
+    ? reconciledSources.join(' + ')
+    : item.source?.provider ? titleCase(item.source.provider) : 'RunMate';
   return {
     isStrength,
     isSwim,
@@ -69,9 +76,13 @@ export function buildWorkoutDetail(item: LocalHistoryItem, physiology?: { maxHr?
     exercises,
     insights,
     heartRateZones,
-    source: Array.isArray((item as LocalHistoryItem & { reconciledSources?: string[] }).reconciledSources)
-      ? (item as LocalHistoryItem & { reconciledSources: string[] }).reconciledSources.join(' + ')
-      : item.source?.provider ? titleCase(item.source.provider) : 'RunMate',
+    source,
+    reliability: {
+      status: reconciledSources.length > 1 ? 'Reconciled' : 'Single Source',
+      sources: source,
+      userCorrectedCount: Object.values(fieldSources).filter((value) => value === 'User Corrected').length,
+      lastImportedAt: item.source?.importedAt ?? null,
+    },
   };
 }
 

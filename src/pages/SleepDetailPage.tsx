@@ -6,6 +6,7 @@ import type { CoachContext, WeekSleepRow } from '@/lib/buildCoachContext';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { buildSleepDiagnostics } from '@/lib/sleepDiagnostics';
 import { PageState } from '@/components/PageState';
+import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import './SleepDetailPage.css';
 
 const SleepDetailPage: React.FC = () => {
@@ -70,7 +71,7 @@ const SleepDetailPage: React.FC = () => {
       </IonHeader>
       <IonContent fullscreen className="sleep-detail-content">
         <main className="sleep-detail-shell">
-          {!context && !error && <PageState kind="loading" title="Loading Sleep Details…" className="sleep-detail-loading" />}
+          {!context && !error && <PageDataSkeleton variant="detail" label="Loading Sleep Details" />}
           {error && <PageState kind="error" title="Sleep Details Are Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="sleep-detail-loading" />}
           {context && recovery && diagnostics && (
             <>
@@ -121,6 +122,7 @@ const SleepDetailPage: React.FC = () => {
 
               {selectedNight && <SleepStages night={selectedNight} />}
               {selectedNight && <SleepHeartRate night={selectedNight} />}
+              {selectedNight && <RecordReliability night={selectedNight} />}
 
               <section className="sleep-detail-section sleep-coverage-section">
                 <details className="sleep-detail-disclosure">
@@ -271,6 +273,27 @@ function SleepHeartRate({ night }: { night: WeekSleepRow }) {
   );
 }
 
+function RecordReliability({ night }: { night: WeekSleepRow }) {
+  const sources = night.sources?.length ? night.sources : ['RunMate'];
+  const correctedCount = Object.values(night.fieldSources ?? {}).filter((source) => source === 'User Corrected').length;
+  const status = sources.length > 1 ? 'Reconciled' : 'Single Source';
+  return (
+    <section className="sleep-detail-section sleep-reliability-section">
+      <details className="sleep-detail-disclosure">
+        <summary>
+          <div><p>Record Reliability</p><h2>Source And Merge</h2></div>
+          <span>{status}</span>
+        </summary>
+        <div className="sleep-reliability-list">
+          <div><span>Sources</span><strong>{sources.join(' + ')}</strong></div>
+          <div><span>User Corrections</span><strong>{correctedCount ? `${correctedCount} Preserved` : 'None'}</strong></div>
+          <div><span>Last Imported</span><strong>{formatImportedAt(night.lastImportedAt)}</strong></div>
+        </div>
+      </details>
+    </section>
+  );
+}
+
 function formatMinutes(value: number): string {
   return `${Math.floor(value / 60)}h ${Math.round(value % 60)}m`;
 }
@@ -295,6 +318,11 @@ function formatDisplayDate(value: string): string {
 
 function formatSleepTime(value: number): string {
   return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Bangkok' }).format(new Date(value));
+}
+
+function formatImportedAt(value: string | null | undefined): string {
+  if (!value || !Number.isFinite(Date.parse(value))) return 'Not Available';
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Bangkok' }).format(new Date(value));
 }
 
 export default SleepDetailPage;

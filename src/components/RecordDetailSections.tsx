@@ -1,7 +1,9 @@
 import { PageState } from '@/components/PageState';
+import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 
 export function DetailState({ text, spinner, onRetry }: { text: string; spinner?: boolean; onRetry?: () => void }) {
-  return <PageState kind={spinner ? 'loading' : 'error'} title={spinner ? text : 'Record Is Unavailable'} detail={spinner ? undefined : text} actionLabel={onRetry ? 'Try Again' : undefined} onAction={onRetry} className="record-detail-state" />;
+  if (spinner) return <PageDataSkeleton variant="detail" label={text.replace(/…|\.\.\.$/, '')} />;
+  return <PageState kind="error" title="Record Is Unavailable" detail={text} actionLabel={onRetry ? 'Try Again' : undefined} onAction={onRetry} className="record-detail-state" />;
 }
 
 export function DetailMetrics({ title, metrics, empty }: { title: string; metrics: Array<{ label: string; value: string }>; empty: string }) {

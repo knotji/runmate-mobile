@@ -124,4 +124,32 @@ describe("sleep reconciliation", () => {
     expect(extracted.sleepScore).toBe(79);
     expect(extracted.energyScore).toBe(83);
   });
+
+  it("preserves sleep values explicitly corrected during upload review", () => {
+    const samsung = sleepItem("healthconnect-samsung-sleep-full", {
+      provider: "samsung_health", importType: "health_connect", importedAt: "2026-07-18T06:00:00Z",
+    }, {
+      actualSleepDurationMinutes: 353,
+      sleepStageMinutes: { awake: 42, rem: 37, light: 262, deep: 12 },
+    });
+    const upload = sleepItem("sleep-upload-corrected", {
+      provider: "generic_image", importType: "image", importedAt: "2026-07-18T07:00:00Z",
+    }, {
+      sleepDuration: "6h 10m",
+      actualSleepDurationMinutes: 370,
+      sleepStageRemMinutes: 45,
+      sleepStageMinutes: { rem: 45 },
+    });
+    upload.data = {
+      ...(upload.data as Record<string, unknown>),
+      reconciliationInput: { userCorrectedFields: ["sleepDuration", "sleepStageRemMinutes"] },
+    };
+
+    const [result] = dedupeSleepItems([samsung, upload]);
+    const extracted = (result.data as { extracted: Record<string, unknown> }).extracted;
+    expect(extracted.actualSleepDurationMinutes).toBe(370);
+    expect((extracted.sleepStageMinutes as Record<string, unknown>).rem).toBe(45);
+    expect(result.fieldSources?.actualSleepDurationMinutes).toBe("User Corrected");
+    expect(result.fieldSources?.["sleepStageMinutes.rem"]).toBe("User Corrected");
+  });
 });

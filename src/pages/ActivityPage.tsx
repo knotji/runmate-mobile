@@ -25,6 +25,7 @@ import { syncTodayHealth } from '@/lib/healthSyncService';
 import { buildDailyNutritionSummary } from '@/lib/activityNutritionSummary';
 import { activityRecentHistoryOptions, mergeActivityHistoryItems, prepareActivityHistoryItems, uploadedActivityDateFromEvent } from '@/lib/activityHistoryLoad';
 import { PageState } from '@/components/PageState';
+import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { ActivityHistoryRow } from '@/components/ActivityHistoryRow';
 import { describeHistoryItem } from '@/lib/activityHistoryPresentation';
 import { measurePerformanceDiagnostic, recordPerformanceDiagnostic } from '@/lib/performanceDiagnostics';
@@ -246,7 +247,7 @@ const ActivityPage: React.FC = () => {
             </section>
           )}
 
-          {loading && <PageState kind="loading" title="Loading Activity…" className="history-state" />}
+          {loading && <PageDataSkeleton variant="activity" label="Loading Your Activity" />}
           {!loading && error && <PageState kind="error" title="Activity Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void loadRecent()} className="history-state history-error" />}
           {!loading && !error && groupedItems.length === 0 && (
             <PageState kind="empty" icon={fitnessOutline} title="No Activity On This Date" detail="Choose another date to review previous activity." className="history-empty" />

@@ -17,6 +17,7 @@ import { buildRunMateRecoveryLoop, type RunMateRecoveryLoop } from "@/lib/recove
 import { getPainRecoveryStatus, derivePainRecoveryInput, isPainRecoveryStatus, type PainRecoveryStatus } from "@/lib/painRecovery";
 import { getIllnessRiskLevel, getIllnessTrainingDecision, deriveSickLogFlags } from "@/lib/health/illnessGuardrail";
 import type { SickLog, SickRiskLevel, SickSymptom, SickSeverity } from "@/types/sick";
+import { reconciliationSourceLabel } from "@/lib/reconciliationPolicy";
 
 export type DayWorkoutSummary = {
   date: string;
@@ -58,6 +59,9 @@ export type WeekSleepRow = {
   remMinutes: number | null;
   lightMinutes: number | null;
   deepMinutes: number | null;
+  sources?: string[];
+  fieldSources?: Record<string, string>;
+  lastImportedAt?: string | null;
 };
 
 export type PainSummary = {
@@ -327,6 +331,9 @@ export function buildCoachContextFromData(input: {
       remMinutes: d?.extracted?.sleepStageMinutes?.rem ?? d?.extracted?.sleepStageRemMinutes ?? null,
       lightMinutes: d?.extracted?.sleepStageMinutes?.light ?? d?.extracted?.sleepStageLightMinutes ?? null,
       deepMinutes: d?.extracted?.sleepStageMinutes?.deep ?? d?.extracted?.sleepStageDeepMinutes ?? null,
+      sources: item.reconciledSources?.length ? item.reconciledSources : [reconciliationSourceLabel(item)],
+      fieldSources: item.fieldSources ?? {},
+      lastImportedAt: item.source?.importedAt ?? null,
     };
   }).sort((a, b) => b.date.localeCompare(a.date));
   const sleepBaseline30d = sleepHistory.filter((night) => night.date >= baselineCutoff);

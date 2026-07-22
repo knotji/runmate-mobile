@@ -10,6 +10,7 @@ import { loadProfileFromSupabase } from '@/lib/profileStorage';
 import { restingHeartRateBaseline } from '@/lib/hrZones';
 import type { UserProfile } from '@/types/profile';
 import { PageState } from '@/components/PageState';
+import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import './WorkoutDetailPage.css';
 
 const WorkoutDetailPage: React.FC = () => {
@@ -53,7 +54,7 @@ const WorkoutDetailPage: React.FC = () => {
       </IonHeader>
       <IonContent fullscreen className="workout-detail-content">
         <main className="workout-detail-shell">
-          {loading && <PageState kind="loading" title="Loading Workout…" className="workout-detail-state" />}
+          {loading && <PageDataSkeleton variant="detail" label="Loading Workout Details" />}
           {!loading && error && <PageState kind="error" title="Workout Is Unavailable" detail={error} actionLabel="Back To Activity" onAction={() => history.push('/tabs/activity')} className="workout-detail-state" />}
           {detail && (
             <>
@@ -85,6 +86,17 @@ const WorkoutDetailPage: React.FC = () => {
                 {detail.metrics.length > 0 ? (
                   <div className="workout-metric-grid">{detail.metrics.map((metric) => <div key={metric.label}><span>{metric.label}</span><strong>{metric.value}</strong></div>)}</div>
                 ) : <p className="workout-empty-card">No structured workout metrics were provided for this session.</p>}
+              </section>
+
+              <section className="workout-detail-section workout-reliability-section">
+                <details className="workout-reliability-disclosure">
+                  <summary><div><p>Record Reliability</p><h2>Source And Merge</h2></div><span>{detail.reliability.status}</span></summary>
+                  <div className="workout-reliability-list">
+                    <div><span>Sources</span><strong>{detail.reliability.sources}</strong></div>
+                    <div><span>User Corrections</span><strong>{detail.reliability.userCorrectedCount ? `${detail.reliability.userCorrectedCount} Preserved` : 'None'}</strong></div>
+                    <div><span>Last Imported</span><strong>{formatImportedAt(detail.reliability.lastImportedAt)}</strong></div>
+                  </div>
+                </details>
               </section>
 
               {detail.exercises.length > 0 && (
@@ -120,3 +132,4 @@ function objectValue(value: unknown): Record<string, unknown> { return typeof va
 function numberValue(value: unknown): number | null { return typeof value === 'number' && Number.isFinite(value) ? value : null; }
 function formatZoneDuration(seconds: number): string { const minutes = Math.floor(seconds / 60); const remainder = seconds % 60; return minutes > 0 ? `${minutes}m ${remainder ? `${remainder}s` : ''}`.trim() : `${remainder}s`; }
 function zoneRange(lower: number | null, upper: number | null): string { return lower == null ? `< ${upper == null ? '—' : upper + 1} bpm` : upper == null ? `${lower}+ bpm` : `${lower}–${upper} bpm`; }
+function formatImportedAt(value: string | null): string { return value && Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Bangkok' }).format(new Date(value)) : 'Not Available'; }

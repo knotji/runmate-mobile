@@ -9,6 +9,7 @@ import { buildRecoveryTrend, type RecoveryTrendPoint } from '@/lib/recoveryTrend
 import { syncTodayHealth } from '@/lib/healthSyncService';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { PageState } from '@/components/PageState';
+import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import './RecoveryTrendsPage.css';
 
 const RecoveryTrendsPage: React.FC = () => {
@@ -52,7 +53,7 @@ const RecoveryTrendsPage: React.FC = () => {
           <button type="button" className={days === 7 ? 'active' : ''} aria-pressed={days === 7} onClick={() => setDays(7)}>7 Days</button>
           <button type="button" className={days === 30 ? 'active' : ''} aria-pressed={days === 30} onClick={() => setDays(30)}>30 Days</button>
         </div>
-        {loading && <PageState kind="loading" title="Building Your Trends…" className="recovery-trends-state" />}
+        {loading && <PageDataSkeleton variant="trends" label="Building Your Recovery Trends" />}
         {!loading && error && <PageState kind="error" title="Trends Are Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="recovery-trends-state" />}
         {!loading && trend && <>
           <section className="trend-chart-card" aria-labelledby="trend-chart-heading">

@@ -3,6 +3,7 @@ import { useHistory } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
 import { arrowBackOutline, barChartOutline, fitnessOutline, restaurantOutline, sparklesOutline, trendingUpOutline } from 'ionicons/icons';
 import { PageState } from '@/components/PageState';
+import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { buildNutritionTrend, type NutritionTrend, type NutritionTrendDay } from '@/lib/nutritionTrends';
@@ -42,7 +43,7 @@ const NutritionTrendsPage: React.FC = () => {
           <button type="button" className={range === 30 ? 'active' : ''} aria-pressed={range === 30} onClick={() => setRange(30)}>30 Days</button>
         </div>
 
-        {loading && <PageState kind="loading" title="Building Nutrition Trends…" className="nutrition-trends-state" />}
+        {loading && <PageDataSkeleton variant="nutrition" label="Building Your Nutrition Trends" />}
         {!loading && error && <PageState kind="error" title="Nutrition Trends Are Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="nutrition-trends-state" />}
         {!loading && trend && trend.loggedDays === 0 && <PageState kind="empty" icon={restaurantOutline} title="No Meals In This Range" detail="Log a meal to start building your nutrition trends." className="nutrition-trends-state" />}
         {!loading && trend && trend.loggedDays > 0 && <TrendContent trend={trend} onAskCoach={() => history.push('/ai-coach')} />}

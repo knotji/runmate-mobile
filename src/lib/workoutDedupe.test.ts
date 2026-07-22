@@ -18,6 +18,16 @@ describe('workout reconciliation', () => {
     expect(merged.reconciledSources).toEqual(['Samsung Health', 'Upload']);
   });
 
+  it('preserves a value explicitly corrected by the user during upload review', () => {
+    const upload = item('upload', 'generic_image', { workoutKind: 'outdoor_run', duration: '1:00:00', avgHR: 165 });
+    upload.data = { ...(upload.data as Record<string, unknown>), reconciliationInput: { userCorrectedFields: ['avgHR'] } };
+    const samsung = item('healthconnect-samsung-workout-run', 'samsung_health', { workoutKind: 'outdoor_run', duration: '1:00:00', avgHR: 169 });
+
+    const [merged] = dedupeWorkoutItems([upload, samsung]);
+    expect((merged.data as { extracted: Record<string, unknown> }).extracted.avgHR).toBe(165);
+    expect(merged.fieldSources?.avgHR).toBe('User Corrected');
+  });
+
   it('does not merge two materially different same-day runs', () => {
     const shortRun = item('short', 'generic_image', { workoutKind: 'outdoor_run', duration: '20:00', distanceKm: 3 });
     const longRun = item('long', 'samsung_health', { workoutKind: 'outdoor_run', duration: '1:00:00', distanceKm: 10 });

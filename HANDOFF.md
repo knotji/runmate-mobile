@@ -966,3 +966,85 @@ Verification completed for this release candidate:
 - Router-level lazy loading no longer reuses the full-screen RunMate boot logo. The branded boot screen is reserved for initial account/session startup; lazy navigation uses a lightweight destination header and structured skeleton instead.
 - Notifications and Health Connect retain only local action/status spinners for real work such as permission checks, Sync Now, and notification scheduling.
 - Focused component coverage verifies both the structured data skeleton and that Health Connect route loading does not render the app boot logo.
+
+## Current Product Roadmap (2026-07-22)
+
+This section supersedes older "next step" ordering elsewhere in this handoff. The Samsung Health Data SDK experiment has been dropped for now. RunMate will continue to use **Health Connect as the primary source for Sleep and Workout**, while Meal records remain user-uploaded. Missing provider fields must remain missing or be clearly labeled as a RunMate estimate; they must not be presented as Samsung Health measurements.
+
+### 1. Data Reliability And Reconciliation
+
+- Formalize one merge policy for Health Connect and Manual Upload records.
+- Preserve user-corrected values first, use trustworthy Health Connect measurements second, and use AI extraction only to fill fields that remain unavailable.
+- Keep Sleep and Workout synchronization idempotent so repeated foreground sync, Sync Now, or Repair actions cannot create duplicate records.
+- Make Source, Last Synced, Data Completeness, reconciliation outcome, and recoverable sync errors clear to the user.
+- Add focused coverage for duplicate providers, partial Manual Upload enrichment, changed Health Connect records, deleted source records, and permission loss.
+
+### 2. Recovery Calibration
+
+- Validate real Recovery results over rolling 14-day and 30-day periods before changing any weighting.
+- Add a confidence state such as High, Medium, or Limited Data based on freshness, physiological-signal coverage, and baseline depth.
+- Explain score movement using only recorded inputs such as Sleep, resting heart rate, and Workout Strain.
+- If RunMate later derives a Sleep Score because Health Connect does not provide one, label it explicitly as **RunMate Estimate** and keep it distinct from a provider score.
+- Keep HRV and Respiratory Rate missing when no trustworthy record is available; never infer or fabricate them from Energy Score or unrelated signals.
+
+### 3. Adaptive Training Plan V2
+
+- Extend the existing deterministic daily recommendation using Recovery, Workout Load, Training Adherence, active Pain/Sick state, and profile preferences.
+- Apply safety rules before any AI-generated wording; low-confidence or stale Recovery must not trigger an aggressive adjustment.
+- Keep every adjustment visible with a concise reason and retain the original planned session for context.
+- Continue treating adjustments as guidance only: they must not silently rewrite the active Race Plan.
+- Use Training Days Per Week, Preferred Long Run Day, and Preferred Training Time consistently when future plans are created or rebuilt.
+
+### 4. AI Coach Quality
+
+- Audit freshness and source provenance for every value included in Coach Context.
+- Prevent answers from referring to missing signals or records outside the selected date/window.
+- Continue improving practical next-meal guidance using today's logged Meals, Calories, Protein, and training demand.
+- Cache appropriate responses to reduce latency and cost while making refresh behavior explicit.
+- Add a compact `Based On` summary so users can understand which current RunMate records informed an answer.
+
+### 5. Production Readiness
+
+- Add privacy-safe crash reporting and actionable sync diagnostics.
+- Test new-day startup, offline startup, revoked Health Connect permissions, provider changes, account changes, and device migration.
+- Complete account data export/deletion and health-data privacy disclosures.
+- Move distribution from tester APK delivery toward Google Play Internal Testing.
+- Keep release signing, versioning, AAB generation, verification, and Firebase/Play distribution repeatable through the existing release pipeline.
+
+The next implementation slice should be **Data Reliability And Reconciliation**. It is the dependency for trustworthy Recovery calibration, trends, adaptive guidance, and AI Coach answers, so feature work should not bypass it.
+
+## Data Reliability And Reconciliation (2026-07-22)
+
+The first production slice of the current roadmap is implemented for Sleep and Workout records.
+
+- `src/lib/reconciliationPolicy.ts` is the shared policy boundary for source classification, source labels, source priority, import recency, and field-level user corrections.
+- Sleep and Workout review flows now compare the final reviewed values with the original AI analysis and persist only fields that the user actually changed under `data.reconciliationInput.userCorrectedFields`.
+- Merge priority is now explicit: a meaningful user-corrected value wins first; a trustworthy Health Connect or structured measurement wins next for device-measured fields; an upload fills fields that remain unavailable, including provider gaps and AI coaching.
+- Editing Sleep Duration also reconciles `actualSleepDurationMinutes` and its display text. Reviewed Sleep Stages are normalized into the canonical stage object before saving, so a corrected review value is not hidden behind stale AI output.
+- Existing uploads without correction metadata remain treated as AI-derived uploads. They do not automatically override measured Health Connect fields.
+- Repeated Health Connect synchronization remains idempotent through deterministic Samsung record IDs, semantic sync fingerprints that ignore changing import timestamps, and Supabase upsert on `user_id,id`.
+- A missing record in one Health Connect response is **not** automatically deleted. Provider omissions and revoked permissions are not sufficient evidence that the user intended to delete a RunMate record; deletion remains explicit until a trustworthy tombstone/change feed is implemented.
+- Sleep Details and Workout Detail now include a collapsed `Record Reliability` disclosure showing whether the canonical record is single-source or reconciled, its source set, the number of preserved user corrections, and the most recent import time. The disclosure is collapsed by default to protect page hierarchy.
+- Focused regression coverage verifies changed-field detection, source priority, corrected Sleep/Workout values, source provenance passed to Sleep Details, and Workout reliability presentation.
+
+Verification for this slice:
+
+- `npm.cmd run test.unit -- --run`: 47 files and 159 tests passed.
+- `npm.cmd run lint`: passed with zero errors.
+- `npm.cmd run build`: TypeScript and the Vite production build passed.
+
+## Navigation And Loading Consistency (2026-07-22)
+
+- The root `IonRouterOutlet` no longer animates the entire `IonTabs` shell against standalone detail routes. This prevents the bottom tab bar and page viewport from sliding or resizing together when navigating between `/tabs/*` and routes such as Sleep Details, Sleep Window, Recovery Trends, Workout Detail, and More subpages.
+- `PageDataSkeleton` is now the shared full-page loading system. Variants reserve space for Activity, AI Coach, record details, Health Connect, Nutrition Trends, Notifications, Profile, Race Goal, Recovery, Sleep Window, Weekly Summary, and Recovery Trends.
+- Lazy route fallback and page-level data loading now use matching destination titles and skeleton variants. Dynamic Workout, Meal, and Health detail URLs resolve to the record-detail skeleton rather than a generic RunMate screen.
+- Activity, Sleep Details, Workout Detail, Meal Detail, Health Detail, Nutrition Trends, Notifications, and Health Connect no longer use a centered full-page spinner while their initial data loads.
+- Recovery keeps its purpose-built animated three-ring calculation state. Local spinners remain only for bounded user actions such as Save, Sync, Sign In, date changes, permission checks, and AI answer generation; these actions do not replace the whole page.
+- Skeleton shimmer respects `prefers-reduced-motion`, and every skeleton exposes an accessible status label without rendering an Ionic spinner.
+
+Verification for the combined release candidate:
+
+- `npm.cmd run test.unit -- --run`: 47 files and 174 tests passed.
+- `npm.cmd run lint`: passed with zero warnings and zero errors.
+- `npm.cmd run build`: TypeScript and the Vite production build passed.
+- `git diff --check`: passed.
