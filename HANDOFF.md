@@ -1058,3 +1058,12 @@ Verification for the combined release candidate:
 - `npm.cmd run lint`: passed with zero warnings and zero errors.
 - `npm.cmd run build`: TypeScript and the Vite production build passed.
 - `git diff --check`: passed.
+
+## Recovery Ring Loading And Sleep Score Breakdown (2026-07-22)
+
+- Recovery now renders the three empty metric rings immediately while Health Connect sync and Recovery calculation run. Loading rings show an honest dash rather than zero, use a subtle breathing state, and keep the same card geometry as the loaded metrics.
+- When data becomes available, each ring fills from zero to its calculated value and the number fades in. Reduced-motion preferences disable both the ring transition and value animation.
+- Sleep Details now includes a collapsed `How This Score Was Built` disclosure below Sleep Summary. It shows the four deterministic inputs: Sleep Duration, Sleep Consistency, Sleep Efficiency, and Sleep Stages.
+- Each available factor shows its score, progress bar, and effective weight. Missing factors stay visibly missing; their nominal weight is redistributed proportionally across trustworthy factors available for that night rather than estimating a missing value.
+- The Breakdown uses the same shared Sleep Score calculator as Recovery and Recovery Trends, including the selected historical night's trailing baseline. It does not read or display Samsung's provider Sleep Score.
+- Mobile rows keep factor context, score, and weight aligned without expanding each metric into a separate card.

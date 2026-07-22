@@ -129,18 +129,15 @@
   filter: drop-shadow(0 10px 14px rgba(5, 48, 66, 0.18));
 }
 
-.dial-ring-loading {
-  overflow: hidden;
-  background: rgba(255, 255, 255, .15);
+.dial-ring-ready {
+  --dial-progress: 0%;
+  background: conic-gradient(var(--dial-color) var(--dial-progress), rgba(255, 255, 255, .18) 0);
+  transition: --dial-progress 780ms cubic-bezier(.22, .72, .2, 1);
 }
 
-.dial-ring-loading::before {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: conic-gradient(transparent 0 62%, var(--dial-color) 82%, transparent 100%);
-  animation: recovery-dial-sweep 1.25s linear infinite;
-  content: '';
+.dial-ring-loading {
+  background: rgba(255, 255, 255, .15);
+  animation: recovery-dial-breathe 1.35s ease-in-out infinite;
 }
 
 .dial-center {
@@ -155,61 +152,28 @@
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
-.dial-thinking {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-}
+.dial-loading-value { color: rgba(255, 255, 255, .72); }
 
-.dial-thinking i {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, .82);
-  animation: recovery-thinking 1.05s ease-in-out infinite;
-}
-
-.dial-thinking i:nth-child(2) { animation-delay: .14s; }
-.dial-thinking i:nth-child(3) { animation-delay: .28s; }
-
-.recovery-dials-loading { min-height: 216px; }
-
-.recovery-dials-loading ion-card-content {
+.dial-loaded-value {
   display: grid;
-  align-content: center;
-  min-height: 216px;
+  place-items: center;
+  animation: recovery-value-arrive 420ms ease-out both;
 }
 
-.recovery-loading-copy {
-  display: grid;
-  justify-items: center;
-  gap: 4px;
-  margin-top: 19px;
-  padding-inline: 10px;
-  text-align: center;
+@property --dial-progress {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
 }
 
-.recovery-loading-copy strong {
-  color: #fff;
-  font-size: 13px;
-  line-height: 1.3;
+@keyframes recovery-dial-breathe {
+  0%, 100% { opacity: .58; }
+  50% { opacity: 1; }
 }
 
-.recovery-loading-copy span {
-  max-width: 290px;
-  color: rgba(255, 255, 255, .68);
-  font-size: 9px;
-  line-height: 1.45;
-}
-
-@keyframes recovery-dial-sweep {
-  to { transform: rotate(1turn); }
-}
-
-@keyframes recovery-thinking {
-  0%, 60%, 100% { opacity: .35; transform: translateY(0); }
-  30% { opacity: 1; transform: translateY(-3px); }
+@keyframes recovery-value-arrive {
+  from { opacity: 0; transform: scale(.92); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .recovery-secondary-loading {
@@ -274,11 +238,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dial-ring-loading::before,
-  .dial-thinking i,
+  .dial-ring-loading,
+  .dial-ring-ready,
+  .dial-loaded-value,
   .recovery-secondary-loading i,
   .recovery-secondary-loading span { animation: none; }
-  .dial-thinking i { opacity: .75; }
+  .dial-ring-ready { transition: none; }
 }
 
 .dial-center strong {

@@ -19,6 +19,8 @@ describe('Sleep Score calculation', () => {
     expect(result.sufficiencyScore).toBeLessThan(100);
     expect(result.efficiencyScore).toBeGreaterThan(90);
     expect(result.consistencyScore).not.toBeNull();
+    expect(result.components).toHaveLength(4);
+    expect(Math.round(result.components.reduce((sum, component) => sum + component.effectiveWeight, 0))).toBe(100);
   });
 
   it('requires actual sleep duration and never manufactures a score from stages alone', () => {
@@ -31,5 +33,7 @@ describe('Sleep Score calculation', () => {
     expect(result.score).toBe(100);
     expect(result.efficiencyScore).toBeNull();
     expect(result.qualityScore).toBeNull();
+    expect(result.components.find((component) => component.key === 'duration')?.effectiveWeight).toBe(100);
+    expect(result.components.find((component) => component.key === 'stages')?.effectiveWeight).toBe(0);
   });
 });

@@ -19,6 +19,15 @@ export type RunMateSleepScoreResult = {
   sleepDebtMinutes: number;
   strainNeedMinutes: number;
   typicalWakeMinutes: number | null;
+  components: SleepScoreComponent[];
+};
+
+export type SleepScoreComponent = {
+  key: 'duration' | 'consistency' | 'efficiency' | 'stages';
+  label: string;
+  score: number | null;
+  baseWeight: number;
+  effectiveWeight: number;
 };
 
 const clamp = (value: number, min = 0, max = 100) => Math.max(min, Math.min(max, value));
@@ -44,14 +53,19 @@ export function calculateRunMateSleepScore(nights: RunMateSleepScoreNight[], str
   const stagedSleepMinutes = restorativeMinutes + (latest?.lightMinutes ?? 0);
   const stageQualityScore = stagedSleepMinutes > 0 ? Math.round(clamp(restorativeMinutes / stagedSleepMinutes / 0.4 * 100)) : null;
   const qualityScore = stageQualityScore;
-  const components: Array<{ score: number; weight: number }> = [];
-  if (sufficiencyScore != null) components.push({ score: sufficiencyScore, weight: 0.55 });
-  if (consistencyScore != null) components.push({ score: consistencyScore, weight: 0.15 });
-  if (efficiencyScore != null) components.push({ score: efficiencyScore, weight: 0.15 });
-  if (qualityScore != null) components.push({ score: qualityScore, weight: 0.15 });
-  const weightTotal = components.reduce((sum, component) => sum + component.weight, 0);
-  const score = actualSleepMinutes != null && weightTotal
-    ? Math.round(components.reduce((sum, component) => sum + component.score * component.weight, 0) / weightTotal)
+  const componentScores: Array<Omit<SleepScoreComponent, 'effectiveWeight'>> = [
+    { key: 'duration', label: 'Sleep Duration', score: sufficiencyScore, baseWeight: 55 },
+    { key: 'consistency', label: 'Sleep Consistency', score: consistencyScore, baseWeight: 15 },
+    { key: 'efficiency', label: 'Sleep Efficiency', score: efficiencyScore, baseWeight: 15 },
+    { key: 'stages', label: 'Sleep Stages', score: qualityScore, baseWeight: 15 },
+  ];
+  const availableWeight = componentScores.reduce((sum, component) => sum + (component.score == null ? 0 : component.baseWeight), 0);
+  const components = componentScores.map((component) => ({
+    ...component,
+    effectiveWeight: component.score == null || !availableWeight ? 0 : component.baseWeight / availableWeight * 100,
+  }));
+  const score = actualSleepMinutes != null && availableWeight
+    ? Math.round(componentScores.reduce((sum, component) => sum + (component.score ?? 0) * component.baseWeight, 0) / availableWeight)
     : null;
   return {
     score,
@@ -64,6 +78,7 @@ export function calculateRunMateSleepScore(nights: RunMateSleepScoreNight[], str
     sleepDebtMinutes,
     strainNeedMinutes,
     typicalWakeMinutes: median(wakeTimes),
+    components,
   };
 }
 

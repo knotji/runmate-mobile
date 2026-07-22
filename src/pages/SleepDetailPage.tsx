@@ -5,6 +5,7 @@ import { arrowBackOutline, calendarClearOutline, checkmarkCircleOutline, chevron
 import type { CoachContext, WeekSleepRow } from '@/lib/buildCoachContext';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { buildSleepDiagnostics } from '@/lib/sleepDiagnostics';
+import { calculateRunMateSleepScore, type RunMateSleepScoreResult, type SleepScoreComponent } from '@/lib/runMateSleepScore';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import './SleepDetailPage.css';
@@ -40,6 +41,9 @@ const SleepDetailPage: React.FC = () => {
   const isLatestNight = selectedNight?.date === latestDate;
   const availableNights = context?.sleepHistory ?? [];
   const selectedNightIndex = availableNights.findIndex((night) => night.date === selectedNight?.date);
+  const scoreBreakdown = selectedNightIndex >= 0
+    ? calculateRunMateSleepScore(availableNights.slice(selectedNightIndex, selectedNightIndex + 31).map(toSleepScoreNight))
+    : null;
   const availableDates = new Set(availableNights.map((night) => night.date));
   const freshnessTitle = recovery?.scoreState === 'scored' ? 'Scored Today'
     : recovery?.scoreState === 'calibrating' ? 'Baseline Calibrating'
@@ -120,6 +124,7 @@ const SleepDetailPage: React.FC = () => {
                 </div>
               </section>
 
+              {scoreBreakdown?.score != null && <SleepScoreBreakdown result={scoreBreakdown} />}
               {selectedNight && <SleepStages night={selectedNight} />}
               {selectedNight && <SleepHeartRate night={selectedNight} />}
               {selectedNight && <RecordReliability night={selectedNight} />}
@@ -184,6 +189,69 @@ function Metric({ label, value, suffix, helper }: { label: string; value: string
       <p>{helper}</p>
     </div>
   );
+}
+
+function SleepScoreBreakdown({ result }: { result: RunMateSleepScoreResult }) {
+  const availableCount = result.components.filter((component) => component.score != null).length;
+  const reweighted = availableCount < result.components.length;
+  return (
+    <section className="sleep-detail-section sleep-score-breakdown-section">
+      <details className="sleep-detail-disclosure sleep-score-breakdown">
+        <summary>
+          <div><p>Sleep Score</p><h2>How This Score Was Built</h2></div>
+          <span>{availableCount}/{result.components.length} Factors</span>
+        </summary>
+        <div className="sleep-score-factor-list">
+          {result.components.map((component) => (
+            <div className={`sleep-score-factor${component.score == null ? ' missing' : ''}`} key={component.key}>
+              <IonIcon icon={component.score == null ? warningOutline : checkmarkCircleOutline} />
+              <div className="sleep-score-factor-copy">
+                <div><strong>{component.label}</strong><span>{scoreFactorDetail(component, result)}</span></div>
+                {component.score != null && <i aria-hidden="true"><span style={{ width: `${component.score}%` }} /></i>}
+              </div>
+              <div className="sleep-score-factor-value">
+                <strong>{component.score == null ? 'Missing' : `${Math.round(component.score)}/100`}</strong>
+                <span>{componentWeightLabel(component)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="sleep-score-method-note">
+          {reweighted
+            ? 'Missing factors stay missing. Their weight is redistributed across the factors available for this night.'
+            : 'All four factors were available. Standard weighting was used for this night.'}
+        </p>
+      </details>
+    </section>
+  );
+}
+
+function scoreFactorDetail(component: SleepScoreComponent, result: RunMateSleepScoreResult): string {
+  if (component.score == null) {
+    return component.key === 'consistency' ? 'Needs at least three timed nights' : 'Not available for this night';
+  }
+  if (component.key === 'duration') return `${formatOptionalMinutes(result.actualSleepMinutes)} of ${formatMinutes(result.sleepNeedMinutes)} Sleep Need`;
+  if (component.key === 'consistency') return 'Bedtime and wake-time regularity';
+  if (component.key === 'efficiency') return 'Sleep time compared with Time In Bed';
+  return 'REM and Deep share of staged sleep';
+}
+
+function componentWeightLabel(component: SleepScoreComponent): string {
+  if (component.score == null) return `${component.baseWeight}% reweighted`;
+  const effective = Math.round(component.effectiveWeight);
+  return effective === component.baseWeight ? `${component.baseWeight}% weight` : `${component.baseWeight}% → ${effective}% used`;
+}
+
+function toSleepScoreNight(night: WeekSleepRow) {
+  return {
+    durationMinutes: night.durationMinutes,
+    timeInBedMinutes: night.timeInBedMinutes,
+    sleepStartTime: night.sleepStartTime,
+    sleepEndTime: night.sleepEndTime,
+    remMinutes: night.remMinutes,
+    lightMinutes: night.lightMinutes,
+    deepMinutes: night.deepMinutes,
+  };
 }
 
 function SleepStages({ night }: { night: WeekSleepRow }) {

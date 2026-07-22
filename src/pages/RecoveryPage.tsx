@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   IonCard,
@@ -182,17 +182,16 @@ const RecoveryPage: React.FC = () => {
 };
 
 function RecoveryLoadingDials({ stage }: { stage: 'syncing' | 'calculating' }) {
+  const status = stage === 'syncing'
+    ? 'Syncing today\'s Health Connect data'
+    : 'Calculating your Recovery metrics';
   return (
-    <IonCard className="recovery-dials recovery-dials-loading" role="status" aria-live="polite">
+    <IonCard className="recovery-dials recovery-dials-loading" role="status" aria-live="polite" aria-label={status}>
       <IonCardContent>
         <div className="dial-grid" aria-hidden="true">
           <MetricDial label="Recovery" value={null} max={100} tone="recovery" loading />
           <MetricDial label="Strain" value={null} max={21} tone="strain" loading />
           <MetricDial label="Sleep" value={null} max={100} tone="sleep" loading />
-        </div>
-        <div className="recovery-loading-copy">
-          <strong>{stage === 'syncing' ? 'Syncing Today\'s Health Data' : 'Calculating Your Metrics'}</strong>
-          <span>{stage === 'syncing' ? 'Checking Sleep and Workout records from Health Connect.' : 'Turning your latest signals into today\'s scores.'}</span>
         </div>
       </IonCardContent>
     </IonCard>
@@ -239,18 +238,34 @@ function RecoveryDials({ recovery, onRecoveryClick, onSleepClick }: { recovery: 
 
 function MetricDial({ label, value, max, tone, onClick, loading = false }: { label: string; value: number | null; max: number; tone: 'recovery' | 'strain' | 'sleep'; onClick?: () => void; loading?: boolean }) {
   const percentage = value == null ? 0 : Math.max(0, Math.min(100, value / max * 100));
+  const [animatedPercentage, setAnimatedPercentage] = useState(0);
   const displayValue = value == null ? '—' : Math.round(value).toString();
+
+  useEffect(() => {
+    if (loading || value == null) {
+      setAnimatedPercentage(0);
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => setAnimatedPercentage(percentage));
+    return () => window.cancelAnimationFrame(frame);
+  }, [loading, percentage, value]);
+
+  const ringStyle = loading
+    ? undefined
+    : { '--dial-progress': `${animatedPercentage}%` } as CSSProperties;
   const content = (
     <>
       <span className="dial-label">{label}</span>
       <div
-        className={`dial-ring${loading ? ' dial-ring-loading' : ''}`}
-        style={loading ? undefined : { background: `conic-gradient(var(--dial-color) ${percentage}%, rgba(255,255,255,.18) 0)` }}
+        className={`dial-ring ${loading ? 'dial-ring-loading' : 'dial-ring-ready'}`}
+        style={ringStyle}
         role="img"
         aria-label={loading ? `${label} is being calculated` : `${label} ${displayValue} out of ${max}`}
       >
         <div className="dial-center">
-          {loading ? <span className="dial-thinking"><i /><i /><i /></span> : <><strong>{displayValue}</strong><small>/{max}</small></>}
+          {loading
+            ? <><strong className="dial-loading-value">—</strong><small>/{max}</small></>
+            : <span className="dial-loaded-value"><strong>{displayValue}</strong><small>/{max}</small></span>}
         </div>
       </div>
     </>
