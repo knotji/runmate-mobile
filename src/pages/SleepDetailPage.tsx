@@ -113,7 +113,7 @@ const SleepDetailPage: React.FC = () => {
               <section className="sleep-detail-section">
                 <header><p>{isLatestNight ? 'Latest Night' : 'Historical Night'}</p><h2>Sleep Summary</h2></header>
                 <div className="sleep-metric-grid">
-                  <Metric label="Sleep Score" value={formatScore(selectedNight?.score)} suffix={selectedNight?.score == null ? undefined : '/100'} helper="Score recorded for this night" />
+                  <Metric label="Sleep Score" value={formatScore(selectedNight?.score)} suffix={selectedNight?.score == null ? undefined : '/100'} helper="Calculated from this night's sleep" />
                   <Metric label="Sleep Duration" value={formatOptionalMinutes(selectedNight?.durationMinutes)} helper="Total time asleep" />
                   <Metric label="Time In Bed" value={formatOptionalMinutes(selectedNight?.timeInBedMinutes)} helper="From bedtime to wake time" />
                   <Metric label="Sleep Efficiency" value={formatEfficiency(selectedNight)} helper="Time asleep while in bed" />

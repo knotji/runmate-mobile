@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
-import { arrowBackOutline, informationCircleOutline, trendingDownOutline, trendingUpOutline } from 'ionicons/icons';
+import { alertCircleOutline, arrowBackOutline, checkmarkCircleOutline, informationCircleOutline, trendingDownOutline, trendingUpOutline } from 'ionicons/icons';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import { todayBangkokDateKey } from '@/lib/date';
 import { loadProfileFromSupabase } from '@/lib/profileStorage';
-import { buildRecoveryTrend, type RecoveryTrendPoint } from '@/lib/recoveryTrends';
+import { buildRecoveryTrend, type RecoveryCalibration, type RecoveryTrendPoint } from '@/lib/recoveryTrends';
 import { syncTodayHealth } from '@/lib/healthSyncService';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { PageState } from '@/components/PageState';
@@ -68,12 +68,43 @@ const RecoveryTrendsPage: React.FC = () => {
             {trend.insight.factors.length > 0 && <div className="trend-factor-list">{trend.insight.factors.map((factor) => <div key={factor}><span aria-hidden="true" />{factor}</div>)}</div>}
           </section>
 
+          <CalibrationExplanation calibration={trend.calibration} />
+
           <TrendHistory points={trend.points} days={days} />
         </>}
       </main>
     </IonContent>
   </IonPage>;
 };
+
+function CalibrationExplanation({ calibration }: { calibration: RecoveryCalibration }) {
+  const freshnessLabel = calibration.freshness === 'current' ? 'Current' : calibration.freshness === 'stale' ? 'Older Record' : 'No Record';
+  const baselineProgress = Math.min(100, Math.round(calibration.baselineNights / calibration.targetBaselineNights * 100));
+  return <section className={`trend-calibration confidence-${calibration.confidence}`}>
+    <details className="trend-calibration-disclosure">
+      <summary>
+        <div><p>Score Confidence</p><h2>How Recovery Is Calibrated</h2><span>{calibration.summary}</span></div>
+        <strong>{calibration.label}</strong>
+      </summary>
+      <div className="trend-calibration-body">
+        <div className="calibration-overview">
+          <div><span>Latest Sleep</span><strong>{freshnessLabel}</strong><small>{calibration.latestSleepDate ? formatRowDate(calibration.latestSleepDate) : 'Waiting For Data'}</small></div>
+          <div><span>Personal Baseline</span><strong>{calibration.baselineNights}/{calibration.targetBaselineNights} Nights</strong><small>{baselineProgress}% Calibrated</small></div>
+          <div><span>Inputs Available</span><strong>{calibration.availableSignalCount}/{calibration.totalSignalCount} Signals</strong><small>Missing Data Stays Missing</small></div>
+        </div>
+        <div className="calibration-progress" aria-label={`Personal baseline ${baselineProgress}% calibrated`}><span style={{ width: `${baselineProgress}%` }} /></div>
+        <div className="calibration-signals" aria-label="Recovery inputs">
+          {calibration.signals.map((signal) => <div key={signal.key} className={signal.available ? 'available' : 'missing'}>
+            <IonIcon icon={signal.available ? checkmarkCircleOutline : alertCircleOutline} />
+            <div><strong>{signal.label}</strong><span>{signal.detail}</span></div>
+            <small>{signal.weight}% Weight</small>
+          </div>)}
+        </div>
+        <p className="calibration-note"><IonIcon icon={informationCircleOutline} />Sleep Score is calculated consistently from duration, Sleep Need, efficiency, consistency, and stages. Missing HRV or Respiratory Rate is never estimated.</p>
+      </div>
+    </details>
+  </section>;
+}
 
 function TrendChart({ points, compact }: { points: RecoveryTrendPoint[]; compact: boolean }) {
   const width = 320; const height = 154; const left = 14; const right = 8; const top = 12; const bottom = 24;
@@ -112,7 +143,7 @@ function TrendHistory({ points, days }: { points: RecoveryTrendPoint[]; days: 7 
       <summary><div><p>Daily Detail</p><h2>Recent Scores</h2></div><span>{visiblePoints.length} Days</span></summary>
       <div className="trend-history-columns" aria-hidden="true"><span>Date</span><span>Recovery</span><span>Sleep</span><span>Strain</span></div>
       <div className="trend-history-list">{visiblePoints.map((point) => <TrendRow key={point.date} point={point} />)}</div>
-      <p className="trend-method-note"><IonIcon icon={informationCircleOutline} />Historical Recovery uses available physiological signals and personal-baseline weighting. Sleep shows the recorded Sleep Score. Missing data stays blank.</p>
+      <p className="trend-method-note"><IonIcon icon={informationCircleOutline} />Historical Recovery uses available physiological signals and personal-baseline weighting. Sleep Score uses RunMate's calculation for every night. Missing physiological data stays blank.</p>
     </details>
   </section>;
 }

@@ -1,5 +1,6 @@
 import type { CoachContext, TodayCompletedWorkoutSummary } from './buildCoachContext';
 import { formatSleepMinutesThai } from './sleepDuration';
+import { calculateRunMateSleepScore } from './runMateSleepScore';
 
 export type RecoveryAxisStatus = 'low' | 'moderate' | 'good' | 'high';
 export type RecoveryScoreState = 'scored' | 'pending' | 'calibrating' | 'unscorable' | 'stale';
@@ -101,7 +102,6 @@ export type RunMateRecoverySystem = {
 };
 
 const clamp = (value: number, min = 0, max = 100) => Math.max(min, Math.min(max, value));
-const mean = (values: number[]) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
 const round = (value: number) => Math.round(value);
 
 function median(values: number[]): number | null {
@@ -109,40 +109,6 @@ function median(values: number[]): number | null {
   const sorted = [...values].sort((a, b) => a - b);
   const middle = Math.floor(sorted.length / 2);
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
-}
-
-function circularTimeMinutes(value: string | null): number | null {
-  if (!value) return null;
-  if (value.includes('T')) {
-    const date = new Date(value);
-    if (!Number.isNaN(date.getTime())) {
-      const parts = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Asia/Bangkok',
-        hour: '2-digit',
-        minute: '2-digit',
-        hourCycle: 'h23',
-      }).formatToParts(date);
-      const hour = Number(parts.find((part) => part.type === 'hour')?.value);
-      const minute = Number(parts.find((part) => part.type === 'minute')?.value);
-      if (Number.isFinite(hour) && Number.isFinite(minute)) {
-        const localMinutes = hour * 60 + minute;
-        return localMinutes < 12 * 60 ? localMinutes + 24 * 60 : localMinutes;
-      }
-    }
-  }
-  const match = value.match(/(?:T|^)(\d{1,2}):(\d{2})/);
-  if (!match) return null;
-  let minutes = Number(match[1]) * 60 + Number(match[2]);
-  if (minutes < 12 * 60) minutes += 24 * 60;
-  return minutes;
-}
-
-function variabilityScore(values: number[]): number | null {
-  if (values.length < 3) return null;
-  const average = mean(values);
-  if (average == null) return null;
-  const averageDeviation = mean(values.map((value) => Math.abs(value - average))) ?? 0;
-  return round(clamp(100 - averageDeviation / 1.2));
 }
 
 function formatClock(totalMinutes: number): string {
@@ -196,35 +162,24 @@ export function getOverallDisplayStatus(
 
 function buildSleepPerformance(context: CoachContext, strainScore: number): SleepPerformanceSummary {
   const nights = context.sleepBaseline30d;
-  const latest = nights[0] ?? null;
-  const durations = nights.map((night) => night.durationMinutes).filter((value): value is number => value != null);
-  const baselineMinutes = median(durations.slice(1)) ?? median(durations) ?? 8 * 60;
-  const debtMinutes = round(Math.min(120, durations.slice(0, 5).reduce((debt, duration) => debt + Math.max(0, baselineMinutes - duration) * 0.25, 0)));
-  const strainNeed = round((strainScore / 21) * 60);
-  const sleepNeedMinutes = round(clamp(baselineMinutes + debtMinutes + strainNeed, 7 * 60, 10 * 60));
-  const actualSleepMinutes = latest?.durationMinutes ?? null;
-  const sufficiencyScore = actualSleepMinutes == null ? null : round(clamp(actualSleepMinutes / sleepNeedMinutes * 100));
-  const bedtimes = nights.map((night) => circularTimeMinutes(night.sleepStartTime)).filter((value): value is number => value != null);
-  const wakeTimes = nights.map((night) => circularTimeMinutes(night.sleepEndTime)).filter((value): value is number => value != null);
-  const bedtimeConsistency = variabilityScore(bedtimes);
-  const wakeConsistency = variabilityScore(wakeTimes);
-  const consistencyParts = [bedtimeConsistency, wakeConsistency].filter((value): value is number => value != null);
-  const consistencyScore = consistencyParts.length ? round(mean(consistencyParts) ?? 0) : null;
-  const efficiencyScore = latest?.durationMinutes != null && latest.timeInBedMinutes != null && latest.timeInBedMinutes > 0
-    ? round(clamp(latest.durationMinutes / latest.timeInBedMinutes * 100))
-    : null;
-  const restorativeMinutes = (latest?.remMinutes ?? 0) + (latest?.deepMinutes ?? 0);
-  const stagedSleepMinutes = restorativeMinutes + (latest?.lightMinutes ?? 0);
-  const stageQualityScore = stagedSleepMinutes > 0 ? round(clamp(restorativeMinutes / stagedSleepMinutes / 0.4 * 100)) : null;
-  const qualityParts = [latest?.score ?? null, stageQualityScore].filter((value): value is number => value != null);
-  const qualityScore = qualityParts.length ? round(mean(qualityParts) ?? 0) : null;
-  const components: Array<{ score: number; weight: number }> = [];
-  if (sufficiencyScore != null) components.push({ score: sufficiencyScore, weight: 0.55 });
-  if (consistencyScore != null) components.push({ score: consistencyScore, weight: 0.15 });
-  if (efficiencyScore != null) components.push({ score: efficiencyScore, weight: 0.15 });
-  if (qualityScore != null) components.push({ score: qualityScore, weight: 0.15 });
-  const weightTotal = components.reduce((sum, item) => sum + item.weight, 0);
-  const score = weightTotal ? round(components.reduce((sum, item) => sum + item.score * item.weight, 0) / weightTotal) : 0;
+  const scoreInputs = nights.map((night) => ({
+    durationMinutes: night.durationMinutes,
+    timeInBedMinutes: night.timeInBedMinutes,
+    sleepStartTime: night.sleepStartTime,
+    sleepEndTime: night.sleepEndTime,
+    remMinutes: night.remMinutes,
+    lightMinutes: night.lightMinutes,
+    deepMinutes: night.deepMinutes,
+  }));
+  const calculated = calculateRunMateSleepScore(scoreInputs);
+  const adjustedNeed = calculateRunMateSleepScore(scoreInputs, strainScore);
+  const {
+    actualSleepMinutes, sufficiencyScore, consistencyScore, efficiencyScore, qualityScore,
+    sleepDebtMinutes: debtMinutes, typicalWakeMinutes,
+  } = calculated;
+  const sleepNeedMinutes = adjustedNeed.sleepNeedMinutes;
+  const strainNeed = adjustedNeed.strainNeedMinutes;
+  const score = calculated.score ?? 0;
   const missing: string[] = [];
   if (actualSleepMinutes == null) missing.push('ระยะเวลานอนล่าสุด');
   if (consistencyScore == null) missing.push('เวลาเข้านอนและตื่นอย่างน้อย 3 คืน');
@@ -238,7 +193,6 @@ function buildSleepPerformance(context: CoachContext, strainScore: number): Slee
   if (strainNeed > 0) reasons.push(`Strain วันนี้เพิ่มความต้องการนอน ${formatSleepMinutesThai(strainNeed)}`);
   if (consistencyScore != null) reasons.push(`ความสม่ำเสมอเวลาเข้านอนและตื่น ${consistencyScore}%`);
   if (efficiencyScore != null) reasons.push(`Sleep efficiency ${efficiencyScore}%`);
-  const typicalWakeMinutes = median(wakeTimes);
   const targetSleepMinutes = typicalWakeMinutes == null ? null : typicalWakeMinutes - sleepNeedMinutes;
   return {
     score,

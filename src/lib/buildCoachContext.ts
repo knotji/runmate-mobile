@@ -18,6 +18,7 @@ import { getPainRecoveryStatus, derivePainRecoveryInput, isPainRecoveryStatus, t
 import { getIllnessRiskLevel, getIllnessTrainingDecision, deriveSickLogFlags } from "@/lib/health/illnessGuardrail";
 import type { SickLog, SickRiskLevel, SickSymptom, SickSeverity } from "@/types/sick";
 import { reconciliationSourceLabel } from "@/lib/reconciliationPolicy";
+import { calculateRunMateSleepScore } from "@/lib/runMateSleepScore";
 
 export type DayWorkoutSummary = {
   date: string;
@@ -305,7 +306,7 @@ export function buildCoachContextFromData(input: {
   const items = input.items.filter((item) => normalizeDateString(item.createdAt));
 
   const sleepItems = dedupeSleepItems(items.filter((i) => i.type === "sleep"));
-  const sleepHistory: WeekSleepRow[] = sleepItems.map((item) => {
+  const rawSleepHistory: WeekSleepRow[] = sleepItems.map((item) => {
     const d = item.data as SleepAnalysis;
     const durationMinutes = getSleepDurationMinutes(item);
     return {
@@ -314,7 +315,7 @@ export function buildCoachContextFromData(input: {
         ? formatSleepMinutesThai(durationMinutes)
         : d?.extracted?.sleepDuration ?? null,
       durationMinutes,
-      score: d?.extracted?.sleepScore ?? null,
+      score: null,
       readiness: d?.coach?.readinessScore ?? null,
       restingHR: d?.extracted?.restingHR ?? null,
       restingHRSource: d?.extracted?.restingHRSource ?? null,
@@ -336,6 +337,18 @@ export function buildCoachContextFromData(input: {
       lastImportedAt: item.source?.importedAt ?? null,
     };
   }).sort((a, b) => b.date.localeCompare(a.date));
+  const sleepHistory: WeekSleepRow[] = rawSleepHistory.map((night, index) => ({
+    ...night,
+    score: calculateRunMateSleepScore([night, ...rawSleepHistory.slice(index + 1, index + 31)].map((candidate) => ({
+      durationMinutes: candidate.durationMinutes,
+      timeInBedMinutes: candidate.timeInBedMinutes,
+      sleepStartTime: candidate.sleepStartTime,
+      sleepEndTime: candidate.sleepEndTime,
+      remMinutes: candidate.remMinutes,
+      lightMinutes: candidate.lightMinutes,
+      deepMinutes: candidate.deepMinutes,
+    }))).score,
+  }));
   const sleepBaseline30d = sleepHistory.filter((night) => night.date >= baselineCutoff);
   const sleep7d = sleepBaseline30d.filter((night) => night.date >= cutoff);
 

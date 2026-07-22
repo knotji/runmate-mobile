@@ -806,11 +806,21 @@ git push origin v1.0.1
 ## Recovery Calibration And Trends
 
 - The Recovery dial on the main Recovery page now opens `/recovery-trends`; this is a detail route, not another bottom tab.
-- The page provides `7 Days` and `30 Days` ranges with one compact SVG chart for historical Recovery, recorded Sleep Score, and Workout Strain. Strain keeps its domain scale of 0–21 while being normalized only for chart positioning.
+- The page provides `7 Days` and `30 Days` ranges with one compact SVG chart for historical Recovery, Sleep Score, and Workout Strain. Strain keeps its domain scale of 0–21 while being normalized only for chart positioning.
 - Historical Recovery is reconstructed per night from the available Sleep Score, HRV, Resting HR, and Respiratory Rate using the same physiological weights and a trailing personal baseline. It is labeled `Calibrating` until at least three older nights exist. Missing nights remain blank and are never converted to zero.
 - `Why Your Score Changed` compares the two latest nights with a Recovery score and describes factual signal movements rather than calling AI or claiming causation. The page also shows per-day score rows and data coverage such as `5/7 Nights`.
 - Pull to refresh performs the existing today-only Samsung Health sync before rebuilding the trend. The normal page load reads persisted history without launching a 30-day Health Connect sync.
 - Browser-based visual QA was unavailable in the implementation session because no browser backend was connected. Unit, type, lint, and build verification still apply; verify the page at 390px and a narrower physical-device viewport before release.
+
+### Recovery Calibration Explanation (2026-07-22)
+
+- Recovery Trends now includes a collapsed `How Recovery Is Calibrated` explanation below `Why Your Score Changed`, keeping the default page hierarchy compact.
+- The summary shows `High Confidence`, `Medium Confidence`, or `Limited Data`. Confidence is deterministic and depends on a current Sleep record, personal-baseline depth, and the weighted physiological inputs that are genuinely available.
+- Expanding the card shows latest-Sleep freshness, progress toward a 14-night personal baseline, and availability for HRV, Resting Heart Rate, Respiratory Rate, and Sleep Score. Each input also shows its nominal model weight and the number of baseline nights available where relevant.
+- High Confidence requires current Sleep, at least 14 older baseline nights, and at least 65% nominal input coverage. Medium Confidence requires current Sleep, at least seven older baseline nights, and at least 40% coverage. Every other case remains Limited Data.
+- Sleep Score is calculated by RunMate for every night from Sleep Duration versus Sleep Need, Sleep Consistency, Sleep Efficiency, and available Sleep Stages. The app does not mix Samsung or manually uploaded provider scores into this calculation. Recovery, Sleep Details, and Recovery Trends all use the same shared calculator.
+- Missing HRV or Respiratory Rate remains visibly missing. The explanation never infers those values from Samsung Energy Score or unrelated measurements, and the scoring weights are rebalanced only across trustworthy inputs available for that night.
+- Focused trend tests cover limited early calibration, high-confidence calibration, missing provider signals, and stale latest Sleep.
 
 ## Training Adherence
 

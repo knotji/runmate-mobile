@@ -4,7 +4,7 @@ import type { MergedWorkoutItem } from '@/lib/workoutDedupe';
 
 export function describeHistoryItem(item: LocalHistoryItem): { label: string; title: string; detail: string; icon: string; tone: string } {
   const data = asRecord(item.data); const extracted = asRecord(data.extracted);
-  if (item.type === 'sleep') return { label: 'Sleep', title: text(extracted.sleepDuration) ?? minutesText(extracted.actualSleepDurationMinutes) ?? 'Sleep Record', detail: scoreDetail(extracted.sleepScore), icon: moonOutline, tone: 'sleep' };
+  if (item.type === 'sleep') return { label: 'Sleep', title: text(extracted.sleepDuration) ?? minutesText(extracted.actualSleepDurationMinutes) ?? 'Sleep Record', detail: 'Sleep Session Recorded', icon: moonOutline, tone: 'sleep' };
   if (item.type === 'workout' || item.type === 'strength') {
     const kind = titleFromKey(text(extracted.workoutKind) ?? (item.type === 'strength' ? 'strength_training' : 'workout'));
     const details = [numberUnit(extracted.distanceKm, 'km'), text(extracted.duration), numberUnit(extracted.avgHR, 'bpm')].filter(Boolean).join(' · ');
@@ -29,6 +29,5 @@ function asRecord(value: unknown): Record<string, unknown> { return typeof value
 function text(value: unknown): string | null { return typeof value === 'string' && value.trim() ? value.trim() : null; }
 function numberUnit(value: unknown, unit: string): string | null { return typeof value === 'number' && Number.isFinite(value) ? `${Math.round(value * 10) / 10} ${unit}` : null; }
 function minutesText(value: unknown): string | null { return typeof value === 'number' ? `${Math.floor(value / 60)}h ${Math.round(value % 60)}m` : null; }
-function scoreDetail(value: unknown): string { return typeof value === 'number' ? `Sleep Score ${Math.round(value)}/100` : 'Sleep session recorded'; }
 function arrayText(value: unknown): string | null { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string').map(titleFromKey).join(', ') || null : null; }
 function titleFromKey(value: string): string { return value.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()); }
