@@ -1,22 +1,40 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
-import { arrowBackOutline, checkmarkCircleOutline, helpCircleOutline, sparklesOutline, warningOutline } from 'ionicons/icons';
+import { arrowBackOutline, arrowDownOutline, checkmarkCircleOutline, chevronDownOutline, chevronUpOutline, helpCircleOutline, sendOutline, sparklesOutline, warningOutline } from 'ionicons/icons';
+import { Capacitor, type PluginListenerHandle } from '@capacitor/core';
+import { Keyboard } from '@capacitor/keyboard';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
-import { AI_COACH_TOPICS, askAiCoach, type AiCoachAnswer, type AiCoachTopic } from '@/lib/aiCoach';
+import { AI_COACH_TOPICS, askAiCoach, askAiCoachChat, type AiCoachAnswer, type AiCoachTopic } from '@/lib/aiCoach';
 import type { CoachContext } from '@/lib/buildCoachContext';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
+import { hapticImpact } from '@/lib/haptics';
 import './AiCoachPage.css';
+
+type ChatMessage = {
+  id: string;
+  sender: 'user' | 'assistant';
+  text?: string;
+  topicTitle?: string;
+  answer?: AiCoachAnswer;
+  timestamp: string;
+  topicId?: AiCoachTopic;
+  isError?: boolean;
+};
 
 const AiCoachPage: React.FC = () => {
   const history = useHistory();
   const [context, setContext] = useState<CoachContext | null>(null);
   const [loadingContext, setLoadingContext] = useState(true);
   const [asking, setAsking] = useState(false);
-  const [selectedTopic, setSelectedTopic] = useState<AiCoachTopic | null>(null);
-  const [answer, setAnswer] = useState<AiCoachAnswer | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputQuery, setInputQuery] = useState('');
+  const [showContextDrawer, setShowContextDrawer] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isNearBottom, setIsNearBottom] = useState(true);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   const loadContext = useCallback(async () => {
     setLoadingContext(true); setError(null);
@@ -27,15 +45,95 @@ const AiCoachPage: React.FC = () => {
 
   useEffect(() => { void loadContext(); }, [loadContext]);
 
-  const ask = async (topic: AiCoachTopic) => {
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let showHandle: PluginListenerHandle | null = null;
+    let hideHandle: PluginListenerHandle | null = null;
+    void Keyboard.addListener('keyboardWillShow', (info) => {
+      setKeyboardOffset(info.keyboardHeight);
+    }).then((h) => { showHandle = h; });
+    void Keyboard.addListener('keyboardWillHide', () => {
+      setKeyboardOffset(0);
+    }).then((h) => { hideHandle = h; });
+    return () => {
+      void showHandle?.remove();
+      void hideHandle?.remove();
+    };
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setIsNearBottom(true);
+  }, []);
+
+  useEffect(() => {
+    if (isNearBottom) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, asking, isNearBottom]);
+
+  const askTopic = async (topicId: AiCoachTopic) => {
     if (!context || asking) return;
-    setSelectedTopic(topic); setAnswer(null); setError(null); setAsking(true);
-    try { setAnswer(await askAiCoach(topic, context)); }
-    catch (failure) { setError(message(failure, 'AI Coach is temporarily unavailable.')); }
-    finally { setAsking(false); }
+    void hapticImpact();
+    const topicInfo = AI_COACH_TOPICS.find((t) => t.id === topicId);
+    const questionText = topicInfo?.title ?? 'Ask Coach';
+    
+    const userMsg: ChatMessage = {
+      id: `msg-${Date.now()}-user`,
+      sender: 'user',
+      text: questionText,
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+    };
+    setMessages((prev) => [...prev, userMsg]);
+    setAsking(true); setError(null);
+
+    try {
+      const answer = await askAiCoach(topicId, context);
+      const assistantMsg: ChatMessage = {
+        id: `msg-${Date.now()}-coach`,
+        sender: 'assistant',
+        topicTitle: questionText,
+        answer,
+        timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages((prev) => [...prev, assistantMsg]);
+    } catch (failure) {
+      setError(message(failure, 'AI Coach is temporarily unavailable.'));
+    } finally {
+      setAsking(false);
+    }
   };
 
-  const activeTopic = AI_COACH_TOPICS.find((topic) => topic.id === selectedTopic);
+  const submitCustomQuery = async () => {
+    const trimmed = inputQuery.trim();
+    if (!trimmed || !context || asking) return;
+    setInputQuery('');
+    
+    const userMsg: ChatMessage = {
+      id: `msg-${Date.now()}-user`,
+      sender: 'user',
+      text: trimmed,
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+    };
+    setMessages((prev) => [...prev, userMsg]);
+    setAsking(true); setError(null);
+
+    try {
+      const answer = await askAiCoachChat(trimmed, context);
+      const assistantMsg: ChatMessage = {
+        id: `msg-${Date.now()}-coach`,
+        sender: 'assistant',
+        topicTitle: trimmed,
+        answer,
+        timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages((prev) => [...prev, assistantMsg]);
+    } catch (failure) {
+      setError(message(failure, 'AI Coach could not process this question.'));
+    } finally {
+      setAsking(false);
+    }
+  };
 
   return <IonPage>
     <IonHeader translucent className="ai-coach-header"><IonToolbar>
@@ -44,34 +142,95 @@ const AiCoachPage: React.FC = () => {
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="ai-coach-content">
       <main className="ai-coach-shell">
-        <header className="ai-coach-heading">
-          <div className="ai-coach-mark"><IonIcon icon={sparklesOutline} /></div>
-          <div><p>RUNMATE AI</p><h1>Ask Your Coach</h1><span>Choose one question. Your answer uses only the RunMate data available right now.</span></div>
-        </header>
-
         {loadingContext && <PageDataSkeleton variant="coach" label="Preparing Your Coaching Context" />}
         {!loadingContext && !context && <PageState kind="error" title="Coach Context Is Unavailable" detail={error ?? undefined} actionLabel="Try Again" onAction={() => void loadContext()} className="ai-coach-state" />}
 
         {!loadingContext && context && <>
-          <section className="ai-coach-topics" aria-labelledby="coach-questions-heading">
-            <div className="ai-coach-section-heading"><p>COACH QUESTIONS</p><h2 id="coach-questions-heading">Choose A Question</h2><span>Ask one focused question for a clearer answer.</span></div>
-            <button type="button" className={`ai-coach-featured${selectedTopic === 'today' ? ' selected' : ''}`} onClick={() => void ask('today')} disabled={asking}>
-              <span className="ai-coach-topic-icon"><IonIcon icon={sparklesOutline} /></span>
-              <span><strong>{AI_COACH_TOPICS[0].title}</strong><small>{AI_COACH_TOPICS[0].summary}</small></span>
-              <span className="ai-coach-ask-label">Ask Coach</span>
+          {/* Collapsible Based On Context Drawer */}
+          <section className="ai-coach-context-drawer">
+            <button type="button" className="ai-coach-drawer-toggle" onClick={() => setShowContextDrawer(!showContextDrawer)}>
+              <span className="ai-coach-drawer-title"><IonIcon icon={sparklesOutline} /><strong>Based On Your Data</strong><small>Recovery: {context.recoverySystem.overallScore}%, Strain: {context.recoverySystem.strain.score}/21</small></span>
+              <IonIcon icon={showContextDrawer ? chevronUpOutline : chevronDownOutline} />
             </button>
-            <div className="ai-coach-topic-list">
-              {AI_COACH_TOPICS.slice(1).map((topic) => <button type="button" className={selectedTopic === topic.id ? 'selected' : ''} onClick={() => void ask(topic.id)} disabled={asking} key={topic.id}>
-                <span><strong>{topic.title}</strong><small>{topic.summary}</small></span><span className="ai-coach-row-action">Ask</span>
-              </button>)}
-            </div>
+            {showContextDrawer && <div className="ai-coach-drawer-content">
+              <div className="ai-coach-context-grid">
+                <div><span>Recovery Score</span><strong>{context.recoverySystem.overallScore}% ({context.recoverySystem.overallLabel})</strong></div>
+                <div><span>Strain Score</span><strong>{context.recoverySystem.strain.score} / 21</strong></div>
+                <div><span>Sleep Performance</span><strong>{context.recoverySystem.sleepPerformance.score}% ({context.recoverySystem.sleepPerformance.label})</strong></div>
+                <div><span>Logged Meals Today</span><strong>{context.nutritionToday?.mealCount ?? 0} Meals ({context.nutritionToday?.caloriesKcal ?? 0} kcal)</strong></div>
+                {context.activeRaceGoal && <div><span>Active Race Goal</span><strong>{context.raceName} ({context.daysUntilRace} days away)</strong></div>}
+              </div>
+            </div>}
           </section>
 
-          {asking && <section className="ai-coach-answer-loading" role="status"><IonSpinner name="crescent" /><div><strong>Thinking About Your Data…</strong><span>{activeTopic?.title}</span></div></section>}
-          {!asking && error && <PageState kind="error" title="AI Coach Is Unavailable" detail={error} actionLabel={selectedTopic ? 'Try Again' : undefined} onAction={selectedTopic ? () => void ask(selectedTopic) : undefined} className="ai-coach-state" />}
-          {!asking && answer && <CoachAnswer answer={answer} topicTitle={activeTopic?.title ?? 'Coach Answer'} onRefresh={() => void ask(answer.topic)} />}
+          {/* Chat Messages / Welcome Empty State */}
+          <section className="ai-coach-chat-stream" aria-label="Conversation History">
+            {messages.length === 0 && <div className="ai-coach-welcome-hero">
+              <div className="ai-coach-hero-mark"><IonIcon icon={sparklesOutline} /></div>
+              <h2>How can I help your running today?</h2>
+              <p>Choose a suggestion below or type any question to receive personal recovery and training guidance.</p>
+              
+              <div className="ai-coach-prompt-grid">
+                {AI_COACH_TOPICS.map((topic) => (
+                  <button key={topic.id} type="button" className="ai-coach-prompt-card" onClick={() => void askTopic(topic.id)} disabled={asking}>
+                    <strong>{topic.title}</strong>
+                    <span>{topic.summary}</span>
+                  </button>
+                ))}
+              </div>
+            </div>}
 
-          {!asking && !answer && !error && <p className="ai-coach-privacy"><IonIcon icon={checkmarkCircleOutline} />AI Coach does not change your plan, scores, or saved records.</p>}
+            {messages.length > 0 && <div className="ai-coach-quick-chips">
+              <div className="ai-coach-chip-list">
+                {AI_COACH_TOPICS.map((topic) => (
+                  <button key={topic.id} type="button" className="ai-coach-chip" onClick={() => void askTopic(topic.id)} disabled={asking}>
+                    {topic.title}
+                  </button>
+                ))}
+              </div>
+            </div>}
+
+            {messages.map((msg) => (
+              <div key={msg.id} className={`ai-coach-msg-bubble ${msg.sender}`}>
+                {msg.sender === 'user' ? (
+                  <div className="ai-coach-user-msg">
+                    <p>{msg.text}</p>
+                    <time>{msg.timestamp}</time>
+                  </div>
+                ) : (
+                  msg.answer && <CoachAnswer answer={msg.answer} topicTitle={msg.topicTitle ?? 'Coach Answer'} onRefresh={() => void askTopic(msg.answer?.topic ?? 'today')} />
+                )}
+              </div>
+            ))}
+
+            {asking && <section className="ai-coach-answer-loading" role="status"><IonSpinner name="crescent" /><div><strong>Thinking About Your RunMate Data…</strong><span>Analyzing recovery & training load</span></div></section>}
+            {!asking && error && <PageState kind="error" title="AI Coach Is Unavailable" detail={error} className="ai-coach-state" />}
+            <div ref={chatEndRef} />
+          </section>
+
+          {/* Freeform Chat Input Bar */}
+          <div className="ai-coach-input-container" style={keyboardOffset > 0 ? { transform: `translateY(-${keyboardOffset}px)` } : undefined}>
+            {!isNearBottom && (
+              <button type="button" className="ai-coach-scroll-bottom-btn" onClick={scrollToBottom} aria-label="Scroll to bottom">
+                <IonIcon icon={arrowDownOutline} /> New response below
+              </button>
+            )}
+            <footer className="ai-coach-input-bar">
+              <input
+                type="text"
+                className="ai-coach-chat-input"
+                placeholder="Ask AI Coach anything (e.g. หลังวิ่งกินอะไรดี?)..."
+                value={inputQuery}
+                onChange={(e) => setInputQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') void submitCustomQuery(); }}
+                disabled={asking}
+              />
+              <button type="button" className="ai-coach-send-btn" onClick={() => void submitCustomQuery()} disabled={asking || !inputQuery.trim()} aria-label="Send Message">
+                <IonIcon icon={sendOutline} />
+              </button>
+            </footer>
+            <p className="ai-coach-privacy"><IonIcon icon={checkmarkCircleOutline} />AI Coach recommendations are advisory and do not overwrite saved records.</p>
+          </div>
         </>}
       </main>
     </IonContent>

@@ -8,7 +8,13 @@
   --ion-color-primary-tint: #3c84bf;
   --ion-color-danger: #c94b61;
   --ion-background-color: #f4f8fc;
-  --ion-text-color: #172c49;
+  --rm-text-primary: #172c49;
+  --rm-text-secondary: #52708f;
+  --rm-text-muted: #62748d;
+  --rm-brand-blue: #2474b2;
+  --rm-border-subtle: #d9e6f0;
+  --rm-card-bg-gradient: linear-gradient(145deg, #155f79 0%, #1c839b 52%, #239db0 100%);
+  --rm-touch-target-min: 44px;
 }
 
 .main-tab-bar {

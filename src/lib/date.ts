@@ -29,6 +29,12 @@ export function dateKeyToRecordedAt(dateKey: string): string {
   return `${dateKey}T12:00:00+07:00`;
 }
 
+export function shiftDate(dateKey: string, days: number): string {
+  const d = new Date(`${dateKey.slice(0, 10)}T12:00:00+07:00`);
+  d.setDate(d.getDate() + days);
+  return getBangkokDateKey(d);
+}
+
 export function formatThaiDate(date = new Date()) {
   return new Intl.DateTimeFormat("th-TH", {
     weekday: "long",

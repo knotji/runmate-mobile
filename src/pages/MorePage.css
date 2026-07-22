@@ -10,7 +10,7 @@
 }
 
 .more-header ion-title {
-  color: #142a46;
+  color: var(--rm-text-primary, #172c49);
   font-size: 16px;
   font-weight: 800;
 }
@@ -18,7 +18,7 @@
 .more-shell {
   width: min(100%, 600px);
   margin: 0 auto;
-  padding: 24px 20px calc(40px + env(safe-area-inset-bottom));
+  padding: 24px 20px max(80px, env(safe-area-inset-bottom));
 }
 
 .more-heading { max-width: 430px; margin: 0 2px 20px; }

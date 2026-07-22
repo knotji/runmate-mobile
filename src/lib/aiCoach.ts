@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { getTodayPlannedWorkout, getTodayTrainingPlanStatus } from '@/lib/todayTrainingPlan';
 import type { WeekWorkout } from '@/types/race';
 
-export type AiCoachTopic = 'today' | 'recovery' | 'adjust' | 'fuel' | 'race';
+export type AiCoachTopic = 'today' | 'recovery' | 'adjust' | 'fuel' | 'race' | 'chat';
 
 export const AI_COACH_TOPICS: Array<{ id: AiCoachTopic; title: string; summary: string }> = [
   { id: 'today', title: 'What Should I Do Today?', summary: 'Turn today\'s Recovery, plan, and recent logs into one clear priority.' },
@@ -110,14 +110,18 @@ export function buildAiCoachContext(context: CoachContext) {
   };
 }
 
-export async function askAiCoach(topic: AiCoachTopic, context: CoachContext): Promise<AiCoachAnswer> {
+export async function askAiCoach(topic: AiCoachTopic, context: CoachContext, userQuery?: string): Promise<AiCoachAnswer> {
   const { data, error } = await supabase.functions.invoke('ai-coach', {
-    body: { topic, context: buildAiCoachContext(context) },
+    body: { topic, userQuery: userQuery?.trim() || undefined, context: buildAiCoachContext(context) },
   });
   if (error) throw new Error(error.message || 'AI Coach Is Unavailable.');
   const payload = record(data);
   const answer = record(payload.data ?? payload);
   return normalizeAnswer(topic, answer);
+}
+
+export async function askAiCoachChat(userQuery: string, context: CoachContext): Promise<AiCoachAnswer> {
+  return askAiCoach('chat', context, userQuery);
 }
 
 function normalizeAnswer(topic: AiCoachTopic, value: Record<string, unknown>): AiCoachAnswer {

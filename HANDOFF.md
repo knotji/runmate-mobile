@@ -1,6 +1,6 @@
 # RunMate Mobile Handoff
 
-Last updated: 2026-07-20
+Last updated: 2026-07-23
 
 Before changing layout, typography, cards, or user-facing wording, read
 [`UI_GUIDELINES.md`](./UI_GUIDELINES.md). It is the shared app-wide standard for
@@ -10,11 +10,19 @@ page hierarchy, font sizes, text case, spacing, and responsive review.
 
 This repository is an Ionic React + TypeScript + Vite + Capacitor mobile client that uses the existing RunMate Supabase project. The first implemented slice is authentication plus a WHOOP-inspired Recovery dashboard.
 
+### Recent Enhancements (2026-07-23)
+- **Vite Bundle Splitting**: Configured `manualChunks` in `vite.config.ts` (`ionic-vendor`, `supabase-vendor`, `react-vendor`), reducing the main `index.js` chunk from 1.6MB to 126kB (92% size reduction).
+- **Design Tokens & Touch Targets**: Centralized colors in `src/theme/variables.css` and enforced 44x44px minimum touch targets across icon buttons.
+- **Mobile Keyboard & Safe Areas**: Dynamic keyboard offset listener in `AiCoachPage.tsx` using `@capacitor/keyboard` and safe area inset clearances.
+- **Modular Health Diagnostics**: Refactored `HealthTestPage.tsx` from 822 lines to 425 lines across 4 dedicated sub-components in `src/components/health/`.
+- **Native Haptic Feedback**: Created `src/lib/haptics.ts` integration for tab navigation, AI Coach queries, and profile saving.
+- **Bedtime Local Notifications**: Created `src/lib/bedtimeNotification.ts` helper and unit tests.
+- **Network Resilience Toast**: Added `NetworkStatusToast.tsx` mounted globally in `App.tsx`.
+- **Release & Distribution**: Automated Android APK build (`npm run android:release:apk`) and Firebase App Distribution (`npm run android:distribute`).
+
 The maintained branch is `master`. Review `git status` before making changes and preserve any unrelated local work.
 
 ## How to run
-
-Use Vite directly:
 
 ```powershell
 cd C:\Project\runmate-mobile

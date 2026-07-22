@@ -7,6 +7,7 @@ import { getBangkokDateKey, todayBangkokDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import type { WorkoutAnalysis } from '@/types/logs';
 import { acknowledgeBackgroundHealthRecords, backgroundHealthRecordKey, getFreshPreparedHealthSnapshot } from '@/lib/backgroundHealth';
+import { formatReconciliationSyncError, isReconciliationPermissionError } from '@/lib/reconciliationPolicy';
 
 const SAMSUNG_HEALTH_SOURCE_ID = 'com.sec.android.app.shealth';
 const DEFAULT_LOOKBACK_DAYS = 30;
@@ -78,8 +79,29 @@ async function runSync(lookbackDays: number | 'today'): Promise<SamsungWorkoutSy
       limit: EXISTING_RECORD_LIMIT,
     });
     const existingItems = existing.ok ? existing.items : [];
-    const counts = classifyHealthSyncItems(validItems, existingItems);
-    const changedItems = selectChangedHealthSyncItems(validItems, existingItems);
+    const existingMap = new Map(existingItems.map((record) => [record.id, record]));
+    const preservedItems = validItems.map((item) => {
+      const prev = existingMap.get(item.id);
+      const prevSamples = Array.isArray((prev?.data as Record<string, unknown> | undefined)?.heartRateSamples)
+        ? ((prev?.data as Record<string, unknown>).heartRateSamples as unknown[])
+        : [];
+      const newSamples = Array.isArray((item.data as Record<string, unknown> | undefined)?.heartRateSamples)
+        ? ((item.data as Record<string, unknown>).heartRateSamples as unknown[])
+        : [];
+      if (newSamples.length === 0 && prevSamples.length > 0) {
+        return {
+          ...item,
+          data: {
+            ...(item.data as Record<string, unknown>),
+            heartRateSamples: prevSamples,
+          },
+        };
+      }
+      return item;
+    });
+
+    const counts = classifyHealthSyncItems(preservedItems, existingItems);
+    const changedItems = selectChangedHealthSyncItems(preservedItems, existingItems);
     if (changedItems.length) {
       const saved = await saveHistoryItems(changedItems);
       if (!saved.ok) return { status: 'synced', imported: 0, dataSource, added: 0, updated: 0, unchanged: 0, failed: changedItems.length, error: saved.error };
@@ -88,7 +110,12 @@ async function runSync(lookbackDays: number | 'today'): Promise<SamsungWorkoutSy
     await acknowledgeBackgroundHealthRecords({ workoutKeys: workouts.map(backgroundHealthRecordKey) });
     return { status: 'synced', imported: validItems.length, dataSource, ...counts };
   } catch (error) {
-    return { ...emptyResult('unavailable'), dataSource, error: error instanceof Error ? error.message : 'Samsung Health workout sync failed.' };
+    const isPermissionError = isReconciliationPermissionError(error);
+    return {
+      ...emptyResult(isPermissionError ? 'permission_required' : 'unavailable'),
+      dataSource,
+      error: formatReconciliationSyncError(error, 'Samsung Health workout sync failed.'),
+    };
   }
 }
 

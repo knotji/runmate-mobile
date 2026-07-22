@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
-const TOPICS = ['today', 'recovery', 'adjust', 'fuel', 'race'] as const;
+const TOPICS = ['today', 'recovery', 'adjust', 'fuel', 'race', 'chat'] as const;
 type Topic = typeof TOPICS[number];
 
 Deno.serve(async (request) => {
@@ -16,6 +16,7 @@ Deno.serve(async (request) => {
     const body = await request.json();
     const topic = TOPICS.includes(body.topic) ? body.topic as Topic : null;
     if (!topic) return reply({ error: 'Choose A Supported Coach Question' }, 400);
+    const userQuery = typeof body.userQuery === 'string' && body.userQuery.trim() ? body.userQuery.trim().slice(0, 1000) : null;
     const context = compact(body.context);
     if (JSON.stringify(context).length > 20_000) return reply({ error: 'Coach Context Is Too Large' }, 413);
 
@@ -25,7 +26,7 @@ Deno.serve(async (request) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt(topic, context) }] }],
+        contents: [{ parts: [{ text: prompt(topic, context, userQuery) }] }],
         generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
       }),
     });
@@ -43,10 +44,11 @@ Deno.serve(async (request) => {
   }
 });
 
-function prompt(topic: Topic, context: unknown): string {
+function prompt(topic: Topic, context: unknown, userQuery: string | null): string {
+  const queryPrompt = userQuery ? `User custom question: ${userQuery}` : `Selected question: ${topicInstruction(topic)}`;
   return `You are RunMate AI Coach, a cautious running and recovery assistant.
 
-Selected question: ${topicInstruction(topic)}
+${queryPrompt}
 Trusted compact context: ${JSON.stringify(context)}
 
 Rules:

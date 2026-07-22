@@ -45,65 +45,98 @@ export function buildCoachContextFromSupabase(options: { force?: boolean } = {})
  * the progressive page load.
  */
 export async function buildRecoveryCoreContextFromSupabase(): Promise<CoachContext> {
-  const [historyResult, profileResult] = await Promise.all([
-    loadHistoryItems(
-      ['sleep', 'workout', 'pain', 'strength', 'sick'],
-      recoveryHistoryOptions(RECOVERY_CORE_ROW_LIMIT),
-    ),
-    loadProfileFromSupabase(),
-  ]);
+  try {
+    const [historyResult, profileResult] = await Promise.all([
+      loadHistoryItems(
+        ['sleep', 'workout', 'pain', 'strength', 'sick'],
+        recoveryHistoryOptions(RECOVERY_CORE_ROW_LIMIT),
+      ),
+      loadProfileFromSupabase(),
+    ]);
 
-  return buildCoachContextFromData({
-    items: historyResult.ok ? historyResult.items : [],
-    profile: profileResult.ok ? profileResult.profile ?? null : null,
-    raceGoal: null,
-    racePlan: null,
-    raceResults: [],
-  });
+    return buildCoachContextFromData({
+      items: historyResult.ok ? historyResult.items : [],
+      profile: profileResult.ok ? profileResult.profile ?? null : null,
+      raceGoal: null,
+      racePlan: null,
+      raceResults: [],
+    });
+  } catch {
+    if (cachedCoachContext) return cachedCoachContext.value;
+    return buildCoachContextFromData({
+      items: [],
+      profile: null,
+      raceGoal: null,
+      racePlan: null,
+      raceResults: [],
+    });
+  }
 }
 
 /** Loads the rest of the Recovery page without downloading the full history table. */
 export async function buildRecoveryPageContextFromSupabase(): Promise<CoachContext> {
   const loadRevision = coachContextRevision;
-  const [recentResult, durableResult, profileResult, raceResult, completedRaceResult] = await Promise.all([
-    loadHistoryItems(
-      ['sleep', 'workout', 'meal', 'pain', 'strength', 'sick'],
-      recoveryHistoryOptions(RECOVERY_SECONDARY_ROW_LIMIT),
-    ),
-    loadHistoryItems(['body', 'health_check'], { limit: 10 }),
-    loadProfileFromSupabase(),
-    loadActiveRaceGoalAndPlan(),
-    loadRaceResults(5),
-  ]);
-  const value = buildCoachContextFromData({
-    items: mergeHistoryItems(
-      recentResult.ok ? recentResult.items : [],
-      durableResult.ok ? durableResult.items : [],
-    ),
-    profile: profileResult.ok ? profileResult.profile ?? null : null,
-    raceGoal: raceResult.ok ? raceResult.goal : null,
-    racePlan: raceResult.ok ? raceResult.plan : null,
-    raceResults: completedRaceResult.ok ? completedRaceResult.results : [],
-  });
-  if (loadRevision === coachContextRevision) cachedCoachContext = { value, loadedAt: Date.now() };
-  return value;
+  try {
+    const [recentResult, durableResult, profileResult, raceResult, completedRaceResult] = await Promise.all([
+      loadHistoryItems(
+        ['sleep', 'workout', 'meal', 'pain', 'strength', 'sick'],
+        recoveryHistoryOptions(RECOVERY_SECONDARY_ROW_LIMIT),
+      ),
+      loadHistoryItems(['body', 'health_check'], { limit: 10 }),
+      loadProfileFromSupabase(),
+      loadActiveRaceGoalAndPlan(),
+      loadRaceResults(5),
+    ]);
+    const value = buildCoachContextFromData({
+      items: mergeHistoryItems(
+        recentResult.ok ? recentResult.items : [],
+        durableResult.ok ? durableResult.items : [],
+      ),
+      profile: profileResult.ok ? profileResult.profile ?? null : null,
+      raceGoal: raceResult.ok ? raceResult.goal : null,
+      racePlan: raceResult.ok ? raceResult.plan : null,
+      raceResults: completedRaceResult.ok ? completedRaceResult.results : [],
+    });
+    if (loadRevision === coachContextRevision) cachedCoachContext = { value, loadedAt: Date.now() };
+    return value;
+  } catch {
+    if (cachedCoachContext) return cachedCoachContext.value;
+    return buildCoachContextFromData({
+      items: [],
+      profile: null,
+      raceGoal: null,
+      racePlan: null,
+      raceResults: [],
+    });
+  }
 }
 
 async function loadCoachContextFromSupabase(): Promise<CoachContext> {
-  const [historyResult, profileResult, raceResult, completedRaceResult] = await Promise.all([
-    loadHistoryItems(['sleep', 'workout', 'body', 'meal', 'pain', 'strength', 'health_check', 'sick']),
-    loadProfileFromSupabase(),
-    loadActiveRaceGoalAndPlan(),
-    loadRaceResults(5),
-  ]);
+  try {
+    const [historyResult, profileResult, raceResult, completedRaceResult] = await Promise.all([
+      loadHistoryItems(['sleep', 'workout', 'body', 'meal', 'pain', 'strength', 'health_check', 'sick']),
+      loadProfileFromSupabase(),
+      loadActiveRaceGoalAndPlan(),
+      loadRaceResults(5),
+    ]);
 
-  return buildCoachContextFromData({
-    items: historyResult.ok ? historyResult.items : [],
-    profile: profileResult.ok ? profileResult.profile ?? null : null,
-    raceGoal: raceResult.ok ? raceResult.goal : null,
-    racePlan: raceResult.ok ? raceResult.plan : null,
-    raceResults: completedRaceResult.ok ? completedRaceResult.results : [],
-  });
+    return buildCoachContextFromData({
+      items: historyResult.ok ? historyResult.items : [],
+      profile: profileResult.ok ? profileResult.profile ?? null : null,
+      raceGoal: raceResult.ok ? raceResult.goal : null,
+      racePlan: raceResult.ok ? raceResult.plan : null,
+      raceResults: completedRaceResult.ok ? completedRaceResult.results : [],
+    });
+  } catch {
+    if (cachedCoachContext) return cachedCoachContext.value;
+    return buildCoachContextFromData({
+      items: [],
+      profile: null,
+      raceGoal: null,
+      racePlan: null,
+      raceResults: [],
+    });
+  }
 }
 
 function recoveryHistoryOptions(limit: number) {

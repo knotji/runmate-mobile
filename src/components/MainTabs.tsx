@@ -5,6 +5,7 @@ import RecoveryPage from '@/pages/RecoveryPage';
 import ActivityPage from '@/pages/ActivityPage';
 import UploadPage from '@/pages/UploadPage';
 import MorePage from '@/pages/MorePage';
+import { hapticSelection } from '@/lib/haptics';
 
 const MainTabs: React.FC = () => (
   <IonTabs>
@@ -17,10 +18,10 @@ const MainTabs: React.FC = () => (
       <Route exact path="/tabs"><Redirect to="/tabs/recovery" /></Route>
     </IonRouterOutlet>
     <IonTabBar slot="bottom" className="main-tab-bar">
-      <IonTabButton tab="recovery" href="/tabs/recovery"><IonIcon icon={pulseOutline} /><IonLabel>Recovery</IonLabel></IonTabButton>
-      <IonTabButton tab="upload" href="/tabs/upload"><IonIcon icon={addCircleOutline} /><IonLabel>Upload</IonLabel></IonTabButton>
-      <IonTabButton tab="activity" href="/tabs/activity"><IonIcon icon={todayOutline} /><IonLabel>Activity</IonLabel></IonTabButton>
-      <IonTabButton tab="more" href="/tabs/more"><IonIcon icon={ellipsisHorizontalCircleOutline} /><IonLabel>More</IonLabel></IonTabButton>
+      <IonTabButton tab="recovery" href="/tabs/recovery" onClick={() => void hapticSelection()}><IonIcon icon={pulseOutline} /><IonLabel>Recovery</IonLabel></IonTabButton>
+      <IonTabButton tab="upload" href="/tabs/upload" onClick={() => void hapticSelection()}><IonIcon icon={addCircleOutline} /><IonLabel>Upload</IonLabel></IonTabButton>
+      <IonTabButton tab="activity" href="/tabs/activity" onClick={() => void hapticSelection()}><IonIcon icon={todayOutline} /><IonLabel>Activity</IonLabel></IonTabButton>
+      <IonTabButton tab="more" href="/tabs/more" onClick={() => void hapticSelection()}><IonIcon icon={ellipsisHorizontalCircleOutline} /><IonLabel>More</IonLabel></IonTabButton>
     </IonTabBar>
   </IonTabs>
 );

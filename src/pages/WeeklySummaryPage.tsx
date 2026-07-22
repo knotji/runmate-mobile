@@ -13,6 +13,7 @@ import { buildTrainingAdherenceHistory, type TrainingAdherenceWeek } from '@/lib
 import { restingHeartRateBaseline } from '@/lib/hrZones';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { buildWorkoutLoadTrend } from '@/lib/workoutLoadTrend';
+import { calculateTrainingStressBalance } from '@/lib/trainingLoadAnalytics';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import './WeeklySummaryPage.css';
@@ -51,6 +52,12 @@ const WeeklySummaryPage: React.FC = () => {
     const restingHr = restingHeartRateBaseline(context.sleepHistory.slice(0, 14).map((night) => night.restingHR)) ?? finiteNumber(profile.normalRestingHr);
     return buildWorkoutLoadTrend({ items: workoutItems, todayDate: context.todayDate, maxHr, restingHr });
   }, [context, workoutItems]);
+
+  const tsbData = useMemo(() => {
+    if (!context) return null;
+    return calculateTrainingStressBalance(workoutItems, context.profile ?? null, context.todayDate);
+  }, [context, workoutItems]);
+
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(); event.detail.complete(); };
 
   return <IonPage>
@@ -93,6 +100,31 @@ const WeeklySummaryPage: React.FC = () => {
             <div className="weekly-load-context"><strong>{loadComparison(loadTrend.changePercentage)}</strong><span>{loadTrend.measuredSessions} Of {loadTrend.sessions} Sessions Included</span></div>
             <p className="weekly-data-note">Calculated only from sessions with at least 50% measured HR coverage. It does not change Recovery or your Training Plan.</p>
           </section>}
+
+          {tsbData && (
+            <section className="weekly-card weekly-tsb-card">
+              <div className="weekly-section-heading">
+                <div><p>Fitness Vs Fatigue</p><h2>Training Stress Balance</h2></div>
+                <IonIcon icon={pulseOutline} />
+              </div>
+              <div className="weekly-inline-stats">
+                <Metric value={String(tsbData.fatigue.ctl)} label="Fitness (42d CTL)" />
+                <Metric value={String(tsbData.fatigue.atl)} label="Fatigue (7d ATL)" />
+                <Metric value={`${tsbData.fatigue.tsb > 0 ? '+' : ''}${tsbData.fatigue.tsb}`} label="Stress Balance" />
+              </div>
+              <div className="weekly-load-context">
+                <strong>{tsbData.fatigue.label}</strong>
+              </div>
+              <p className="weekly-data-note">{tsbData.fatigue.summary}</p>
+
+              {tsbData.vo2Max.current != null && (
+                <div className="weekly-nutrition-line" style={{ marginTop: '12px' }}>
+                  <span>VO₂ Max Indicator</span>
+                  <strong>{tsbData.vo2Max.current} ml/kg/min ({tsbData.vo2Max.direction})</strong>
+                </div>
+              )}
+            </section>
+          )}
 
           {adherenceWeeks.some((week) => week.planAvailable) && <section className="weekly-card weekly-adherence" aria-labelledby="weekly-adherence-heading">
             <div className="weekly-section-heading"><div><p>Plan Follow-Through</p><h2 id="weekly-adherence-heading">Training Adherence</h2></div><IonIcon icon={checkmarkCircleOutline} /></div>

@@ -47,17 +47,35 @@ export function buildWorkoutDetail(item: LocalHistoryItem, physiology?: { maxHr?
       ['Summary', string(coach.workoutSummary)], ['Intensity', string(coach.intensityAssessment)], ['Training Load', string(coach.trainingLoadNote)],
       ['Recovery', string(coach.recoveryAdvice)], ['Nutrition', string(coach.nutritionAfterWorkout)], ['Next Workout', string(coach.nextWorkoutSuggestion)],
     ]);
-  const workoutStart = string(data.workoutStartTime);
-  const workoutEnd = string(data.workoutEndTime);
-  const heartRatePoints = Array.isArray(data.heartRateSamples)
-    ? data.heartRateSamples.map((value) => {
-      const point = record(value);
-      return { at: string(point.at), bpm: numeric(point.bpm) };
-    }).filter((point): point is HeartRatePoint => point.at !== null && point.bpm !== null)
+  const workoutStart = string(data.workoutStartTime) ?? string(extracted.workoutStartTime) ?? string(extracted.startDate) ?? string(data.startDate) ?? (item.createdAt ? `${item.createdAt}` : null);
+  const durationMin = numeric(extracted.durationMinutes) ?? numeric(extracted.durationMin) ?? numeric(data.durationMin) ?? 30;
+  const workoutEnd = string(data.workoutEndTime) ?? string(extracted.workoutEndTime) ?? string(extracted.endDate) ?? string(data.endDate) ?? (workoutStart ? new Date(Date.parse(workoutStart) + durationMin * 60000).toISOString() : null);
+
+  const rawHrSamples = Array.isArray(data.heartRateSamples) ? data.heartRateSamples
+    : Array.isArray(extracted.heartRateTimeline) ? extracted.heartRateTimeline
+    : Array.isArray(data.heartRateTimeline) ? data.heartRateTimeline
+    : Array.isArray(extracted.heartRateSamples) ? extracted.heartRateSamples
     : [];
-  const heartRateZones = workoutStart && workoutEnd && physiology?.maxHr && physiology.restingHr
-    ? calculateHeartRateZones({ points: heartRatePoints, workoutStart, workoutEnd, maxHr: physiology.maxHr, restingHr: physiology.restingHr })
+
+  const heartRatePoints = rawHrSamples.map((value) => {
+    const point = record(value);
+    const at = string(point.at) ?? string(point.startDate) ?? string(point.timestamp) ?? string(point.time);
+    const bpm = numeric(point.bpm) ?? numeric(point.value) ?? numeric(point.hr);
+    return { at, bpm };
+  }).filter((point): point is HeartRatePoint => point.at !== null && point.bpm !== null && point.bpm > 0);
+
+  const maxHr = physiology?.maxHr;
+  const restingHr = physiology?.restingHr;
+
+  const heartRateZones = workoutStart && workoutEnd && heartRatePoints.length >= 2 && maxHr && restingHr
+    ? calculateHeartRateZones({ points: heartRatePoints, workoutStart, workoutEnd, maxHr, restingHr })
     : null;
+
+  const summaryHr = {
+    avgHr: numeric(extracted.avgHR) ?? numeric(data.avgHR),
+    maxHr: numeric(extracted.maxHR) ?? numeric(data.maxHR),
+    hasSamples: heartRatePoints.length >= 2,
+  };
   const reconciledSources = Array.isArray((item as LocalHistoryItem & { reconciledSources?: string[] }).reconciledSources)
     ? (item as LocalHistoryItem & { reconciledSources: string[] }).reconciledSources
     : [];
@@ -76,6 +94,7 @@ export function buildWorkoutDetail(item: LocalHistoryItem, physiology?: { maxHr?
     exercises,
     insights,
     heartRateZones,
+    summaryHr,
     source,
     reliability: {
       status: reconciledSources.length > 1 ? 'Reconciled' : 'Single Source',

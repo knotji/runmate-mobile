@@ -53,11 +53,13 @@ export function buildSupportCards(context: CoachContext): SupportCard[] {
     title: staleSleep ? 'Sleep Data Is Out Of Date' : missingRecovery ? 'Recovery Is Still Calibrating' : missingMeal ? 'Meal Data Is Missing' : 'Recovery Data Is Current',
     summary: staleSleep
       ? 'Log or sync your latest sleep before treating Recovery as today\'s score.'
-      : missingRecovery
-        ? 'More trustworthy overnight data is needed before Recovery can be fully scored.'
-        : missingMeal
-          ? 'Log a meal to unlock today\'s nutrition guidance.'
-          : 'Today\'s Recovery is based on your latest available sleep and activity records.',
+      : recovery.scoreState === 'calibrating'
+        ? 'More baseline sleep records are needed before Recovery can be fully scored. Baseline calibration matures over 14 nights.'
+        : missingRecovery
+          ? 'More trustworthy overnight data is needed before Recovery can be fully scored.'
+          : missingMeal
+            ? 'Log a meal to unlock today\'s nutrition guidance.'
+            : 'Today\'s Recovery is based on your latest available sleep and activity records.',
   });
 
   return cards.slice(0, 3);

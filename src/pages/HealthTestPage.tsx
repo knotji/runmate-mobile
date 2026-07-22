@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
-import { IonBackButton, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar, useIonViewWillEnter } from '@ionic/react';
-import { barbellOutline, checkmarkCircleOutline, checkmarkOutline, cloudOfflineOutline, copyOutline, heartOutline, moonOutline, scaleOutline, settingsOutline, syncOutline } from 'ionicons/icons';
+import { IonBackButton, IonButtons, IonContent, IonHeader, IonPage, IonTitle, IonToolbar, useIonViewWillEnter } from '@ionic/react';
 import { Health } from '@capgo/capacitor-health';
 import type { HealthDataType, HealthSample, Workout } from '@capgo/capacitor-health';
 import { estimateSleepHeartRate, getSamsungSleepLastSyncedAt, selectLatestCanonicalSamsungSleepSample } from '@/lib/samsungSleepSync';
@@ -11,7 +10,7 @@ import { dedupeSleepItems } from '@/lib/sleepDedupe';
 import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
 import type { HealthSyncCounts } from '@/lib/healthSyncSummary';
 import type { LocalHistoryItem } from '@/lib/localHistory';
-import { getHealthSyncPerformanceComparison, getPerformanceDiagnosticSummaries, type HealthSyncPerformanceComparison, type PerformanceDiagnosticPhase, type PerformanceDiagnosticSummary } from '@/lib/performanceDiagnostics';
+import { getHealthSyncPerformanceComparison, getPerformanceDiagnosticSummaries, type HealthSyncPerformanceComparison, type PerformanceDiagnosticSummary } from '@/lib/performanceDiagnostics';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import {
   getBackgroundHealthStatus,
@@ -22,37 +21,20 @@ import {
   setBackgroundHealthEnabled,
   type BackgroundHealthStatus,
 } from '@/lib/backgroundHealth';
+import { HealthSyncStatusCard, type ConnectionState, type SyncSummary } from '@/components/health/HealthSyncStatusCard';
+import { BackgroundSyncSettings } from '@/components/health/BackgroundSyncSettings';
+import { HealthSyncPerformanceCard } from '@/components/health/HealthSyncPerformanceCard';
+import { HealthDiagnosticsPanel, type LogEntry } from '@/components/health/HealthDiagnosticsPanel';
 import './HealthTestPage.css';
-
-type LogEntry = { label: string; result: unknown; error?: string; at: string };
 
 const READ_TYPES: HealthDataType[] = ['steps', 'distance', 'calories', 'sleep', 'heartRate', 'restingHeartRate', 'heartRateVariability', 'respiratoryRate', 'oxygenSaturation', 'vo2Max', 'weight', 'workouts'];
 const PRODUCT_READ_TYPES: HealthDataType[] = ['sleep', 'heartRateVariability', 'restingHeartRate', 'respiratoryRate', 'workouts', 'heartRate', 'distance', 'calories', 'vo2Max', 'weight'];
 const VITAL_TYPES: HealthDataType[] = ['heartRate', 'heartRateVariability', 'restingHeartRate', 'respiratoryRate', 'oxygenSaturation'];
 
-type ConnectionState = {
-  available: boolean;
-  sleepAuthorized: boolean;
-  workoutsAuthorized: boolean;
-  recoverySignalsAuthorized: boolean;
-  weightAuthorized: boolean;
-  lastSyncedAt: string | null;
-};
-
-type SyncSummary = HealthSyncCounts & { reconciled: number; completedAt: string };
-
 function daysAgo(days: number): string {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 }
 
-/**
- * Midnight in Bangkok (UTC+7, no DST) N days ago, as a UTC ISO instant.
- * queryAggregated's 'day' buckets are 24h windows starting exactly at the given
- * startDate — they are NOT snapped to local midnight. Using daysAgo() (now - N days)
- * offsets every bucket by the current time-of-day, mixing two calendar days per
- * bucket and producing totals that don't match what Samsung Health / RunMate's
- * Bangkok-dateKey model consider "one day".
- */
 function bangkokMidnightDaysAgo(days: number): string {
   const bangkokNow = new Date(Date.now() + 7 * 60 * 60 * 1000);
   const bangkokMidnightAsUtcFields = Date.UTC(bangkokNow.getUTCFullYear(), bangkokNow.getUTCMonth(), bangkokNow.getUTCDate() - days);
@@ -70,7 +52,6 @@ type DerivedWorkout = Workout & {
   };
 };
 
-/** True when a sample's start falls within [workoutStart, workoutEnd] (inclusive). */
 function sampleWithinWorkout(sampleStartIso: string, workoutStartIso: string, workoutEndIso: string): boolean {
   const sampleMs = Date.parse(sampleStartIso);
   return sampleMs >= Date.parse(workoutStartIso) && sampleMs <= Date.parse(workoutEndIso);
@@ -94,14 +75,6 @@ function deriveWorkoutMetrics(workout: Workout, heartRate: HealthSample[], dista
   };
 }
 
-/**
- * One-shot snapshot combining everything the mapping-into-history_items work will need,
- * so the app doesn't need a rebuild per data type while iterating on the integration design:
- * - 7d Bangkok-aligned steps totals, sleep, restingHR/HRV/SpO2 baselines
- * - Today's workouts, each enriched with maxHR/avgHR/minHR (derived from heartRate samples
- *   overlapping the workout's time range, since queryWorkouts() doesn't return HR itself)
- *   and distance/calories summed the same way.
- */
 async function buildIntegrationSnapshot() {
   const weekAgo = bangkokMidnightDaysAgo(7);
   const todayStart = bangkokMidnightDaysAgo(0);
@@ -123,10 +96,6 @@ async function buildIntegrationSnapshot() {
     deriveWorkoutMetrics(workout, heartRateToday.samples, distanceToday.samples, caloriesToday.samples),
   );
 
-  // sleep7d's per-minute `stages` arrays were already verified in an earlier round and are
-  // large enough to blow past the clipboard/paste size this gets copied into, crowding out
-  // workoutsToday (the thing this snapshot exists to check). Keep only night-level summary
-  // fields here; drop stage-by-stage detail from this particular output.
   const sleep7dSummary = sleep.samples.map((sample) => ({
     startDate: sample.startDate,
     endDate: sample.endDate,
@@ -138,8 +107,6 @@ async function buildIntegrationSnapshot() {
   }));
 
   return {
-    // workoutsToday first: if this payload gets truncated when copy-pasted, the part we're
-    // actually iterating on survives instead of getting cut off by the bulkier 7d sections.
     workoutsToday: workoutsWithDerivedMetrics,
     stepsAggregated7d: stepsAggregated.samples,
     restingHeartRate7d: restingHeartRate.samples,
@@ -178,11 +145,6 @@ async function readVitalSamples(dataType: HealthDataType, startDate: string, end
   }
 }
 
-/**
- * Diagnostic snapshot for the signals used by Recovery. Generic heart-rate
- * samples are intentionally limited to the latest Sleep Window so the output
- * remains copyable while still proving whether overnight HR is available.
- */
 async function buildVitalsDiagnostic() {
   const sevenDaysAgo = daysAgo(7);
   const now = new Date().toISOString();
@@ -392,6 +354,9 @@ const HealthTestPage: React.FC = () => {
   };
 
   const readChecks: Array<{ label: string; title: string; action: () => Promise<unknown> }> = [
+    { label: 'isAvailable', title: 'Check Availability', action: () => Health.isAvailable() },
+    { label: 'requestAuthorization', title: 'Request Authorization', action: () => Health.requestAuthorization({ read: READ_TYPES, requestHistoryAccess: true }) },
+    { label: 'checkAuthorization', title: 'Check Authorization', action: () => Health.checkAuthorization({ read: READ_TYPES }) },
     { label: 'queryVitals (latest sleep HR + 7d recovery signals)', title: 'Query Vitals', action: () => buildVitalsDiagnostic() },
     { label: 'aggregated: steps (7d, daily, Bangkok-aligned)', title: 'Read Steps Aggregated (7d, Bangkok-aligned)', action: () => Health.queryAggregated({ dataType: 'steps', startDate: bangkokMidnightDaysAgo(7), bucket: 'day', aggregation: 'sum' }) },
     { label: 'read: sleep (7d)', title: 'Read Sleep (7d)', action: () => Health.readSamples({ dataType: 'sleep', startDate: daysAgo(7), limit: 50 }) },
@@ -481,267 +446,63 @@ const HealthTestPage: React.FC = () => {
           </header>
 
           {connectionBusy === 'status' && !connection ? <PageDataSkeleton variant="health" label="Checking Health Connect" /> : <>
-          <section className={`health-connect-status ${connection?.sleepAuthorized ? 'is-connected' : ''}`}>
-            <div className="health-connect-status-icon">
-              {connectionBusy === 'status' ? <IonSpinner name="crescent" /> : <IonIcon icon={connection?.sleepAuthorized ? checkmarkCircleOutline : cloudOfflineOutline} />}
-            </div>
-            <div>
-              <span>Connection Status</span>
-              <h2>{connectionBusy === 'status' ? 'Checking Health Connect…' : connection?.sleepAuthorized ? 'Connected' : connection?.available ? 'Ready To Connect' : 'Unavailable'}</h2>
-              <p>{connection?.sleepAuthorized ? 'Samsung Health Sleep and Workouts can sync securely to RunMate.' : connection?.available ? 'Connect to start importing Samsung Health data.' : 'Health Connect is available on supported Android devices.'}</p>
-            </div>
-          </section>
+            <HealthSyncStatusCard
+              connection={connection}
+              connectionBusy={connectionBusy}
+              connectionMessage={connectionMessage}
+              syncSummary={syncSummary}
+              onConnect={() => void connect()}
+              onSyncNow={() => void syncNow()}
+              onManagePermissions={() => void managePermissions()}
+              onRepairWorkouts={() => void repairWorkouts()}
+              formatLastSynced={formatLastSynced}
+              formatSyncTime={formatSyncTime}
+            />
 
-          <section className="health-connect-section" aria-labelledby="health-access-heading">
-            <div className="health-connect-section-heading"><p>Data Access</p><h2 id="health-access-heading">Permissions</h2></div>
-            <div className="health-permission-list">
-              <PermissionRow icon={moonOutline} title="Sleep" detail="Duration, schedule, and Sleep Stages" authorized={connection?.sleepAuthorized === true} note="Automatic Sync" />
-              <PermissionRow icon={heartOutline} title="Recovery Signals" detail="HRV, Resting HR, and Respiratory Rate" authorized={connection?.recoverySignalsAuthorized === true} note="Matched To Your Sleep Window" />
-              <PermissionRow icon={barbellOutline} title="Workout" detail="Sessions, Pace, Heart Rate, and VO2 Max" authorized={connection?.workoutsAuthorized === true} note="Automatic Sync" />
-              <PermissionRow icon={scaleOutline} title="Body Weight" detail="Latest Samsung Health measurement" authorized={connection?.weightAuthorized === true} note="Profile Sync" />
-            </div>
-          </section>
+            <BackgroundSyncSettings
+              backgroundStatus={backgroundStatus}
+              backgroundBusy={backgroundBusy}
+              backgroundTesting={backgroundTesting}
+              onToggle={() => void toggleBackgroundSync()}
+              onTest={() => void testBackgroundPreparation()}
+              formatLastSynced={formatLastSynced}
+              formatNextExpected={formatNextExpected}
+            />
 
-          <section className="health-connect-sync-card">
-            <div><span>Last Synced</span><strong>{formatLastSynced(connection?.lastSyncedAt ?? null)}</strong></div>
-            <p>Recovery and Activity check today automatically. Sync Now checks the last 30 days.</p>
-          </section>
+            <p className="health-connect-source-note">
+              RunMate imports records shared by Samsung Health through Health Connect. A workout visible in Samsung Health may not appear here if Samsung Health has not shared that record.
+            </p>
 
-          {backgroundStatus && (
-            <section className="health-background-card" aria-labelledby="background-health-heading">
-              <header>
-                <div><span>Automatic Preparation</span><h2 id="background-health-heading">Prepare Health Data In Background</h2></div>
-                <strong className={backgroundStatus.enabled && backgroundStatus.authorized ? 'is-on' : ''}>
-                  {!backgroundStatus.available ? 'Unavailable' : backgroundStatus.enabled && backgroundStatus.authorized ? 'On' : 'Off'}
-                </strong>
-              </header>
-              <p>Android prepares a small 36-hour Health Connect snapshot while RunMate is closed. Timing is approximate; account reconciliation still completes when RunMate opens.</p>
-              <div className="health-background-schedule">
-                <div><span>Last Prepared</span><b>{formatLastSynced(backgroundStatus.preparedAt)}</b></div>
-                <div><span>Next Expected Run</span><b>{formatNextExpected(backgroundStatus)}</b></div>
+            <details className="health-developer-details">
+              <summary>Developer Details</summary>
+              <div className="health-developer-body">
+                <HealthSyncPerformanceCard
+                  performanceSummaries={performanceSummaries}
+                  healthSyncComparison={healthSyncComparison}
+                  copiedEntry={copiedEntry}
+                  onCopyPerformanceDiagnostics={() => void copyPerformanceDiagnostics()}
+                  formatDiagnosticDuration={formatDiagnosticDuration}
+                />
+
+                <HealthDiagnosticsPanel
+                  busy={busy}
+                  logs={logs}
+                  readChecks={readChecks}
+                  copiedEntry={copiedEntry}
+                  copyError={copyError}
+                  onRun={(label, action) => void run(label, action)}
+                  onRunAll={() => void runAll()}
+                  onCopyResult={(entry, key) => void copyResult(entry, key)}
+                  onCopyAllResults={() => void copyAllResults()}
+                />
               </div>
-              <div className="health-background-counts" aria-label="Prepared Health Connect record counts">
-                <BackgroundCount label="Sleep" value={backgroundStatus.recordCounts.sleep} />
-                <BackgroundCount label="Workouts" value={backgroundStatus.recordCounts.workouts} />
-                <BackgroundCount label="HR Samples" value={backgroundStatus.recordCounts.heartRate} />
-              </div>
-              {describeBackgroundHealthIssue(backgroundStatus) && <small role="status">{describeBackgroundHealthIssue(backgroundStatus)}</small>}
-              {backgroundStatus.batteryOptimizationActive && backgroundStatus.enabled && !backgroundStatus.backgroundRestricted && (
-                <small>Battery optimization is active. Android may run preparation later than the expected time.</small>
-              )}
-              <IonButton expand="block" fill={backgroundStatus.enabled ? 'outline' : 'solid'} disabled={backgroundBusy || !backgroundStatus.available} onClick={() => void toggleBackgroundSync()}>
-                {backgroundBusy ? <IonSpinner name="crescent" /> : backgroundStatus.enabled ? 'Turn Off Background Preparation' : 'Enable Background Preparation'}
-              </IonButton>
-              {backgroundStatus.enabled && backgroundStatus.authorized && (
-                <IonButton expand="block" fill="outline" disabled={backgroundBusy || backgroundTesting} onClick={() => void testBackgroundPreparation()}>
-                  {backgroundTesting ? <IonSpinner name="crescent" /> : <><IonIcon slot="start" icon={syncOutline} />Run Background Test</>}
-                </IonButton>
-              )}
-              <small>After a force-stop, Android will not restart background work until RunMate is opened again.</small>
-            </section>
-          )}
-
-          <p className="health-connect-source-note">
-            RunMate imports records shared by Samsung Health through Health Connect. A workout visible in Samsung Health may not appear here if Samsung Health has not shared that record.
-          </p>
-
-          {connectionMessage && <p className="health-connect-message" role="status">{connectionMessage}</p>}
-
-          {syncSummary && (
-            <section className="health-sync-summary" aria-labelledby="health-sync-summary-heading" role="status">
-              <header>
-                <div><span>Latest Sync</span><h2 id="health-sync-summary-heading">Your Health Data Is Up To Date</h2></div>
-                <small>{formatSyncTime(syncSummary.completedAt)}</small>
-              </header>
-              <div className="health-sync-summary-grid">
-                <SyncMetric label="Added" value={syncSummary.added} tone="added" />
-                <SyncMetric label="Updated" value={syncSummary.updated} tone="updated" />
-                <SyncMetric label="Reconciled" value={syncSummary.reconciled} tone="reconciled" />
-                <SyncMetric label="Unchanged" value={syncSummary.unchanged} />
-                <SyncMetric label="Failed" value={syncSummary.failed} tone={syncSummary.failed ? 'failed' : undefined} />
-              </div>
-              <p>Reconciled records combine Samsung Health measurements with details from an existing upload.</p>
-            </section>
-          )}
-
-          <section className="health-connect-primary-actions">
-            {(!connection?.sleepAuthorized || !connection?.recoverySignalsAuthorized || !connection?.workoutsAuthorized || !connection?.weightAuthorized) && (
-              <IonButton expand="block" disabled={connectionBusy !== null || connection?.available === false} onClick={() => void connect()}>
-                {connectionBusy === 'connect' ? <IonSpinner name="crescent" /> : connection?.sleepAuthorized ? 'Update Access' : 'Connect'}
-              </IonButton>
-            )}
-            <IonButton expand="block" disabled={connectionBusy !== null || !connection?.sleepAuthorized} onClick={() => void syncNow()}>
-              {connectionBusy === 'sync' ? <IonSpinner name="crescent" /> : <><IonIcon slot="start" icon={syncOutline} />Sync Now</>}
-            </IonButton>
-            <IonButton expand="block" fill="outline" disabled={connectionBusy !== null || connection?.available === false} onClick={() => void managePermissions()}>
-              {connectionBusy === 'settings' ? <IonSpinner name="crescent" /> : <><IonIcon slot="start" icon={settingsOutline} />Manage Permissions</>}
-            </IonButton>
-          </section>
-
-          <details className="health-sync-tools">
-            <summary>Sync Tools</summary>
-            <div className="health-repair-action">
-              <IonButton expand="block" fill="outline" disabled={connectionBusy !== null || !connection?.workoutsAuthorized} onClick={() => void repairWorkouts()}>
-                {connectionBusy === 'repair' ? <IonSpinner name="crescent" /> : <><IonIcon slot="start" icon={syncOutline} />Repair Last 30 Days</>}
-              </IonButton>
-              <p>Re-read workout sessions and heart rate samples when older details are incomplete.</p>
-            </div>
-          </details>
-
-          <details className="health-developer-details">
-            <summary>Developer Details</summary>
-            <div className="health-developer-body">
-          <section className="health-performance-diagnostics" aria-labelledby="performance-diagnostics-heading">
-            <header>
-              <div><span>Recovery And Activity</span><h2 id="performance-diagnostics-heading">Page Performance Diagnostics</h2></div>
-              {performanceSummaries.length > 0 && (
-                <button type="button" className={copiedEntry === '__performance__' ? 'health-copy-button copied' : 'health-copy-button'} onClick={() => void copyPerformanceDiagnostics()}>
-                  <IonIcon icon={copiedEntry === '__performance__' ? checkmarkOutline : copyOutline} />{copiedEntry === '__performance__' ? 'Copied' : 'Copy'}
-                </button>
-              )}
-            </header>
-            {performanceSummaries.length === 0 ? (
-              <p>Open Recovery and Activity once to record Sync and page-loading timings.</p>
-            ) : (
-              <div className="health-performance-list">
-                {performanceSummaries.map((summary) => (
-                  <PerformanceTimingRow summary={summary} key={summary.phase} />
-                ))}
-              </div>
-            )}
-            {healthSyncComparison.length > 0 && (
-              <div className="health-sync-comparison">
-                <span>Recovery Startup Health Read</span>
-                <div>
-                  {healthSyncComparison.map((item) => (
-                    <div key={item.variant}>
-                      <b>{healthSyncVariantLabel(item.variant)}</b>
-                      <strong>{formatDiagnosticDuration(item.averageMs)}</strong>
-                      <small>{item.sampleCount} sample{item.sampleCount === 1 ? '' : 's'}</small>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            <small>Latest duration and average of up to five runs. Timings stay on this device.</small>
-          </section>
-          <p className="health-test-note">
-            Raw Health Connect inspection tools. These results are for diagnostics and are not shown in the normal RunMate experience.
-          </p>
-
-          <section className="health-test-actions">
-            <IonButton expand="block" fill="outline" disabled={busy !== null} onClick={() => void run('isAvailable', () => Health.isAvailable())}>
-              {busy === 'isAvailable' ? <IonSpinner name="crescent" /> : 'Check Availability'}
-            </IonButton>
-            <IonButton expand="block" disabled={busy !== null} onClick={() => void run('requestAuthorization', () => Health.requestAuthorization({ read: READ_TYPES, requestHistoryAccess: true }))}>
-              {busy === 'requestAuthorization' ? <IonSpinner name="crescent" /> : 'Request Authorization'}
-            </IonButton>
-            <IonButton expand="block" fill="outline" disabled={busy !== null} onClick={() => void run('checkAuthorization', () => Health.checkAuthorization({ read: READ_TYPES }))}>
-              {busy === 'checkAuthorization' ? <IonSpinner name="crescent" /> : 'Check Authorization'}
-            </IonButton>
-
-            <div className="health-test-divider" />
-
-            <IonButton expand="block" color="success" disabled={busy !== null} onClick={() => void runAll()}>
-              {busy !== null && readChecks.some((check) => check.label === busy) ? <IonSpinner name="crescent" /> : 'Run All Checks'}
-            </IonButton>
-
-            <div className="health-test-divider" />
-
-            {readChecks.map((check) => (
-              <IonButton expand="block" fill="outline" disabled={busy !== null} onClick={() => void run(check.label, check.action)} key={check.label}>
-                {busy === check.label ? <IonSpinner name="crescent" /> : check.title}
-              </IonButton>
-            ))}
-          </section>
-
-          <section className="health-test-log">
-            {logs.length === 0 && <p className="health-test-empty">Results will appear here.</p>}
-            {logs.length > 0 && (
-              <button type="button" className={copiedEntry === '__all__' ? 'health-copy-button copied' : 'health-copy-button'} onClick={() => void copyAllResults()}>
-                <IonIcon icon={copiedEntry === '__all__' ? checkmarkOutline : copyOutline} />{copiedEntry === '__all__' ? 'Copied All' : 'Copy All Results'}
-              </button>
-            )}
-            {copyError && <p className="health-test-copy-error" role="alert">{copyError}</p>}
-            {logs.map((entry, index) => {
-              const entryKey = `${entry.label}-${entry.at}-${index}`;
-              const copied = copiedEntry === entryKey;
-              return (
-              <article className="health-test-entry" key={entryKey}>
-                <header>
-                  <div><strong>{entry.label}</strong><span>{entry.at}</span></div>
-                  <button type="button" className={copied ? 'health-copy-button copied' : 'health-copy-button'} onClick={() => void copyResult(entry, entryKey)} aria-label={`Copy ${entry.label} Result`}>
-                    <IonIcon icon={copied ? checkmarkOutline : copyOutline} />{copied ? 'Copied' : 'Copy'}
-                  </button>
-                </header>
-                {entry.error ? <p className="health-test-error">{entry.error}</p> : <pre>{JSON.stringify(entry.result, null, 2)}</pre>}
-              </article>
-              );
-            })}
-          </section>
-            </div>
-          </details>
+            </details>
           </>}
         </main>
       </IonContent>
     </IonPage>
   );
 };
-
-function PermissionRow({ icon, title, detail, authorized, note }: { icon: string; title: string; detail: string; authorized: boolean; note: string }) {
-  return (
-    <div className="health-permission-row">
-      <div className="health-permission-icon"><IonIcon icon={icon} /></div>
-      <div><strong>{title}</strong><span>{detail}</span><small>{note}</small></div>
-      <span className={authorized ? 'health-permission-badge granted' : 'health-permission-badge'}>{authorized ? 'Allowed' : 'Not Allowed'}</span>
-    </div>
-  );
-}
-
-function SyncMetric({ label, value, tone }: { label: string; value: number; tone?: string }) {
-  return <div className={`health-sync-metric${tone ? ` health-sync-metric-${tone}` : ''}`}><strong>{value}</strong><span>{label}</span></div>;
-}
-
-function BackgroundCount({ label, value }: { label: string; value: number }) {
-  return <div><strong>{value}</strong><span>{label}</span></div>;
-}
-
-function PerformanceTimingRow({ summary }: { summary: PerformanceDiagnosticSummary }) {
-  return (
-    <div className="health-performance-row">
-      <div>
-        <strong>{performancePhaseLabel(summary.phase)}</strong>
-        <span>{summary.latest.detail ?? performanceStatusLabel(summary.latest.status)}</span>
-      </div>
-      <div>
-        <strong>{formatDiagnosticDuration(summary.latest.durationMs)}</strong>
-        <span>{summary.sampleCount > 1 ? `${formatDiagnosticDuration(summary.averageMs)} avg` : 'First sample'}</span>
-      </div>
-    </div>
-  );
-}
-
-function performancePhaseLabel(phase: PerformanceDiagnosticPhase): string {
-  if (phase === 'health_sync') return 'Health Sync';
-  if (phase === 'recovery_core') return 'Recovery Core';
-  if (phase === 'recovery_secondary') return 'Secondary Content';
-  if (phase === 'activity_health_sync') return 'Activity Health Sync';
-  if (phase === 'activity_records') return 'Activity Records';
-  if (phase === 'activity_archive') return 'Activity Archive';
-  return 'Nutrition Summary';
-}
-
-function performanceStatusLabel(status: PerformanceDiagnosticSummary['latest']['status']): string {
-  if (status === 'failed') return 'Failed';
-  if (status === 'skipped') return 'Skipped';
-  return 'Completed';
-}
-
-function healthSyncVariantLabel(variant: HealthSyncPerformanceComparison['variant']): string {
-  if (variant === 'prepared') return 'Prepared Snapshot';
-  if (variant === 'mixed') return 'Snapshot + Live';
-  return 'Live Health Connect';
-}
 
 function formatDiagnosticDuration(milliseconds: number): string {
   return milliseconds < 1000 ? `${milliseconds} ms` : `${(milliseconds / 1000).toFixed(milliseconds < 10_000 ? 1 : 0)} s`;

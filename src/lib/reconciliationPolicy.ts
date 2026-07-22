@@ -70,3 +70,32 @@ function sameValue(a: unknown, b: unknown): boolean {
 function record(value: unknown): Record<string, unknown> {
   return typeof value === 'object' && value !== null ? value as Record<string, unknown> : {};
 }
+
+export function isReconciliationPermissionError(error: unknown): boolean {
+  if (!error) return false;
+  const message = error instanceof Error ? error.message : String(error);
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('permission') ||
+    lower.includes('denied') ||
+    lower.includes('not authorized') ||
+    lower.includes('unauthorized') ||
+    lower.includes('read_health_data') ||
+    lower.includes('security')
+  );
+}
+
+export function formatReconciliationSyncError(error: unknown, defaultMessage = 'Synchronization failed'): string {
+  if (!error) return defaultMessage;
+  if (isReconciliationPermissionError(error)) {
+    return 'Health Connect permission is required. Please grant access in Settings.';
+  }
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+  if (typeof error === 'string' && error.trim()) {
+    return error;
+  }
+  return defaultMessage;
+}
+

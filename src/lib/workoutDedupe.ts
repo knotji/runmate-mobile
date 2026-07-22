@@ -46,11 +46,16 @@ function mergeGroup(group: LocalHistoryItem[]): MergedWorkoutItem {
   const coachSource = [...group].sort((a, b) => coachScore(b) - coachScore(a))[0];
   const sourceSet = new Set(group.map(sourceLabel));
   const reconciledSources = ['Samsung Health', 'Strava', 'Structured Import', 'Upload'].filter((source) => sourceSet.has(source));
+  const heartRateSamples = group
+    .map((item) => record(item.data).heartRateSamples)
+    .find((samples) => Array.isArray(samples) && samples.length > 0) ?? record(primary.data).heartRateSamples;
+
   return {
     ...primary,
     data: {
       ...record(primary.data),
       extracted: mergedExtracted,
+      heartRateSamples,
       coach: record(coachSource.data).coach ?? record(primary.data).coach,
       reconciliation: { canonical: true, sources: reconciledSources, fieldSources, sourceRecordIds: group.map((item) => item.id) },
     },

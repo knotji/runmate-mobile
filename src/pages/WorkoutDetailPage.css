@@ -58,6 +58,11 @@
 .workout-zone > span { width: 28px; height: 28px; border-radius: 9px; font-size: 8px; }
 .workout-zone > div strong { font-size: 10px; line-height: 1.25; }
 .workout-zone > div small,.workout-zone > b small { font-size: 8px; }
+
+.workout-zone-card.workout-zone-empty { padding: 16px; background: #fafcfe; border-color: #e2ecf5; }
+.workout-zone-empty-note strong { display: block; color: #1e3a58; font-size: 11.5px; font-weight: 750; margin-bottom: 4px; }
+.workout-zone-empty-note span { display: block; color: #62788e; font-size: 10px; line-height: 1.55; }
+
 .workout-zone > b { font-size: 10px; }
 .workout-zone.is-empty { opacity: .45; }
 .workout-zone.is-empty > div i { width: 0 !important; }

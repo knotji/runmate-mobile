@@ -6,6 +6,7 @@ import { classifyHealthSyncItems, selectChangedHealthSyncItems, type HealthSyncC
 import { getBangkokDateKey, todayBangkokDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { acknowledgeBackgroundHealthRecords, backgroundHealthRecordKey, getFreshPreparedHealthSnapshot, type PreparedHealthSnapshot } from '@/lib/backgroundHealth';
+import { formatReconciliationSyncError, isReconciliationPermissionError } from '@/lib/reconciliationPolicy';
 
 const SAMSUNG_HEALTH_SOURCE_ID = 'com.sec.android.app.shealth';
 const DEFAULT_LOOKBACK_DAYS = 30;
@@ -115,11 +116,12 @@ async function runSamsungSleepSync(lookbackDays: number | 'today'): Promise<Sams
     await acknowledgeBackgroundHealthRecords({ sleepKeys: samsungSamples.map(backgroundHealthRecordKey) });
     return { status: 'synced', imported: items.length, dataSource, ...counts };
   } catch (error) {
+    const isPermissionError = isReconciliationPermissionError(error);
     return {
-      status: 'unavailable',
+      status: isPermissionError ? 'permission_required' : 'unavailable',
       dataSource,
       imported: 0, added: 0, updated: 0, unchanged: 0, failed: 0,
-      error: error instanceof Error ? error.message : 'Samsung Health sleep sync failed.',
+      error: formatReconciliationSyncError(error, 'Samsung Health sleep sync failed.'),
     };
   }
 }

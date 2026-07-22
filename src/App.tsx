@@ -14,6 +14,7 @@ import { invalidateCoachContextCache } from '@/lib/coachContextService';
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { AppBootScreen } from '@/components/AppBootScreen';
 import { RouteLoadingScreen } from '@/components/RouteLoadingScreen';
+import { NetworkStatusToast } from '@/components/NetworkStatusToast';
 import { loadMorePage } from '@/lib/morePageLoaders';
 import { notificationRouteFromUrl } from '@/lib/nativeNavigation';
 import { clearRecoveryStartupSnapshot } from '@/lib/recoveryStartupCache';
@@ -112,6 +113,7 @@ const App: React.FC = () => {
   return (
     <IonApp>
       <AppErrorBoundary>
+      <NetworkStatusToast />
       {checkingSession && <AppBootScreen message="Checking Your Account" />}
       {!checkingSession && (
         <IonReactRouter>

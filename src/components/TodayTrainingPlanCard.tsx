@@ -43,7 +43,10 @@ export function TodayTrainingPlanCard({ context }: { context: CoachContext }) {
             {metrics.length > 0 && <p className="plan-metrics-line">{metrics.join(' · ')}</p>}
             {recommendation && <div className="adaptive-guidance">
               <p><strong>{recommendation.headline}</strong>{recommendation.summary}</p>
-              {recommendation.action !== 'keep' && <p className="adaptive-original-plan">Original Plan: {planned.workoutType}</p>}
+              {recommendation.action !== 'keep' && <div className="adaptive-review-box">
+                <p className="adaptive-original-plan">Original Plan: {planned.workoutType}</p>
+                <p className="adaptive-suggested-plan">Suggested Adjustment: {recommendation.suggestedWorkout.workoutType}</p>
+              </div>}
               {recommendation.reasons.length > 0 && <ul>{recommendation.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>}
             </div>}
           </>

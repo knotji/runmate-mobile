@@ -64,7 +64,7 @@ const WorkoutDetailPage: React.FC = () => {
                 {detail.intensity && <strong>{detail.intensity}</strong>}
               </section>
 
-              {detail.heartRateZones && (
+              {detail.heartRateZones ? (
                 <section className="workout-detail-section">
                   <header><p>Heart Rate Reserve</p><h2>Heart Rate Zones</h2></header>
                   <div className="workout-zone-card">
@@ -77,6 +77,20 @@ const WorkoutDetailPage: React.FC = () => {
                       {[...detail.heartRateZones.zones].reverse().map((zone) => <div key={zone.zone} className={`workout-zone workout-zone-${zone.zone}${zone.seconds === 0 ? ' is-empty' : ''}`}><span>Z{zone.zone}</span><div><strong>{zone.label}</strong><small>{zoneRange(zone.lowerBpm, zone.upperBpm)}</small><i style={{ width: `${zone.percentage}%` }} /></div><b>{formatZoneDuration(zone.seconds)}<small>{zone.percentage}%</small></b></div>)}
                     </div>
                     <p className="workout-zone-note"><strong>Estimated With HRR</strong><span>Max HR {detail.heartRateZones.maxHr} · Resting HR {detail.heartRateZones.restingHr} · Gaps excluded</span></p>
+                  </div>
+                </section>
+              ) : (
+                <section className="workout-detail-section">
+                  <header><p>Heart Rate Reserve</p><h2>Heart Rate Zones</h2></header>
+                  <div className="workout-zone-card workout-zone-empty">
+                    <p className="workout-zone-empty-note">
+                      <strong>{detail.summaryHr.avgHr || detail.summaryHr.maxHr ? 'Continuous HR Timeline Needed' : 'No HR Data Recorded'}</strong>
+                      <span>
+                        {detail.summaryHr.avgHr || detail.summaryHr.maxHr
+                          ? `This session has summary HR (${detail.summaryHr.avgHr ? `Avg ${detail.summaryHr.avgHr} bpm` : ''}${detail.summaryHr.maxHr ? ` · Max ${detail.summaryHr.maxHr} bpm` : ''}) but no minute-by-minute heart rate timeline was recorded by your smartwatch.`
+                          : 'No heart rate measurements were synced or recorded for this workout session.'}
+                      </span>
+                    </p>
                   </div>
                 </section>
               )}
