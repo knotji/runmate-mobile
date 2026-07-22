@@ -5,6 +5,7 @@ import { loadHistoryItems, saveHistoryItems } from '@/lib/cloudHistory';
 import { classifyHealthSyncItems, selectChangedHealthSyncItems, type HealthSyncCounts } from '@/lib/healthSyncSummary';
 import { getBangkokDateKey, todayBangkokDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
+import { getFreshPreparedHealthSnapshot, type PreparedHealthSnapshot } from '@/lib/backgroundHealth';
 
 const SAMSUNG_HEALTH_SOURCE_ID = 'com.sec.android.app.shealth';
 const DEFAULT_LOOKBACK_DAYS = 30;
@@ -68,21 +69,23 @@ async function runSamsungSleepSync(lookbackDays: number | 'today'): Promise<Sams
     const startDate = todayOnly
       ? new Date(Date.parse(`${today}T00:00:00+07:00`) - 12 * 60 * 60_000).toISOString()
       : new Date(Date.now() - Math.max(1, lookbackDays) * 86_400_000).toISOString();
-    const result = await Health.readSamples({
-      dataType: 'sleep',
-      startDate,
-      endDate,
-      ascending: true,
-      limit: 100,
-    });
-    const signals = await readAuthorizedSignals(authorization.readAuthorized, startDate, endDate);
+    const prepared = todayOnly ? await getFreshPreparedHealthSnapshot() : null;
+    const preparedSleep = prepared?.sleep?.samples.filter((sample) => getBangkokDateKey(sample.endDate) === today) ?? [];
+    const usePrepared = preparedSleep.length > 0;
+    const result = usePrepared
+      ? { samples: preparedSleep }
+      : await Health.readSamples({ dataType: 'sleep', startDate, endDate, ascending: true, limit: 100 });
+    const signals = await readAuthorizedSignals(authorization.readAuthorized, startDate, endDate, usePrepared ? prepared : null);
     const samsungSamples = result.samples.filter((sample) => sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID);
     const mappedItems: Array<LocalHistoryItem | null> = [];
     // Query high-volume HR records per Sleep Window. A single 30-day read can
     // exceed Health Connect's page limit and silently omit the latest nights.
     for (let index = 0; index < samsungSamples.length; index += 4) {
       const batch = await Promise.all(samsungSamples.slice(index, index + 4).map(async (sample) => {
-        const heartRate = await readSleepHeartRate(authorization.readAuthorized, sample);
+        const heartRate = usePrepared
+          ? inSleepWindow(prepared?.heartRate?.samples ?? [], Date.parse(sample.startDate), Date.parse(sample.endDate))
+              .filter((point) => point.sourceId === SAMSUNG_HEALTH_SOURCE_ID)
+          : await readSleepHeartRate(authorization.readAuthorized, sample);
         return mapSamsungSleepSample(sample, { ...signals, heartRate });
       }));
       mappedItems.push(...batch);
@@ -244,9 +247,16 @@ export function selectLatestCanonicalSamsungSleepSample(samples: HealthSample[])
     .sort((a, b) => b.durationMs - a.durationMs || Date.parse(b.sample.endDate) - Date.parse(a.sample.endDate))[0]?.sample ?? null;
 }
 
-async function readAuthorizedSignals(authorized: string[], startDate: string, endDate: string): Promise<SamsungSleepSignals> {
+async function readAuthorizedSignals(
+  authorized: string[],
+  startDate: string,
+  endDate: string,
+  prepared: PreparedHealthSnapshot | null = null,
+): Promise<SamsungSleepSignals> {
   const read = async (dataType: typeof SIGNAL_TYPES[number]) => {
     if (!authorized.includes(dataType)) return [];
+    const preparedSamples = prepared?.[dataType]?.samples;
+    if (preparedSamples) return preparedSamples.filter((sample) => sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID);
     const result = await Health.readSamples({ dataType, startDate, endDate, ascending: true, limit: 500 });
     return result.samples.filter((sample) => sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID);
   };

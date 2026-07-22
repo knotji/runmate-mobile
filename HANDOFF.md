@@ -1067,3 +1067,13 @@ Verification for the combined release candidate:
 - Each available factor shows its score, progress bar, and effective weight. Missing factors stay visibly missing; their nominal weight is redistributed proportionally across trustworthy factors available for that night rather than estimating a missing value.
 - The Breakdown uses the same shared Sleep Score calculator as Recovery and Recovery Trends, including the selected historical night's trailing baseline. It does not read or display Samsung's provider Sleep Score.
 - Mobile rows keep factor context, score, and weight aligned without expanding each metric into a separate card.
+
+## Background Health Preparation MVP (2026-07-22)
+
+- Android now declares `READ_HEALTH_DATA_IN_BACKGROUND` and exposes a small native `BackgroundHealth` Capacitor bridge. The user must explicitly grant the additional Health Connect access and enable the feature from the Health Connect page.
+- A unique WorkManager job runs approximately hourly when Android allows it and the battery is not low. Timing is intentionally inexact: Doze, Samsung battery controls, force-stop, and Samsung Health's own export timing can delay a run.
+- The worker reads a bounded 36-hour Health Connect window for Sleep, Workout, Heart Rate, HRV, Resting HR, Respiratory Rate, and VO2 Max when each individual permission is available. It overwrites one app-private snapshot rather than building an unbounded local health archive.
+- A prepared snapshot is trusted for at most 90 minutes. Today's Sleep sync uses it only when it contains a Samsung Sleep session attributed to the current Bangkok wake date. Today's Workout sync uses it only when it contains a current-date Workout; otherwise both flows fall back to their existing foreground Health Connect query.
+- Mapping, user-correction priority, deduplication, and Supabase upsert remain in the existing TypeScript reconciliation path. The native worker deliberately does not duplicate those rules or store a Supabase credential.
+- This first phase is **background preparation**, not a claim that cloud reconciliation is complete while the app is closed. It removes much of the Health Connect read wait on startup; final account reconciliation still finishes when RunMate opens. True closed-app cloud sync would require a securely provisioned background credential/backend ingestion design or moving the canonical reconciliation engine behind an authenticated server boundary.
+- Health Connect now shows Background feature availability, access state, On/Off control, Last Prepared time, and the latest bounded worker error. Foreground `Sync Now` and automatic Recovery/Activity sync remain as fallbacks.

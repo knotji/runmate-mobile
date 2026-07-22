@@ -6,6 +6,7 @@ import { classifyHealthSyncItems, selectChangedHealthSyncItems, type HealthSyncC
 import { getBangkokDateKey, todayBangkokDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import type { WorkoutAnalysis } from '@/types/logs';
+import { getFreshPreparedHealthSnapshot } from '@/lib/backgroundHealth';
 
 const SAMSUNG_HEALTH_SOURCE_ID = 'com.sec.android.app.shealth';
 const DEFAULT_LOOKBACK_DAYS = 30;
@@ -43,17 +44,29 @@ async function runSync(lookbackDays: number | 'today'): Promise<SamsungWorkoutSy
     const startDate = todayOnly
       ? new Date(`${today}T00:00:00+07:00`).toISOString()
       : new Date(Date.now() - Math.max(1, lookbackDays) * 86_400_000).toISOString();
-    const allWorkouts = await queryAllHealthConnectWorkouts({ startDate, endDate, ascending: true });
+    const prepared = todayOnly ? await getFreshPreparedHealthSnapshot() : null;
+    const preparedWorkouts = prepared?.workouts?.workouts.filter((workout) => getBangkokDateKey(workout.startDate) === today) ?? [];
+    const usePrepared = preparedWorkouts.length > 0;
+    const allWorkouts = usePrepared
+      ? preparedWorkouts
+      : await queryAllHealthConnectWorkouts({ startDate, endDate, ascending: true });
     const workouts = selectImportableHealthConnectWorkouts(allWorkouts).filter((workout) =>
       (!todayOnly || getBangkokDateKey(workout.startDate) === today)
       && Date.parse(workout.endDate) <= Date.now() - CLOSED_WORKOUT_GRACE_MS,
     );
     const canReadHeartRate = authorization.readAuthorized.includes('heartRate');
     const vo2MaxSamples = authorization.readAuthorized.includes('vo2Max')
-      ? (await Health.readSamples({ dataType: 'vo2Max', startDate, endDate, ascending: true, limit: 500 })).samples.filter((sample) => supportedWorkoutSource(sample.sourceId))
+      ? (usePrepared
+          ? prepared?.vo2Max?.samples ?? []
+          : (await Health.readSamples({ dataType: 'vo2Max', startDate, endDate, ascending: true, limit: 500 })).samples
+        ).filter((sample) => supportedWorkoutSource(sample.sourceId))
       : [];
     const items = await Promise.all(workouts.map(async (workout) => {
-      const heartRate = canReadHeartRate ? await readWorkoutHeartRate(workout) : [];
+      const heartRate = canReadHeartRate
+        ? usePrepared
+          ? selectWorkoutHeartRate(prepared?.heartRate?.samples ?? [], workout)
+          : await readWorkoutHeartRate(workout)
+        : [];
       return mapSamsungWorkout(workout, heartRate, vo2MaxSamples);
     }));
     const validItems = items.filter((item): item is LocalHistoryItem => item !== null);
@@ -106,6 +119,15 @@ export async function queryAllHealthConnectWorkouts(options: Omit<QueryWorkoutsO
 async function readWorkoutHeartRate(workout: Workout): Promise<HealthSample[]> {
   const result = await Health.readSamples({ dataType: 'heartRate', startDate: workout.startDate, endDate: workout.endDate, ascending: true, limit: 2000 });
   return result.samples.filter((sample) => sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID);
+}
+
+function selectWorkoutHeartRate(samples: HealthSample[], workout: Workout): HealthSample[] {
+  const start = Date.parse(workout.startDate);
+  const end = Date.parse(workout.endDate);
+  return samples.filter((sample) => {
+    const at = Date.parse(sample.startDate);
+    return sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID && Number.isFinite(at) && at >= start && at <= end;
+  });
 }
 
 export function selectImportableHealthConnectWorkouts(workouts: Workout[]): Workout[] {

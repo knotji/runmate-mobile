@@ -13,6 +13,13 @@ import type { HealthSyncCounts } from '@/lib/healthSyncSummary';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { getPerformanceDiagnosticSummaries, type PerformanceDiagnosticPhase, type PerformanceDiagnosticSummary } from '@/lib/performanceDiagnostics';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
+import {
+  getBackgroundHealthStatus,
+  requestBackgroundHealthAccess,
+  runBackgroundHealthNow,
+  setBackgroundHealthEnabled,
+  type BackgroundHealthStatus,
+} from '@/lib/backgroundHealth';
 import './HealthTestPage.css';
 
 type LogEntry = { label: string; result: unknown; error?: string; at: string };
@@ -227,10 +234,14 @@ const HealthTestPage: React.FC = () => {
   const [connectionBusy, setConnectionBusy] = useState<'status' | 'connect' | 'sync' | 'repair' | 'settings' | null>('status');
   const [connectionMessage, setConnectionMessage] = useState<string | null>(null);
   const [syncSummary, setSyncSummary] = useState<SyncSummary | null>(null);
+  const [backgroundStatus, setBackgroundStatus] = useState<BackgroundHealthStatus | null>(null);
+  const [backgroundBusy, setBackgroundBusy] = useState(false);
   const [performanceSummaries, setPerformanceSummaries] = useState<PerformanceDiagnosticSummary[]>(() => getPerformanceDiagnosticSummaries());
 
   const refreshConnection = useCallback(async () => {
     try {
+      const background = await getBackgroundHealthStatus();
+      setBackgroundStatus(background);
       const availability = await Health.isAvailable();
       if (!availability.available) {
         setConnection({ available: false, sleepAuthorized: false, workoutsAuthorized: false, recoverySignalsAuthorized: false, weightAuthorized: false, lastSyncedAt: latestSyncTime(getSamsungSleepLastSyncedAt(), getSamsungWorkoutLastSyncedAt()) });
@@ -252,6 +263,33 @@ const HealthTestPage: React.FC = () => {
       setConnectionBusy(null);
     }
   }, []);
+
+  const toggleBackgroundSync = async () => {
+    setBackgroundBusy(true);
+    setConnectionMessage(null);
+    try {
+      if (backgroundStatus?.enabled) {
+        setBackgroundStatus(await setBackgroundHealthEnabled(false));
+        setConnectionMessage('Automatic Background Preparation is off. Foreground Sync remains available.');
+      } else {
+        let status = backgroundStatus;
+        if (!status?.authorized) status = await requestBackgroundHealthAccess();
+        if (!status.authorized) {
+          setBackgroundStatus(status);
+          setConnectionMessage('Background Health access was not granted. You can enable it later.');
+          return;
+        }
+        status = await setBackgroundHealthEnabled(true);
+        setBackgroundStatus(status);
+        await runBackgroundHealthNow();
+        setConnectionMessage('Automatic Background Preparation is on. Android will prepare new Health Connect data when conditions allow.');
+      }
+    } catch (error) {
+      setConnectionMessage(error instanceof Error ? error.message : 'Could Not Update Background Health Sync.');
+    } finally {
+      setBackgroundBusy(false);
+    }
+  };
 
   useIonViewWillEnter(() => {
     setPerformanceSummaries(getPerformanceDiagnosticSummaries());
@@ -441,6 +479,26 @@ const HealthTestPage: React.FC = () => {
             <div><span>Last Synced</span><strong>{formatLastSynced(connection?.lastSyncedAt ?? null)}</strong></div>
             <p>Recovery and Activity check today automatically. Sync Now checks the last 30 days.</p>
           </section>
+
+          {backgroundStatus && (
+            <section className="health-background-card" aria-labelledby="background-health-heading">
+              <header>
+                <div><span>Automatic Preparation</span><h2 id="background-health-heading">Prepare Health Data In Background</h2></div>
+                <strong className={backgroundStatus.enabled && backgroundStatus.authorized ? 'is-on' : ''}>
+                  {!backgroundStatus.available ? 'Unavailable' : backgroundStatus.enabled && backgroundStatus.authorized ? 'On' : 'Off'}
+                </strong>
+              </header>
+              <p>Android can read a small 36-hour Sleep and Workout window about hourly, even when RunMate is closed. Final reconciliation with your account still completes safely when RunMate opens.</p>
+              <div className="health-background-meta">
+                <span>Last Prepared</span>
+                <b>{formatLastSynced(backgroundStatus.preparedAt)}</b>
+              </div>
+              {backgroundStatus.lastError && <small>{backgroundStatus.lastError}</small>}
+              <IonButton expand="block" fill={backgroundStatus.enabled ? 'outline' : 'solid'} disabled={backgroundBusy || !backgroundStatus.available} onClick={() => void toggleBackgroundSync()}>
+                {backgroundBusy ? <IonSpinner name="crescent" /> : backgroundStatus.enabled ? 'Turn Off Background Preparation' : 'Enable Background Preparation'}
+              </IonButton>
+            </section>
+          )}
 
           <p className="health-connect-source-note">
             RunMate imports records shared by Samsung Health through Health Connect. A workout visible in Samsung Health may not appear here if Samsung Health has not shared that record.
