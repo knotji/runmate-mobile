@@ -14,6 +14,12 @@ export type TodayHealthSyncResult = {
   workout: SamsungWorkoutSyncResult | null;
 };
 
+export type TodayHealthSyncPerformance = {
+  status: 'success' | 'skipped';
+  variant: 'prepared' | 'mixed' | 'live' | 'cooldown';
+  detail: string;
+};
+
 export type HealthHistorySyncResult = {
   changed: boolean;
   sleep: SamsungSleepSyncResult;
@@ -82,6 +88,20 @@ export function hasHealthChanges(
   workout: Pick<SamsungWorkoutSyncResult, 'added' | 'updated'>,
 ): boolean {
   return sleep.added + sleep.updated + workout.added + workout.updated > 0;
+}
+
+export function describeTodayHealthSyncPerformance(result: TodayHealthSyncResult, prefix = 'Today'): TodayHealthSyncPerformance {
+  if (!result.performed) return { status: 'skipped', variant: 'cooldown', detail: 'Cooldown reused latest sync' };
+  const sources = [result.sleep?.dataSource, result.workout?.dataSource].filter((source) => source === 'prepared' || source === 'live');
+  const preparedCount = sources.filter((source) => source === 'prepared').length;
+  const liveCount = sources.filter((source) => source === 'live').length;
+  const variant = preparedCount > 0 && liveCount > 0 ? 'mixed' : preparedCount > 0 ? 'prepared' : 'live';
+  const sourceLabel = variant === 'prepared' ? 'prepared snapshot' : variant === 'mixed' ? 'snapshot plus live read' : 'live Health Connect';
+  return {
+    status: 'success',
+    variant,
+    detail: `${prefix} used ${sourceLabel}; ${result.changed ? 'records changed' : 'no record changes'}`,
+  };
 }
 
 export function getPersistedTodaySyncAt(): number {

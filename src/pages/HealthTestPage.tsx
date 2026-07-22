@@ -11,12 +11,14 @@ import { dedupeSleepItems } from '@/lib/sleepDedupe';
 import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
 import type { HealthSyncCounts } from '@/lib/healthSyncSummary';
 import type { LocalHistoryItem } from '@/lib/localHistory';
-import { getPerformanceDiagnosticSummaries, type PerformanceDiagnosticPhase, type PerformanceDiagnosticSummary } from '@/lib/performanceDiagnostics';
+import { getHealthSyncPerformanceComparison, getPerformanceDiagnosticSummaries, type HealthSyncPerformanceComparison, type PerformanceDiagnosticPhase, type PerformanceDiagnosticSummary } from '@/lib/performanceDiagnostics';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import {
   getBackgroundHealthStatus,
+  describeBackgroundHealthIssue,
   requestBackgroundHealthAccess,
   runBackgroundHealthNow,
+  runBackgroundHealthTest,
   setBackgroundHealthEnabled,
   type BackgroundHealthStatus,
 } from '@/lib/backgroundHealth';
@@ -236,7 +238,9 @@ const HealthTestPage: React.FC = () => {
   const [syncSummary, setSyncSummary] = useState<SyncSummary | null>(null);
   const [backgroundStatus, setBackgroundStatus] = useState<BackgroundHealthStatus | null>(null);
   const [backgroundBusy, setBackgroundBusy] = useState(false);
+  const [backgroundTesting, setBackgroundTesting] = useState(false);
   const [performanceSummaries, setPerformanceSummaries] = useState<PerformanceDiagnosticSummary[]>(() => getPerformanceDiagnosticSummaries());
+  const [healthSyncComparison, setHealthSyncComparison] = useState<HealthSyncPerformanceComparison[]>(() => getHealthSyncPerformanceComparison());
 
   const refreshConnection = useCallback(async () => {
     try {
@@ -291,8 +295,31 @@ const HealthTestPage: React.FC = () => {
     }
   };
 
+  const testBackgroundPreparation = async () => {
+    if (!backgroundStatus?.enabled || !backgroundStatus.authorized) return;
+    setBackgroundTesting(true);
+    setConnectionMessage('Running a real Background Health read. Keep this page open for the result.');
+    try {
+      const result = await runBackgroundHealthTest();
+      setBackgroundStatus(result.status);
+      if (result.outcome === 'success') {
+        const count = result.status.recordCounts.sleep + result.status.recordCounts.workouts;
+        setConnectionMessage(`Background test passed in ${formatDiagnosticDuration(result.durationMs)}. Prepared ${count} Sleep and Workout records.`);
+      } else if (result.outcome === 'failed') {
+        setConnectionMessage(describeBackgroundHealthIssue(result.status) ?? 'Background test could not prepare Health Connect data.');
+      } else {
+        setConnectionMessage('The test was queued, but Android did not finish it within 45 seconds. Battery restrictions may be delaying background work.');
+      }
+    } catch (error) {
+      setConnectionMessage(error instanceof Error ? error.message : 'Could Not Run Background Health Test.');
+    } finally {
+      setBackgroundTesting(false);
+    }
+  };
+
   useIonViewWillEnter(() => {
     setPerformanceSummaries(getPerformanceDiagnosticSummaries());
+    setHealthSyncComparison(getHealthSyncPerformanceComparison());
     void refreshConnection();
   });
 
@@ -488,15 +515,29 @@ const HealthTestPage: React.FC = () => {
                   {!backgroundStatus.available ? 'Unavailable' : backgroundStatus.enabled && backgroundStatus.authorized ? 'On' : 'Off'}
                 </strong>
               </header>
-              <p>Android can read a small 36-hour Sleep and Workout window about hourly, even when RunMate is closed. Final reconciliation with your account still completes safely when RunMate opens.</p>
-              <div className="health-background-meta">
-                <span>Last Prepared</span>
-                <b>{formatLastSynced(backgroundStatus.preparedAt)}</b>
+              <p>Android prepares a small 36-hour Health Connect snapshot while RunMate is closed. Timing is approximate; account reconciliation still completes when RunMate opens.</p>
+              <div className="health-background-schedule">
+                <div><span>Last Prepared</span><b>{formatLastSynced(backgroundStatus.preparedAt)}</b></div>
+                <div><span>Next Expected Run</span><b>{formatNextExpected(backgroundStatus)}</b></div>
               </div>
-              {backgroundStatus.lastError && <small>{backgroundStatus.lastError}</small>}
+              <div className="health-background-counts" aria-label="Prepared Health Connect record counts">
+                <BackgroundCount label="Sleep" value={backgroundStatus.recordCounts.sleep} />
+                <BackgroundCount label="Workouts" value={backgroundStatus.recordCounts.workouts} />
+                <BackgroundCount label="HR Samples" value={backgroundStatus.recordCounts.heartRate} />
+              </div>
+              {describeBackgroundHealthIssue(backgroundStatus) && <small role="status">{describeBackgroundHealthIssue(backgroundStatus)}</small>}
+              {backgroundStatus.batteryOptimizationActive && backgroundStatus.enabled && !backgroundStatus.backgroundRestricted && (
+                <small>Battery optimization is active. Android may run preparation later than the expected time.</small>
+              )}
               <IonButton expand="block" fill={backgroundStatus.enabled ? 'outline' : 'solid'} disabled={backgroundBusy || !backgroundStatus.available} onClick={() => void toggleBackgroundSync()}>
                 {backgroundBusy ? <IonSpinner name="crescent" /> : backgroundStatus.enabled ? 'Turn Off Background Preparation' : 'Enable Background Preparation'}
               </IonButton>
+              {backgroundStatus.enabled && backgroundStatus.authorized && (
+                <IonButton expand="block" fill="outline" disabled={backgroundBusy || backgroundTesting} onClick={() => void testBackgroundPreparation()}>
+                  {backgroundTesting ? <IonSpinner name="crescent" /> : <><IonIcon slot="start" icon={syncOutline} />Run Background Test</>}
+                </IonButton>
+              )}
+              <small>After a force-stop, Android will not restart background work until RunMate is opened again.</small>
             </section>
           )}
 
@@ -566,6 +607,20 @@ const HealthTestPage: React.FC = () => {
                 {performanceSummaries.map((summary) => (
                   <PerformanceTimingRow summary={summary} key={summary.phase} />
                 ))}
+              </div>
+            )}
+            {healthSyncComparison.length > 0 && (
+              <div className="health-sync-comparison">
+                <span>Recovery Startup Health Read</span>
+                <div>
+                  {healthSyncComparison.map((item) => (
+                    <div key={item.variant}>
+                      <b>{healthSyncVariantLabel(item.variant)}</b>
+                      <strong>{formatDiagnosticDuration(item.averageMs)}</strong>
+                      <small>{item.sampleCount} sample{item.sampleCount === 1 ? '' : 's'}</small>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             <small>Latest duration and average of up to five runs. Timings stay on this device.</small>
@@ -647,6 +702,10 @@ function SyncMetric({ label, value, tone }: { label: string; value: number; tone
   return <div className={`health-sync-metric${tone ? ` health-sync-metric-${tone}` : ''}`}><strong>{value}</strong><span>{label}</span></div>;
 }
 
+function BackgroundCount({ label, value }: { label: string; value: number }) {
+  return <div><strong>{value}</strong><span>{label}</span></div>;
+}
+
 function PerformanceTimingRow({ summary }: { summary: PerformanceDiagnosticSummary }) {
   return (
     <div className="health-performance-row">
@@ -676,6 +735,12 @@ function performanceStatusLabel(status: PerformanceDiagnosticSummary['latest']['
   if (status === 'failed') return 'Failed';
   if (status === 'skipped') return 'Skipped';
   return 'Completed';
+}
+
+function healthSyncVariantLabel(variant: HealthSyncPerformanceComparison['variant']): string {
+  if (variant === 'prepared') return 'Prepared Snapshot';
+  if (variant === 'mixed') return 'Snapshot + Live';
+  return 'Live Health Connect';
 }
 
 function formatDiagnosticDuration(milliseconds: number): string {
@@ -723,6 +788,13 @@ function formatLastSynced(value: string | null): string {
     hour: 'numeric',
     minute: '2-digit',
   }).format(date);
+}
+
+function formatNextExpected(status: BackgroundHealthStatus): string {
+  if (!status.enabled) return 'Turned Off';
+  if (!status.authorized) return 'Permission Needed';
+  if (!status.nextExpectedAt) return status.workerState === 'ENQUEUED' ? 'Android Scheduled' : 'Waiting For Android';
+  return formatLastSynced(status.nextExpectedAt);
 }
 
 function latestSyncTime(...values: Array<string | null>): string | null {

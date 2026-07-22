@@ -23,7 +23,7 @@ import { TodayTrainingPlanCard } from '@/components/TodayTrainingPlanCard';
 import { PageState } from '@/components/PageState';
 import { formatClockMinutes, loadTonightWakeOverride, parseClockMinutes, sleepWindowForWake } from '@/lib/sleepWindow';
 import { loadDefaultWakeTime, loadTonightWakePlan } from '@/lib/sleepWindowStorage';
-import { syncTodayHealth } from '@/lib/healthSyncService';
+import { describeTodayHealthSyncPerformance, syncTodayHealth } from '@/lib/healthSyncService';
 import { refreshNotifications } from '@/lib/notificationService';
 import { getBangkokDateKey } from '@/lib/date';
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
@@ -91,10 +91,7 @@ const RecoveryPage: React.FC = () => {
       const result = await measurePerformanceDiagnostic(
         'health_sync',
         () => syncTodayHealth(),
-        (syncResult) => ({
-          status: syncResult.performed ? 'success' : 'skipped',
-          detail: syncResult.performed ? syncResult.changed ? 'Today sync changed records' : 'Today sync found no changes' : 'Cooldown reused latest sync',
-        }),
+        (syncResult) => describeTodayHealthSyncPerformance(syncResult),
       );
       healthChanged = result.changed;
       if (result.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
@@ -123,10 +120,7 @@ const RecoveryPage: React.FC = () => {
         void measurePerformanceDiagnostic(
           'health_sync',
           () => syncTodayHealth(),
-          (syncResult) => ({
-            status: syncResult.performed ? 'success' : 'skipped',
-            detail: syncResult.performed ? syncResult.changed ? 'Background sync changed records' : 'Background sync found no changes' : 'Cooldown reused latest sync',
-          }),
+          (syncResult) => describeTodayHealthSyncPerformance(syncResult, 'Background check'),
         ).then((result) => {
           if (result.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
           if (result.workout?.error) console.warn('[workout-sync] Samsung Health sync failed', result.workout.error);
@@ -146,7 +140,7 @@ const RecoveryPage: React.FC = () => {
     await measurePerformanceDiagnostic(
       'health_sync',
       () => syncTodayHealth(true),
-      (syncResult) => ({ detail: syncResult.changed ? 'Pull to refresh changed records' : 'Pull to refresh found no changes' }),
+      (syncResult) => describeTodayHealthSyncPerformance(syncResult, 'Pull to refresh'),
     );
     await loadRecovery(false);
     event.detail.complete();

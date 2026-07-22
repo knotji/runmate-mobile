@@ -1,12 +1,15 @@
 package com.runmate.mobile
 
 import android.content.Intent
+import android.app.ActivityManager
+import android.os.PowerManager
 import androidx.activity.result.ActivityResult
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.HealthConnectFeatures
 import androidx.health.connect.client.PermissionController
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
@@ -82,8 +85,9 @@ class BackgroundHealthPlugin : Plugin() {
 
     @PluginMethod
     fun runNow(call: PluginCall) {
-        WorkManager.getInstance(context).enqueue(OneTimeWorkRequestBuilder<BackgroundHealthWorker>().build())
-        call.resolve()
+        val request = OneTimeWorkRequestBuilder<BackgroundHealthWorker>().build()
+        WorkManager.getInstance(context).enqueueUniqueWork(TEST_WORK_NAME, ExistingWorkPolicy.REPLACE, request)
+        call.resolve(JSObject().apply { put("workId", request.id.toString()) })
     }
 
     @PluginMethod
@@ -104,7 +108,12 @@ class BackgroundHealthPlugin : Plugin() {
         }
         base.put("available", sdkAvailable && feature)
         base.put("authorized", authorized)
+        val activityManager = context.getSystemService(ActivityManager::class.java)
+        val powerManager = context.getSystemService(PowerManager::class.java)
+        base.put("backgroundRestricted", activityManager?.isBackgroundRestricted == true)
+        base.put("batteryOptimizationActive", powerManager?.isIgnoringBatteryOptimizations(context.packageName) == false)
         if (base.optBoolean("enabled") && authorized) schedulePeriodic()
+        base.put("workerState", if (base.optBoolean("enabled") && authorized) "SCHEDULED" else null)
         return base
     }
 
@@ -135,5 +144,6 @@ class BackgroundHealthPlugin : Plugin() {
     private companion object {
         const val BACKGROUND_PERMISSION = "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND"
         const val WORK_NAME = "runmate-background-health-preparation"
+        const val TEST_WORK_NAME = "runmate-background-health-test"
     }
 }

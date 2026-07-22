@@ -8,7 +8,11 @@ internal object BackgroundHealthStore {
     private const val ENABLED = "enabled"
     private const val LAST_ATTEMPT = "last_attempt"
     private const val LAST_SUCCESS = "last_success"
+    private const val LAST_COMPLETED = "last_completed"
+    private const val LAST_OUTCOME = "last_outcome"
+    private const val LAST_ERROR_CODE = "last_error_code"
     private const val LAST_ERROR = "last_error"
+    private const val NEXT_EXPECTED = "next_expected"
     private const val SNAPSHOT = "snapshot"
 
     private fun preferences(context: Context) =
@@ -17,23 +21,38 @@ internal object BackgroundHealthStore {
     fun isEnabled(context: Context): Boolean = preferences(context).getBoolean(ENABLED, false)
 
     fun setEnabled(context: Context, enabled: Boolean) {
-        preferences(context).edit().putBoolean(ENABLED, enabled).apply()
+        val editor = preferences(context).edit().putBoolean(ENABLED, enabled)
+        if (enabled) editor.putString(NEXT_EXPECTED, java.time.Instant.now().plusSeconds(3600).toString())
+        else editor.remove(NEXT_EXPECTED)
+        editor.apply()
     }
 
     fun recordAttempt(context: Context, at: String) {
-        preferences(context).edit().putString(LAST_ATTEMPT, at).apply()
+        val nextExpected = runCatching { java.time.Instant.parse(at).plusSeconds(3600).toString() }.getOrNull()
+        preferences(context).edit()
+            .putString(LAST_ATTEMPT, at)
+            .putString(NEXT_EXPECTED, nextExpected)
+            .apply()
     }
 
     fun recordSuccess(context: Context, at: String, snapshot: JSObject) {
         preferences(context).edit()
             .putString(LAST_SUCCESS, at)
+            .putString(LAST_COMPLETED, at)
+            .putString(LAST_OUTCOME, "success")
+            .remove(LAST_ERROR_CODE)
             .remove(LAST_ERROR)
             .putString(SNAPSHOT, snapshot.toString())
             .apply()
     }
 
-    fun recordError(context: Context, message: String) {
-        preferences(context).edit().putString(LAST_ERROR, message.take(240)).apply()
+    fun recordError(context: Context, at: String, code: String, message: String) {
+        preferences(context).edit()
+            .putString(LAST_COMPLETED, at)
+            .putString(LAST_OUTCOME, "failed")
+            .putString(LAST_ERROR_CODE, code)
+            .putString(LAST_ERROR, message.take(240))
+            .apply()
     }
 
     fun snapshot(context: Context): JSObject? {
@@ -43,12 +62,31 @@ internal object BackgroundHealthStore {
 
     fun status(context: Context): JSObject {
         val prefs = preferences(context)
+        val prepared = snapshot(context)
         return JSObject().apply {
             put("enabled", prefs.getBoolean(ENABLED, false))
             put("lastAttemptAt", prefs.getString(LAST_ATTEMPT, null))
             put("lastSuccessAt", prefs.getString(LAST_SUCCESS, null))
+            put("lastCompletedAt", prefs.getString(LAST_COMPLETED, null))
+            put("lastOutcome", prefs.getString(LAST_OUTCOME, null))
+            put("lastErrorCode", prefs.getString(LAST_ERROR_CODE, null))
             put("lastError", prefs.getString(LAST_ERROR, null))
-            put("preparedAt", snapshot(context)?.optString("capturedAt")?.takeIf { it.isNotBlank() })
+            put("preparedAt", prepared?.optString("capturedAt")?.takeIf { it.isNotBlank() })
+            put("nextExpectedAt", prefs.getString(NEXT_EXPECTED, null))
+            put("windowStart", prepared?.optString("windowStart")?.takeIf { it.isNotBlank() })
+            put("windowEnd", prepared?.optString("windowEnd")?.takeIf { it.isNotBlank() })
+            put("recordCounts", JSObject().apply {
+                put("sleep", prepared.countArray("sleep", "samples"))
+                put("workouts", prepared.countArray("workouts", "workouts"))
+                put("heartRate", prepared.countArray("heartRate", "samples"))
+                put("heartRateVariability", prepared.countArray("heartRateVariability", "samples"))
+                put("restingHeartRate", prepared.countArray("restingHeartRate", "samples"))
+                put("respiratoryRate", prepared.countArray("respiratoryRate", "samples"))
+                put("vo2Max", prepared.countArray("vo2Max", "samples"))
+            })
         }
     }
+
+    private fun JSObject?.countArray(objectKey: String, arrayKey: String): Int =
+        this?.optJSONObject(objectKey)?.optJSONArray(arrayKey)?.length() ?: 0
 }

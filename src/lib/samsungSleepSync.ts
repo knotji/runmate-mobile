@@ -36,6 +36,7 @@ type SleepHeartRateEstimate = {
 export type SamsungSleepSyncResult = HealthSyncCounts & {
   status: 'synced' | 'unavailable' | 'permission_required';
   imported: number;
+  dataSource: 'prepared' | 'live' | 'none';
   error?: string;
 };
 
@@ -52,6 +53,7 @@ async function runSamsungSleepSync(lookbackDays: number | 'today'): Promise<Sams
     return emptyResult('unavailable');
   }
 
+  let dataSource: SamsungSleepSyncResult['dataSource'] = 'live';
   try {
     const availability = await Health.isAvailable();
     if (!availability.available) return emptyResult('unavailable');
@@ -72,6 +74,7 @@ async function runSamsungSleepSync(lookbackDays: number | 'today'): Promise<Sams
     const prepared = todayOnly ? await getFreshPreparedHealthSnapshot() : null;
     const preparedSleep = prepared?.sleep?.samples.filter((sample) => getBangkokDateKey(sample.endDate) === today) ?? [];
     const usePrepared = preparedSleep.length > 0;
+    dataSource = usePrepared ? 'prepared' : 'live';
     const result = usePrepared
       ? { samples: preparedSleep }
       : await Health.readSamples({ dataType: 'sleep', startDate, endDate, ascending: true, limit: 100 });
@@ -103,15 +106,16 @@ async function runSamsungSleepSync(lookbackDays: number | 'today'): Promise<Sams
     const changedItems = selectChangedHealthSyncItems(items, existingItems);
     if (!changedItems.length) {
       recordSuccessfulSync();
-      return { status: 'synced', imported: items.length, ...counts };
+      return { status: 'synced', imported: items.length, dataSource, ...counts };
     }
     const saved = await saveHistoryItems(changedItems);
-    if (!saved.ok) return { status: 'synced', imported: 0, added: 0, updated: 0, unchanged: 0, failed: changedItems.length, error: saved.error };
+    if (!saved.ok) return { status: 'synced', imported: 0, dataSource, added: 0, updated: 0, unchanged: 0, failed: changedItems.length, error: saved.error };
     recordSuccessfulSync();
-    return { status: 'synced', imported: items.length, ...counts };
+    return { status: 'synced', imported: items.length, dataSource, ...counts };
   } catch (error) {
     return {
       status: 'unavailable',
+      dataSource,
       imported: 0, added: 0, updated: 0, unchanged: 0, failed: 0,
       error: error instanceof Error ? error.message : 'Samsung Health sleep sync failed.',
     };
@@ -119,7 +123,7 @@ async function runSamsungSleepSync(lookbackDays: number | 'today'): Promise<Sams
 }
 
 function emptyResult(status: SamsungSleepSyncResult['status']): SamsungSleepSyncResult {
-  return { status, imported: 0, added: 0, updated: 0, unchanged: 0, failed: 0 };
+  return { status, imported: 0, dataSource: 'none', added: 0, updated: 0, unchanged: 0, failed: 0 };
 }
 
 export function getSamsungSleepLastSyncedAt(): string | null {

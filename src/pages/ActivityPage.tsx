@@ -21,7 +21,7 @@ import { calendarClearOutline, chevronBackOutline, chevronForwardOutline, fitnes
 import { deleteHistoryItem, loadHistoryItems } from '@/lib/cloudHistory';
 import { getHistoryItemDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
-import { syncTodayHealth } from '@/lib/healthSyncService';
+import { describeTodayHealthSyncPerformance, syncTodayHealth } from '@/lib/healthSyncService';
 import { buildDailyNutritionSummary } from '@/lib/activityNutritionSummary';
 import { activityRecentHistoryOptions, mergeActivityHistoryItems, prepareActivityHistoryItems, uploadedActivityDateFromEvent } from '@/lib/activityHistoryLoad';
 import { PageState } from '@/components/PageState';
@@ -119,10 +119,7 @@ const ActivityPage: React.FC = () => {
       void measurePerformanceDiagnostic(
         'activity_health_sync',
         () => syncTodayHealth(),
-        (syncResult) => ({
-          status: syncResult.performed ? 'success' : 'skipped',
-          detail: syncResult.performed ? syncResult.changed ? 'Background sync changed records' : 'Background sync found no changes' : 'Cooldown reused latest sync',
-        }),
+        (syncResult) => describeTodayHealthSyncPerformance(syncResult, 'Activity check'),
       ).then((result) => {
         if (result.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
         if (result.workout?.error) console.warn('[workout-sync] Samsung Health sync failed', result.workout.error);
@@ -144,7 +141,7 @@ const ActivityPage: React.FC = () => {
     await measurePerformanceDiagnostic(
       'activity_health_sync',
       () => syncTodayHealth(true),
-      (syncResult) => ({ detail: syncResult.changed ? 'Pull to refresh changed records' : 'Pull to refresh found no changes' }),
+      (syncResult) => describeTodayHealthSyncPerformance(syncResult, 'Activity refresh'),
     );
     cloudDataDirtyRef.current = false;
     await loadRecent();

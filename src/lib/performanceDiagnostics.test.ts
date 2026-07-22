@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   getPerformanceDiagnostics,
   getPerformanceDiagnosticSummaries,
+  getHealthSyncPerformanceComparison,
   measurePerformanceDiagnostic,
   recordPerformanceDiagnostic,
 } from './performanceDiagnostics';
@@ -36,6 +37,18 @@ describe('Performance Diagnostics', () => {
       'activity_records',
       'activity_archive',
       'activity_nutrition',
+    ]);
+  });
+
+  it('compares prepared and live Recovery health reads separately', () => {
+    recordPerformanceDiagnostic('health_sync', 120, 'success', 'Prepared', 'prepared');
+    recordPerformanceDiagnostic('health_sync', 180, 'success', 'Prepared', 'prepared');
+    recordPerformanceDiagnostic('health_sync', 1200, 'success', 'Live', 'live');
+    recordPerformanceDiagnostic('health_sync', 1, 'skipped', 'Cooldown', 'cooldown');
+
+    expect(getHealthSyncPerformanceComparison()).toEqual([
+      { variant: 'prepared', averageMs: 150, sampleCount: 2 },
+      { variant: 'live', averageMs: 1200, sampleCount: 1 },
     ]);
   });
 });

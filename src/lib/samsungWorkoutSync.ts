@@ -19,6 +19,7 @@ const WORKOUT_READ_TYPES: HealthDataType[] = ['workouts', 'heartRate', 'distance
 export type SamsungWorkoutSyncResult = HealthSyncCounts & {
   status: 'synced' | 'unavailable' | 'permission_required';
   imported: number;
+  dataSource: 'prepared' | 'live' | 'none';
   error?: string;
 };
 
@@ -32,6 +33,7 @@ export function syncSamsungWorkouts(lookbackDays: number | 'today' = DEFAULT_LOO
 
 async function runSync(lookbackDays: number | 'today'): Promise<SamsungWorkoutSyncResult> {
   if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') return emptyResult('unavailable');
+  let dataSource: SamsungWorkoutSyncResult['dataSource'] = 'live';
   try {
     const availability = await Health.isAvailable();
     if (!availability.available) return emptyResult('unavailable');
@@ -47,6 +49,7 @@ async function runSync(lookbackDays: number | 'today'): Promise<SamsungWorkoutSy
     const prepared = todayOnly ? await getFreshPreparedHealthSnapshot() : null;
     const preparedWorkouts = prepared?.workouts?.workouts.filter((workout) => getBangkokDateKey(workout.startDate) === today) ?? [];
     const usePrepared = preparedWorkouts.length > 0;
+    dataSource = usePrepared ? 'prepared' : 'live';
     const allWorkouts = usePrepared
       ? preparedWorkouts
       : await queryAllHealthConnectWorkouts({ startDate, endDate, ascending: true });
@@ -79,17 +82,17 @@ async function runSync(lookbackDays: number | 'today'): Promise<SamsungWorkoutSy
     const changedItems = selectChangedHealthSyncItems(validItems, existingItems);
     if (changedItems.length) {
       const saved = await saveHistoryItems(changedItems);
-      if (!saved.ok) return { status: 'synced', imported: 0, added: 0, updated: 0, unchanged: 0, failed: changedItems.length, error: saved.error };
+      if (!saved.ok) return { status: 'synced', imported: 0, dataSource, added: 0, updated: 0, unchanged: 0, failed: changedItems.length, error: saved.error };
     }
     recordSuccessfulSync();
-    return { status: 'synced', imported: validItems.length, ...counts };
+    return { status: 'synced', imported: validItems.length, dataSource, ...counts };
   } catch (error) {
-    return { ...emptyResult('unavailable'), error: error instanceof Error ? error.message : 'Samsung Health workout sync failed.' };
+    return { ...emptyResult('unavailable'), dataSource, error: error instanceof Error ? error.message : 'Samsung Health workout sync failed.' };
   }
 }
 
 function emptyResult(status: SamsungWorkoutSyncResult['status']): SamsungWorkoutSyncResult {
-  return { status, imported: 0, added: 0, updated: 0, unchanged: 0, failed: 0 };
+  return { status, imported: 0, dataSource: 'none', added: 0, updated: 0, unchanged: 0, failed: 0 };
 }
 
 /**

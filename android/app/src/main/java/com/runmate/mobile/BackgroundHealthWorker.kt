@@ -23,14 +23,14 @@ class BackgroundHealthWorker(
 
         return try {
             if (HealthConnectClient.getSdkStatus(applicationContext) != HealthConnectClient.SDK_AVAILABLE) {
-                BackgroundHealthStore.recordError(applicationContext, "Health Connect is unavailable.")
+                BackgroundHealthStore.recordError(applicationContext, capturedAt.toString(), "health_connect_unavailable", "Health Connect is unavailable.")
                 return Result.success()
             }
 
             val client = HealthConnectClient.getOrCreate(applicationContext)
             val granted = client.permissionController.getGrantedPermissions()
             if (!granted.contains(BACKGROUND_PERMISSION)) {
-                BackgroundHealthStore.recordError(applicationContext, "Background Health access is not allowed.")
+                BackgroundHealthStore.recordError(applicationContext, capturedAt.toString(), "background_access_missing", "Background Health access is not allowed.")
                 return Result.success()
             }
 
@@ -59,10 +59,10 @@ class BackgroundHealthWorker(
             BackgroundHealthStore.recordSuccess(applicationContext, capturedAt.toString(), payload)
             Result.success()
         } catch (error: SecurityException) {
-            BackgroundHealthStore.recordError(applicationContext, error.message ?: "Health Connect permission changed.")
+            BackgroundHealthStore.recordError(applicationContext, capturedAt.toString(), "permission_changed", error.message ?: "Health Connect permission changed.")
             Result.success()
         } catch (error: Exception) {
-            BackgroundHealthStore.recordError(applicationContext, error.message ?: "Background Health preparation failed.")
+            BackgroundHealthStore.recordError(applicationContext, capturedAt.toString(), "worker_failed", error.message ?: "Background Health preparation failed.")
             if (runAttemptCount < 2) Result.retry() else Result.failure()
         }
     }
