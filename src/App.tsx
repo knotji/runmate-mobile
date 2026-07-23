@@ -11,6 +11,7 @@ import { completeNativeGoogleSignIn } from '@/lib/googleAuth';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { refreshNotifications } from '@/lib/notificationService';
 import { invalidateCoachContextCache } from '@/lib/coachContextService';
+import { syncTodayHealth } from '@/lib/healthSyncService';
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { AppBootScreen } from '@/components/AppBootScreen';
 import { RouteLoadingScreen } from '@/components/RouteLoadingScreen';
@@ -81,7 +82,15 @@ const App: React.FC = () => {
       if (typeof route === 'string' && route.startsWith('/')) window.location.assign(route);
     }).then((handle) => { listener = handle; });
     void CapacitorApp.addListener('appStateChange', ({ isActive }) => {
-      if (isActive) void refreshNotifications().catch((error) => console.warn('[notifications] resume refresh failed', error));
+      if (isActive) {
+        void refreshNotifications().catch((error) => console.warn('[notifications] resume refresh failed', error));
+        void syncTodayHealth(true).then((result) => {
+          if (result.changed) {
+            invalidateCoachContextCache();
+            window.dispatchEvent(new CustomEvent('runmate:health-synced'));
+          }
+        }).catch((syncError) => console.warn('[health-sync] resume sync failed', syncError));
+      }
     }).then((handle) => { stateListener = handle; });
     return () => { window.clearTimeout(refreshTimer); void listener?.remove(); void stateListener?.remove(); };
   }, [session]);

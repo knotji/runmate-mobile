@@ -105,9 +105,19 @@ const ActivityPage: React.FC = () => {
       const uploadedDate = uploadedActivityDateFromEvent(event);
       if (uploadedDate) setSelectedDate(uploadedDate);
     };
+    const handleHealthSynced = () => {
+      if (visibleRef.current) {
+        cloudDataDirtyRef.current = false;
+        void loadRecent();
+      }
+    };
     window.addEventListener('runmate:cloud-data-updated', markCloudDataDirty);
-    return () => window.removeEventListener('runmate:cloud-data-updated', markCloudDataDirty);
-  }, []);
+    window.addEventListener('runmate:health-synced', handleHealthSynced);
+    return () => {
+      window.removeEventListener('runmate:cloud-data-updated', markCloudDataDirty);
+      window.removeEventListener('runmate:health-synced', handleHealthSynced);
+    };
+  }, [loadRecent]);
 
   useIonViewWillEnter(() => {
     visibleRef.current = true;

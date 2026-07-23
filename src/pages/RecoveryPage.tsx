@@ -90,6 +90,16 @@ const RecoveryPage: React.FC = () => {
     }
   }, [loadRecoveryCore, loadSecondaryRecovery]);
 
+  useEffect(() => {
+    const handleHealthSynced = () => {
+      if (visibleRef.current) {
+        void loadRecovery(false);
+      }
+    };
+    window.addEventListener('runmate:health-synced', handleHealthSynced);
+    return () => window.removeEventListener('runmate:health-synced', handleHealthSynced);
+  }, [loadRecovery]);
+
   const loadInitialRecovery = useCallback(async (forceContext = false) => {
     setLoading(startupRecovery === null);
     setLoadingStage('syncing');
