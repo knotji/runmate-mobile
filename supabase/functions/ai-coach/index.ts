@@ -22,23 +22,43 @@ Deno.serve(async (request) => {
 
     const apiKey = Deno.env.get('GEMINI_API_KEY');
     if (!apiKey) return reply({ error: 'AI Coach Is Not Configured' }, 503);
-    const modelName = Deno.env.get('GEMINI_MODEL') || 'gemini-3.1-flash-lite';
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt(topic, context, userQuery) }] }],
-        generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
-      }),
-    });
-    if (!response.ok) {
-      const errText = await response.text().catch(() => '');
-      console.error('[ai-coach] Gemini API error status:', response.status, errText);
+    
+    const requestedModel = Deno.env.get('GEMINI_MODEL') || 'gemini-3.1-flash-lite';
+    const candidateModels = Array.from(new Set([requestedModel, 'gemini-2.0-flash-exp', 'gemini-1.5-flash', 'gemini-1.5-pro']));
+    
+    let rawText: string | null = null;
+    let lastErrorStatus = 502;
+
+    for (const modelCandidate of candidateModels) {
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelCandidate}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt(topic, context, userQuery) }] }],
+            generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
+          }),
+        });
+        if (response.ok) {
+          const generated = await response.json();
+          const textCandidate = generated?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (typeof textCandidate === 'string' && textCandidate.trim()) {
+            rawText = textCandidate;
+            break;
+          }
+        } else {
+          lastErrorStatus = response.status;
+          console.warn(`[ai-coach] Model ${modelCandidate} failed with status ${response.status}`);
+        }
+      } catch (err) {
+        console.warn(`[ai-coach] Model ${modelCandidate} fetch error:`, err);
+      }
+    }
+
+    if (!rawText) {
+      console.error('[ai-coach] All candidate Gemini models failed, last status:', lastErrorStatus);
       return reply({ error: 'AI Coach Is Temporarily Unavailable' }, 502);
     }
-    const generated = await response.json();
-    const rawText = generated?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (typeof rawText !== 'string' || !rawText.trim()) return reply({ error: 'AI Coach Returned An Empty Answer' }, 502);
     
     // Clean markdown code blocks if any before parsing
     const cleanedText = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();

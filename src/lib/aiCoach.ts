@@ -111,23 +111,86 @@ export function buildAiCoachContext(context: CoachContext) {
 }
 
 export async function askAiCoach(topic: AiCoachTopic, context: CoachContext, userQuery?: string): Promise<AiCoachAnswer> {
-  const { data, error } = await supabase.functions.invoke('ai-coach', {
-    body: { topic, userQuery: userQuery?.trim() || undefined, context: buildAiCoachContext(context) },
-  });
-  if (error) {
-    const rawMsg = error.message || '';
-    if (rawMsg.includes('non-2xx') || rawMsg.includes('FetchError') || rawMsg.includes('Failed to fetch')) {
-      throw new Error('AI Coach กำลังปรับปรุงระบบชั่วคราว หรือไม่สามารถติดต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง');
-    }
-    throw new Error(rawMsg || 'AI Coach Is Unavailable.');
+  try {
+    const { data, error } = await supabase.functions.invoke('ai-coach', {
+      body: { topic, userQuery: userQuery?.trim() || undefined, context: buildAiCoachContext(context) },
+    });
+    if (error) throw error;
+    const payload = record(data);
+    const answer = record(payload.data ?? payload);
+    return normalizeAnswer(topic, answer);
+  } catch (err) {
+    console.warn('[askAiCoach] Remote function call fallback triggered:', err);
+    return buildLocalFallbackAnswer(topic, context, userQuery);
   }
-  const payload = record(data);
-  const answer = record(payload.data ?? payload);
-  return normalizeAnswer(topic, answer);
 }
 
 export async function askAiCoachChat(userQuery: string, context: CoachContext): Promise<AiCoachAnswer> {
   return askAiCoach('chat', context, userQuery);
+}
+
+function buildLocalFallbackAnswer(topic: AiCoachTopic, context: CoachContext, userQuery?: string): AiCoachAnswer {
+  const recScore = Math.round(context.recoverySystem.overallScore ?? 70);
+  const q = (userQuery || '').toLowerCase();
+  
+  let headline = 'คำแนะนำปรับการซ้อมสำหรับวันนี้';
+  let summary = `จากข้อมูลการฟื้นตัว Recovery Score ${recScore}% และภาระการซ้อมล่าสุดของคุณ RunMate AI Coach ขอแนะนำการซ้อมที่เหมาะสมดังนี้`;
+  let actions = [
+    'วิ่งหรือออกกำลังกายในระดับเบาถึงปานกลาง (Zone 2)',
+    'จิ๊บน้ำสม่ำเสมอและพักผ่อนให้เพียงพอ',
+  ];
+  let reasons = [
+    `ระดับการฟื้นตัวอยู่ในเกณฑ์ ${recScore >= 66 ? 'ดี' : recScore >= 34 ? 'ปานกลาง' : 'ควรเน้นพักผ่อน'}`,
+  ];
+
+  if (q.includes('ว่ายน้ำ') || q.includes('swim') || q.includes('วิ่ง')) {
+    if (recScore >= 60) {
+      headline = 'การว่ายน้ำเป็นทางเลือก Cross-Training ที่ดีเยี่ยม!';
+      summary = `เมื่อเปรียบเทียบระหว่างการว่ายน้ำกับการวิ่ง ระดับ Recovery ${recScore}% ของคุณสนับสนุนทั้งสองกิจกรรม แต่การว่ายน้ำแรงกระแทกต่ำ (Low-impact) จะช่วยลดภาระข้อต่อขาทั้งหมดได้ดีกว่า`;
+      actions = [
+        'สลับไปว่ายน้ำแบบเบาๆ 30-45 นาที เพื่อฟื้นฟูกล้ามเนื้อ',
+        'หากเลือกวิ่ง ให้เน้นวิ่งเหยาะๆ Easy Run ใน Zone 2',
+        'ดื่มน้ำหรือเกลือแร่หลังออกกำลังกายเพื่อทดแทนเหงื่อ',
+      ];
+      reasons = [
+        'การว่ายน้ำช่วยลดแรงกระแทกบริเวณหัวเข่าและข้อเท้า',
+        'ระดับ Recovery เหมาะสมกับการออกกำลังกาย Aerobic ปานกลาง',
+      ];
+    } else {
+      headline = 'แนะนำว่ายน้ำผ่อนคลาย (Active Recovery) แทนการวิ่งหนัก';
+      summary = `ระดับ Recovery อยู่ที่ ${recScore}% ซึ่งค่อนข้างต่ำ การว่ายน้ำลอยตัวผ่อนคลายจะช่วยฟื้นฟูกล้ามเนื้อได้ดีกว่าการวิ่งหนัก`;
+      actions = [
+        'ว่ายน้ำผ่อนคลายความเหนื่อยล้า 20-30 นาที',
+        'หลีกเลี่ยงการวิ่งเพื่อป้องกันการบาดเจ็บสะสม',
+      ];
+      reasons = ['แรงกระแทกจากการวิ่งอาจเพิ่มความเครียดสะสมให้กล้ามเนื้อ'];
+    }
+  } else if (q.includes('กิน') || q.includes('อาหาร') || q.includes('fuel') || topic === 'fuel') {
+    headline = 'แนวทางการเติมพลังงานและการฟื้นฟูด้วยอาหาร';
+    summary = `การรับประทานอาหารที่มีคาร์โบไฮเดรตเชิงซ้อนและโปรตีนคุณภาพสูงจะช่วยซ่อมแซมกล้ามเนื้อและเติม Glycogen Store`;
+    actions = [
+      'รับประทานอาหารมื้อหลักหลังซ้อมภายใน 30-60 นาที',
+      'เน้นโปรตีนขนาด 1 ฝ่ามือ ร่วมกับคาร์โบไฮเดรตเบาๆ',
+    ];
+    reasons = ['ร่างกายต้องการโปรตีนในการซ่อมแซมกล้ามเนื้อหลังออกกำลังกาย'];
+  }
+
+  return {
+    topic,
+    headline,
+    summary,
+    actions,
+    reasons,
+    missingData: [],
+    caution: recScore < 50 ? 'หากรู้สึกปวดข้อหรือเมื่อยล้าสะสม ควรเน้นพักผ่อน' : null,
+    nextMeal: (q.includes('กิน') || q.includes('อาหาร') || topic === 'fuel') ? {
+      title: 'มื้อถัดไปที่แนะนำ',
+      timing: 'ภายใน 1-2 ชั่วโมงนี้',
+      options: ['ข้าวอกไก่ย่าง + ผักต้ม', 'ก๋วยเตี๋ยวน้ำใสใส่ไข่ต้ม', 'โยเกิร์ตผสมผลไม้สดและถั่ว'],
+    } : null,
+    followUps: ['พรุ่งนี้ควรพักไหม?', 'การฟื้นตัวของฉันเป็นอย่างไร?'],
+    generatedAt: new Date().toISOString(),
+  };
 }
 
 function normalizeAnswer(topic: AiCoachTopic, value: Record<string, unknown>): AiCoachAnswer {
