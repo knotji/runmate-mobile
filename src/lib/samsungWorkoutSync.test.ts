@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Health } from '@capgo/capacitor-health';
 import type { HealthSample, Workout } from '@capgo/capacitor-health';
-import { mapSamsungWorkout, queryAllHealthConnectWorkouts, selectImportableHealthConnectWorkouts } from './samsungWorkoutSync';
+import { mapSamsungWorkout, queryAllHealthConnectWorkouts, selectImportableHealthConnectWorkouts, workoutHeartRateCoverage } from './samsungWorkoutSync';
 
 vi.mock('@capgo/capacitor-health', () => ({ Health: { queryWorkouts: vi.fn() } }));
 
@@ -66,5 +66,24 @@ describe('Samsung Health workout importer', () => {
     expect(query).toHaveBeenCalledTimes(2);
     expect(query.mock.calls[1][0].anchor).toBe('next-page');
     expect(result.map((workout) => workout.platformId)).toEqual(['latest', 'old']);
+  });
+
+  it('recognizes whether prepared heart rate covers enough of a workout for HR zones', () => {
+    const workout: Workout = {
+      workoutType: 'running',
+      duration: 600,
+      startDate: '2026-07-19T01:00:00.000Z',
+      endDate: '2026-07-19T01:10:00.000Z',
+    };
+    const sample = (minute: number): HealthSample => ({
+      dataType: 'heartRate',
+      value: 140,
+      unit: 'bpm',
+      startDate: `2026-07-19T01:${String(minute).padStart(2, '0')}:00.000Z`,
+      endDate: `2026-07-19T01:${String(minute).padStart(2, '0')}:00.000Z`,
+      sourceId: 'com.sec.android.app.shealth',
+    });
+    expect(workoutHeartRateCoverage([sample(0), sample(1)], workout)).toBe(10);
+    expect(workoutHeartRateCoverage([sample(0), sample(1), sample(2), sample(3), sample(4), sample(5)], workout)).toBe(50);
   });
 });

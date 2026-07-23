@@ -68,7 +68,7 @@ async function runSync(lookbackDays: number | 'today'): Promise<SamsungWorkoutSy
     const items = await Promise.all(workouts.map(async (workout) => {
       const heartRate = canReadHeartRate
         ? usePrepared
-          ? selectWorkoutHeartRate(prepared?.heartRate?.samples ?? [], workout)
+          ? await readWorkoutHeartRateWithPreparedFallback(prepared?.heartRate?.samples ?? [], workout)
           : await readWorkoutHeartRate(workout)
         : [];
       return mapSamsungWorkout(workout, heartRate, vo2MaxSamples);
@@ -152,6 +152,22 @@ async function readWorkoutHeartRate(workout: Workout): Promise<HealthSample[]> {
   return result.samples.filter((sample) => sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID);
 }
 
+async function readWorkoutHeartRateWithPreparedFallback(
+  preparedSamples: HealthSample[],
+  workout: Workout,
+): Promise<HealthSample[]> {
+  const prepared = selectWorkoutHeartRate(preparedSamples, workout);
+  if (workoutHeartRateCoverage(prepared, workout) >= 50) return prepared;
+  try {
+    const live = await readWorkoutHeartRate(workout);
+    return workoutHeartRateCoverage(live, workout) >= workoutHeartRateCoverage(prepared, workout)
+      ? live
+      : prepared;
+  } catch {
+    return prepared;
+  }
+}
+
 function selectWorkoutHeartRate(samples: HealthSample[], workout: Workout): HealthSample[] {
   const start = Date.parse(workout.startDate);
   const end = Date.parse(workout.endDate);
@@ -159,6 +175,22 @@ function selectWorkoutHeartRate(samples: HealthSample[], workout: Workout): Heal
     const at = Date.parse(sample.startDate);
     return sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID && Number.isFinite(at) && at >= start && at <= end;
   });
+}
+
+export function workoutHeartRateCoverage(samples: HealthSample[], workout: Pick<Workout, 'startDate' | 'endDate'>): number {
+  const start = Date.parse(workout.startDate);
+  const end = Date.parse(workout.endDate);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return 0;
+  const points = [...new Set(samples
+    .map((sample) => Date.parse(sample.startDate))
+    .filter((at) => Number.isFinite(at) && at >= start && at <= end))]
+    .sort((a, b) => a - b);
+  if (points.length < 2) return 0;
+  let measuredMs = 0;
+  for (let index = 0; index < points.length - 1; index += 1) {
+    measuredMs += Math.min(120_000, Math.max(0, points[index + 1] - points[index]));
+  }
+  return Math.min(100, Math.round((measuredMs / (end - start)) * 100));
 }
 
 export function selectImportableHealthConnectWorkouts(workouts: Workout[]): Workout[] {

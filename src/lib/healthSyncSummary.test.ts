@@ -17,4 +17,21 @@ describe('Health Sync Summary', () => {
     expect(classifyHealthSyncItems(incoming, existing)).toEqual({ added: 1, updated: 1, unchanged: 1, failed: 0 });
     expect(selectChangedHealthSyncItems(incoming, existing).map((entry) => entry.id)).toEqual(['changed', 'new']);
   });
+
+  it('updates an existing workout when a later sync adds its heart rate timeline', () => {
+    const existing = item('workout', 5, '2026-07-19T02:00:00Z');
+    const incomingBase = item('workout', 5, '2026-07-19T03:00:00Z');
+    const incoming = {
+      ...incomingBase,
+      data: {
+        ...(incomingBase.data as Record<string, unknown>),
+        heartRateSamples: [
+          { at: '2026-07-19T01:00:00Z', bpm: 130 },
+          { at: '2026-07-19T01:01:00Z', bpm: 135 },
+        ],
+      },
+    };
+    expect(classifyHealthSyncItems([incoming], [existing]).updated).toBe(1);
+    expect(selectChangedHealthSyncItems([incoming], [existing])).toHaveLength(1);
+  });
 });

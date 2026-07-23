@@ -17,6 +17,7 @@ import {
 } from 'ionicons/icons';
 import type { CoachContext } from '@/lib/buildCoachContext';
 import { hapticImpact, hapticNotification } from '@/lib/haptics';
+import { canSaveStoryImageNatively, saveStoryImageNatively } from '@/lib/storyImage';
 import './SocialShareModal.css';
 
 export type ShareTheme = 'cyber-dark' | 'sunrise-fresh' | 'minimal-glass' | 'transparent-overlay' | 'custom-photo';
@@ -239,11 +240,22 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
     });
   };
 
-  const saveImage = () => {
+  const saveImage = async () => {
     if (!dataUrl) return;
     void hapticImpact();
+    const fileName = `RunMate-${mode === 'workout' ? 'Workout' : 'Recovery'}-${Date.now()}.png`;
+    if (canSaveStoryImageNatively()) {
+      try {
+        await saveStoryImageNatively(dataUrl, fileName);
+        void hapticNotification();
+        showToast('Saved To Pictures / RunMate');
+      } catch {
+        showToast('Could Not Save Image');
+      }
+      return;
+    }
     const link = document.createElement('a');
-    link.download = `RunMate-${mode === 'workout' ? 'Workout' : 'Recovery'}-${Date.now()}.png`;
+    link.download = fileName;
     link.href = dataUrl;
     link.click();
     void hapticNotification();
@@ -267,9 +279,9 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
         void hapticNotification();
         return;
       }
-      saveImage();
+      await saveImage();
     } catch {
-      saveImage();
+      await saveImage();
     }
   };
 
@@ -352,7 +364,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
             <button type="button" className="share-action-btn primary" disabled={!isReady} onClick={() => void shareImage()}>
               <IonIcon icon={shareSocialOutline} /> Share
             </button>
-            <button type="button" className="share-action-btn secondary" disabled={!isReady} onClick={saveImage}>
+            <button type="button" className="share-action-btn secondary" disabled={!isReady} onClick={() => void saveImage()}>
               <IonIcon icon={downloadOutline} /> Save
             </button>
           </div>
