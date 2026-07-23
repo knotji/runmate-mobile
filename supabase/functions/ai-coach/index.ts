@@ -14,9 +14,8 @@ Deno.serve(async (request) => {
     if (!user) return reply({ error: 'Authentication Required' }, 401);
 
     const body = await request.json();
-    const topic = TOPICS.includes(body.topic) ? body.topic as Topic : null;
-    if (!topic) return reply({ error: 'Choose A Supported Coach Question' }, 400);
     const userQuery = typeof body.userQuery === 'string' && body.userQuery.trim() ? body.userQuery.trim().slice(0, 1000) : null;
+    const topic: Topic = TOPICS.includes(body.topic) ? body.topic as Topic : (userQuery ? 'chat' : 'today');
     const context = compact(body.context);
     if (JSON.stringify(context).length > 20_000) return reply({ error: 'Coach Context Is Too Large' }, 413);
 

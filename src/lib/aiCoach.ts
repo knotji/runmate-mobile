@@ -117,10 +117,11 @@ export async function askAiCoach(topic: AiCoachTopic, context: CoachContext, use
     });
     if (error) throw error;
     const payload = record(data);
+    if (payload.error) throw new Error(String(payload.error));
     const answer = record(payload.data ?? payload);
     return normalizeAnswer(topic, answer);
   } catch (err) {
-    console.warn('[askAiCoach] Remote function call fallback triggered:', err);
+    console.warn('[askAiCoach] Remote function call failed or returned error, using local fallback:', err);
     return buildLocalFallbackAnswer(topic, context, userQuery);
   }
 }
