@@ -151,13 +151,13 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
 
     // Score Circle (Center Center)
     const centerX = width / 2;
-    const centerY = cardY + 540;
-    const radius = 230;
+    const centerY = cardY + 450;
+    const radius = 200;
 
     // Background Circle Track
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-    ctx.lineWidth = 32;
+    ctx.lineWidth = 28;
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
     ctx.stroke();
 
@@ -166,7 +166,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
     const endAngle = startAngle + (2 * Math.PI * (score / 100));
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, startAngle, endAngle);
-    ctx.lineWidth = 32;
+    ctx.lineWidth = 28;
 
     const strokeGrad = ctx.createLinearGradient(centerX - radius, centerY, centerX + radius, centerY);
     if (score >= 66) {
@@ -185,34 +185,34 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
 
     // Inside Score Text
     ctx.textAlign = 'center';
-    ctx.font = 'bold 150px "IBM Plex Sans Thai", sans-serif';
+    ctx.font = 'bold 140px "IBM Plex Sans Thai", sans-serif';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(`${score}`, centerX, centerY + 35);
-
-    ctx.font = 'bold 34px "IBM Plex Sans Thai", sans-serif';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-    ctx.fillText('% RECOVERY', centerX, centerY + 105);
-
-    // Readiness Label Badge
-    const badgeW = 380;
-    const badgeH = 68;
-    const badgeX = centerX - badgeW / 2;
-    const badgeY = centerY + 180;
-
-    ctx.beginPath();
-    ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 34);
-    ctx.fillStyle = 'rgba(38, 163, 214, 0.2)';
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = 'rgba(38, 163, 214, 0.5)';
-    ctx.stroke();
+    ctx.fillText(`${score}`, centerX, centerY + 25);
 
     ctx.font = 'bold 30px "IBM Plex Sans Thai", sans-serif';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.fillText('% RECOVERY', centerX, centerY + 85);
+
+    // Readiness Label Badge (Positioned below circle cleanly)
+    const badgeW = 340;
+    const badgeH = 64;
+    const badgeX = centerX - badgeW / 2;
+    const badgeY = centerY + 235;
+
+    ctx.beginPath();
+    ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 32);
+    ctx.fillStyle = 'rgba(38, 163, 214, 0.22)';
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(38, 163, 214, 0.55)';
+    ctx.stroke();
+
+    ctx.font = 'bold 28px "IBM Plex Sans Thai", sans-serif';
     ctx.fillStyle = '#5ed0fa';
-    ctx.fillText(label.toUpperCase(), centerX, badgeY + 45);
+    ctx.fillText(label.toUpperCase(), centerX, badgeY + 42);
 
     // Metrics Grid Box (3 Items: Sleep, Strain, Resting HR)
-    const gridY = cardY + 950;
+    const gridY = cardY + 840;
     const gridW = cardW - 120;
     const gridX = cardX + 60;
     const itemW = (gridW - 40) / 3;
@@ -226,7 +226,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
     metrics.forEach((m, idx) => {
       const boxX = gridX + idx * (itemW + 20);
       const boxY = gridY;
-      const boxH = 200;
+      const boxH = 190;
 
       ctx.beginPath();
       ctx.roundRect(boxX, boxY, itemW, boxH, 24);
@@ -237,24 +237,24 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
       ctx.stroke();
 
       ctx.textAlign = 'center';
-      ctx.font = 'bold 24px "IBM Plex Sans Thai", sans-serif';
+      ctx.font = 'bold 22px "IBM Plex Sans Thai", sans-serif';
       ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-      ctx.fillText(m.title, boxX + itemW / 2, boxY + 50);
+      ctx.fillText(m.title, boxX + itemW / 2, boxY + 48);
 
-      ctx.font = 'bold 42px "IBM Plex Sans Thai", sans-serif';
+      ctx.font = 'bold 38px "IBM Plex Sans Thai", sans-serif';
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(m.val, boxX + itemW / 2, boxY + 115);
+      ctx.fillText(m.val, boxX + itemW / 2, boxY + 110);
 
-      ctx.font = '500 22px "IBM Plex Sans Thai", sans-serif';
+      ctx.font = '500 20px "IBM Plex Sans Thai", sans-serif';
       ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
-      ctx.fillText(m.sub, boxX + itemW / 2, boxY + 160);
+      ctx.fillText(m.sub, boxX + itemW / 2, boxY + 152);
     });
 
-    // AI Coach Quote Banner
-    const quoteY = gridY + 240;
+    // AI Coach Quote Banner (With Multi-line text wrapping)
+    const quoteY = gridY + 225;
     const quoteW = gridW;
     const quoteX = gridX;
-    const quoteH = 180;
+    const quoteH = 220;
 
     ctx.beginPath();
     ctx.roundRect(quoteX, quoteY, quoteW, quoteH, 28);
@@ -265,9 +265,9 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
     ctx.stroke();
 
     ctx.textAlign = 'left';
-    ctx.font = 'bold 26px "IBM Plex Sans Thai", sans-serif';
+    ctx.font = 'bold 24px "IBM Plex Sans Thai", sans-serif';
     ctx.fillStyle = '#3bc7ed';
-    ctx.fillText('AI COACH RECOMMENDATION', quoteX + 40, quoteY + 55);
+    ctx.fillText('AI COACH RECOMMENDATION', quoteX + 40, quoteY + 50);
 
     const quoteText = score >= 66
       ? 'ร่างกายฟื้นตัวดีเยี่ยม! เหมาะกับการซ้อมตามแผนหรือเพิ่มระยะ Easy Run'
@@ -275,9 +275,29 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
       ? 'ระดับความพร้อมปานกลาง แนะนำเน้นวิ่งควบคุม Heart Rate ใน Zone 2'
       : 'ควรเน้นพักผ่อน นอนหลับให้เต็มที่ และจิบน้ำสม่ำเสมอในวันนี้';
 
-    ctx.font = '500 30px "IBM Plex Sans Thai", sans-serif';
+    ctx.font = '500 28px "IBM Plex Sans Thai", sans-serif';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(quoteText, quoteX + 40, quoteY + 118);
+
+    // Simple Multi-line text wrapping for Thai Canvas
+    const words = quoteText.split(' ');
+    let currentLine = '';
+    let lineY = quoteY + 105;
+    const maxTextW = quoteW - 80;
+
+    words.forEach((word) => {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const metricsTest = ctx.measureText(testLine);
+      if (metricsTest.width > maxTextW && currentLine) {
+        ctx.fillText(currentLine, quoteX + 40, lineY);
+        currentLine = word;
+        lineY += 42;
+      } else {
+        currentLine = testLine;
+      }
+    });
+    if (currentLine) {
+      ctx.fillText(currentLine, quoteX + 40, lineY);
+    }
 
     // Bottom Branding Footer
     ctx.textAlign = 'center';
