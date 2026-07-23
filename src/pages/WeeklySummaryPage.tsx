@@ -27,10 +27,10 @@ const WeeklySummaryPage: React.FC = () => {
   const [workoutItems, setWorkoutItems] = useState<LocalHistoryItem[]>([]);
   const [openAdherenceWeek, setOpenAdherenceWeek] = useState<number | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (forceSync = false) => {
     setError(null);
     try {
-      await syncTodayHealth(true);
+      if (forceSync) await syncTodayHealth(true);
       const [nextContext, race, workoutHistory] = await Promise.all([buildCoachContextFromSupabase(), loadActiveRaceGoalAndPlan(), loadHistoryItems(['workout', 'strength'])]);
       const canonicalWorkouts = workoutHistory.ok ? dedupeWorkoutItems(workoutHistory.items) : [];
       setContext(nextContext);
@@ -43,7 +43,7 @@ const WeeklySummaryPage: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void load(false); }, [load]);
   const summary = useMemo(() => context ? buildWeeklyTrainingSummary(context) : null, [context]);
   const loadTrend = useMemo(() => {
     if (!context) return null;
@@ -58,7 +58,7 @@ const WeeklySummaryPage: React.FC = () => {
     return calculateTrainingStressBalance(workoutItems, context.profile ?? null, context.todayDate);
   }, [context, workoutItems]);
 
-  const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(); event.detail.complete(); };
+  const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(true); event.detail.complete(); };
 
   return <IonPage>
     <IonHeader translucent className="weekly-header"><IonToolbar>
