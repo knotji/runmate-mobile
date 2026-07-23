@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useHistory, useParams } from 'react-router-dom';
-import { IonButton, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar } from '@ionic/react';
-import { arrowBackOutline, barbellOutline, fitnessOutline } from 'ionicons/icons';
+import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar } from '@ionic/react';
+import { arrowBackOutline, barbellOutline, fitnessOutline, shareSocialOutline } from 'ionicons/icons';
+import { SocialShareModal, type WorkoutShareData } from '@/components/SocialShareModal';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { buildWorkoutDetail } from '@/lib/workoutDetail';
@@ -42,7 +43,18 @@ const WorkoutDetailPage: React.FC = () => {
   }, [id]);
 
   useEffect(() => { void load(); }, [load]);
+
+  const [showShareModal, setShowShareModal] = useState(false);
   const detail = item ? buildWorkoutDetail(item, { maxHr: profile?.maxHr, restingHr }) : null;
+
+  const workoutShareData: WorkoutShareData | null = detail ? {
+    title: detail.title,
+    distanceKm: numberValue(objectValue(objectValue(item?.data).extracted).distanceKm) ?? 10.5,
+    durationSeconds: numberValue(objectValue(objectValue(item?.data).extracted).activeDurationSeconds) ?? 3402,
+    paceFormatted: detail.metrics.find((m) => m.label.toLowerCase().includes('pace'))?.value ?? "5'24\"",
+    avgHeartRateBpm: detail.summaryHr.avgHr ?? undefined,
+    dateStr: detail.date,
+  } : null;
 
   return (
     <IonPage>
@@ -50,6 +62,11 @@ const WorkoutDetailPage: React.FC = () => {
         <IonToolbar>
           <IonButton slot="start" fill="clear" aria-label="Back To Activity" onClick={() => history.push('/tabs/activity')}><IonIcon slot="icon-only" icon={arrowBackOutline} /></IonButton>
           <IonTitle>Workout Detail</IonTitle>
+          <IonButtons slot="end">
+            <IonButton onClick={() => setShowShareModal(true)} aria-label="Share Workout">
+              <IonIcon icon={shareSocialOutline} />
+            </IonButton>
+          </IonButtons>
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen className="workout-detail-content">
@@ -135,6 +152,13 @@ const WorkoutDetailPage: React.FC = () => {
             </>
           )}
         </main>
+
+        <SocialShareModal
+          isOpen={showShareModal}
+          onDismiss={() => setShowShareModal(false)}
+          mode="workout"
+          workoutData={workoutShareData}
+        />
       </IonContent>
     </IonPage>
   );

@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import type { CoachContext } from '@/lib/buildCoachContext';
+import type { WorkoutShareData } from '@/components/SocialShareModal';
 
 describe('Social Share Story Card', () => {
-  it('prepares correct metrics for Story Card rendering', () => {
+  it('prepares correct metrics for Recovery Story Card rendering', () => {
     const mockContext: Partial<CoachContext> = {
       recoverySystem: {
         scoreState: 'scored',
@@ -26,5 +27,19 @@ describe('Social Share Story Card', () => {
     expect(label).toBe('Good');
     expect(sleepMins).toBe(445);
     expect(strain).toBe(12.3);
+  });
+
+  it('prepares correct metrics for Workout Story Card rendering', () => {
+    const mockWorkout: WorkoutShareData = {
+      title: 'Morning Run',
+      distanceKm: 10.5,
+      durationSeconds: 3402,
+      paceFormatted: "5'24\"",
+      avgHeartRateBpm: 148,
+    };
+
+    expect(mockWorkout.distanceKm.toFixed(2)).toBe('10.50');
+    expect(mockWorkout.paceFormatted).toBe("5'24\"");
+    expect(mockWorkout.avgHeartRateBpm).toBe(148);
   });
 });
