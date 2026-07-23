@@ -11,6 +11,7 @@ page hierarchy, font sizes, text case, spacing, and responsive review.
 This repository is an Ionic React + TypeScript + Vite + Capacitor mobile client that uses the existing RunMate Supabase project. The first implemented slice is authentication plus a WHOOP-inspired Recovery dashboard.
 
 ### Recent Enhancements (2026-07-23)
+- **Workout Story Controls And Calories**: Workout Story sharing now offers Calories alongside Distance, Time, Average Pace, Average HR, and Elevation, while preserving the one-to-four truthful-metric limit. The popup uses a compact two-column selector and grouped Background Style controls, and the exported Story uses a restrained hero size so Distance remains clear without overpowering the supporting metrics.
 - **Native Story Saving And HR Timeline Repair**: Android Story exports now save through MediaStore into `Pictures/RunMate` instead of relying on unsupported WebView downloads. Automatic Workout sync falls back from an incomplete prepared snapshot to a live Health Connect heart-rate query when measured coverage is below 50%, and reconciliation now treats an improved `heartRateSamples` timeline as a real record update so HR Zones can appear after a later sync.
 - **Minimal Social Story Cards**: Simplified Recovery and Workout 1080x1920 exports to one hero metric, borderless supporting metrics, source-only values, sport-specific vector icons, and readable transparent previews. Workout sharing now lets the user choose up to four available details, redraws reliably after the Ionic modal presents, and never invents missing distance, pace, heart-rate, or elevation values.
 - **Vite Bundle Splitting**: Configured `manualChunks` in `vite.config.ts` (`ionic-vendor`, `supabase-vendor`, `react-vendor`), reducing the main `index.js` chunk from 1.6MB to 126kB (92% size reduction).
@@ -1104,3 +1105,14 @@ Verification for the combined release candidate:
 - On a cold reopen during the same day, Recovery renders those dials immediately while Health Connect and Supabase refresh in the background.
 - The snapshot is rejected and removed after the Bangkok date changes, and it is cleared on sign-out, so yesterday's or another signed-out account's score is never presented as today's result.
 - This cache is presentation-only; fresh Supabase/Health Connect data remains authoritative and replaces it as soon as Recovery Core completes.
+
+## Workout Story Follow-Up And Route Decision (2026-07-23)
+
+- Workout Detail passes the saved Calories value into the shared Story model when it is available. Missing Calories remain absent and are never estimated for sharing.
+- Workout Story supports Distance, Time, Average Pace, Average HR, Calories, and Elevation. The user may choose one to four available metrics; the first active metric is the hero and the remaining selected metrics are supporting values.
+- The Share Workout modal groups metric selection and Background Style into one compact control card. Overlay, Photo, Dark, and Light remain the supported backgrounds.
+- The Story hero metric was reduced after testing an exported image in a real social Story composer. It remains the focal point but no longer dominates the full 9:16 image.
+- `src/lib/workoutShareMetrics.ts` owns the pure available-metric mapping so Canvas rendering, UI selection, and unit tests use one source of truth.
+- Health Connect and HealthKit both have native workout-route concepts, but `@capgo/capacitor-health` 8.9.x does not expose route points, latitude, longitude, or GPX through `queryWorkouts()`.
+- Route/GPX is intentionally **not planned for the current slice**. Supporting it would require maintaining a native plugin extension, requesting sensitive route permissions, handling per-workout consent on Android, and accepting that Samsung Health may not share a route for every Workout.
+- If Route is reconsidered later, treat it as a separate privacy-reviewed feature: query route points by the canonical Workout platform ID, preserve source provenance, render the map only when trustworthy points exist, and derive GPX from those points without inventing missing coordinates.

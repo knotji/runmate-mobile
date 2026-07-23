@@ -66,6 +66,7 @@ const WorkoutDetailPage: React.FC = () => {
     durationSeconds: numberValue(shareExtracted.activeDurationSeconds) ?? metricDurationSeconds(detail.metrics) ?? 0,
     paceFormatted: detail.metrics.find((m) => m.label.toLowerCase().includes('pace'))?.value,
     avgHeartRateBpm: detail.summaryHr.avgHr ?? undefined,
+    caloriesKcal: numberValue(shareExtracted.calories) ?? metricNumber(detail.metrics, 'calories') ?? undefined,
     elevationMeters: numberValue(shareExtracted.elevationGainMeters) ?? numberValue(shareExtracted.elevationGain) ?? metricNumber(detail.metrics, 'elevation') ?? undefined,
     dateStr: detail.date,
   } : null;

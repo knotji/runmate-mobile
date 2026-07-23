@@ -1,5 +1,5 @@
 .social-share-modal {
-  --height: 94%;
+  --height: 96%;
   --width: min(100%, 460px);
   --border-radius: 24px 24px 0 0;
 }
@@ -12,7 +12,7 @@
 
 .social-share-header ion-title {
   color: var(--ink, #17324d);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
 }
 
@@ -23,21 +23,21 @@
 
 .social-share-shell {
   width: 100%;
-  max-width: 420px;
+  max-width: 400px;
   margin: 0 auto;
-  padding: 16px 18px calc(30px + env(safe-area-inset-bottom));
+  padding: 14px 16px calc(26px + env(safe-area-inset-bottom));
 }
 
 .social-share-preview-container {
   position: relative;
   display: grid;
-  width: min(100%, 246px);
+  width: min(100%, 232px);
   aspect-ratio: 9 / 16;
   margin: 0 auto;
   overflow: hidden;
   place-items: center;
   border: 0;
-  border-radius: 16px;
+  border-radius: 15px;
   background: #10263a;
   box-shadow: 0 10px 24px rgba(32, 58, 78, 0.12);
 }
@@ -76,9 +76,24 @@
   object-fit: cover;
 }
 
+.social-share-controls {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #d9e6ee;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 8px 20px rgba(32, 58, 78, 0.05);
+}
+
 .social-share-detail-selector,
 .social-share-theme-selector {
-  margin-top: 16px;
+  margin: 0;
+}
+
+.social-share-theme-selector:not(:first-child) {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #e3edf3;
 }
 
 .social-share-selector-heading {
@@ -86,31 +101,40 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  margin: 0 2px 9px;
+  margin: 0 0 4px;
 }
 
 .social-share-selector-heading p {
   margin: 0;
   color: #274760;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 700;
 }
 
 .social-share-selector-heading span {
   color: #7d93a5;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.social-share-selector-note {
+  margin: 0 0 10px;
+  color: #7d93a5;
   font-size: 10px;
-  font-weight: 500;
+  line-height: 1.4;
 }
 
 .social-share-detail-chips {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px;
 }
 
 .detail-chip {
   display: inline-flex;
-  min-height: 36px;
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
   align-items: center;
   gap: 7px;
   padding: 0 12px 0 9px;
@@ -118,7 +142,7 @@
   border-radius: 999px;
   background: #ffffff;
   color: #567087;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
   transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease;
 }
@@ -136,6 +160,10 @@
   line-height: 1;
 }
 
+.detail-chip span ion-icon {
+  font-size: 12px;
+}
+
 .detail-chip.active {
   border-color: #8bcfe1;
   background: #eef9fc;
@@ -149,10 +177,10 @@
 }
 
 .social-share-theme-label {
-  margin: 0 0 9px 2px;
-  color: #607b91;
-  font-size: 11px;
-  font-weight: 600;
+  margin: 0 0 9px;
+  color: #274760;
+  font-size: 12.5px;
+  font-weight: 700;
 }
 
 .social-share-theme-chips {
@@ -188,17 +216,17 @@
   display: grid;
   grid-template-columns: 1.4fr 1fr;
   gap: 9px;
-  margin-top: 18px;
+  margin-top: 14px;
 }
 
 .share-action-btn {
   display: flex;
-  height: 44px;
+  height: 46px;
   align-items: center;
   justify-content: center;
   gap: 7px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 700;
   transition: opacity 150ms ease, transform 150ms ease;
 }
@@ -233,14 +261,10 @@
 
 @media (max-width: 360px) {
   .social-share-shell {
-    padding-inline: 14px;
+    padding-inline: 12px;
   }
 
   .social-share-preview-container {
-    width: min(100%, 228px);
-  }
-
-  .social-share-theme-chips {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: min(100%, 220px);
   }
 }

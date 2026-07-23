@@ -11,6 +11,7 @@ import {
   IonToolbar,
 } from '@ionic/react';
 import {
+  checkmarkOutline,
   closeOutline,
   downloadOutline,
   shareSocialOutline,
@@ -18,10 +19,16 @@ import {
 import type { CoachContext } from '@/lib/buildCoachContext';
 import { hapticImpact, hapticNotification } from '@/lib/haptics';
 import { canSaveStoryImageNatively, saveStoryImageNatively } from '@/lib/storyImage';
+import {
+  getAvailableWorkoutMetrics,
+  WORKOUT_METRIC_ORDER,
+  type SportType,
+  type WorkoutMetricKey,
+} from '@/lib/workoutShareMetrics';
 import './SocialShareModal.css';
 
 export type ShareTheme = 'cyber-dark' | 'sunrise-fresh' | 'minimal-glass' | 'transparent-overlay' | 'custom-photo';
-export type SportType = 'running' | 'walking' | 'cycling' | 'strength' | 'swimming' | 'workout';
+export type { SportType } from '@/lib/workoutShareMetrics';
 
 export interface WorkoutShareData {
   title: string;
@@ -30,6 +37,7 @@ export interface WorkoutShareData {
   durationSeconds: number;
   paceFormatted?: string;
   avgHeartRateBpm?: number;
+  caloriesKcal?: number;
   elevationMeters?: number;
   dateStr?: string;
   isStrength?: boolean;
@@ -57,16 +65,9 @@ type StoryMetric = {
   unit?: string;
 };
 
-type WorkoutMetricKey = 'distance' | 'duration' | 'pace' | 'heart-rate' | 'elevation';
-
-type WorkoutStoryMetric = StoryMetric & {
-  key: WorkoutMetricKey;
-};
-
 const STORY_WIDTH = 1080;
 const STORY_HEIGHT = 1920;
 const STORY_FONT = '"IBM Plex Sans Thai", sans-serif';
-const WORKOUT_METRIC_ORDER: WorkoutMetricKey[] = ['distance', 'duration', 'pace', 'heart-rate', 'elevation'];
 
 export const SocialShareModal: React.FC<SocialShareModalProps> = ({
   isOpen,
@@ -96,6 +97,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
   const durationSeconds = workoutData?.durationSeconds ?? 0;
   const pace = workoutData?.paceFormatted;
   const averageHeartRate = workoutData?.avgHeartRateBpm;
+  const caloriesKcal = workoutData?.caloriesKcal;
   const elevationMeters = workoutData?.elevationMeters;
   const dateText = workoutData?.dateStr ?? new Intl.DateTimeFormat('en-US', {
     weekday: 'short',
@@ -111,9 +113,10 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
       durationSeconds,
       pace,
       averageHeartRate,
+      caloriesKcal,
       elevationMeters,
     }),
-    [averageHeartRate, distanceKm, durationSeconds, elevationMeters, pace, sportType],
+    [averageHeartRate, caloriesKcal, distanceKm, durationSeconds, elevationMeters, pace, sportType],
   );
 
   const renderCardCanvas = useCallback(async () => {
@@ -136,6 +139,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
         durationSeconds,
         pace,
         averageHeartRate,
+        caloriesKcal,
         elevationMeters,
         dateText,
         selectedMetrics: selectedWorkoutMetrics,
@@ -154,6 +158,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
     return true;
   }, [
     averageHeartRate,
+    caloriesKcal,
     customPhotoUrl,
     dateText,
     distanceKm,
@@ -321,45 +326,48 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
 
           <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={uploadPhoto} />
 
-          {mode === 'workout' && availableWorkoutMetrics.length > 0 && (
-            <section className="social-share-detail-selector" aria-labelledby="story-details-label">
-              <div className="social-share-selector-heading">
-                <p id="story-details-label">Share Details</p>
-                <span>Choose Up To 4</span>
-              </div>
-              <div className="social-share-detail-chips">
-                {availableWorkoutMetrics.map((metric) => {
-                  const active = selectedWorkoutMetrics.includes(metric.key);
-                  return (
-                    <button
-                      type="button"
-                      key={metric.key}
-                      className={`detail-chip${active ? ' active' : ''}`}
-                      aria-pressed={active}
-                      onClick={() => toggleWorkoutMetric(metric.key)}
-                    >
-                      <span aria-hidden="true">{active ? '✓' : ''}</span>
-                      {metric.label}
-                    </button>
-                  );
-                })}
+          <div className="social-share-controls">
+            {mode === 'workout' && availableWorkoutMetrics.length > 0 && (
+              <section className="social-share-detail-selector" aria-labelledby="story-details-label">
+                <div className="social-share-selector-heading">
+                  <p id="story-details-label">Workout Metrics</p>
+                  <span>Select 1–4</span>
+                </div>
+                <p className="social-share-selector-note">The top active metric is shown largest.</p>
+                <div className="social-share-detail-chips">
+                  {availableWorkoutMetrics.map((metric) => {
+                    const active = selectedWorkoutMetrics.includes(metric.key);
+                    return (
+                      <button
+                        type="button"
+                        key={metric.key}
+                        className={`detail-chip${active ? ' active' : ''}`}
+                        aria-pressed={active}
+                        onClick={() => toggleWorkoutMetric(metric.key)}
+                      >
+                        <span aria-hidden="true">{active && <IonIcon icon={checkmarkOutline} />}</span>
+                        {metric.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            <section className="social-share-theme-selector" aria-labelledby="story-style-label">
+              <p id="story-style-label" className="social-share-theme-label">Background Style</p>
+              <div className="social-share-theme-chips">
+                {mode === 'workout' && (
+                  <>
+                    <ThemeButton label="Overlay" active={selectedTheme === 'transparent-overlay'} onClick={() => selectTheme('transparent-overlay')} />
+                    <ThemeButton label="Photo" active={selectedTheme === 'custom-photo'} onClick={() => selectTheme('custom-photo')} />
+                  </>
+                )}
+                <ThemeButton label="Dark" active={selectedTheme === 'cyber-dark'} onClick={() => selectTheme('cyber-dark')} />
+                <ThemeButton label="Light" active={selectedTheme === 'minimal-glass' || selectedTheme === 'sunrise-fresh'} onClick={() => selectTheme('minimal-glass')} />
               </div>
             </section>
-          )}
-
-          <section className="social-share-theme-selector" aria-labelledby="story-style-label">
-            <p id="story-style-label" className="social-share-theme-label">Background</p>
-            <div className="social-share-theme-chips">
-              {mode === 'workout' && (
-                <>
-                  <ThemeButton label="Overlay" active={selectedTheme === 'transparent-overlay'} onClick={() => selectTheme('transparent-overlay')} />
-                  <ThemeButton label="Photo" active={selectedTheme === 'custom-photo'} onClick={() => selectTheme('custom-photo')} />
-                </>
-              )}
-              <ThemeButton label="Dark" active={selectedTheme === 'cyber-dark'} onClick={() => selectTheme('cyber-dark')} />
-              <ThemeButton label="Light" active={selectedTheme === 'minimal-glass' || selectedTheme === 'sunrise-fresh'} onClick={() => selectTheme('minimal-glass')} />
-            </div>
-          </section>
+          </div>
 
           <div className="social-share-actions">
             <button type="button" className="share-action-btn primary" disabled={!isReady} onClick={() => void shareImage()}>
@@ -450,6 +458,7 @@ function drawWorkoutStory(
     durationSeconds: number;
     pace?: string;
     averageHeartRate?: number;
+    caloriesKcal?: number;
     elevationMeters?: number;
     dateText: string;
     selectedMetrics: WorkoutMetricKey[];
@@ -464,8 +473,8 @@ function drawWorkoutStory(
   ctx.shadowBlur = data.theme === 'minimal-glass' || data.theme === 'sunrise-fresh' ? 0 : 10;
 
   if (heroMetric) {
-    drawFittedTextCentered(ctx, heroMetric.value, STORY_WIDTH / 2, 625, 840, 210, palette.text, '700');
-    ctx.font = `700 38px ${STORY_FONT}`;
+    drawFittedTextCentered(ctx, heroMetric.value, STORY_WIDTH / 2, 625, 840, 176, palette.text, '700');
+    ctx.font = `700 34px ${STORY_FONT}`;
     ctx.fillStyle = palette.accent;
     ctx.textAlign = 'center';
     ctx.fillText((heroMetric.unit ?? heroMetric.label).toUpperCase(), STORY_WIDTH / 2, 690);
@@ -475,58 +484,6 @@ function drawWorkoutStory(
   drawWorkoutMetricRow(ctx, palette, metrics.slice(1, 4), 910);
   drawSportSignature(ctx, palette, data.sportType, 1320, 0.82);
   ctx.restore();
-}
-
-function getAvailableWorkoutMetrics(data: {
-  sportType: SportType;
-  distanceKm?: number;
-  durationSeconds: number;
-  pace?: string;
-  averageHeartRate?: number;
-  elevationMeters?: number;
-}): WorkoutStoryMetric[] {
-  const metrics: WorkoutStoryMetric[] = [];
-  const hasDistance = typeof data.distanceKm === 'number' && data.distanceKm > 0;
-  if (hasDistance) {
-    const showSwimMeters = data.sportType === 'swimming' && data.distanceKm! < 1;
-    metrics.push({
-      key: 'distance',
-      label: 'Distance',
-      value: showSwimMeters ? `${Math.round(data.distanceKm! * 1000)}` : formatDistance(data.distanceKm!),
-      unit: showSwimMeters ? 'm' : 'km',
-    });
-  }
-  if (data.durationSeconds > 0) {
-    metrics.push({
-      key: 'duration',
-      label: 'Time',
-      value: formatDuration(data.durationSeconds),
-    });
-  }
-  if (data.pace) {
-    metrics.push({
-      key: 'pace',
-      label: 'Average Pace',
-      value: data.pace,
-    });
-  }
-  if (typeof data.averageHeartRate === 'number') {
-    metrics.push({
-      key: 'heart-rate',
-      label: 'Average HR',
-      value: `${Math.round(data.averageHeartRate)}`,
-      unit: 'bpm',
-    });
-  }
-  if (typeof data.elevationMeters === 'number') {
-    metrics.push({
-      key: 'elevation',
-      label: 'Elevation',
-      value: `${Math.round(data.elevationMeters)}`,
-      unit: 'm',
-    });
-  }
-  return metrics;
 }
 
 function drawRecoveryStory(
@@ -871,20 +828,6 @@ function recoveryAccent(score: number): string {
   if (score >= 67) return '#16b894';
   if (score >= 34) return '#e5a11d';
   return '#e45d6c';
-}
-
-function formatDistance(distance: number): string {
-  return distance >= 100 ? Math.round(distance).toString() : distance.toFixed(2);
-}
-
-function formatDuration(totalSeconds: number): string {
-  const safeSeconds = Math.max(0, Math.round(totalSeconds));
-  const hours = Math.floor(safeSeconds / 3600);
-  const minutes = Math.floor((safeSeconds % 3600) / 60);
-  const seconds = safeSeconds % 60;
-  return hours > 0
-    ? `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-    : `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
 function formatSleep(minutes: number): string {
