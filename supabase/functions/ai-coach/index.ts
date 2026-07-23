@@ -22,7 +22,8 @@ Deno.serve(async (request) => {
 
     const apiKey = Deno.env.get('GEMINI_API_KEY');
     if (!apiKey) return reply({ error: 'AI Coach Is Not Configured' }, 503);
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.1-flash-lite'}:generateContent?key=${apiKey}`, {
+    const modelName = Deno.env.get('GEMINI_MODEL') || 'gemini-1.5-flash';
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -31,15 +32,32 @@ Deno.serve(async (request) => {
       }),
     });
     if (!response.ok) {
-      console.error('[ai-coach] Gemini request failed', response.status);
+      const errText = await response.text().catch(() => '');
+      console.error('[ai-coach] Gemini API error status:', response.status, errText);
       return reply({ error: 'AI Coach Is Temporarily Unavailable' }, 502);
     }
     const generated = await response.json();
-    const text = generated?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (typeof text !== 'string') return reply({ error: 'AI Coach Returned An Empty Answer' }, 502);
-    return reply({ data: normalizeAnswer(JSON.parse(text)) });
+    const rawText = generated?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (typeof rawText !== 'string' || !rawText.trim()) return reply({ error: 'AI Coach Returned An Empty Answer' }, 502);
+    
+    // Clean markdown code blocks if any before parsing
+    const cleanedText = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(cleanedText);
+    } catch {
+      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try { parsed = JSON.parse(jsonMatch[0]); } catch { /* ignore */ }
+      }
+    }
+    if (!parsed) {
+      console.error('[ai-coach] Failed to parse Gemini response JSON:', rawText);
+      return reply({ error: 'AI Coach Response Error' }, 502);
+    }
+    return reply({ data: normalizeAnswer(parsed) });
   } catch (error) {
-    console.error('[ai-coach]', error);
+    console.error('[ai-coach] Internal error:', error);
     return reply({ error: 'AI Coach Could Not Complete This Request' }, 500);
   }
 });

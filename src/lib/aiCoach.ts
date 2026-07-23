@@ -114,7 +114,13 @@ export async function askAiCoach(topic: AiCoachTopic, context: CoachContext, use
   const { data, error } = await supabase.functions.invoke('ai-coach', {
     body: { topic, userQuery: userQuery?.trim() || undefined, context: buildAiCoachContext(context) },
   });
-  if (error) throw new Error(error.message || 'AI Coach Is Unavailable.');
+  if (error) {
+    const rawMsg = error.message || '';
+    if (rawMsg.includes('non-2xx') || rawMsg.includes('FetchError') || rawMsg.includes('Failed to fetch')) {
+      throw new Error('AI Coach กำลังปรับปรุงระบบชั่วคราว หรือไม่สามารถติดต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง');
+    }
+    throw new Error(rawMsg || 'AI Coach Is Unavailable.');
+  }
   const payload = record(data);
   const answer = record(payload.data ?? payload);
   return normalizeAnswer(topic, answer);

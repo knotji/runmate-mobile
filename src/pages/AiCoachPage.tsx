@@ -33,7 +33,6 @@ const AiCoachPage: React.FC = () => {
   const [showContextDrawer, setShowContextDrawer] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isNearBottom, setIsNearBottom] = useState(true);
-  const [keyboardOffset, setKeyboardOffset] = useState(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const loadContext = useCallback(async () => {
@@ -45,25 +44,22 @@ const AiCoachPage: React.FC = () => {
 
   useEffect(() => { void loadContext(); }, [loadContext]);
 
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
-    let showHandle: PluginListenerHandle | null = null;
-    let hideHandle: PluginListenerHandle | null = null;
-    void Keyboard.addListener('keyboardWillShow', (info) => {
-      setKeyboardOffset(info.keyboardHeight);
-    }).then((h) => { showHandle = h; });
-    void Keyboard.addListener('keyboardWillHide', () => {
-      setKeyboardOffset(0);
-    }).then((h) => { hideHandle = h; });
-    return () => {
-      void showHandle?.remove();
-      void hideHandle?.remove();
-    };
-  }, []);
-
   const scrollToBottom = useCallback(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     setIsNearBottom(true);
+  }, []);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let showHandle: PluginListenerHandle | null = null;
+    void Keyboard.addListener('keyboardWillShow', () => {
+      setTimeout(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+    }).then((h) => { showHandle = h; });
+    return () => {
+      void showHandle?.remove();
+    };
   }, []);
 
   useEffect(() => {
@@ -209,7 +205,7 @@ const AiCoachPage: React.FC = () => {
           </section>
 
           {/* Freeform Chat Input Bar */}
-          <div className="ai-coach-input-container" style={keyboardOffset > 0 ? { transform: `translateY(-${keyboardOffset}px)` } : undefined}>
+          <div className="ai-coach-input-container">
             {!isNearBottom && (
               <button type="button" className="ai-coach-scroll-bottom-btn" onClick={scrollToBottom} aria-label="Scroll to bottom">
                 <IonIcon icon={arrowDownOutline} /> New response below
@@ -222,7 +218,12 @@ const AiCoachPage: React.FC = () => {
                 placeholder="Ask AI Coach anything (e.g. หลังวิ่งกินอะไรดี?)..."
                 value={inputQuery}
                 onChange={(e) => setInputQuery(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') void submitCustomQuery(); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                    e.preventDefault();
+                    void submitCustomQuery();
+                  }
+                }}
                 disabled={asking}
               />
               <button type="button" className="ai-coach-send-btn" onClick={() => void submitCustomQuery()} disabled={asking || !inputQuery.trim()} aria-label="Send Message">
