@@ -53,18 +53,20 @@ const WorkoutDetailPage: React.FC = () => {
     if (titleLower.includes('walk')) return 'walking';
     if (titleLower.includes('cycle') || titleLower.includes('bike')) return 'cycling';
     if (titleLower.includes('swim')) return 'swimming';
-    if (titleLower.includes('run')) return 'running';
+    if (titleLower.includes('run') || titleLower.includes('treadmill')) return 'running';
     return 'workout';
   };
 
+  const shareExtracted = objectValue(objectValue(item?.data).extracted);
   const workoutShareData: WorkoutShareData | null = detail ? {
     title: detail.title,
     type: getSportType(),
     isStrength: detail.isStrength,
-    distanceKm: numberValue(objectValue(objectValue(item?.data).extracted).distanceKm) ?? (detail.isStrength ? 0 : 10.5),
-    durationSeconds: numberValue(objectValue(objectValue(item?.data).extracted).activeDurationSeconds) ?? 3402,
-    paceFormatted: detail.metrics.find((m) => m.label.toLowerCase().includes('pace'))?.value ?? (detail.isStrength ? '' : "5'24\""),
+    distanceKm: numberValue(shareExtracted.distanceKm) ?? metersToKilometers(numberValue(shareExtracted.distanceM)) ?? undefined,
+    durationSeconds: numberValue(shareExtracted.activeDurationSeconds) ?? metricDurationSeconds(detail.metrics) ?? 0,
+    paceFormatted: detail.metrics.find((m) => m.label.toLowerCase().includes('pace'))?.value,
     avgHeartRateBpm: detail.summaryHr.avgHr ?? undefined,
+    elevationMeters: numberValue(shareExtracted.elevationGainMeters) ?? numberValue(shareExtracted.elevationGain) ?? metricNumber(detail.metrics, 'elevation') ?? undefined,
     dateStr: detail.date,
   } : null;
 
@@ -180,6 +182,22 @@ export default WorkoutDetailPage;
 
 function objectValue(value: unknown): Record<string, unknown> { return typeof value === 'object' && value !== null ? value as Record<string, unknown> : {}; }
 function numberValue(value: unknown): number | null { return typeof value === 'number' && Number.isFinite(value) ? value : null; }
+function metersToKilometers(value: number | null): number | null { return value === null ? null : value / 1000; }
+function metricNumber(metrics: Array<{ label: string; value: string }>, label: string): number | null {
+  const value = metrics.find((metric) => metric.label.toLowerCase().includes(label))?.value;
+  if (!value) return null;
+  const parsed = Number.parseFloat(value.replace(/,/g, ''));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+function metricDurationSeconds(metrics: Array<{ label: string; value: string }>): number | null {
+  const value = metrics.find((metric) => metric.label.toLowerCase().includes('duration'))?.value;
+  if (!value) return null;
+  const parts = value.split(':').map(Number);
+  if (parts.some((part) => !Number.isFinite(part))) return null;
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return null;
+}
 function formatZoneDuration(seconds: number): string { const minutes = Math.floor(seconds / 60); const remainder = seconds % 60; return minutes > 0 ? `${minutes}m ${remainder ? `${remainder}s` : ''}`.trim() : `${remainder}s`; }
 function zoneRange(lower: number | null, upper: number | null): string { return lower == null ? `< ${upper == null ? '—' : upper + 1} bpm` : upper == null ? `${lower}+ bpm` : `${lower}–${upper} bpm`; }
 function formatImportedAt(value: string | null): string { return value && Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Bangkok' }).format(new Date(value)) : 'Not Available'; }

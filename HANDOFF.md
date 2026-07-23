@@ -11,6 +11,7 @@ page hierarchy, font sizes, text case, spacing, and responsive review.
 This repository is an Ionic React + TypeScript + Vite + Capacitor mobile client that uses the existing RunMate Supabase project. The first implemented slice is authentication plus a WHOOP-inspired Recovery dashboard.
 
 ### Recent Enhancements (2026-07-23)
+- **Minimal Social Story Cards**: Simplified Recovery and Workout 1080x1920 exports to one hero metric, borderless supporting metrics, source-only values, sport-specific vector icons, and readable transparent previews. Workout sharing now lets the user choose up to four available details, redraws reliably after the Ionic modal presents, and never invents missing distance, pace, heart-rate, or elevation values.
 - **Vite Bundle Splitting**: Configured `manualChunks` in `vite.config.ts` (`ionic-vendor`, `supabase-vendor`, `react-vendor`), reducing the main `index.js` chunk from 1.6MB to 126kB (92% size reduction).
 - **Design Tokens & Touch Targets**: Centralized colors in `src/theme/variables.css` and enforced 44x44px minimum touch targets across icon buttons.
 - **Mobile Keyboard & Safe Areas**: Dynamic keyboard offset listener in `AiCoachPage.tsx` using `@capacitor/keyboard` and safe area inset clearances.
