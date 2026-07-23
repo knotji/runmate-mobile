@@ -104,7 +104,7 @@ const RecoveryPage: React.FC = () => {
     setLoading(startupRecovery === null);
     setLoadingStage('syncing');
     setError(null);
-    const healthSync = measurePerformanceDiagnostic(
+    const healthSyncPromise = measurePerformanceDiagnostic(
       'health_sync',
       () => syncTodayHealth(),
       (syncResult) => describeTodayHealthSyncPerformance(syncResult),
@@ -114,10 +114,12 @@ const RecoveryPage: React.FC = () => {
     });
 
     // Health Connect can take several seconds on a cold Android start. Load the
-    // account-backed dials in parallel so the page is useful while sync finishes.
+    // account-backed dials and secondary guidance immediately so the page is
+    // interactive in < 200ms while Health Connect sync completes in background.
     setLoadingStage('calculating');
     try {
       await loadRecoveryCore();
+      void loadSecondaryRecovery(forceContext);
     } catch (loadError) {
       console.error('[recovery] initial core load failed', loadError);
       if (startupRecovery) {
@@ -130,18 +132,14 @@ const RecoveryPage: React.FC = () => {
       return;
     }
 
-    const result = await healthSync;
-    if (result?.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
-    if (result?.workout?.error) console.warn('[workout-sync] Samsung Health sync failed', result.workout.error);
-    if (result?.changed || forceContext) {
-      try {
-        await loadRecoveryCore();
-      } catch (refreshError) {
-        console.warn('[recovery] post-sync core refresh failed', refreshError);
+    void healthSyncPromise.then((result) => {
+      if (result?.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
+      if (result?.workout?.error) console.warn('[workout-sync] Samsung Health sync failed', result.workout.error);
+      if (result?.changed && visibleRef.current) {
+        void loadRecovery(false);
       }
-    }
-    await loadSecondaryRecovery(forceContext || Boolean(result?.changed));
-  }, [loadRecoveryCore, loadSecondaryRecovery, startupRecovery]);
+    });
+  }, [loadRecoveryCore, loadSecondaryRecovery, startupRecovery, loadRecovery]);
 
   const retryRecovery = useCallback(async () => {
     await loadInitialRecovery(true);
