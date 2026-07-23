@@ -18,8 +18,12 @@
 }
 
 .recovery-header ion-button {
-  --color: #52708f;
+  --color: #1783b8;
   --border-radius: 12px;
+}
+
+.recovery-share-btn {
+  font-size: 20px;
 }
 
 .recovery-shell {

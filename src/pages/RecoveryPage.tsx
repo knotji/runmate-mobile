@@ -11,11 +11,14 @@ import {
   IonRefresherContent,
   IonTitle,
   IonToolbar,
+  IonButtons,
+  IonButton,
   useIonViewDidLeave,
   useIonViewWillEnter,
   type RefresherEventDetail,
 } from '@ionic/react';
-import { chevronForwardOutline, moonOutline, sunnyOutline } from 'ionicons/icons';
+import { chevronForwardOutline, moonOutline, sunnyOutline, shareSocialOutline } from 'ionicons/icons';
+import { SocialShareModal } from '@/components/SocialShareModal';
 import type { CoachContext } from '@/lib/buildCoachContext';
 import { buildRecoveryCoreContextFromSupabase, buildRecoveryPageContextFromSupabase } from '@/lib/coachContextService';
 import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
@@ -184,6 +187,7 @@ const RecoveryPage: React.FC = () => {
     event.detail.complete();
   };
 
+  const [showShareModal, setShowShareModal] = useState(false);
   const visibleRecovery = context?.recoverySystem ?? startupRecovery;
 
   return (
@@ -191,6 +195,11 @@ const RecoveryPage: React.FC = () => {
       <IonHeader translucent className="recovery-header">
         <IonToolbar>
           <IonTitle>Recovery</IonTitle>
+          <IonButtons slot="end">
+            <IonButton onClick={() => setShowShareModal(true)} className="recovery-share-btn" aria-label="Share Story">
+              <IonIcon icon={shareSocialOutline} />
+            </IonButton>
+          </IonButtons>
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen className="recovery-content">
@@ -210,6 +219,12 @@ const RecoveryPage: React.FC = () => {
             </>
           )}
         </main>
+
+        <SocialShareModal
+          isOpen={showShareModal}
+          onDismiss={() => setShowShareModal(false)}
+          context={context}
+        />
       </IonContent>
     </IonPage>
   );
