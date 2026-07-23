@@ -22,7 +22,7 @@ Deno.serve(async (request) => {
 
     const apiKey = Deno.env.get('GEMINI_API_KEY');
     if (!apiKey) return reply({ error: 'AI Coach Is Not Configured' }, 503);
-    const modelName = Deno.env.get('GEMINI_MODEL') || 'gemini-1.5-flash';
+    const modelName = Deno.env.get('GEMINI_MODEL') || 'gemini-3.1-flash-lite';
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
