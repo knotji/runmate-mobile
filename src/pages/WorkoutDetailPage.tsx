@@ -47,11 +47,23 @@ const WorkoutDetailPage: React.FC = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const detail = item ? buildWorkoutDetail(item, { maxHr: profile?.maxHr, restingHr }) : null;
 
+  const getSportType = (): 'running' | 'walking' | 'cycling' | 'strength' | 'swimming' | 'workout' => {
+    if (detail?.isStrength) return 'strength';
+    const titleLower = detail?.title.toLowerCase() ?? '';
+    if (titleLower.includes('walk')) return 'walking';
+    if (titleLower.includes('cycle') || titleLower.includes('bike')) return 'cycling';
+    if (titleLower.includes('swim')) return 'swimming';
+    if (titleLower.includes('run')) return 'running';
+    return 'workout';
+  };
+
   const workoutShareData: WorkoutShareData | null = detail ? {
     title: detail.title,
-    distanceKm: numberValue(objectValue(objectValue(item?.data).extracted).distanceKm) ?? 10.5,
+    type: getSportType(),
+    isStrength: detail.isStrength,
+    distanceKm: numberValue(objectValue(objectValue(item?.data).extracted).distanceKm) ?? (detail.isStrength ? 0 : 10.5),
     durationSeconds: numberValue(objectValue(objectValue(item?.data).extracted).activeDurationSeconds) ?? 3402,
-    paceFormatted: detail.metrics.find((m) => m.label.toLowerCase().includes('pace'))?.value ?? "5'24\"",
+    paceFormatted: detail.metrics.find((m) => m.label.toLowerCase().includes('pace'))?.value ?? (detail.isStrength ? '' : "5'24\""),
     avgHeartRateBpm: detail.summaryHr.avgHr ?? undefined,
     dateStr: detail.date,
   } : null;

@@ -27,15 +27,18 @@ import { hapticImpact, hapticNotification } from '@/lib/haptics';
 import './SocialShareModal.css';
 
 export type ShareTheme = 'cyber-dark' | 'sunrise-fresh' | 'minimal-glass' | 'transparent-overlay' | 'custom-photo';
+export type SportType = 'running' | 'walking' | 'cycling' | 'strength' | 'swimming' | 'workout';
 
 export interface WorkoutShareData {
   title: string;
-  distanceKm: number;
+  type?: SportType;
+  distanceKm?: number;
   durationSeconds: number;
-  paceFormatted: string;
+  paceFormatted?: string;
   avgHeartRateBpm?: number;
   elevationMeters?: number;
   dateStr?: string;
+  isStrength?: boolean;
 }
 
 interface SocialShareModalProps {
@@ -70,8 +73,10 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
   const hrResting = context?.recoverySystem.sleepPerformance.state !== 'unscorable' ? 54 : 58;
 
   // Workout Data Fallbacks
-  const dist = workoutData?.distanceKm ?? 10.5;
-  const pace = workoutData?.paceFormatted ?? "5'24\"";
+  const title = workoutData?.title ?? 'Morning Workout';
+  const sportType: SportType = workoutData?.type ?? (workoutData?.isStrength ? 'strength' : 'running');
+  const dist = workoutData?.distanceKm ?? (sportType === 'strength' ? 0 : 10.5);
+  const pace = workoutData?.paceFormatted ?? (sportType === 'strength' ? '' : "5'24\"");
   const durationSec = workoutData?.durationSeconds ?? 3402; // ~56:42
   const hrAvg = workoutData?.avgHeartRateBpm ?? 148;
   const dateText = workoutData?.dateStr ?? new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -84,6 +89,17 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
       return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getSportIcon = (type: SportType) => {
+    switch (type) {
+      case 'running': return '🏃';
+      case 'strength': return '🏋️';
+      case 'cycling': return '🚴';
+      case 'walking': return '🚶';
+      case 'swimming': return '🏊';
+      default: return '⚡';
+    }
   };
 
   const renderCardCanvas = useCallback(async () => {
@@ -100,18 +116,15 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
 
     if (mode === 'workout') {
       // -------------------------------------------------------------
-      // WORKOUT STORY CARD RENDER
+      // WORKOUT STORY CARD RENDER (MINIMAL STRAVA STYLE)
       // -------------------------------------------------------------
       if (selectedTheme === 'transparent-overlay') {
-        // Clear background for pure transparent PNG
         ctx.clearRect(0, 0, width, height);
       } else if (selectedTheme === 'custom-photo' && customPhotoUrl) {
-        // Draw user uploaded photo background
         await new Promise<void>((resolve) => {
           const img = new Image();
           img.crossOrigin = 'anonymous';
           img.onload = () => {
-            // Draw aspect cover
             const imgRatio = img.width / img.height;
             const canvasRatio = width / height;
             let drawW = width;
@@ -129,10 +142,9 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
 
             ctx.drawImage(img, startX, startY, drawW, drawH);
 
-            // Subtle Gradient Vignette to enhance text readability
             const vignette = ctx.createLinearGradient(0, height * 0.3, 0, height);
             vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
-            vignette.addColorStop(0.7, 'rgba(0, 0, 0, 0.45)');
+            vignette.addColorStop(0.6, 'rgba(0, 0, 0, 0.4)');
             vignette.addColorStop(1, 'rgba(0, 0, 0, 0.85)');
             ctx.fillStyle = vignette;
             ctx.fillRect(0, 0, width, height);
@@ -158,7 +170,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
         ctx.fillRect(0, 0, width, height);
       }
 
-      // Glass Card Overlay Frame for non-transparent mode
+      // Minimal Outer Card Frame
       if (selectedTheme !== 'transparent-overlay') {
         const cardX = 80;
         const cardY = 180;
@@ -168,86 +180,167 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
         ctx.save();
         ctx.beginPath();
         ctx.roundRect(cardX, cardY, cardW, cardH, 56);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
         ctx.fill();
-        ctx.lineWidth = 2.5;
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
         ctx.stroke();
         ctx.restore();
       }
 
-      // Top Brand Header
-      ctx.font = 'bold 42px "IBM Plex Sans Thai", sans-serif';
-      ctx.fillStyle = '#28b5e6';
-      ctx.textAlign = 'left';
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-      ctx.shadowBlur = 12;
-      ctx.fillText('RUNMATE', 140, 290);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText(' AI', 335, 290);
+      // Top Brand & Sport Badge Header (Minimal Strava Header)
+      const iconSymbol = getSportIcon(sportType);
 
-      ctx.font = '500 32px "IBM Plex Sans Thai", sans-serif';
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
-      ctx.textAlign = 'right';
-      ctx.fillText(dateText, 940, 290);
+      // Icon Circle Badge
+      ctx.beginPath();
+      ctx.arc(160, 290, 42, 0, 2 * Math.PI);
+      ctx.fillStyle = 'rgba(38, 181, 230, 0.2)';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#38bdf8';
+      ctx.stroke();
 
-      // Huge Distance (Nike/Strava Style)
-      const distY = 660;
+      ctx.font = '36px "IBM Plex Sans Thai", sans-serif';
       ctx.textAlign = 'center';
-      ctx.font = '800 210px "IBM Plex Sans Thai", sans-serif';
+      ctx.fillText(iconSymbol, 160, 302);
+
+      // Title & Date
+      ctx.textAlign = 'left';
+      ctx.font = 'bold 36px "IBM Plex Sans Thai", sans-serif';
       ctx.fillStyle = '#ffffff';
       ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-      ctx.shadowBlur = 24;
-      ctx.fillText(dist.toFixed(2), width / 2, distY);
+      ctx.shadowBlur = 10;
+      ctx.fillText(title.toUpperCase(), 230, 290);
 
-      ctx.font = 'bold 42px "IBM Plex Sans Thai", sans-serif';
-      ctx.fillStyle = '#38bdf8';
-      ctx.fillText('KILOMETERS', width / 2, distY + 80);
-
-      // Workout Metrics Banner Grid (Pace, Time, HR)
-      const gridY = 1060;
-      const gridW = 840;
-      const gridX = (width - gridW) / 2;
-      const itemW = (gridW - 40) / 3;
-
-      const wMetrics = [
-        { title: 'AVG PACE', val: pace, sub: '/km' },
-        { title: 'TIME', val: formatDuration(durationSec), sub: 'Duration' },
-        { title: 'AVG HR', val: `${hrAvg}`, sub: 'bpm' },
-      ];
-
-      wMetrics.forEach((m, idx) => {
-        const boxX = gridX + idx * (itemW + 20);
-        const boxY = gridY;
-        const boxH = 210;
-
-        ctx.beginPath();
-        ctx.roundRect(boxX, boxY, itemW, boxH, 28);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-        ctx.fill();
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-        ctx.stroke();
-
-        ctx.textAlign = 'center';
-        ctx.font = 'bold 24px "IBM Plex Sans Thai", sans-serif';
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
-        ctx.fillText(m.title, boxX + itemW / 2, boxY + 52);
-
-        ctx.font = 'bold 44px "IBM Plex Sans Thai", sans-serif';
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(m.val, boxX + itemW / 2, boxY + 120);
-
-        ctx.font = '500 22px "IBM Plex Sans Thai", sans-serif';
-        ctx.fillStyle = '#38bdf8';
-        ctx.fillText(m.sub, boxX + itemW / 2, boxY + 165);
-      });
-
-      // Bottom Tagline
-      ctx.textAlign = 'center';
-      ctx.font = '600 30px "IBM Plex Sans Thai", sans-serif';
+      ctx.font = '500 26px "IBM Plex Sans Thai", sans-serif';
       ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-      ctx.fillText('RUNMATE RECOVERY & TRAINING ENGINE', width / 2, 1600);
+      ctx.fillText(dateText, 230, 330);
+
+      // Top Brand Right
+      ctx.textAlign = 'right';
+      ctx.font = 'bold 32px "IBM Plex Sans Thai", sans-serif';
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillText('RUNMATE', 940, 290);
+
+      // Subtle Divider
+      ctx.beginPath();
+      ctx.moveTo(120, 370);
+      ctx.lineTo(960, 370);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Main Hero Metric (Minimal Strava Big Metric)
+      if (sportType === 'strength') {
+        // STRENGTH TRAINING DISPLAY (Duration Big)
+        const durY = 700;
+        ctx.textAlign = 'center';
+        ctx.font = '800 170px "IBM Plex Sans Thai", sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+        ctx.shadowBlur = 24;
+        ctx.fillText(formatDuration(durationSec), width / 2, durY);
+
+        ctx.font = 'bold 36px "IBM Plex Sans Thai", sans-serif';
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillText('WORKOUT DURATION', width / 2, durY + 75);
+
+        // Grid Metrics for Strength (Avg HR, Estimated Burn)
+        const gridY = 1080;
+        const gridW = 840;
+        const gridX = (width - gridW) / 2;
+        const itemW = (gridW - 20) / 2;
+
+        const sMetrics = [
+          { title: 'AVG HEART RATE', val: `${hrAvg}`, sub: 'bpm' },
+          { title: 'EST. CALORIES', val: `${Math.round((durationSec / 60) * 7.5)}`, sub: 'kcal' },
+        ];
+
+        sMetrics.forEach((m, idx) => {
+          const boxX = gridX + idx * (itemW + 20);
+          const boxY = gridY;
+          const boxH = 200;
+
+          ctx.beginPath();
+          ctx.roundRect(boxX, boxY, itemW, boxH, 28);
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+          ctx.fill();
+          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+          ctx.stroke();
+
+          ctx.textAlign = 'center';
+          ctx.font = 'bold 24px "IBM Plex Sans Thai", sans-serif';
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+          ctx.fillText(m.title, boxX + itemW / 2, boxY + 52);
+
+          ctx.font = 'bold 46px "IBM Plex Sans Thai", sans-serif';
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(m.val, boxX + itemW / 2, boxY + 120);
+
+          ctx.font = '500 22px "IBM Plex Sans Thai", sans-serif';
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillText(m.sub, boxX + itemW / 2, boxY + 162);
+        });
+      } else {
+        // RUNNING / CYCLING / WALKING / SWIMMING DISPLAY (Distance Big)
+        const distY = 660;
+        ctx.textAlign = 'center';
+        ctx.font = '800 210px "IBM Plex Sans Thai", sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+        ctx.shadowBlur = 24;
+        ctx.fillText(dist.toFixed(2), width / 2, distY);
+
+        ctx.font = 'bold 40px "IBM Plex Sans Thai", sans-serif';
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillText('KILOMETERS', width / 2, distY + 80);
+
+        // Workout Metrics Banner Grid (Pace, Time, HR)
+        const gridY = 1060;
+        const gridW = 840;
+        const gridX = (width - gridW) / 2;
+        const itemW = (gridW - 40) / 3;
+
+        const wMetrics = [
+          { title: 'AVG PACE', val: pace || '—', sub: '/km' },
+          { title: 'TIME', val: formatDuration(durationSec), sub: 'Duration' },
+          { title: 'AVG HR', val: `${hrAvg}`, sub: 'bpm' },
+        ];
+
+        wMetrics.forEach((m, idx) => {
+          const boxX = gridX + idx * (itemW + 20);
+          const boxY = gridY;
+          const boxH = 200;
+
+          ctx.beginPath();
+          ctx.roundRect(boxX, boxY, itemW, boxH, 28);
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+          ctx.fill();
+          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+          ctx.stroke();
+
+          ctx.textAlign = 'center';
+          ctx.font = 'bold 24px "IBM Plex Sans Thai", sans-serif';
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+          ctx.fillText(m.title, boxX + itemW / 2, boxY + 52);
+
+          ctx.font = 'bold 42px "IBM Plex Sans Thai", sans-serif';
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(m.val, boxX + itemW / 2, boxY + 118);
+
+          ctx.font = '500 22px "IBM Plex Sans Thai", sans-serif';
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillText(m.sub, boxX + itemW / 2, boxY + 162);
+        });
+      }
+
+      // Bottom Strava-style Tagline
+      ctx.textAlign = 'center';
+      ctx.font = '600 28px "IBM Plex Sans Thai", sans-serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+      ctx.fillText('RUNMATE RECOVERY & TRAINING ENGINE', width / 2, 1590);
 
     } else {
       // -------------------------------------------------------------
@@ -471,7 +564,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
     }
 
     setDataUrl(canvas.toDataURL('image/png'));
-  }, [mode, selectedTheme, customPhotoUrl, score, label, sleepMinutes, strainScore, hrResting, dist, pace, durationSec, hrAvg, dateText]);
+  }, [mode, selectedTheme, customPhotoUrl, score, label, sleepMinutes, strainScore, hrResting, title, sportType, dist, pace, durationSec, hrAvg, dateText]);
 
   useEffect(() => {
     if (isOpen) {
@@ -532,7 +625,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
           await navigator.share({
             title: mode === 'workout' ? 'RunMate Workout Story' : 'RunMate Recovery Story',
             text: mode === 'workout' 
-              ? `วิ่งสำเร็จ ${dist.toFixed(2)} KM ด้วย Pace ${pace}! #RunMate #Running` 
+              ? `${title} ${dist > 0 ? `${dist.toFixed(2)} KM` : ''}! #RunMate #Running` 
               : `วันนี้ Recovery Score ของฉันอยู่ที่ ${score}%! #RunMate #Running`,
             files: [file],
           });

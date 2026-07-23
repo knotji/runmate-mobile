@@ -38,7 +38,7 @@ describe('Social Share Story Card', () => {
       avgHeartRateBpm: 148,
     };
 
-    expect(mockWorkout.distanceKm.toFixed(2)).toBe('10.50');
+    expect(mockWorkout.distanceKm?.toFixed(2)).toBe('10.50');
     expect(mockWorkout.paceFormatted).toBe("5'24\"");
     expect(mockWorkout.avgHeartRateBpm).toBe(148);
   });
