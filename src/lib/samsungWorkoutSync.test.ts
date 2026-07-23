@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Health } from '@capgo/capacitor-health';
 import type { HealthSample, Workout } from '@capgo/capacitor-health';
-import { mapSamsungWorkout, queryAllHealthConnectWorkouts, selectImportableHealthConnectWorkouts, workoutHeartRateCoverage } from './samsungWorkoutSync';
+import { mapSamsungWorkout, preserveWorkoutHeartRate, queryAllHealthConnectWorkouts, selectImportableHealthConnectWorkouts, workoutHeartRateCoverage } from './samsungWorkoutSync';
 
 vi.mock('@capgo/capacitor-health', () => ({ Health: { queryWorkouts: vi.fn() } }));
 
@@ -85,5 +85,33 @@ describe('Samsung Health workout importer', () => {
     });
     expect(workoutHeartRateCoverage([sample(0), sample(1)], workout)).toBe(10);
     expect(workoutHeartRateCoverage([sample(0), sample(1), sample(2), sample(3), sample(4), sample(5)], workout)).toBe(50);
+  });
+
+  it('keeps the HR timeline and summary values when a later sync omits heart rate', () => {
+    const workout: Workout = {
+      workoutType: 'running',
+      duration: 600,
+      startDate: '2026-07-19T01:00:00.000Z',
+      endDate: '2026-07-19T01:10:00.000Z',
+      sourceId: 'com.sec.android.app.shealth',
+      platformId: 'run-with-heart-rate',
+    };
+    const sample = (minute: number, value: number): HealthSample => ({
+      dataType: 'heartRate',
+      value,
+      unit: 'bpm',
+      startDate: `2026-07-19T01:${String(minute).padStart(2, '0')}:00.000Z`,
+      endDate: `2026-07-19T01:${String(minute).padStart(2, '0')}:00.000Z`,
+      sourceId: 'com.sec.android.app.shealth',
+    });
+    const previous = mapSamsungWorkout(workout, [sample(0, 140), sample(5, 170)]);
+    const incoming = mapSamsungWorkout(workout);
+    expect(previous).not.toBeNull();
+    expect(incoming).not.toBeNull();
+
+    const preserved = preserveWorkoutHeartRate(incoming!, previous!);
+    const data = preserved.data as { extracted: Record<string, unknown>; heartRateSamples: unknown[] };
+    expect(data.heartRateSamples).toHaveLength(2);
+    expect(data.extracted).toMatchObject({ avgHR: 155, maxHR: 170 });
   });
 });

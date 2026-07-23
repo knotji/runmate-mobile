@@ -131,6 +131,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
       drawWorkoutStory(ctx, palette, {
         title,
         sportType,
+        theme: selectedTheme,
         distanceKm,
         durationSeconds,
         pace,
@@ -444,6 +445,7 @@ function drawWorkoutStory(
   data: {
     title: string;
     sportType: SportType;
+    theme: ShareTheme;
     distanceKm?: number;
     durationSeconds: number;
     pace?: string;
@@ -457,20 +459,22 @@ function drawWorkoutStory(
     .filter((metric) => data.selectedMetrics.includes(metric.key));
   const heroMetric = metrics[0];
 
-  drawStoryHeader(ctx, palette, data.title, data.dateText);
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, .28)';
+  ctx.shadowBlur = data.theme === 'minimal-glass' || data.theme === 'sunrise-fresh' ? 0 : 10;
 
   if (heroMetric) {
-    ctx.shadowColor = 'rgba(0, 0, 0, .24)';
-    ctx.shadowBlur = 12;
-    drawFittedText(ctx, heroMetric.value, 110, 730, 860, 196, palette.text, '700');
-    ctx.shadowBlur = 0;
-    ctx.font = `600 28px ${STORY_FONT}`;
+    drawFittedTextCentered(ctx, heroMetric.value, STORY_WIDTH / 2, 625, 840, 210, palette.text, '700');
+    ctx.font = `700 38px ${STORY_FONT}`;
     ctx.fillStyle = palette.accent;
-    ctx.fillText(heroMetric.unit ?? heroMetric.label.toLowerCase(), 116, 785);
+    ctx.textAlign = 'center';
+    ctx.fillText((heroMetric.unit ?? heroMetric.label).toUpperCase(), STORY_WIDTH / 2, 690);
   }
 
-  drawMetricRow(ctx, palette, metrics.slice(1, 4), 1080);
-  drawSportSignature(ctx, palette, data.sportType);
+  ctx.shadowBlur = 0;
+  drawWorkoutMetricRow(ctx, palette, metrics.slice(1, 4), 910);
+  drawSportSignature(ctx, palette, data.sportType, 1320, 0.82);
+  ctx.restore();
 }
 
 function getAvailableWorkoutMetrics(data: {
@@ -574,6 +578,43 @@ function drawStoryHeader(ctx: CanvasRenderingContext2D, palette: CanvasPalette, 
   ctx.fillText(date, 110, 275);
 }
 
+function drawWorkoutMetricRow(ctx: CanvasRenderingContext2D, palette: CanvasPalette, metrics: StoryMetric[], y: number) {
+  if (metrics.length === 0) return;
+  const left = 135;
+  const width = 810;
+  const columnWidth = width / metrics.length;
+
+  ctx.strokeStyle = palette.hairline;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(left, y - 70);
+  ctx.lineTo(left + width, y - 70);
+  ctx.stroke();
+
+  metrics.forEach((metric, index) => {
+    const textX = left + columnWidth * (index + 0.5);
+    if (index > 0) {
+      const dividerX = left + columnWidth * index;
+      ctx.beginPath();
+      ctx.moveTo(dividerX, y - 18);
+      ctx.lineTo(dividerX, y + 118);
+      ctx.stroke();
+    }
+    ctx.textAlign = 'center';
+    ctx.fillStyle = palette.faint;
+    ctx.font = `650 30px ${STORY_FONT}`;
+    ctx.fillText(metric.label.toUpperCase(), textX, y);
+    ctx.fillStyle = palette.text;
+    ctx.font = `650 68px ${STORY_FONT}`;
+    ctx.fillText(metric.value, textX, y + 65);
+    if (metric.unit) {
+      ctx.fillStyle = palette.accent;
+      ctx.font = `600 26px ${STORY_FONT}`;
+      ctx.fillText(metric.unit, textX, y + 103);
+    }
+  });
+}
+
 function drawMetricRow(ctx: CanvasRenderingContext2D, palette: CanvasPalette, metrics: StoryMetric[], y: number) {
   if (metrics.length === 0) return;
   const left = 110;
@@ -609,12 +650,14 @@ function drawSportSignature(
   ctx: CanvasRenderingContext2D,
   palette: CanvasPalette,
   sportType: SportType,
+  centerY = 1510,
+  scale = 1,
 ) {
   const centerX = STORY_WIDTH / 2;
-  const centerY = 1510;
 
   ctx.save();
   ctx.translate(centerX, centerY);
+  ctx.scale(scale, scale);
   ctx.strokeStyle = palette.accent;
   ctx.fillStyle = palette.accent;
   ctx.lineWidth = 15;
@@ -645,8 +688,8 @@ function drawSportSignature(
   ctx.restore();
   ctx.textAlign = 'center';
   ctx.fillStyle = palette.text;
-  ctx.font = `700 30px ${STORY_FONT}`;
-  ctx.fillText('RUNMATE', centerX, centerY + 150);
+  ctx.font = `700 ${Math.round(30 * scale)}px ${STORY_FONT}`;
+  ctx.fillText('RUNMATE', centerX, centerY + 138 * scale);
 }
 
 function drawCyclingGlyph(ctx: CanvasRenderingContext2D) {
@@ -785,6 +828,26 @@ function drawFittedText(
     fontSize -= 2;
   } while (ctx.measureText(text).width > maxWidth && fontSize > 34);
   ctx.textAlign = 'left';
+  ctx.fillStyle = color;
+  ctx.fillText(text, x, y);
+}
+
+function drawFittedTextCentered(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  maxFontSize: number,
+  color: string,
+  weight: string,
+) {
+  let fontSize = maxFontSize;
+  do {
+    ctx.font = `${weight} ${fontSize}px ${STORY_FONT}`;
+    fontSize -= 2;
+  } while (ctx.measureText(text).width > maxWidth && fontSize > 34);
+  ctx.textAlign = 'center';
   ctx.fillStyle = color;
   ctx.fillText(text, x, y);
 }

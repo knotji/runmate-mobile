@@ -80,25 +80,7 @@ async function runSync(lookbackDays: number | 'today'): Promise<SamsungWorkoutSy
     });
     const existingItems = existing.ok ? existing.items : [];
     const existingMap = new Map(existingItems.map((record) => [record.id, record]));
-    const preservedItems = validItems.map((item) => {
-      const prev = existingMap.get(item.id);
-      const prevSamples = Array.isArray((prev?.data as Record<string, unknown> | undefined)?.heartRateSamples)
-        ? ((prev?.data as Record<string, unknown>).heartRateSamples as unknown[])
-        : [];
-      const newSamples = Array.isArray((item.data as Record<string, unknown> | undefined)?.heartRateSamples)
-        ? ((item.data as Record<string, unknown>).heartRateSamples as unknown[])
-        : [];
-      if (newSamples.length === 0 && prevSamples.length > 0) {
-        return {
-          ...item,
-          data: {
-            ...(item.data as Record<string, unknown>),
-            heartRateSamples: prevSamples,
-          },
-        };
-      }
-      return item;
-    });
+    const preservedItems = validItems.map((item) => preserveWorkoutHeartRate(item, existingMap.get(item.id)));
 
     const counts = classifyHealthSyncItems(preservedItems, existingItems);
     const changedItems = selectChangedHealthSyncItems(preservedItems, existingItems);
@@ -275,6 +257,34 @@ export function mapSamsungWorkout(workout: Workout, heartRate: HealthSample[] = 
   };
 }
 
+/**
+ * A lightweight Health Connect refresh can occasionally return the workout
+ * without its previously imported HR samples. Keep the complete HR payload so
+ * the timeline, zones, Avg HR, and Max HR do not disappear on a later sync.
+ */
+export function preserveWorkoutHeartRate(incoming: LocalHistoryItem, previous?: LocalHistoryItem): LocalHistoryItem {
+  const incomingData = asRecord(incoming.data);
+  const previousData = asRecord(previous?.data);
+  const incomingSamples = Array.isArray(incomingData.heartRateSamples) ? incomingData.heartRateSamples : [];
+  const previousSamples = Array.isArray(previousData.heartRateSamples) ? previousData.heartRateSamples : [];
+  if (incomingSamples.length > 0 || previousSamples.length === 0) return incoming;
+
+  const incomingExtracted = asRecord(incomingData.extracted);
+  const previousExtracted = asRecord(previousData.extracted);
+  return {
+    ...incoming,
+    data: {
+      ...incomingData,
+      extracted: {
+        ...incomingExtracted,
+        avgHR: validHeartRate(incomingExtracted.avgHR) ?? validHeartRate(previousExtracted.avgHR),
+        maxHR: validHeartRate(incomingExtracted.maxHR) ?? validHeartRate(previousExtracted.maxHR),
+      },
+      heartRateSamples: previousSamples,
+    },
+  };
+}
+
 export function getSamsungWorkoutLastSyncedAt(): string | null {
   try { return window.localStorage.getItem(LAST_SYNC_KEY); } catch { return null; }
 }
@@ -307,6 +317,12 @@ function nearestWorkoutSignal(samples: HealthSample[], startMs: number, endMs: n
   return candidates[0] ? round(candidates[0].value, 1) : null;
 }
 function positive(value: number | undefined): number | null { return typeof value === 'number' && Number.isFinite(value) && value > 0 ? round(value, 1) : null; }
+function validHeartRate(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 30 && value <= 260 ? value : null;
+}
+function asRecord(value: unknown): Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
 function round(value: number, digits: number): number { const factor = 10 ** digits; return Math.round(value * factor) / factor; }
 function formatDuration(seconds: number): string { const h = Math.floor(seconds / 3600); const m = Math.floor((seconds % 3600) / 60); const s = seconds % 60; return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`; }
 function formatPace(secondsPerKm: number, suffix: string, divisor: number): string { const seconds = secondsPerKm * divisor; return `${Math.floor(seconds / 60)}:${String(Math.round(seconds % 60)).padStart(2, '0')}${suffix}`; }
