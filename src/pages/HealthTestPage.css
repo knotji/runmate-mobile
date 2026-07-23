@@ -1,3 +1,6 @@
+.health-connect-header ion-toolbar { --background: rgba(247, 250, 253, 0.78); --border-color: rgba(173, 194, 217, 0.2); --min-height: 56px; -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+.health-connect-header ion-title { color: #142a46; font-size: 16px; font-weight: 800; }
+.health-connect-header ion-button { --color: #52708f; }
 .health-test-content { --background: #f4f8fc; }
 .health-test-shell { width: min(100%, 600px); margin: 0 auto; padding: 24px 20px 48px; }
 .health-connect-heading { margin-bottom: 20px; }
@@ -25,10 +28,10 @@
 .health-permission-row small { color: #91a3b3; font-size: 9px; }
 .health-permission-badge { padding: 5px 8px; border-radius: 999px; color: #73899d; background: #eef3f7; font-size: 9px; font-weight: 800; white-space: nowrap; }
 .health-permission-badge.granted { color: #147b65; background: #e4f6f0; }
-.health-connect-sync-card { margin: 14px 2px 0; padding: 14px 2px; border-block: 1px solid #d4e4f0; background: transparent; }
+.health-connect-sync-card { margin: 18px 2px 0; padding: 14px 2px; border-block: 1px solid #d4e4f0; background: transparent; }
 .health-connect-sync-card div { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 7px; }
 .health-connect-sync-card strong { color: #203d59; font-size: 12px; }
-.health-background-card { margin-top: 14px; padding: 15px; border: 1px solid #cfe2ee; border-radius: 18px; background: #fff; }
+.health-background-card { margin-top: 20px; padding: 15px; border: 1px solid #cfe2ee; border-radius: 18px; background: #fff; }
 .health-background-card header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .health-background-card header div { min-width: 0; }
 .health-background-card header span, .health-background-schedule span { color: #7890a7; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
@@ -45,7 +48,7 @@
 .health-background-counts span { overflow: hidden; color: #7890a7; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 .health-background-card > small { display: block; margin-top: 8px; color: #a56a31; font-size: 9px; line-height: 1.4; }
 .health-background-card ion-button { min-height: 42px; margin: 12px 0 0; font-size: 10px; font-weight: 800; }
-.health-connect-source-note { margin: 10px 2px 0; color: #6f879c; font-size: 10px; line-height: 1.5; }
+.health-connect-source-note { margin: 20px 2px 0; color: #6f879c; font-size: 10px; line-height: 1.5; }
 .health-connect-message { margin: 12px 0 0; padding: 11px 13px; border-radius: 12px; color: #37627f; background: #eaf5fb; font-size: 11px; line-height: 1.45; }
 .health-sync-summary { margin-top: 14px; padding: 16px; border: 1px solid #cfe2ee; border-radius: 18px; background: #fff; box-shadow: 0 10px 26px rgba(34,73,105,.05); }
 .health-sync-summary > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 13px; }

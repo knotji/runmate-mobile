@@ -23,6 +23,20 @@ internal object BackgroundHealthNotifier {
     private const val SLEEP_NOTIFICATION_ID = 42001
     private const val WORKOUT_NOTIFICATION_ID = 42002
     private const val COMBINED_NOTIFICATION_ID = 42003
+    private const val FIRST_SUCCESS_NOTIFICATION_ID = 42004
+
+    /** One-time confirmation that Background Preparation is genuinely running on its own schedule. */
+    fun notifyFirstSuccess(context: Context) {
+        if (!notificationsAllowed(context)) return
+        ensureChannel(context)
+        post(
+            context,
+            FIRST_SUCCESS_NOTIFICATION_ID,
+            "Background Preparation Is Working",
+            "RunMate prepared Health Connect data automatically in the background. You will not see this again unless you re-enable it.",
+            "/health-connect",
+        )
+    }
 
     fun notifyNewRecords(context: Context, previous: JSObject?, current: JSObject) {
         val currentSleep = current.records("sleep", "samples").samsungRecords()

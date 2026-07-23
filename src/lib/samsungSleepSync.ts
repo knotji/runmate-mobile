@@ -7,12 +7,13 @@ import { getBangkokDateKey, todayBangkokDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { acknowledgeBackgroundHealthRecords, backgroundHealthRecordKey, getFreshPreparedHealthSnapshot, type PreparedHealthSnapshot } from '@/lib/backgroundHealth';
 import { formatReconciliationSyncError, isReconciliationPermissionError } from '@/lib/reconciliationPolicy';
+import { createLastSyncedAtStore, stableKey } from '@/lib/healthSyncHelpers';
 
 const SAMSUNG_HEALTH_SOURCE_ID = 'com.sec.android.app.shealth';
 const DEFAULT_LOOKBACK_DAYS = 30;
 const EXISTING_RECORD_BUFFER_DAYS = 2;
 const EXISTING_RECORD_LIMIT = 500;
-const LAST_SYNC_KEY = 'runmate:samsung-sleep-last-synced-at';
+const lastSyncedAt = createLastSyncedAtStore('runmate:samsung-sleep-last-synced-at');
 const SIGNAL_TYPES = ['heartRateVariability', 'restingHeartRate', 'respiratoryRate'] as const;
 const SLEEP_HR_SAMPLE_SUPPORT_MS = 10 * 60_000;
 const MIN_SLEEP_HR_SAMPLES = 6;
@@ -131,19 +132,11 @@ function emptyResult(status: SamsungSleepSyncResult['status']): SamsungSleepSync
 }
 
 export function getSamsungSleepLastSyncedAt(): string | null {
-  try {
-    return window.localStorage.getItem(LAST_SYNC_KEY);
-  } catch {
-    return null;
-  }
+  return lastSyncedAt.get();
 }
 
 function recordSuccessfulSync(): void {
-  try {
-    window.localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
-  } catch {
-    // Sync remains successful when local display metadata cannot be persisted.
-  }
+  lastSyncedAt.recordNow();
 }
 
 export function mapSamsungSleepSample(sample: HealthSample, signals?: SamsungSleepSignals): LocalHistoryItem | null {
@@ -388,11 +381,3 @@ function formatMinutes(minutes: number): string {
   return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 }
 
-function stableKey(value: string): string {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0).toString(36);
-}

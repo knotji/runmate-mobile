@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react';
-import { IonBackButton, IonButtons, IonContent, IonHeader, IonPage, IonTitle, IonToolbar, useIonViewWillEnter } from '@ionic/react';
+import { useHistory } from 'react-router-dom';
+import { IonButton, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar, useIonViewWillEnter } from '@ionic/react';
+import { arrowBackOutline } from 'ionicons/icons';
 import { Health } from '@capgo/capacitor-health';
 import type { HealthDataType, HealthSample, Workout } from '@capgo/capacitor-health';
 import { estimateSleepHeartRate, getSamsungSleepLastSyncedAt, selectLatestCanonicalSamsungSleepSample } from '@/lib/samsungSleepSync';
@@ -190,6 +192,7 @@ async function buildVitalsDiagnostic() {
 }
 
 const HealthTestPage: React.FC = () => {
+  const history = useHistory();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [copiedEntry, setCopiedEntry] = useState<string | null>(null);
@@ -431,9 +434,11 @@ const HealthTestPage: React.FC = () => {
 
   return (
     <IonPage>
-      <IonHeader translucent>
+      <IonHeader translucent className="health-connect-header">
         <IonToolbar>
-          <IonButtons slot="start"><IonBackButton defaultHref="/tabs/more" /></IonButtons>
+          <IonButton slot="start" fill="clear" aria-label="Back To More" onClick={() => history.push('/tabs/more')}>
+            <IonIcon slot="icon-only" icon={arrowBackOutline} />
+          </IonButton>
           <IonTitle>Health Connect</IonTitle>
         </IonToolbar>
       </IonHeader>

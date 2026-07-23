@@ -5,7 +5,7 @@ import { extractMealData, normalizeMealNutrition } from "@/lib/mealMerge";
 import { buildDailyNutritionBalance } from "@/lib/dailyNutritionBalance";
 import type { DailyNutritionBalance } from "@/lib/dailyNutritionBalance";
 import type { LocalHistoryItem } from "@/lib/localHistory";
-import { getHistoryItemDateKey } from "@/lib/date";
+import { getHistoryItemDateKey, todayBangkokDateKey, daysAgoBangkokDateKey } from "@/lib/date";
 import type { SleepAnalysis, WorkoutAnalysis, BodyCompositionAnalysis, MealAnalysis, HealthCheckAnalysis, LabValue } from "@/types/logs";
 import type { PainLog } from "@/types/pain";
 import type { RaceResult } from "@/types/race";
@@ -190,8 +190,6 @@ export type HealthCheckContext = {
   confidence: HealthCheckAnalysis["confidence"];
 };
 
-const TZ_OFFSET_MS = 7 * 60 * 60 * 1000;
-
 function painHasRedFlag(input: {
   swellingOrRedness?: string | null;
   canBearWeight?: string | null;
@@ -217,13 +215,12 @@ function isResolvedPainLog(log: PainLog | undefined, redFlags: string[], painTyp
 }
 
 function todayBangkok(): string {
-  return new Date(Date.now() + TZ_OFFSET_MS).toISOString().slice(0, 10);
+  return todayBangkokDateKey();
 }
 
 function dateBefore(days: number): string {
-  return new Date(Date.now() + TZ_OFFSET_MS - days * 86400000).toISOString().slice(0, 10);
+  return daysAgoBangkokDateKey(days);
 }
-
 
 function getSleepDurationMinutes(item: LocalHistoryItem): number | null {
   const data = item.data as Record<string, unknown> | null;
@@ -1045,13 +1042,12 @@ function buildContextNotes(input: {
     notes.push(`Strength training in last 7 days: completed ${input.strengthCount} strength session(s).`);
   }
   if (input.recentPainLogs?.length) {
-    const recentCutoff3d = new Date(Date.now() + TZ_OFFSET_MS - 3 * 86400000).toISOString().slice(0, 10);
+    const recentCutoff3d = dateBefore(3);
     const latest = input.latestPain ?? input.recentPainLogs[0];
     const recentMax = input.recentMaxPain ?? input.recentPainLogs
       .filter((pain) => pain.date >= recentCutoff3d)
       .reduce<PainSummary | null>((max, pain) => (!max || pain.painLevel > max.painLevel ? pain : max), null);
-    const activeLatest = latest.hasActivePain || painHasRedFlag(latest);
-    const latestResolved = latest.hasResolvedPain && !activeLatest;
+    const latestResolved = latest.hasResolvedPain && !latest.hasActivePain;
     const highMedium = input.recentPainLogs.filter((p) => p.hasActivePain && (p.riskLevel === "high" || p.riskLevel === "medium"));
     if (latestResolved) {
       notes.push(`RESOLVED PAIN STATUS: latest ${latest.painLocation} is marked resolved on ${latest.resolvedAt ?? latest.date}. Do NOT describe this as an active injury. Use gradual ramp-up wording.`);

@@ -16,17 +16,31 @@ internal object BackgroundHealthStore {
     private const val SNAPSHOT = "snapshot"
     private const val ACKNOWLEDGED_SLEEP = "acknowledged_sleep"
     private const val ACKNOWLEDGED_WORKOUTS = "acknowledged_workouts"
+    private const val FIRST_SUCCESS_NOTIFIED = "first_success_notified"
 
     private fun preferences(context: Context) =
         context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
 
     fun isEnabled(context: Context): Boolean = preferences(context).getBoolean(ENABLED, false)
 
-    fun setEnabled(context: Context, enabled: Boolean) {
+    fun setEnabled(context: Context, enabled: Boolean, resetNextExpected: Boolean = true) {
         val editor = preferences(context).edit().putBoolean(ENABLED, enabled)
-        if (enabled) editor.putString(NEXT_EXPECTED, java.time.Instant.now().plusSeconds(3600).toString())
-        else editor.remove(NEXT_EXPECTED)
+        if (enabled && resetNextExpected) {
+            editor.putString(NEXT_EXPECTED, java.time.Instant.now().plusSeconds(3600).toString())
+            // A fresh schedule deserves a fresh "it's working" notification the next time it succeeds.
+            editor.putBoolean(FIRST_SUCCESS_NOTIFIED, false)
+        } else if (!enabled) {
+            editor.remove(NEXT_EXPECTED)
+        }
         editor.apply()
+    }
+
+    /** Returns true only the first time this is called since Background Preparation was (re-)enabled. */
+    fun consumeFirstSuccessNotification(context: Context): Boolean {
+        val prefs = preferences(context)
+        if (prefs.getBoolean(FIRST_SUCCESS_NOTIFIED, false)) return false
+        prefs.edit().putBoolean(FIRST_SUCCESS_NOTIFIED, true).apply()
+        return true
     }
 
     fun recordAttempt(context: Context, at: String) {

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { getPersistedTodaySyncAt, shouldSyncToday, TODAY_SYNC_COOLDOWN_MS, TODAY_SYNC_STORAGE_KEY } from './todayHealthSync';
+import { getPersistedTodaySyncAt, shouldSyncToday, TODAY_SYNC_COOLDOWN_MS, TODAY_SYNC_STORAGE_KEY } from './healthSyncService';
 
 describe('Today Health Sync cooldown', () => {
   beforeEach(() => window.localStorage.clear());

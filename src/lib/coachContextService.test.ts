@@ -72,4 +72,26 @@ describe('coachContextService', () => {
     expect(loadHistoryItems).toHaveBeenNthCalledWith(2, ['body', 'health_check'], { limit: 10 });
     vi.useRealTimers();
   });
+
+  it('reuses the cached Recovery core context within the TTL', async () => {
+    await buildRecoveryCoreContextFromSupabase();
+    await buildRecoveryCoreContextFromSupabase();
+
+    expect(loadHistoryItems).toHaveBeenCalledTimes(1);
+  });
+
+  it('reuses the cached Recovery page context within the TTL', async () => {
+    await buildRecoveryPageContextFromSupabase();
+    await buildRecoveryPageContextFromSupabase();
+
+    expect(loadHistoryItems).toHaveBeenCalledTimes(2);
+  });
+
+  it('refetches Recovery core/page context after invalidation', async () => {
+    await buildRecoveryCoreContextFromSupabase();
+    invalidateCoachContextCache();
+    await buildRecoveryCoreContextFromSupabase();
+
+    expect(loadHistoryItems).toHaveBeenCalledTimes(2);
+  });
 });

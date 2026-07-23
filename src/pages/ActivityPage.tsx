@@ -19,7 +19,7 @@ import {
 } from '@ionic/react';
 import { calendarClearOutline, chevronBackOutline, chevronForwardOutline, fitnessOutline } from 'ionicons/icons';
 import { deleteHistoryItem, loadHistoryItems } from '@/lib/cloudHistory';
-import { getHistoryItemDateKey } from '@/lib/date';
+import { getHistoryItemDateKey, todayBangkokDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { describeTodayHealthSyncPerformance, syncTodayHealth } from '@/lib/healthSyncService';
 import { buildDailyNutritionSummary } from '@/lib/activityNutritionSummary';
@@ -33,7 +33,7 @@ import './ActivityPage.css';
 
 const ActivityPage: React.FC = () => {
   const history = useHistory();
-  const todayDate = bangkokDate(0);
+  const todayDate = todayBangkokDateKey();
   const [items, setItems] = useState<LocalHistoryItem[]>([]);
   const [selectedDate, setSelectedDate] = useState(todayDate);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -302,7 +302,6 @@ function NutritionMetric({ label, value }: { label: string; value: number | null
 
 function formatSelectedDate(date: string): string { return new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(`${date}T12:00:00`)); }
 function formatMonthDay(date: string): string { return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(`${date}T12:00:00`)); }
-function bangkokDate(offsetDays: number): string { return new Date(Date.now() + 7 * 60 * 60 * 1000 + offsetDays * 86_400_000).toISOString().slice(0, 10); }
 function formatMetric(value: number | null): string { return value === null ? '—' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(value); }
 
 export default ActivityPage;

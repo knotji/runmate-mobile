@@ -59,7 +59,11 @@ class BackgroundHealthWorker(
 
             BackgroundHealthStore.recordSuccess(applicationContext, capturedAt.toString(), payload)
             runCatching {
-                BackgroundHealthNotifier.notifyNewRecords(applicationContext, previousSnapshot, payload)
+                if (previousSnapshot != null && BackgroundHealthStore.consumeFirstSuccessNotification(applicationContext)) {
+                    BackgroundHealthNotifier.notifyFirstSuccess(applicationContext)
+                } else {
+                    BackgroundHealthNotifier.notifyNewRecords(applicationContext, previousSnapshot, payload)
+                }
             }
             Result.success()
         } catch (error: SecurityException) {

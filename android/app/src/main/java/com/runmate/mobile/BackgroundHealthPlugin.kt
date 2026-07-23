@@ -77,8 +77,18 @@ class BackgroundHealthPlugin : Plugin() {
                     return@launch
                 }
             }
-            BackgroundHealthStore.setEnabled(context, enabled)
-            if (enabled) schedulePeriodic() else WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+            if (enabled) {
+                // KEEP means an already-scheduled worker keeps its real cadence, so only
+                // reset the displayed estimate when this call actually creates a new schedule.
+                // Our own store flag and WorkManager's schedule are always toggled together
+                // below, so a prior "enabled" means the periodic work is already running.
+                val alreadyScheduled = BackgroundHealthStore.isEnabled(context)
+                schedulePeriodic()
+                BackgroundHealthStore.setEnabled(context, enabled, resetNextExpected = !alreadyScheduled)
+            } else {
+                WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+                BackgroundHealthStore.setEnabled(context, enabled)
+            }
             call.resolve(buildStatus())
         }
     }
@@ -119,7 +129,16 @@ class BackgroundHealthPlugin : Plugin() {
         val powerManager = context.getSystemService(PowerManager::class.java)
         base.put("backgroundRestricted", activityManager?.isBackgroundRestricted == true)
         base.put("batteryOptimizationActive", powerManager?.isIgnoringBatteryOptimizations(context.packageName) == false)
-        if (base.optBoolean("enabled") && authorized) schedulePeriodic()
+        // enqueueUniquePeriodicWork with KEEP is a cheap no-op when already scheduled, so it is
+        // safe to call on every status read. This re-arms the schedule after a force-stop
+        // (Android cancels WorkManager jobs then, but keeps our SharedPreferences state) without
+        // needing to inspect WorkManager's internal state directly.
+        if (base.optBoolean("enabled") && authorized) {
+            schedulePeriodic()
+            val nextExpectedAt = runCatching { java.time.Instant.parse(base.optString("nextExpectedAt")) }.getOrNull()
+            val overdue = nextExpectedAt == null || java.time.Instant.now().isAfter(nextExpectedAt.plusSeconds(3600))
+            if (overdue) BackgroundHealthStore.setEnabled(context, true, resetNextExpected = true)
+        }
         base.put("workerState", if (base.optBoolean("enabled") && authorized) "SCHEDULED" else null)
         return base
     }

@@ -95,28 +95,32 @@ export async function ensureSupabaseProfileSession() {
   const supabase = createClient();
   if (!supabase) {
     if (process.env.NODE_ENV === "development") {
-      console.warn("[supabase-auth-user]", { hasUser: false, reason: "missing-env" });
+      console.warn("[supabase-auth-session]", { hasUser: false, reason: "missing-env" });
     }
     return { ok: false as const, reason: "missing-env" as const };
   }
 
-  const { data, error } = await supabase.auth.getUser();
+  // Reads the locally cached, auto-refreshed session token instead of
+  // getUser(), which re-validates against the Supabase Auth server on every
+  // call. This is called on every data read across the app (history, profile,
+  // race data), so a network round-trip here directly adds to page load time.
+  const { data, error } = await supabase.auth.getSession();
   if (process.env.NODE_ENV === "development") {
-    console.info("[supabase-auth-user]", {
-      hasUser: Boolean(data.user),
-      userId: data.user?.id ?? null,
+    console.info("[supabase-auth-session]", {
+      hasUser: Boolean(data.session?.user),
+      userId: data.session?.user?.id ?? null,
       error: error?.message ?? null,
     });
   }
 
-  if (error || !data.user) {
+  if (error || !data.session?.user) {
     return {
       ok: false as const,
       reason: "not-authenticated" as const,
       message: "ไม่พบ session ผู้ใช้ กรุณา login ใหม่ก่อนบันทึกหรือโหลดข้อมูล",
     };
   }
-  return { ok: true as const, supabase, userId: data.user.id };
+  return { ok: true as const, supabase, userId: data.session.user.id };
 }
 
 export async function loadProfileFromSupabase() {

@@ -11,10 +11,14 @@ const RECOVERY_CORE_ROW_LIMIT = 500;
 const RECOVERY_SECONDARY_ROW_LIMIT = 700;
 let cachedCoachContext: { value: CoachContext; loadedAt: number } | null = null;
 let activeCoachContextLoad: Promise<CoachContext> | null = null;
+let cachedRecoveryCoreContext: { value: CoachContext; loadedAt: number } | null = null;
+let cachedRecoveryPageContext: { value: CoachContext; loadedAt: number } | null = null;
 let coachContextRevision = 0;
 
 export function invalidateCoachContextCache(): void {
   cachedCoachContext = null;
+  cachedRecoveryCoreContext = null;
+  cachedRecoveryPageContext = null;
   coachContextRevision += 1;
 }
 
@@ -44,7 +48,13 @@ export function buildCoachContextFromSupabase(options: { force?: boolean } = {})
  * safety input, while leaving nutrition, race, and long-form coaching data for
  * the progressive page load.
  */
-export async function buildRecoveryCoreContextFromSupabase(): Promise<CoachContext> {
+export async function buildRecoveryCoreContextFromSupabase(options: { force?: boolean } = {}): Promise<CoachContext> {
+  const now = Date.now();
+  if (!options.force && cachedRecoveryCoreContext && now - cachedRecoveryCoreContext.loadedAt < COACH_CONTEXT_CACHE_MS) {
+    return cachedRecoveryCoreContext.value;
+  }
+
+  const loadRevision = coachContextRevision;
   try {
     const [historyResult, profileResult] = await Promise.all([
       loadHistoryItems(
@@ -54,14 +64,17 @@ export async function buildRecoveryCoreContextFromSupabase(): Promise<CoachConte
       loadProfileFromSupabase(),
     ]);
 
-    return buildCoachContextFromData({
+    const value = buildCoachContextFromData({
       items: historyResult.ok ? historyResult.items : [],
       profile: profileResult.ok ? profileResult.profile ?? null : null,
       raceGoal: null,
       racePlan: null,
       raceResults: [],
     });
+    if (loadRevision === coachContextRevision) cachedRecoveryCoreContext = { value, loadedAt: Date.now() };
+    return value;
   } catch {
+    if (cachedRecoveryCoreContext) return cachedRecoveryCoreContext.value;
     if (cachedCoachContext) return cachedCoachContext.value;
     return buildCoachContextFromData({
       items: [],
@@ -74,7 +87,12 @@ export async function buildRecoveryCoreContextFromSupabase(): Promise<CoachConte
 }
 
 /** Loads the rest of the Recovery page without downloading the full history table. */
-export async function buildRecoveryPageContextFromSupabase(): Promise<CoachContext> {
+export async function buildRecoveryPageContextFromSupabase(options: { force?: boolean } = {}): Promise<CoachContext> {
+  const now = Date.now();
+  if (!options.force && cachedRecoveryPageContext && now - cachedRecoveryPageContext.loadedAt < COACH_CONTEXT_CACHE_MS) {
+    return cachedRecoveryPageContext.value;
+  }
+
   const loadRevision = coachContextRevision;
   try {
     const [recentResult, durableResult, profileResult, raceResult, completedRaceResult] = await Promise.all([
@@ -97,9 +115,10 @@ export async function buildRecoveryPageContextFromSupabase(): Promise<CoachConte
       racePlan: raceResult.ok ? raceResult.plan : null,
       raceResults: completedRaceResult.ok ? completedRaceResult.results : [],
     });
-    if (loadRevision === coachContextRevision) cachedCoachContext = { value, loadedAt: Date.now() };
+    if (loadRevision === coachContextRevision) cachedRecoveryPageContext = { value, loadedAt: Date.now() };
     return value;
   } catch {
+    if (cachedRecoveryPageContext) return cachedRecoveryPageContext.value;
     if (cachedCoachContext) return cachedCoachContext.value;
     return buildCoachContextFromData({
       items: [],

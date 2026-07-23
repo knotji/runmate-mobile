@@ -8,13 +8,14 @@ import type { LocalHistoryItem } from '@/lib/localHistory';
 import type { WorkoutAnalysis } from '@/types/logs';
 import { acknowledgeBackgroundHealthRecords, backgroundHealthRecordKey, getFreshPreparedHealthSnapshot } from '@/lib/backgroundHealth';
 import { formatReconciliationSyncError, isReconciliationPermissionError } from '@/lib/reconciliationPolicy';
+import { createLastSyncedAtStore, stableKey } from '@/lib/healthSyncHelpers';
 
 const SAMSUNG_HEALTH_SOURCE_ID = 'com.sec.android.app.shealth';
 const DEFAULT_LOOKBACK_DAYS = 30;
 const EXISTING_RECORD_BUFFER_DAYS = 2;
 const EXISTING_RECORD_LIMIT = 700;
 const CLOSED_WORKOUT_GRACE_MS = 2 * 60_000;
-const LAST_SYNC_KEY = 'runmate:samsung-workout-last-synced-at';
+const lastSyncedAt = createLastSyncedAtStore('runmate:samsung-workout-last-synced-at');
 const WORKOUT_READ_TYPES: HealthDataType[] = ['workouts', 'heartRate', 'distance', 'calories', 'vo2Max'];
 
 export type SamsungWorkoutSyncResult = HealthSyncCounts & {
@@ -145,7 +146,8 @@ async function readWorkoutHeartRateWithPreparedFallback(
     return workoutHeartRateCoverage(live, workout) >= workoutHeartRateCoverage(prepared, workout)
       ? live
       : prepared;
-  } catch {
+  } catch (error) {
+    console.warn('[workout-sync] Workout heart rate read failed', error);
     return prepared;
   }
 }
@@ -286,11 +288,11 @@ export function preserveWorkoutHeartRate(incoming: LocalHistoryItem, previous?: 
 }
 
 export function getSamsungWorkoutLastSyncedAt(): string | null {
-  try { return window.localStorage.getItem(LAST_SYNC_KEY); } catch { return null; }
+  return lastSyncedAt.get();
 }
 
 function recordSuccessfulSync(): void {
-  try { window.localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString()); } catch { /* display metadata is best effort */ }
+  lastSyncedAt.recordNow();
 }
 
 function workoutKind(type: WorkoutType): WorkoutAnalysis['extracted']['workoutKind'] {
@@ -326,5 +328,4 @@ function asRecord(value: unknown): Record<string, unknown> {
 function round(value: number, digits: number): number { const factor = 10 ** digits; return Math.round(value * factor) / factor; }
 function formatDuration(seconds: number): string { const h = Math.floor(seconds / 3600); const m = Math.floor((seconds % 3600) / 60); const s = seconds % 60; return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`; }
 function formatPace(secondsPerKm: number, suffix: string, divisor: number): string { const seconds = secondsPerKm * divisor; return `${Math.floor(seconds / 60)}:${String(Math.round(seconds % 60)).padStart(2, '0')}${suffix}`; }
-function stableKey(value: string): string { let hash = 2166136261; for (let index = 0; index < value.length; index += 1) { hash ^= value.charCodeAt(index); hash = Math.imul(hash, 16777619); } return (hash >>> 0).toString(36); }
 function emptyCoach(): WorkoutAnalysis['coach'] { return { workoutSummary: '', intensityAssessment: '', trainingLoadNote: '', wasTooHard: false, recoveryAdvice: '', nutritionAfterWorkout: '', nextWorkoutSuggestion: '', coachNote: '' }; }

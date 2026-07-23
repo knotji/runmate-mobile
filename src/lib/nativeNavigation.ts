@@ -1,5 +1,5 @@
 const NATIVE_NAVIGATION_PROTOCOL = 'com.runmate.mobile:';
-const ALLOWED_NOTIFICATION_ROUTES = new Set(['/tabs/recovery', '/tabs/activity']);
+const ALLOWED_NOTIFICATION_ROUTES = new Set(['/tabs/recovery', '/tabs/activity', '/health-connect']);
 
 export function notificationRouteFromUrl(value: string): string | null {
   try {
