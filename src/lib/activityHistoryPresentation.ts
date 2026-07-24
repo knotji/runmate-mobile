@@ -1,4 +1,4 @@
-import { barbellOutline, bodyOutline, fastFoodOutline, fitnessOutline, heartOutline, moonOutline } from 'ionicons/icons';
+import { barbellOutline, bicycleOutline, bodyOutline, fastFoodOutline, fitnessOutline, heartOutline, moonOutline, walkOutline, waterOutline } from 'ionicons/icons';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import type { MergedWorkoutItem } from '@/lib/workoutDedupe';
 
@@ -6,9 +6,16 @@ export function describeHistoryItem(item: LocalHistoryItem): { label: string; ti
   const data = asRecord(item.data); const extracted = asRecord(data.extracted);
   if (item.type === 'sleep') return { label: 'Sleep', title: text(extracted.sleepDuration) ?? minutesText(extracted.actualSleepDurationMinutes) ?? 'Sleep Record', detail: 'Sleep Session Recorded', icon: moonOutline, tone: 'sleep' };
   if (item.type === 'workout' || item.type === 'strength') {
-    const kind = titleFromKey(text(extracted.workoutKind) ?? (item.type === 'strength' ? 'strength_training' : 'workout'));
+    const rawKind = (text(extracted.workoutKind) ?? (item.type === 'strength' ? 'strength_training' : 'workout')).toLowerCase();
+    const kind = titleFromKey(rawKind);
     const details = [numberUnit(extracted.distanceKm, 'km'), text(extracted.duration), numberUnit(extracted.avgHR, 'bpm')].filter(Boolean).join(' · ');
-    return { label: item.type === 'strength' ? 'Strength' : 'Workout', title: kind, detail: details || 'Training session recorded', icon: item.type === 'strength' ? barbellOutline : fitnessOutline, tone: 'workout' };
+    let icon = fitnessOutline;
+    if (item.type === 'strength' || rawKind.includes('strength') || rawKind.includes('weight')) icon = barbellOutline;
+    else if (rawKind.includes('cycle') || rawKind.includes('bike') || rawKind.includes('biking')) icon = bicycleOutline;
+    else if (rawKind.includes('swim')) icon = waterOutline;
+    else if (rawKind.includes('walk') || rawKind.includes('hike')) icon = walkOutline;
+
+    return { label: item.type === 'strength' ? 'Strength' : 'Workout', title: kind, detail: details || 'Training session recorded', icon, tone: 'workout' };
   }
   if (item.type === 'meal') {
     const foods = Array.isArray(data.detectedFoods) ? data.detectedFoods.map((food) => text(asRecord(food).name)).filter(Boolean).slice(0, 2).join(', ') : null;

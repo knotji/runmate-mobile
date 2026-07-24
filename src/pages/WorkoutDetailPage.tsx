@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useHistory, useParams } from 'react-router-dom';
 import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar } from '@ionic/react';
-import { arrowBackOutline, barbellOutline, fitnessOutline, shareSocialOutline } from 'ionicons/icons';
+import { arrowBackOutline, barbellOutline, bicycleOutline, fitnessOutline, shareSocialOutline, walkOutline, waterOutline } from 'ionicons/icons';
 import { SocialShareModal, type WorkoutShareData } from '@/components/SocialShareModal';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import type { LocalHistoryItem } from '@/lib/localHistory';
@@ -71,6 +71,15 @@ const WorkoutDetailPage: React.FC = () => {
     dateStr: detail.date,
   } : null;
 
+  const getHeroIcon = () => {
+    const sport = getSportType();
+    if (sport === 'strength') return barbellOutline;
+    if (sport === 'cycling') return bicycleOutline;
+    if (sport === 'swimming') return waterOutline;
+    if (sport === 'walking') return walkOutline;
+    return fitnessOutline;
+  };
+
   return (
     <IonPage>
       <IonHeader translucent className="workout-detail-header">
@@ -91,7 +100,7 @@ const WorkoutDetailPage: React.FC = () => {
           {detail && (
             <>
               <section className={`workout-hero workout-hero-${detail.tone}`}>
-                <div className="workout-hero-icon"><IonIcon icon={detail.isStrength ? barbellOutline : fitnessOutline} /></div>
+                <div className="workout-hero-icon"><IonIcon icon={getHeroIcon()} /></div>
                 <div><p>{detail.isStrength ? 'Strength Training' : 'Workout'}</p><h1>{detail.title}</h1><span>{detail.date}</span></div>
                 {detail.intensity && <strong>{detail.intensity}</strong>}
               </section>
