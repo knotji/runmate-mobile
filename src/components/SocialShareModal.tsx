@@ -202,7 +202,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
     if (!isOpen) return;
     setSelectedTheme(mode === 'workout' ? 'transparent-overlay' : 'minimal-glass');
     if (mode === 'workout') {
-      setSelectedWorkoutMetrics(availableWorkoutMetrics.slice(0, 4).map((metric) => metric.key));
+      setSelectedWorkoutMetrics(availableWorkoutMetrics.slice(0, 3).map((metric) => metric.key));
     }
   }, [availableWorkoutMetrics, isOpen, mode]);
 
@@ -266,8 +266,8 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
         }
         return current.filter((key) => key !== metric);
       }
-      if (current.length >= 4) {
-        showToast('Choose up to 4 details');
+      if (current.length >= 3) {
+        showToast('Choose up to 3 details');
         return current;
       }
       const next = new Set([...current, metric]);
@@ -390,7 +390,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
               <section className="social-share-detail-selector" aria-labelledby="story-details-label">
                 <div className="social-share-selector-heading">
                   <p id="story-details-label">Workout Metrics</p>
-                  <span>Select 1–4</span>
+                  <span>Select 1–3</span>
                 </div>
                 <p className="social-share-selector-note">The top active metric is shown largest.</p>
                 <div className="social-share-detail-chips">
@@ -528,8 +528,11 @@ function drawWorkoutStory(
   ctx.arc(centerX, 372, 6, 0, Math.PI * 2);
   ctx.fill();
 
-  drawWorkoutMetricRow(ctx, palette, metrics, 780);
-  drawSportSignature(ctx, palette, data.sportType, metrics.length > 0 ? 1220 : 950, 0.95);
+  const blockHeight = 210;
+  const startY = 700;
+  drawWorkoutMetricColumn(ctx, palette, metrics, startY, blockHeight);
+  const signatureY = metrics.length > 0 ? startY + metrics.length * blockHeight + 110 : 950;
+  drawSportSignature(ctx, palette, data.sportType, signatureY, 0.95);
   ctx.restore();
 }
 
@@ -540,52 +543,42 @@ function cleanMetricLabel(label: string): string {
     .toUpperCase();
 }
 
-function drawWorkoutMetricRow(ctx: CanvasRenderingContext2D, palette: CanvasPalette, metrics: StoryMetric[], y: number) {
+/** Stacks each selected metric on its own row, Strava-style, all at one uniform size. */
+function drawWorkoutMetricColumn(ctx: CanvasRenderingContext2D, palette: CanvasPalette, metrics: StoryMetric[], startY: number, blockHeight: number) {
   if (metrics.length === 0) return;
-  const left = 90;
-  const width = 900;
-  const columnWidth = width / metrics.length;
-  // Every metric renders at the same size regardless of position, scaled down
-  // a little as more columns compete for the same 900px row width.
-  const valueSize = metrics.length <= 1 ? 84 : metrics.length === 2 ? 68 : metrics.length === 3 ? 52 : 44;
-  const labelSize = Math.round(valueSize * 0.28);
-  const unitSize = Math.round(valueSize * 0.32);
-  const labelY = y - valueSize * 0.75;
-  const valueY = y;
-  const unitY = y + valueSize * 0.62;
+  const centerX = STORY_WIDTH / 2;
+  const width = 760;
+  const left = centerX - width / 2;
+  const valueSize = 62;
+  const labelSize = 22;
+  const unitSize = 26;
 
   ctx.save();
   ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
   ctx.shadowBlur = 12;
   ctx.shadowOffsetY = 2;
 
-  ctx.strokeStyle = palette.hairline;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(left, labelY - 30);
-  ctx.lineTo(left + width, labelY - 30);
-  ctx.stroke();
-
   metrics.forEach((metric, index) => {
-    const textX = left + columnWidth * (index + 0.5);
+    const blockTop = startY + index * blockHeight;
     if (index > 0) {
-      const dividerX = left + columnWidth * index;
+      ctx.strokeStyle = palette.hairline;
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(dividerX, labelY - 20);
-      ctx.lineTo(dividerX, unitY + 20);
+      ctx.moveTo(left, blockTop - 42);
+      ctx.lineTo(left + width, blockTop - 42);
       ctx.stroke();
     }
     ctx.textAlign = 'center';
     ctx.fillStyle = palette.faint;
     ctx.font = `600 ${labelSize}px ${STORY_FONT}`;
-    ctx.fillText(cleanMetricLabel(metric.label), textX, labelY);
+    ctx.fillText(cleanMetricLabel(metric.label), centerX, blockTop + 20);
     ctx.fillStyle = palette.text;
     ctx.font = `700 ${valueSize}px ${STORY_FONT}`;
-    ctx.fillText(metric.value, textX, valueY);
+    ctx.fillText(metric.value, centerX, blockTop + 90);
     if (metric.unit) {
       ctx.fillStyle = palette.accent;
       ctx.font = `600 ${unitSize}px ${STORY_FONT}`;
-      ctx.fillText(metric.unit, textX, unitY);
+      ctx.fillText(metric.unit, centerX, blockTop + 132);
     }
   });
   ctx.restore();
