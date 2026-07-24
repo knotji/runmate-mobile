@@ -507,16 +507,7 @@ function drawWorkoutStory(
 ) {
   const metrics = getAvailableWorkoutMetrics(data)
     .filter((metric) => data.selectedMetrics.includes(metric.key));
-  const heroMetric = metrics[0];
-  const secondaryMetrics = metrics.slice(1, 4);
   const centerX = STORY_WIDTH / 2;
-
-  // A real photo behind "Overlay" can be any brightness, so shadows alone
-  // cannot guarantee the stats stay legible. Give them a translucent dark
-  // card to sit on, the same way Strava/NRC story exports do.
-  if (data.theme === 'transparent-overlay') {
-    drawOverlayBackdrop(ctx, 310, secondaryMetrics.length > 0 ? 960 : 700);
-  }
 
   ctx.save();
 
@@ -537,16 +528,8 @@ function drawWorkoutStory(
   ctx.arc(centerX, 372, 6, 0, Math.PI * 2);
   ctx.fill();
 
-  if (heroMetric) {
-    drawFittedTextCentered(ctx, heroMetric.value, centerX, 550, 900, 180, palette.text, '700');
-    ctx.font = `700 34px ${STORY_FONT}`;
-    ctx.fillStyle = palette.accent;
-    ctx.textAlign = 'center';
-    ctx.fillText((heroMetric.unit ?? heroMetric.label).toUpperCase(), centerX, 618);
-  }
-
-  drawWorkoutMetricRow(ctx, palette, secondaryMetrics, 800);
-  drawSportSignature(ctx, palette, data.sportType, secondaryMetrics.length > 0 ? 1220 : 1080, 0.95);
+  drawWorkoutMetricRow(ctx, palette, metrics, 780);
+  drawSportSignature(ctx, palette, data.sportType, metrics.length > 0 ? 1220 : 950, 0.95);
   ctx.restore();
 }
 
@@ -562,6 +545,14 @@ function drawWorkoutMetricRow(ctx: CanvasRenderingContext2D, palette: CanvasPale
   const left = 90;
   const width = 900;
   const columnWidth = width / metrics.length;
+  // Every metric renders at the same size regardless of position, scaled down
+  // a little as more columns compete for the same 900px row width.
+  const valueSize = metrics.length <= 1 ? 84 : metrics.length === 2 ? 68 : metrics.length === 3 ? 52 : 44;
+  const labelSize = Math.round(valueSize * 0.28);
+  const unitSize = Math.round(valueSize * 0.32);
+  const labelY = y - valueSize * 0.75;
+  const valueY = y;
+  const unitY = y + valueSize * 0.62;
 
   ctx.save();
   ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
@@ -571,8 +562,8 @@ function drawWorkoutMetricRow(ctx: CanvasRenderingContext2D, palette: CanvasPale
   ctx.strokeStyle = palette.hairline;
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(left, y - 65);
-  ctx.lineTo(left + width, y - 65);
+  ctx.moveTo(left, labelY - 30);
+  ctx.lineTo(left + width, labelY - 30);
   ctx.stroke();
 
   metrics.forEach((metric, index) => {
@@ -580,21 +571,21 @@ function drawWorkoutMetricRow(ctx: CanvasRenderingContext2D, palette: CanvasPale
     if (index > 0) {
       const dividerX = left + columnWidth * index;
       ctx.beginPath();
-      ctx.moveTo(dividerX, y - 15);
-      ctx.lineTo(dividerX, y + 105);
+      ctx.moveTo(dividerX, labelY - 20);
+      ctx.lineTo(dividerX, unitY + 20);
       ctx.stroke();
     }
     ctx.textAlign = 'center';
     ctx.fillStyle = palette.faint;
-    ctx.font = `600 20px ${STORY_FONT}`;
-    ctx.fillText(cleanMetricLabel(metric.label), textX, y);
+    ctx.font = `600 ${labelSize}px ${STORY_FONT}`;
+    ctx.fillText(cleanMetricLabel(metric.label), textX, labelY);
     ctx.fillStyle = palette.text;
-    ctx.font = `700 48px ${STORY_FONT}`;
-    ctx.fillText(metric.value, textX, y + 56);
+    ctx.font = `700 ${valueSize}px ${STORY_FONT}`;
+    ctx.fillText(metric.value, textX, valueY);
     if (metric.unit) {
       ctx.fillStyle = palette.accent;
-      ctx.font = `600 22px ${STORY_FONT}`;
-      ctx.fillText(metric.unit, textX, y + 94);
+      ctx.font = `600 ${unitSize}px ${STORY_FONT}`;
+      ctx.fillText(metric.unit, textX, unitY);
     }
   });
   ctx.restore();
@@ -869,50 +860,6 @@ function drawFittedText(
   ctx.textAlign = 'left';
   ctx.fillStyle = color;
   ctx.fillText(text, x, y);
-}
-
-function drawFittedTextCentered(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  y: number,
-  maxWidth: number,
-  maxFontSize: number,
-  color: string,
-  weight: string,
-) {
-  let fontSize = maxFontSize;
-  do {
-    ctx.font = `${weight} ${fontSize}px ${STORY_FONT}`;
-    fontSize -= 2;
-  } while (ctx.measureText(text).width > maxWidth && fontSize > 34);
-  ctx.textAlign = 'center';
-  ctx.fillStyle = color;
-  ctx.fillText(text, x, y);
-}
-
-function drawOverlayBackdrop(ctx: CanvasRenderingContext2D, top: number, bottom: number) {
-  const width = 940;
-  const left = (STORY_WIDTH - width) / 2;
-  const radius = 48;
-  ctx.save();
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-  ctx.shadowBlur = 40;
-  ctx.shadowOffsetY = 12;
-  ctx.fillStyle = 'rgba(6, 14, 22, 0.55)';
-  roundedRectPath(ctx, left, top, width, bottom - top, radius);
-  ctx.fill();
-  ctx.restore();
-}
-
-function roundedRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.arcTo(x + width, y, x + width, y + height, radius);
-  ctx.arcTo(x + width, y + height, x, y + height, radius);
-  ctx.arcTo(x, y + height, x, y, radius);
-  ctx.arcTo(x, y, x + width, y, radius);
-  ctx.closePath();
 }
 
 function recoveryAccent(score: number): string {
