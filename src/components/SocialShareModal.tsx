@@ -511,6 +511,13 @@ function drawWorkoutStory(
   const secondaryMetrics = metrics.slice(1, 4);
   const centerX = STORY_WIDTH / 2;
 
+  // A real photo behind "Overlay" can be any brightness, so shadows alone
+  // cannot guarantee the stats stay legible. Give them a translucent dark
+  // card to sit on, the same way Strava/NRC story exports do.
+  if (data.theme === 'transparent-overlay') {
+    drawOverlayBackdrop(ctx, 310, secondaryMetrics.length > 0 ? 960 : 700);
+  }
+
   ctx.save();
 
   // Draw top accent line with drop shadow
@@ -882,6 +889,30 @@ function drawFittedTextCentered(
   ctx.textAlign = 'center';
   ctx.fillStyle = color;
   ctx.fillText(text, x, y);
+}
+
+function drawOverlayBackdrop(ctx: CanvasRenderingContext2D, top: number, bottom: number) {
+  const width = 940;
+  const left = (STORY_WIDTH - width) / 2;
+  const radius = 48;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+  ctx.shadowBlur = 40;
+  ctx.shadowOffsetY = 12;
+  ctx.fillStyle = 'rgba(6, 14, 22, 0.55)';
+  roundedRectPath(ctx, left, top, width, bottom - top, radius);
+  ctx.fill();
+  ctx.restore();
+}
+
+function roundedRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + width, y, x + width, y + height, radius);
+  ctx.arcTo(x + width, y + height, x, y + height, radius);
+  ctx.arcTo(x, y + height, x, y, radius);
+  ctx.arcTo(x, y, x + width, y, radius);
+  ctx.closePath();
 }
 
 function recoveryAccent(score: number): string {
