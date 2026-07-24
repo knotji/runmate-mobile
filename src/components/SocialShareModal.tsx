@@ -528,7 +528,7 @@ function drawWorkoutStory(
   ctx.arc(centerX, 372, 6, 0, Math.PI * 2);
   ctx.fill();
 
-  const blockHeight = 210;
+  const blockHeight = 250;
   const startY = 700;
   drawWorkoutMetricColumn(ctx, palette, metrics, startY, blockHeight);
   const signatureY = metrics.length > 0 ? startY + metrics.length * blockHeight + 110 : 950;
@@ -547,11 +547,11 @@ function cleanMetricLabel(label: string): string {
 function drawWorkoutMetricColumn(ctx: CanvasRenderingContext2D, palette: CanvasPalette, metrics: StoryMetric[], startY: number, blockHeight: number) {
   if (metrics.length === 0) return;
   const centerX = STORY_WIDTH / 2;
-  const width = 760;
+  const width = 820;
   const left = centerX - width / 2;
-  const valueSize = 62;
-  const labelSize = 22;
-  const unitSize = 26;
+  const valueSize = 78;
+  const labelSize = 26;
+  const unitSize = 30;
 
   ctx.save();
   ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
@@ -564,21 +564,21 @@ function drawWorkoutMetricColumn(ctx: CanvasRenderingContext2D, palette: CanvasP
       ctx.strokeStyle = palette.hairline;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(left, blockTop - 42);
-      ctx.lineTo(left + width, blockTop - 42);
+      ctx.moveTo(left, blockTop - 46);
+      ctx.lineTo(left + width, blockTop - 46);
       ctx.stroke();
     }
     ctx.textAlign = 'center';
     ctx.fillStyle = palette.faint;
     ctx.font = `600 ${labelSize}px ${STORY_FONT}`;
-    ctx.fillText(cleanMetricLabel(metric.label), centerX, blockTop + 20);
+    ctx.fillText(cleanMetricLabel(metric.label), centerX, blockTop + 24);
     ctx.fillStyle = palette.text;
     ctx.font = `700 ${valueSize}px ${STORY_FONT}`;
-    ctx.fillText(metric.value, centerX, blockTop + 90);
+    ctx.fillText(metric.value, centerX, blockTop + 112);
     if (metric.unit) {
       ctx.fillStyle = palette.accent;
       ctx.font = `600 ${unitSize}px ${STORY_FONT}`;
-      ctx.fillText(metric.unit, centerX, blockTop + 132);
+      ctx.fillText(metric.unit, centerX, blockTop + 162);
     }
   });
   ctx.restore();
