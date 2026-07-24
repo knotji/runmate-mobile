@@ -514,7 +514,7 @@ function drawWorkoutStory(
   // space below the logo, instead of always leaving a big gap up top.
   const blockHeight = 330;
   const baseAccentY = 372;
-  const baseMetricsStartY = 700;
+  const baseMetricsStartY = baseAccentY + 160;
   const metricsGap = 140;
   const signatureScale = 1.3;
   const signatureTextExtra = 138 * signatureScale + 40;
