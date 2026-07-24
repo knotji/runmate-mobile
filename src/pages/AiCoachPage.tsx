@@ -68,23 +68,25 @@ const AiCoachPage: React.FC = () => {
     }
   }, [messages, asking, isNearBottom]);
 
-  const askTopic = async (topicId: AiCoachTopic) => {
+  const askTopic = async (topicId: AiCoachTopic, force = false) => {
     if (!context || asking) return;
     void hapticImpact();
     const topicInfo = AI_COACH_TOPICS.find((t) => t.id === topicId);
     const questionText = topicInfo?.title ?? 'Ask Coach';
-    
-    const userMsg: ChatMessage = {
-      id: `msg-${Date.now()}-user`,
-      sender: 'user',
-      text: questionText,
-      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-    };
-    setMessages((prev) => [...prev, userMsg]);
+
+    if (!force) {
+      const userMsg: ChatMessage = {
+        id: `msg-${Date.now()}-user`,
+        sender: 'user',
+        text: questionText,
+        timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages((prev) => [...prev, userMsg]);
+    }
     setAsking(true); setError(null);
 
     try {
-      const answer = await askAiCoach(topicId, context);
+      const answer = await askAiCoach(topicId, context, undefined, { force });
       const assistantMsg: ChatMessage = {
         id: `msg-${Date.now()}-coach`,
         sender: 'assistant',
@@ -194,7 +196,7 @@ const AiCoachPage: React.FC = () => {
                     <time>{msg.timestamp}</time>
                   </div>
                 ) : (
-                  msg.answer && <CoachAnswer answer={msg.answer} topicTitle={msg.topicTitle ?? 'Coach Answer'} onRefresh={() => void askTopic(msg.answer?.topic ?? 'today')} />
+                  msg.answer && <CoachAnswer answer={msg.answer} topicTitle={msg.topicTitle ?? 'Coach Answer'} onRefresh={() => void askTopic(msg.answer?.topic ?? 'today', true)} />
                 )}
               </div>
             ))}

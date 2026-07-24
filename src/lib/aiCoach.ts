@@ -110,18 +110,43 @@ export function buildAiCoachContext(context: CoachContext) {
   };
 }
 
-export async function askAiCoach(topic: AiCoachTopic, context: CoachContext, userQuery?: string): Promise<AiCoachAnswer> {
+// Keyed by topic + the exact payload that would be sent to the AI, so a
+// cached answer is only reused while the underlying RunMate data (Recovery,
+// today's plan, nutrition, race status, etc.) is unchanged. Freeform chat
+// queries are never cached since each question is effectively unique.
+const answerCache = new Map<string, AiCoachAnswer>();
+
+export function clearAiCoachAnswerCache(): void {
+  answerCache.clear();
+}
+
+export async function askAiCoach(
+  topic: AiCoachTopic,
+  context: CoachContext,
+  userQuery?: string,
+  options: { force?: boolean } = {},
+): Promise<AiCoachAnswer> {
+  const trimmedQuery = userQuery?.trim();
+  const cacheKey = trimmedQuery ? null : `${topic}::${JSON.stringify(buildAiCoachContext(context))}`;
+  if (cacheKey && !options.force) {
+    const cached = answerCache.get(cacheKey);
+    if (cached) return cached;
+  }
+
   try {
     const { data, error } = await supabase.functions.invoke('ai-coach', {
-      body: { topic, userQuery: userQuery?.trim() || undefined, context: buildAiCoachContext(context) },
+      body: { topic, userQuery: trimmedQuery || undefined, context: buildAiCoachContext(context) },
     });
     if (error) throw error;
     const payload = record(data);
     if (payload.error) throw new Error(String(payload.error));
     const answer = record(payload.data ?? payload);
-    return normalizeAnswer(topic, answer);
+    const normalized = normalizeAnswer(topic, answer);
+    if (cacheKey) answerCache.set(cacheKey, normalized);
+    return normalized;
   } catch (err) {
     console.warn('[askAiCoach] Remote function call failed or returned error, using local fallback:', err);
+    // Not cached: a degraded local fallback should not block a real answer on retry.
     return buildLocalFallbackAnswer(topic, context, userQuery);
   }
 }
