@@ -1,6 +1,6 @@
 # RunMate Mobile Handoff
 
-Last updated: 2026-07-23
+Last updated: 2026-07-24
 
 Before changing layout, typography, cards, or user-facing wording, read
 [`UI_GUIDELINES.md`](./UI_GUIDELINES.md). It is the shared app-wide standard for
@@ -9,6 +9,18 @@ page hierarchy, font sizes, text case, spacing, and responsive review.
 ## Current state
 
 This repository is an Ionic React + TypeScript + Vite + Capacitor mobile client that uses the existing RunMate Supabase project. The first implemented slice is authentication plus a WHOOP-inspired Recovery dashboard.
+
+### Recent Enhancements (2026-07-24)
+- **Sleep Duration Accuracy Fixes**: Fixed two real-device Sleep undercounting bugs. Health Connect can split one continuous Samsung Health sleep session into two records a few minutes apart; `mergeAdjacentSleepSamples()` in `samsungSleepSync.ts` now merges same-source records within a 30-minute gap before mapping. Separately, `sumStages()` now re-derives each Sleep Stage segment's duration from its own start/end timestamps instead of trusting Health Connect's pre-rounded per-segment `durationMinutes`, which silently dropped sub-minute segments and under-counted total sleep by tens of minutes on nights with many stage transitions. Both were verified against a real device report and unit-tested with the reported data. Sleep records synced before this fix self-correct the next time `Sync Now` or foreground sync reprocesses that night, since the reconciliation fingerprint includes stage minutes.
+- **Recovery Load Performance**: `buildRecoveryCoreContextFromSupabase` and `buildRecoveryPageContextFromSupabase` in `coachContextService.ts` now honor the existing 30-second TTL cache instead of recomputing the full Coach Context pipeline on every tab return. `profileStorage.ts`'s `ensureSupabaseProfileSession()` switched from `supabase.auth.getUser()` (a network round-trip on every Supabase read) to `supabase.auth.getSession()` (local token, no network), removing a real, compounding delay from every history/profile/race read across the app.
+- **Background Health Preparation Fixes**: `nextExpectedAt` no longer resets on every Health Connect status read; it only updates when a schedule is genuinely (re)created, so the displayed estimate matches WorkManager's actual cadence. Background Preparation now posts a one-time "it's working" notification after its first real scheduled success (not the silent baseline run), so the feature is no longer invisible by design. `/health-connect` deep-link added to the native-navigation allow-list so tapping that notification actually opens the page.
+- **Health Connect Page Polish**: Back button now matches the rest of the More section (custom arrow + `history.push`, not `IonBackButton`), and card spacing was rebalanced to a consistent rhythm.
+- **Activity Real Event-Time Sort**: Activity list items now sort by each record's actual `recordedAt` (workout start, meal time, sleep wake time), falling back to `createdAt`. Previously items were grouped by type (all meals, then all sleep, then all workouts) in upload order regardless of when they happened.
+- **Share Workout Background Picker Redesign**: Replaced the Background Style chip row with a swipeable Story preview (touch-drag the 9:16 canvas itself) plus dot indicators, matching Instagram-style story editors. The `custom-photo` background option was removed entirely (dead file-upload code, state, and canvas path deleted). The transparent Overlay theme's explanation moved from a permanent caption to a tap-for-details info icon next to the theme name.
+- **Sport-Specific Icons**: Activity List and Workout Detail now show a sport-matched icon (barbell, bicycle, water, walk, generic fitness) instead of one generic Workout/Strength icon, inferred from `workoutKind`/`workoutType`.
+- **Smart Coach Notes On Workout Detail**: When an uploaded/synced workout has no AI-generated `coach.workoutSummary`/`intensityAssessment`/`recoveryAdvice`, `workoutDetail.ts` now synthesizes a readable sentence from fields RunMate already has (distance, duration, pace, average HR) instead of leaving the Guidance section sparse. It does not fabricate new measurements, only rephrases known values into prose. The Guidance/"Session Guidance" disclosure on Workout Detail is now expanded by default.
+- **Live Health Sync Bar (tried, reverted)**: A manual Sync Now bar with haptic feedback was added to Recovery, then explicitly reverted the same day to keep the Recovery page minimal. Net effect on `RecoveryPage.tsx`/`.css` is unchanged from before; noted here so the attempt isn't re-litigated.
+- **Notification Schedule Force-Refresh**: Granting notification permission, changing a preference, or clicking Refresh Schedule now calls `refreshNotifications(context, force: true)` so a schedule reliably updates immediately instead of waiting on the existing debounce/dedupe path.
 
 ### Recent Enhancements (2026-07-23)
 - **Workout Story Controls And Calories**: Workout Story sharing now offers Calories alongside Distance, Time, Average Pace, Average HR, and Elevation, while preserving the one-to-four truthful-metric limit. The popup uses a compact two-column selector and grouped Background Style controls, and the exported Story uses a restrained hero size so Distance remains clear without overpowering the supporting metrics.
@@ -1116,3 +1128,52 @@ Verification for the combined release candidate:
 - Health Connect and HealthKit both have native workout-route concepts, but `@capgo/capacitor-health` 8.9.x does not expose route points, latitude, longitude, or GPX through `queryWorkouts()`.
 - Route/GPX is intentionally **not planned for the current slice**. Supporting it would require maintaining a native plugin extension, requesting sensitive route permissions, handling per-workout consent on Android, and accepting that Samsung Health may not share a route for every Workout.
 - If Route is reconsidered later, treat it as a separate privacy-reviewed feature: query route points by the canonical Workout platform ID, preserve source provenance, render the map only when trustworthy points exist, and derive GPX from those points without inventing missing coordinates.
+
+## Sleep Accuracy, Recovery Performance, And Share Workout Redesign (2026-07-24)
+
+### Sleep duration undercounting (real-device bugs, fixed)
+
+A real-device report showed RunMate's Sleep Duration falling short of Samsung Health's own numbers by tens of minutes on some nights. Two independent, compounding causes were found and fixed in `src/lib/samsungSleepSync.ts`:
+
+1. **Split sleep sessions.** Health Connect occasionally returns one continuous Samsung Health sleep session as two separate records a few minutes apart (observed: a record ending 20:49 UTC and the next starting 20:51 UTC, same night). The prior dedupe rule (`selectLatestCanonicalSamsungSleepSample` / `dedupeSleepItems`) is designed to pick the best single record across *different sources* (Samsung vs. manual upload), not to sum genuine same-source fragments — so it kept only the longer fragment and silently dropped the other. `mergeAdjacentSleepSamples()` now merges same-`sourceId` records whose gap is `<= 30 minutes` into one combined sample (concatenated stages, extended start/end, summed value) before any per-record mapping happens. `selectLatestCanonicalSamsungSleepSample()` (used by the Health Connect diagnostics page) applies the same merge for consistency.
+2. **Stage-duration rounding loss.** Health Connect's Sleep Stage segments each report their own `durationMinutes`, pre-rounded to a whole minute by the platform before RunMate ever reads them. A single night can have 50-90+ stage segments, many under a minute (a 30-second segment reports `0`). Summing those pre-rounded values directly loses real time across the whole night. `sumStages()` now re-derives each segment's duration from its own `startDate`/`endDate` timestamps and rounds only the final total, matching Samsung Health's own stage totals to within 1-2 minutes (verified against a real device report: Samsung showed Awake 42m/REM 93m/Light 155m/Deep 53m = 343m for a night RunMate previously reported as 312m).
+
+Both fixes are unit-tested with the reported device data in `src/lib/samsungSleepSync.test.ts`. No backfill/migration is needed: because the sync reconciliation fingerprint includes extracted Sleep fields, any previously-synced night with the old wrong numbers is automatically corrected the next time `Sync Now` (30-day) or foreground sync reprocesses it.
+
+### Recovery load latency
+
+Two independent latency sources were found and fixed:
+
+- `buildRecoveryCoreContextFromSupabase()` and `buildRecoveryPageContextFromSupabase()` in `src/lib/coachContextService.ts` previously recomputed the entire Coach Context pipeline (Supabase fetch + dedupe + scoring) on every call, including every `useIonViewWillEnter` tab return — they only *wrote* to the existing 30-second TTL cache, never *read* it. Both now honor the same cache pattern already used by `buildCoachContextFromSupabase()`.
+- `ensureSupabaseProfileSession()` in `src/lib/profileStorage.ts` used `supabase.auth.getUser()`, which revalidates against the Supabase Auth server over the network on every call. Since this function backs every Supabase read across the app (history, profile, race goal, race results), and Recovery alone fires 4+ of these in parallel, this added a real, compounding network round-trip to nearly every page load. Switched to `supabase.auth.getSession()`, which reads the locally cached, auto-refreshed session token with no network call. The returned shape is unchanged, so no caller needed updating.
+
+### Background Health Preparation visibility
+
+Background Preparation (Health Connect page → "Enable Background Preparation") existed but was effectively invisible: off by default, buried on a developer-facing page, and its only feedback was a rarely-triggered notification. Two concrete bugs made it worse:
+
+- `BackgroundHealthPlugin.buildStatus()` (Android, Kotlin) called `schedulePeriodic()` and reset the displayed `nextExpectedAt` estimate on every status read (e.g. every time the user opened the page), even though `ExistingPeriodicWorkPolicy.KEEP` means the real WorkManager schedule never actually reset. The estimate now only resets when a schedule is genuinely (re)created — tracked via the store's own `enabled` flag rather than reaching into WorkManager's internal state.
+- The worker's first successful run establishes a silent baseline (by design, to avoid treating the initial 36-hour history read as "new data"). Every run after that only notifies if genuinely new Sleep/Workout records arrived — which is rare if the user already synced in the foreground. `BackgroundHealthWorker`/`BackgroundHealthNotifier` now post a one-time "Background Preparation Is Working" notification on the first real *scheduled* success after enabling, so the feature is provably alive without becoming a recurring, noisy notification. `/health-connect` was added to `nativeNavigation.ts`'s notification route allow-list so tapping it actually opens the page.
+
+### Health Connect page polish
+
+The page's back button used `IonBackButton` with `defaultHref`, inconsistent with every other page under More (Race Goal, Notifications, Profile & Settings), which use a plain arrow button + `history.push('/tabs/more')`. Switched to match. Card vertical spacing was rebalanced to a consistent rhythm (previously ranged 10px-28px between sections with no clear pattern).
+
+### Activity list sort
+
+`prepareActivityHistoryItems()` in `src/lib/activityHistoryLoad.ts` built the visible list as `[...non-sleep/workout items, ...sleep items, ...workout items]` — i.e. grouped by type in whatever order Supabase returned them, not by when each activity actually happened. `sortHistoryItemsByEventTimeDesc()` now sorts by each item's `recordedAt` (workout start time, meal time, sleep wake time), falling back to `createdAt`, applied per selected day in `ActivityPage.tsx`.
+
+### Share Workout background picker redesign
+
+The Background Style control was redesigned twice in quick succession based on live feedback:
+
+- The chip-row selector (Overlay / Photo / Dark / Light) was replaced with a swipeable Story preview — touch-drag the 9:16 canvas itself to cycle backgrounds, mirroring Instagram/Snapchat-style story editors — plus dot indicators below the preview that are also directly tappable. The `custom-photo` background option (file picker, `customPhotoUrl` state, `drawCoverImage`) was removed entirely per explicit request; `ShareTheme` no longer includes `'custom-photo'`.
+- The permanent explanatory caption under the transparent Overlay theme ("layer this over your own photo...") was replaced with a small tap-for-details info icon next to the theme name, shown only when Overlay is selected, surfacing the explanation as a toast on demand instead of permanent on-screen text.
+- Subsequent commits (`45964e3` through `52c183d`) further iterated the modal into a full-width, edge-to-edge bottom sheet with sticky Share/Save actions, added an "Ultra Minimal" background theme (`ultra-minimal` in `ShareTheme`), and added drop shadows to overlay-theme text/metrics so white text stays legible over light or busy backgrounds. Overlay, Ultra Minimal, Dark, and Light are the current supported backgrounds for Workout sharing (Recovery sharing keeps Dark/Light only) — this supersedes the "Overlay, Photo, Dark, and Light" list in the prior Workout Story Follow-Up section above.
+
+### Sport-specific icons and Workout Detail guidance
+
+- Activity List and Workout Detail now infer a sport-specific icon (barbell, bicycle, water, walk, or generic fitness) from `workoutKind`/`workoutType` instead of always showing one generic Workout/Strength icon.
+- `buildWorkoutDetail()` in `src/lib/workoutDetail.ts` now synthesizes a readable Guidance sentence (Summary/Intensity/Recovery) from fields RunMate already has — distance, duration, pace, average HR — when the AI-generated `coach.workoutSummary`/`intensityAssessment`/`recoveryAdvice` is missing, instead of leaving those rows blank. This rephrases known values into prose; it does not fabricate a new measurement. The Guidance disclosure on Workout Detail is now expanded (`open`) by default rather than collapsed.
+- Notification schedule updates (granting permission, changing a preference, Refresh Schedule) now call `refreshNotifications(context, true)` to force an immediate reschedule rather than relying on the existing dedupe path, which could otherwise delay a schedule update.
+
+Verification for this slice: unit tests (211+ passing, including new coverage for `mergeAdjacentSleepSamples`, stage-duration rounding, and Activity event-time sorting), `tsc --noEmit` clean, `npm run build` passed. Debug APK built and distributed via Firebase App Distribution across this slice's iterations.
