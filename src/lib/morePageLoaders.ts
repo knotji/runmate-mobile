@@ -6,6 +6,9 @@ const loaders = {
   '/notifications': () => import('@/pages/NotificationsPage'),
   '/health-connect': () => import('@/pages/HealthTestPage'),
   '/privacy-data': () => import('@/pages/PrivacyDataPage'),
+  '/pain-trends': () => import('@/pages/PainTrendsPage'),
+  '/weekly-plan': () => import('@/pages/WeeklyPlanCalendarPage'),
+  '/body-weight-trend': () => import('@/pages/BodyWeightTrendPage'),
 } as const;
 
 export type MorePagePath = keyof typeof loaders;

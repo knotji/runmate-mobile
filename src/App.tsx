@@ -52,6 +52,9 @@ const RecoveryTrendsPage = lazy(() => import('@/pages/RecoveryTrendsPage'));
 const AiCoachPage = lazy(() => loadMorePage('/ai-coach'));
 const NutritionTrendsPage = lazy(() => import('@/pages/NutritionTrendsPage'));
 const PrivacyDataPage = lazy(() => loadMorePage('/privacy-data'));
+const PainTrendsPage = lazy(() => loadMorePage('/pain-trends'));
+const WeeklyPlanCalendarPage = lazy(() => loadMorePage('/weekly-plan'));
+const BodyWeightTrendPage = lazy(() => loadMorePage('/body-weight-trend'));
 
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -179,6 +182,9 @@ const App: React.FC = () => {
             <Route exact path="/ai-coach">{session ? <AiCoachPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/nutrition-trends">{session ? <NutritionTrendsPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/privacy-data">{session ? <PrivacyDataPage /> : <Redirect to="/login" />}</Route>
+            <Route exact path="/pain-trends">{session ? <PainTrendsPage /> : <Redirect to="/login" />}</Route>
+            <Route exact path="/weekly-plan">{session ? <WeeklyPlanCalendarPage /> : <Redirect to="/login" />}</Route>
+            <Route exact path="/body-weight-trend">{session ? <BodyWeightTrendPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/health-test"><Redirect to="/health-connect" /></Route>
             <Route exact path="/history/workout/:id"><Redirect to="/tabs/activity" /></Route>
             <Route exact path="/">

@@ -2,6 +2,7 @@ import { getBangkokDateKey } from '@/lib/date';
 import { syncSamsungSleep, type SamsungSleepSyncResult } from '@/lib/samsungSleepSync';
 import { syncSamsungWeight, type SamsungWeightSyncResult } from '@/lib/samsungProfileSync';
 import { syncSamsungWorkouts, type SamsungWorkoutSyncResult } from '@/lib/samsungWorkoutSync';
+import { syncSamsungBody, type SamsungBodySyncResult } from '@/lib/samsungBodySync';
 
 export const TODAY_SYNC_COOLDOWN_MS = 3 * 60_000;
 export const TODAY_SYNC_STORAGE_KEY = 'runmate:today-health-last-completed-at';
@@ -25,6 +26,7 @@ export type HealthHistorySyncResult = {
   sleep: SamsungSleepSyncResult;
   workout: SamsungWorkoutSyncResult;
   weight: SamsungWeightSyncResult;
+  body: SamsungBodySyncResult;
 };
 
 let activeTodaySync: Promise<TodayHealthSyncResult> | null = null;
@@ -64,12 +66,14 @@ export function syncHealthHistory(): Promise<HealthHistorySyncResult> {
     syncSamsungSleep(HEALTH_HISTORY_LOOKBACK_DAYS),
     syncSamsungWorkouts(HEALTH_HISTORY_LOOKBACK_DAYS),
     syncSamsungWeight(),
+    syncSamsungBody(HEALTH_HISTORY_LOOKBACK_DAYS),
   ])
-    .then(([sleep, workout, weight]) => ({
+    .then(([sleep, workout, weight, body]) => ({
       changed: hasHealthChanges(sleep, workout),
       sleep,
       workout,
       weight,
+      body,
     }))
     .finally(() => { activeHistorySync = null; });
   return activeHistorySync;

@@ -1,0 +1,67 @@
+.pain-trends-content { --background: radial-gradient(circle at 50% -12%, #fff1f0 0, #f4f8fc 34%, #f7f9fc 74%); }
+.pain-trends-header ion-toolbar { --background: rgba(247,250,253,.82); --border-color: rgba(173,194,217,.22); --min-height: 56px; -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+.pain-trends-header ion-title { color: #142a46; font-size: 16px; font-weight: 800; text-align: center; }
+.pain-trends-back { position: relative; z-index: 2; display: grid; place-items: center; width: 48px; height: 48px; margin-left: 4px; border: 0; color: #52708f; background: transparent; font-size: 22px; }
+.pain-trends-shell { width: min(100%,600px); margin: 0 auto; padding: 24px 20px max(52px,env(safe-area-inset-bottom)); }
+.pain-trends-heading { margin: 0 2px 18px; }
+.pain-trends-heading p,.pain-section-heading p,.pain-insight-card > div:nth-child(2) > p { margin: 0 0 6px; color: #2474b2; font-size: 9px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.pain-trends-heading h1 { margin: 0; color: #173451; font-size: 24px; line-height: 1.18; }
+.pain-trends-heading > span { display: block; margin-top: 8px; color: #6d8398; font-size: 11px; line-height: 1.5; }
+.pain-range { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 16px; padding: 4px; border: 1px solid #d9e6f0; border-radius: 14px; background: #fff; }
+.pain-range button { min-height: 44px; border: 0; border-radius: 10px; color: #70869b; background: transparent; font: inherit; font-size: 11px; font-weight: 800; }
+.pain-range button.active { color: #176f9f; background: #e7f5fc; box-shadow: inset 0 0 0 1px #c9e6f4; }
+.pain-trends-state { min-height: 320px; display: grid; place-content: center; justify-items: center; gap: 12px; color: #6d8398; font-size: 11px; }
+.pain-trends-state button { min-height: 44px; padding: 0 18px; border: 1px solid #a9cee1; border-radius: 12px; color: #2379a7; background: #fff; font: inherit; font-weight: 800; }
+.pain-chart-card,.pain-insight-card,.pain-history { border: 1px solid #d6e5ef; border-radius: 20px; background: #fff; }
+.pain-chart-card { padding: 18px 16px 15px; box-shadow: 0 10px 24px rgba(34,73,105,.05); }
+.pain-section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.pain-section-heading h2,.pain-insight-card h2 { margin: 0; color: #193753; font-size: 18px; line-height: 1.25; }
+.pain-coverage { flex: 0 0 auto; padding: 6px 9px; border-radius: 999px; color: #53758f; background: #eff5f8; font-size: 9px; font-weight: 750; }
+.pain-chart-wrap { margin-top: 16px; padding: 4px 0 2px; }
+.pain-chart { display: block; width: 100%; overflow: visible; }
+.pain-grid-line { stroke: #e6eef4; stroke-width: 1; }
+.pain-line { fill: none; stroke: #c0475a; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.pain-dot { fill: #fff; stroke-width: 1.8; }
+.pain-dot.active { stroke: #c0475a; }
+.pain-dot.resolved { stroke: #1d9b83; }
+.pain-chart text { fill: #8497a9; font-size: 8px; font-weight: 600; }
+.pain-legend { display: flex; justify-content: center; gap: 18px; margin-top: 8px; color: #6d8398; font-size: 9px; font-weight: 700; }
+.pain-legend span::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; vertical-align: -1px; }
+.pain-legend .active::before { background: #c0475a; }
+.pain-legend .resolved::before { background: #1d9b83; }
+.pain-insight-card { display: grid; grid-template-columns: 42px 1fr; gap: 12px; margin-top: 16px; padding: 17px 16px; }
+.pain-insight-icon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 13px; color: #237ca7; background: #e8f5fb; font-size: 22px; }
+.pain-insight-card.direction-improving .pain-insight-icon { color: #17846b; background: #e7f7f1; }
+.pain-insight-card.direction-worsening .pain-insight-icon { color: #b5495a; background: #fbe9eb; }
+.pain-insight-card > div:nth-child(2) > span { display: block; margin-top: 6px; color: #667f96; font-size: 10px; line-height: 1.5; }
+.pain-active-note { display: flex; gap: 8px; align-items: flex-start; margin: 16px 0 0; padding: 12px 14px; border: 1px solid #f0d6d9; border-radius: 14px; color: #8a3e48; background: #fff5f6; font-size: 10.5px; line-height: 1.5; }
+.pain-active-note ion-icon { flex: 0 0 auto; margin-top: 1px; color: #b5495a; font-size: 15px; }
+.pain-history { margin-top: 28px; overflow: hidden; }
+.pain-history-disclosure summary { min-height: 70px; display: grid; grid-template-columns: minmax(0,1fr) auto 20px; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; list-style: none; }
+.pain-history-disclosure summary::-webkit-details-marker { display: none; }
+.pain-history-disclosure summary > div { min-width: 0; }
+.pain-history-disclosure summary p { margin: 0 0 5px; color: #2474b2; font-size: 9px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.pain-history-disclosure summary h2 { margin: 0; color: #193753; font-size: 17px; line-height: 1.2; }
+.pain-history-disclosure summary > span { padding: 6px 9px; border-radius: 999px; color: #53758f; background: #eff5f8; font-size: 9px; font-weight: 750; white-space: nowrap; }
+.pain-history-disclosure summary::after { content: '+'; color: #2479a7; font-size: 20px; font-weight: 600; text-align: center; }
+.pain-history-disclosure[open] summary::after { content: '\2212'; }
+.pain-history-disclosure[open] summary { border-bottom: 1px solid #e5edf4; }
+.pain-history-empty { display: flex; gap: 8px; align-items: center; margin: 0; padding: 16px; color: #6f8496; font-size: 10.5px; }
+.pain-history-empty ion-icon { color: #1d9b83; font-size: 16px; }
+.pain-history-list { display: grid; }
+.pain-history-row { display: grid; grid-template-columns: minmax(98px,1.25fr) auto auto; gap: 10px; align-items: center; min-height: 56px; padding: 9px 14px; }
+.pain-history-row + .pain-history-row { border-top: 1px solid #e8eff5; }
+.pain-history-row > div:first-child { min-width: 0; display: grid; gap: 3px; }
+.pain-history-row > div:first-child strong { color: #294762; font-size: 11px; }
+.pain-history-row > div:first-child span { overflow: hidden; color: #8699aa; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.pain-history-level { display: grid; justify-items: end; color: #294762; }
+.pain-history-level strong { font-size: 13px; }
+.pain-history-level small { color: #8699aa; font-size: 9px; }
+.pain-history-status { padding: 5px 9px; border-radius: 999px; font-size: 9px; font-weight: 800; white-space: nowrap; }
+.pain-history-status.status-active { color: #b5495a; background: #fbe9eb; }
+.pain-history-status.status-resolved { color: #147a66; background: #e5f6f0; }
+.pain-range button:focus-visible,
+.pain-trends-back:focus-visible,
+.pain-trends-state button:focus-visible,
+.pain-history-disclosure summary:focus-visible { outline: 3px solid rgba(42,145,199,.24); outline-offset: 2px; }
+@media(max-width:390px){.pain-trends-shell{padding-inline:16px}.pain-chart-card{padding-inline:12px}.pain-history-row{grid-template-columns:minmax(88px,1.2fr) auto auto;padding-inline:11px}.pain-insight-card{grid-template-columns:38px 1fr}.pain-insight-icon{width:38px;height:38px}}

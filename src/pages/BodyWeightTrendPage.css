@@ -1,0 +1,56 @@
+.body-trend-content { --background: radial-gradient(circle at 50% -12%, #eef6ff 0, #f4f8fc 34%, #f7f9fc 74%); }
+.body-trend-header ion-toolbar { --background: rgba(247,250,253,.82); --border-color: rgba(173,194,217,.22); --min-height: 56px; -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+.body-trend-header ion-title { color: #142a46; font-size: 16px; font-weight: 800; text-align: center; }
+.body-trend-back { position: relative; z-index: 2; display: grid; place-items: center; width: 48px; height: 48px; margin-left: 4px; border: 0; color: #52708f; background: transparent; font-size: 22px; }
+.body-trend-shell { width: min(100%,600px); margin: 0 auto; padding: 24px 20px max(52px,env(safe-area-inset-bottom)); }
+.body-trend-heading { margin: 0 2px 18px; }
+.body-trend-heading p,.body-trend-section-heading p,.body-trend-insight-card > div:nth-child(2) > p { margin: 0 0 6px; color: #2474b2; font-size: 9px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.body-trend-heading h1 { margin: 0; color: #173451; font-size: 24px; line-height: 1.18; }
+.body-trend-heading > span { display: block; margin-top: 8px; color: #6d8398; font-size: 11px; line-height: 1.5; }
+.body-trend-range { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 16px; padding: 4px; border: 1px solid #d9e6f0; border-radius: 14px; background: #fff; }
+.body-trend-range button { min-height: 44px; border: 0; border-radius: 10px; color: #70869b; background: transparent; font: inherit; font-size: 11px; font-weight: 800; }
+.body-trend-range button.active { color: #176f9f; background: #e7f5fc; box-shadow: inset 0 0 0 1px #c9e6f4; }
+.body-trend-state { min-height: 320px; display: grid; place-content: center; justify-items: center; gap: 12px; color: #6d8398; font-size: 11px; text-align: center; }
+.body-trend-state button { min-height: 44px; padding: 0 18px; border: 1px solid #a9cee1; border-radius: 12px; color: #2379a7; background: #fff; font: inherit; font-weight: 800; }
+.body-trend-chart-card,.body-trend-insight-card,.body-trend-history { border: 1px solid #d6e5ef; border-radius: 20px; background: #fff; }
+.body-trend-chart-card { padding: 18px 16px 15px; box-shadow: 0 10px 24px rgba(34,73,105,.05); }
+.body-trend-section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.body-trend-section-heading h2,.body-trend-insight-card h2 { margin: 0; color: #193753; font-size: 18px; line-height: 1.25; }
+.body-trend-coverage { flex: 0 0 auto; padding: 6px 9px; border-radius: 999px; color: #53758f; background: #eff5f8; font-size: 9px; font-weight: 750; }
+.body-trend-chart-wrap { margin-top: 16px; padding: 4px 0 2px; }
+.body-trend-chart { display: block; width: 100%; overflow: visible; }
+.body-trend-grid-line { stroke: #e6eef4; stroke-width: 1; }
+.body-trend-grid-label { fill: #a3b1bd; font-size: 7.5px; font-weight: 600; }
+.body-trend-line { fill: none; stroke: #2379a7; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.body-trend-dot { fill: #fff; stroke: #2379a7; stroke-width: 1.8; }
+.body-trend-chart text { fill: #8497a9; font-size: 8px; font-weight: 600; }
+.body-trend-insight-card { display: grid; grid-template-columns: 42px 1fr; gap: 12px; margin-top: 16px; padding: 17px 16px; }
+.body-trend-insight-icon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 13px; color: #237ca7; background: #e8f5fb; font-size: 22px; }
+.body-trend-insight-card.direction-down .body-trend-insight-icon { color: #17846b; background: #e7f7f1; }
+.body-trend-insight-card.direction-up .body-trend-insight-icon { color: #9b6729; background: #fff2de; }
+.body-trend-insight-card > div:nth-child(2) > span { display: block; margin-top: 6px; color: #667f96; font-size: 10px; line-height: 1.5; }
+.body-trend-history { margin-top: 28px; overflow: hidden; }
+.body-trend-history-disclosure summary { min-height: 70px; display: grid; grid-template-columns: minmax(0,1fr) auto 20px; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; list-style: none; }
+.body-trend-history-disclosure summary::-webkit-details-marker { display: none; }
+.body-trend-history-disclosure summary > div { min-width: 0; }
+.body-trend-history-disclosure summary p { margin: 0 0 5px; color: #2474b2; font-size: 9px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.body-trend-history-disclosure summary h2 { margin: 0; color: #193753; font-size: 17px; line-height: 1.2; }
+.body-trend-history-disclosure summary > span { padding: 6px 9px; border-radius: 999px; color: #53758f; background: #eff5f8; font-size: 9px; font-weight: 750; white-space: nowrap; }
+.body-trend-history-disclosure summary::after { content: '+'; color: #2479a7; font-size: 20px; font-weight: 600; text-align: center; }
+.body-trend-history-disclosure[open] summary::after { content: '\2212'; }
+.body-trend-history-disclosure[open] summary { border-bottom: 1px solid #e5edf4; }
+.body-trend-history-list { display: grid; }
+.body-trend-history-row { display: grid; grid-template-columns: minmax(98px,1.25fr) auto; gap: 10px; align-items: center; min-height: 56px; padding: 9px 14px; }
+.body-trend-history-row + .body-trend-history-row { border-top: 1px solid #e8eff5; }
+.body-trend-history-row > div:first-child { min-width: 0; display: grid; gap: 3px; }
+.body-trend-history-row > div:first-child strong { color: #294762; font-size: 11px; }
+.body-trend-history-row > div:first-child span { display: flex; align-items: center; gap: 4px; overflow: hidden; color: #8699aa; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.body-trend-history-row > div:first-child span ion-icon { font-size: 11px; }
+.body-trend-history-weight { display: grid; justify-items: end; color: #294762; }
+.body-trend-history-weight strong { font-size: 13px; }
+.body-trend-history-weight small { color: #8699aa; font-size: 9px; }
+.body-trend-range button:focus-visible,
+.body-trend-back:focus-visible,
+.body-trend-state button:focus-visible,
+.body-trend-history-disclosure summary:focus-visible { outline: 3px solid rgba(42,145,199,.24); outline-offset: 2px; }
+@media(max-width:390px){.body-trend-shell{padding-inline:16px}.body-trend-chart-card{padding-inline:12px}.body-trend-history-row{padding-inline:11px}.body-trend-insight-card{grid-template-columns:38px 1fr}.body-trend-insight-icon{width:38px;height:38px}}

@@ -8,6 +8,8 @@ import {
   IonToolbar,
 } from '@ionic/react';
 import {
+  bandageOutline,
+  calendarOutline,
   chevronForwardOutline,
   flagOutline,
   fitnessOutline,
@@ -15,6 +17,7 @@ import {
   logOutOutline,
   notificationsOutline,
   personCircleOutline,
+  scaleOutline,
   sparklesOutline,
   statsChartOutline,
 } from 'ionicons/icons';
@@ -43,10 +46,28 @@ const plannedItems: Array<{
     path: '/race-goal',
   },
   {
+    icon: calendarOutline,
+    title: 'Weekly Plan',
+    summary: 'This week’s full training plan, with what actually happened.',
+    path: '/weekly-plan',
+  },
+  {
     icon: statsChartOutline,
     title: 'Weekly Summary',
     summary: 'Review the last 7 days of training, sleep, and logged meals.',
     path: '/weekly-summary',
+  },
+  {
+    icon: bandageOutline,
+    title: 'Pain & Injury Trend',
+    summary: 'See how logged Pain and Injury reports are changing over time.',
+    path: '/pain-trends',
+  },
+  {
+    icon: scaleOutline,
+    title: 'Body Weight Trend',
+    summary: 'Track weigh-ins synced from Health Connect over time.',
+    path: '/body-weight-trend',
   },
   {
     icon: personCircleOutline,
