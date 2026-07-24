@@ -40,6 +40,9 @@
   border-radius: 15px;
   background: #10263a;
   box-shadow: 0 10px 24px rgba(32, 58, 78, 0.12);
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .social-share-preview-container.transparent-grid {
@@ -85,15 +88,8 @@
   box-shadow: 0 8px 20px rgba(32, 58, 78, 0.05);
 }
 
-.social-share-detail-selector,
-.social-share-theme-selector {
+.social-share-detail-selector {
   margin: 0;
-}
-
-.social-share-theme-selector:not(:first-child) {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid #e3edf3;
 }
 
 .social-share-selector-heading {
@@ -176,40 +172,73 @@
   color: #ffffff;
 }
 
-.social-share-theme-label {
-  margin: 0 0 9px;
+.social-share-theme-slider {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.social-share-theme-current-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin: 0 0 8px;
+}
+
+.social-share-theme-current {
+  margin: 0;
   color: #274760;
   font-size: 12.5px;
   font-weight: 700;
 }
 
-.social-share-theme-chips {
+.theme-info-btn {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
-  gap: 7px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  place-items: center;
 }
 
-.theme-chip {
+.theme-info-btn ion-icon {
+  width: 15px;
+  height: 15px;
+  color: #8ea0b1;
+}
+
+.theme-info-btn:active ion-icon {
+  color: #159bc0;
+}
+
+.social-share-theme-dots {
   display: flex;
-  min-width: 0;
-  height: 36px;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  padding: 0 8px;
-  border: 1px solid #d5e2eb;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #567087;
-  font-size: 11px;
-  font-weight: 600;
-  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease;
+  gap: 8px;
 }
 
-.theme-chip.active {
-  border-color: #159bc0;
-  background: #e7f6fb;
-  color: #087fa2;
+.theme-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #cbdce7;
+  transition: background-color 150ms ease, transform 150ms ease;
+}
+
+.theme-dot.active {
+  background: #159bc0;
+  transform: scale(1.3);
+}
+
+.social-share-theme-hint {
+  margin: 8px 0 0;
+  color: #8ea0b1;
+  font-size: 10px;
+  font-weight: 600;
 }
 
 .social-share-actions {

@@ -22,6 +22,16 @@ export function mergeActivityHistoryItems(current: LocalHistoryItem[], incoming:
   return prepareActivityHistoryItems([...byId.values()]);
 }
 
+/** Newest activity first, using each item's actual event time rather than upload order. */
+export function sortHistoryItemsByEventTimeDesc(items: LocalHistoryItem[]): LocalHistoryItem[] {
+  return [...items].sort((a, b) => eventTimeMs(b) - eventTimeMs(a));
+}
+
+function eventTimeMs(item: LocalHistoryItem): number {
+  const recordedAtMs = item.recordedAt ? Date.parse(item.recordedAt) : NaN;
+  return Number.isFinite(recordedAtMs) ? recordedAtMs : Date.parse(item.createdAt);
+}
+
 export function activityRecentHistoryOptions(now = Date.now()) {
   return {
     limit: ACTIVITY_RECENT_ROW_LIMIT,

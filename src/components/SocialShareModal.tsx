@@ -14,6 +14,7 @@ import {
   checkmarkOutline,
   closeOutline,
   downloadOutline,
+  informationCircleOutline,
   shareSocialOutline,
 } from 'ionicons/icons';
 import type { CoachContext } from '@/lib/buildCoachContext';
@@ -27,7 +28,7 @@ import {
 } from '@/lib/workoutShareMetrics';
 import './SocialShareModal.css';
 
-export type ShareTheme = 'cyber-dark' | 'sunrise-fresh' | 'minimal-glass' | 'transparent-overlay' | 'custom-photo';
+export type ShareTheme = 'cyber-dark' | 'sunrise-fresh' | 'minimal-glass' | 'transparent-overlay';
 export type { SportType } from '@/lib/workoutShareMetrics';
 
 export interface WorkoutShareData {
@@ -81,10 +82,22 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
   const [generating, setGenerating] = useState(false);
   const [dataUrl, setDataUrl] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [customPhotoUrl, setCustomPhotoUrl] = useState<string | null>(null);
   const [selectedWorkoutMetrics, setSelectedWorkoutMetrics] = useState<WorkoutMetricKey[]>([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const themeOptions: Array<{ theme: ShareTheme; label: string }> = mode === 'workout'
+    ? [
+      { theme: 'transparent-overlay', label: 'Overlay' },
+      { theme: 'cyber-dark', label: 'Dark' },
+      { theme: 'minimal-glass', label: 'Light' },
+    ]
+    : [
+      { theme: 'cyber-dark', label: 'Dark' },
+      { theme: 'minimal-glass', label: 'Light' },
+    ];
+  const themeIndex = Math.max(0, themeOptions.findIndex(({ theme }) =>
+    theme === selectedTheme || (theme === 'minimal-glass' && selectedTheme === 'sunrise-fresh')));
 
   const score = context ? Math.round(context.recoverySystem.overallScore) : null;
   const recoveryLabel = context?.recoverySystem.overallLabel ?? 'Recovery';
@@ -128,7 +141,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
     canvas.height = STORY_HEIGHT;
     ctx.clearRect(0, 0, STORY_WIDTH, STORY_HEIGHT);
 
-    const palette = await drawStoryBackground(ctx, selectedTheme, customPhotoUrl);
+    const palette = drawStoryBackground(ctx, selectedTheme);
 
     if (mode === 'workout') {
       drawWorkoutStory(ctx, palette, {
@@ -159,7 +172,6 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
   }, [
     averageHeartRate,
     caloriesKcal,
-    customPhotoUrl,
     dateText,
     distanceKm,
     durationSeconds,
@@ -203,28 +215,44 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
 
   const selectTheme = (theme: ShareTheme) => {
     void hapticImpact();
-    if (theme === 'custom-photo') {
-      fileInputRef.current?.click();
-      return;
-    }
     setSelectedTheme(theme);
   };
 
-  const uploadPhoto = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result !== 'string') return;
-      setCustomPhotoUrl(reader.result);
-      setSelectedTheme('custom-photo');
-    };
-    reader.readAsDataURL(file);
+  const stepTheme = (direction: 1 | -1) => {
+    const nextIndex = themeIndex + direction;
+    if (nextIndex < 0 || nextIndex >= themeOptions.length) return;
+    selectTheme(themeOptions[nextIndex].theme);
   };
 
-  const showToast = (message: string) => {
+  const SWIPE_THRESHOLD_PX = 45;
+
+  const handlePreviewTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    const touch = event.touches[0];
+    swipeStartRef.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+  };
+
+  const handlePreviewTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    const start = swipeStartRef.current;
+    swipeStartRef.current = null;
+    const touch = event.changedTouches[0];
+    if (!start || !touch) return;
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (Math.abs(deltaX) < SWIPE_THRESHOLD_PX || Math.abs(deltaX) < Math.abs(deltaY)) return;
+    stepTheme(deltaX < 0 ? 1 : -1);
+  };
+
+  const showToast = (message: string, durationMs = 2600) => {
     setToastMessage(message);
-    window.setTimeout(() => setToastMessage(null), 2600);
+    window.setTimeout(() => setToastMessage(null), durationMs);
+  };
+
+  const showOverlayInfo = () => {
+    void hapticImpact();
+    showToast(
+      'Layer this over your own photo or video in Instagram/Facebook Stories. Saving it directly may show as solid black in apps that do not support transparency.',
+      4200,
+    );
   };
 
   const toggleWorkoutMetric = (metric: WorkoutMetricKey) => {
@@ -250,11 +278,14 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
     if (!dataUrl) return;
     void hapticImpact();
     const fileName = `RunMate-${mode === 'workout' ? 'Workout' : 'Recovery'}-${Date.now()}.png`;
+    const savedMessage = selectedTheme === 'transparent-overlay'
+      ? 'Saved (Transparent Background)'
+      : 'Saved To Pictures / RunMate';
     if (canSaveStoryImageNatively()) {
       try {
         await saveStoryImageNatively(dataUrl, fileName);
         void hapticNotification();
-        showToast('Saved To Pictures / RunMate');
+        showToast(savedMessage);
       } catch {
         showToast('Could Not Save Image');
       }
@@ -265,7 +296,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
     link.href = dataUrl;
     link.click();
     void hapticNotification();
-    showToast('Story image saved');
+    showToast(selectedTheme === 'transparent-overlay' ? savedMessage : 'Story image saved');
   };
 
   const shareImage = async () => {
@@ -313,7 +344,11 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
 
       <IonContent className="social-share-content">
         <div className="social-share-shell">
-          <div className={`social-share-preview-container ${selectedTheme === 'transparent-overlay' ? 'transparent-grid' : ''}`}>
+          <div
+            className={`social-share-preview-container ${selectedTheme === 'transparent-overlay' ? 'transparent-grid' : ''}`}
+            onTouchStart={handlePreviewTouchStart}
+            onTouchEnd={handlePreviewTouchEnd}
+          >
             {generating && (
               <div className="social-share-loading" role="status">
                 <IonSpinner name="crescent" />
@@ -321,13 +356,35 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
               </div>
             )}
             <canvas ref={canvasRef} className="social-share-canvas" hidden />
-            {dataUrl && <img src={dataUrl} alt="RunMate Story Preview" className="social-share-preview-img" />}
+            {dataUrl && <img src={dataUrl} alt="RunMate Story Preview" className="social-share-preview-img" draggable={false} />}
           </div>
 
-          <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={uploadPhoto} />
+          <div className="social-share-theme-slider" aria-labelledby="story-style-label">
+            <div className="social-share-theme-current-row">
+              <p id="story-style-label" className="social-share-theme-current">{themeOptions[themeIndex]?.label}</p>
+              {selectedTheme === 'transparent-overlay' && (
+                <button type="button" className="theme-info-btn" aria-label="About Transparent Background" onClick={showOverlayInfo}>
+                  <IonIcon icon={informationCircleOutline} />
+                </button>
+              )}
+            </div>
+            <div className="social-share-theme-dots">
+              {themeOptions.map((option, index) => (
+                <button
+                  key={option.theme}
+                  type="button"
+                  className={`theme-dot${index === themeIndex ? ' active' : ''}`}
+                  aria-label={`Background Style: ${option.label}`}
+                  aria-pressed={index === themeIndex}
+                  onClick={() => selectTheme(option.theme)}
+                />
+              ))}
+            </div>
+            <p className="social-share-theme-hint">Swipe The Preview To Change Background</p>
+          </div>
 
-          <div className="social-share-controls">
-            {mode === 'workout' && availableWorkoutMetrics.length > 0 && (
+          {mode === 'workout' && availableWorkoutMetrics.length > 0 && (
+            <div className="social-share-controls">
               <section className="social-share-detail-selector" aria-labelledby="story-details-label">
                 <div className="social-share-selector-heading">
                   <p id="story-details-label">Workout Metrics</p>
@@ -352,22 +409,8 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
                   })}
                 </div>
               </section>
-            )}
-
-            <section className="social-share-theme-selector" aria-labelledby="story-style-label">
-              <p id="story-style-label" className="social-share-theme-label">Background Style</p>
-              <div className="social-share-theme-chips">
-                {mode === 'workout' && (
-                  <>
-                    <ThemeButton label="Overlay" active={selectedTheme === 'transparent-overlay'} onClick={() => selectTheme('transparent-overlay')} />
-                    <ThemeButton label="Photo" active={selectedTheme === 'custom-photo'} onClick={() => selectTheme('custom-photo')} />
-                  </>
-                )}
-                <ThemeButton label="Dark" active={selectedTheme === 'cyber-dark'} onClick={() => selectTheme('cyber-dark')} />
-                <ThemeButton label="Light" active={selectedTheme === 'minimal-glass' || selectedTheme === 'sunrise-fresh'} onClick={() => selectTheme('minimal-glass')} />
-              </div>
-            </section>
-          </div>
+            </div>
+          )}
 
           <div className="social-share-actions">
             <button type="button" className="share-action-btn primary" disabled={!isReady} onClick={() => void shareImage()}>
@@ -385,32 +428,13 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
   );
 };
 
-function ThemeButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button type="button" className={`theme-chip${active ? ' active' : ''}`} aria-pressed={active} onClick={onClick}>
-      {label}
-    </button>
-  );
-}
 
-async function drawStoryBackground(
+function drawStoryBackground(
   ctx: CanvasRenderingContext2D,
   theme: ShareTheme,
-  customPhotoUrl: string | null,
-): Promise<CanvasPalette> {
+): CanvasPalette {
   if (theme === 'transparent-overlay') {
     ctx.clearRect(0, 0, STORY_WIDTH, STORY_HEIGHT);
-    return darkPalette();
-  }
-
-  if (theme === 'custom-photo' && customPhotoUrl) {
-    await drawCoverImage(ctx, customPhotoUrl);
-    const shade = ctx.createLinearGradient(0, 0, 0, STORY_HEIGHT);
-    shade.addColorStop(0, 'rgba(3, 12, 20, .22)');
-    shade.addColorStop(.45, 'rgba(3, 12, 20, .08)');
-    shade.addColorStop(1, 'rgba(3, 12, 20, .72)');
-    ctx.fillStyle = shade;
-    ctx.fillRect(0, 0, STORY_WIDTH, STORY_HEIGHT);
     return darkPalette();
   }
 
@@ -467,22 +491,40 @@ function drawWorkoutStory(
   const metrics = getAvailableWorkoutMetrics(data)
     .filter((metric) => data.selectedMetrics.includes(metric.key));
   const heroMetric = metrics[0];
+  const secondaryMetrics = metrics.slice(1, 4);
+  const centerX = STORY_WIDTH / 2;
 
   ctx.save();
+
+  // A short accent flourish above the hero number fills the otherwise bare
+  // top third of the 9:16 canvas and reads as an intentional stat-card
+  // header rather than empty space, without adding any title/date text.
+  ctx.strokeStyle = palette.accent;
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(centerX - 38, 372);
+  ctx.lineTo(centerX + 38, 372);
+  ctx.stroke();
+  ctx.fillStyle = palette.accent;
+  ctx.beginPath();
+  ctx.arc(centerX, 372, 6, 0, Math.PI * 2);
+  ctx.fill();
+
   ctx.shadowColor = 'rgba(0, 0, 0, .28)';
   ctx.shadowBlur = data.theme === 'minimal-glass' || data.theme === 'sunrise-fresh' ? 0 : 10;
 
   if (heroMetric) {
-    drawFittedTextCentered(ctx, heroMetric.value, STORY_WIDTH / 2, 625, 840, 176, palette.text, '700');
-    ctx.font = `700 34px ${STORY_FONT}`;
+    drawFittedTextCentered(ctx, heroMetric.value, centerX, 590, 900, 200, palette.text, '700');
+    ctx.font = `700 36px ${STORY_FONT}`;
     ctx.fillStyle = palette.accent;
     ctx.textAlign = 'center';
-    ctx.fillText((heroMetric.unit ?? heroMetric.label).toUpperCase(), STORY_WIDTH / 2, 690);
+    ctx.fillText((heroMetric.unit ?? heroMetric.label).toUpperCase(), centerX, 658);
   }
 
   ctx.shadowBlur = 0;
-  drawWorkoutMetricRow(ctx, palette, metrics.slice(1, 4), 910);
-  drawSportSignature(ctx, palette, data.sportType, 1320, 0.82);
+  drawWorkoutMetricRow(ctx, palette, secondaryMetrics, 850);
+  drawSportSignature(ctx, palette, data.sportType, secondaryMetrics.length > 0 ? 1290 : 1150, 0.98);
   ctx.restore();
 }
 
@@ -807,21 +849,6 @@ function drawFittedTextCentered(
   ctx.textAlign = 'center';
   ctx.fillStyle = color;
   ctx.fillText(text, x, y);
-}
-
-function drawCoverImage(ctx: CanvasRenderingContext2D, source: string): Promise<void> {
-  return new Promise((resolve) => {
-    const image = new Image();
-    image.onload = () => {
-      const scale = Math.max(STORY_WIDTH / image.width, STORY_HEIGHT / image.height);
-      const width = image.width * scale;
-      const height = image.height * scale;
-      ctx.drawImage(image, (STORY_WIDTH - width) / 2, (STORY_HEIGHT - height) / 2, width, height);
-      resolve();
-    };
-    image.onerror = () => resolve();
-    image.src = source;
-  });
 }
 
 function recoveryAccent(score: number): string {

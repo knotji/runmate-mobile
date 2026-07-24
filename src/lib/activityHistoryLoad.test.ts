@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { LocalHistoryItem } from '@/lib/localHistory';
-import { activityRecentHistoryOptions, mergeActivityHistoryItems, uploadedActivityDateFromEvent } from './activityHistoryLoad';
+import { activityRecentHistoryOptions, mergeActivityHistoryItems, sortHistoryItemsByEventTimeDesc, uploadedActivityDateFromEvent } from './activityHistoryLoad';
 
 function item(id: string, type: LocalHistoryItem['type'], marker: string): LocalHistoryItem {
   return { id, type, createdAt: '2026-07-20T00:00:00.000Z', dateKey: '2026-07-20', data: { marker } };
@@ -36,5 +36,22 @@ describe('Activity History Loading', () => {
     expect(uploadedActivityDateFromEvent(uploadEvent)).toBe('2026-07-14');
     expect(uploadedActivityDateFromEvent(healthSyncEvent)).toBeNull();
     expect(uploadedActivityDateFromEvent(new Event('runmate:cloud-data-updated'))).toBeNull();
+  });
+
+  it('sorts activity items by actual event time, not upload order', () => {
+    const breakfast: LocalHistoryItem = { id: 'meal-1', type: 'meal', createdAt: '2026-07-20T09:00:00.000Z', recordedAt: '2026-07-20T07:30:00.000Z', dateKey: '2026-07-20', data: {} };
+    const workout: LocalHistoryItem = { id: 'workout-1', type: 'workout', createdAt: '2026-07-20T18:20:00.000Z', recordedAt: '2026-07-20T17:00:00.000Z', dateKey: '2026-07-20', data: {} };
+    const sleep: LocalHistoryItem = { id: 'sleep-1', type: 'sleep', createdAt: '2026-07-20T06:00:00.000Z', recordedAt: '2026-07-20T06:00:00.000Z', dateKey: '2026-07-20', data: {} };
+    // Uploaded in an order that does not match when each activity actually happened.
+    const uploadOrder = [sleep, breakfast, workout];
+
+    expect(sortHistoryItemsByEventTimeDesc(uploadOrder).map((item) => item.id)).toEqual(['workout-1', 'meal-1', 'sleep-1']);
+  });
+
+  it('falls back to createdAt when an item has no recordedAt', () => {
+    const withRecordedAt: LocalHistoryItem = { id: 'has-recorded-at', type: 'meal', createdAt: '2026-07-20T10:00:00.000Z', recordedAt: '2026-07-20T12:00:00.000Z', dateKey: '2026-07-20', data: {} };
+    const withoutRecordedAt: LocalHistoryItem = { id: 'no-recorded-at', type: 'meal', createdAt: '2026-07-20T09:00:00.000Z', dateKey: '2026-07-20', data: {} };
+
+    expect(sortHistoryItemsByEventTimeDesc([withRecordedAt, withoutRecordedAt]).map((item) => item.id)).toEqual(['has-recorded-at', 'no-recorded-at']);
   });
 });

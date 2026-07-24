@@ -23,7 +23,7 @@ import { getHistoryItemDateKey, todayBangkokDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { describeTodayHealthSyncPerformance, syncTodayHealth } from '@/lib/healthSyncService';
 import { buildDailyNutritionSummary } from '@/lib/activityNutritionSummary';
-import { activityRecentHistoryOptions, mergeActivityHistoryItems, prepareActivityHistoryItems, uploadedActivityDateFromEvent } from '@/lib/activityHistoryLoad';
+import { activityRecentHistoryOptions, mergeActivityHistoryItems, prepareActivityHistoryItems, sortHistoryItemsByEventTimeDesc, uploadedActivityDateFromEvent } from '@/lib/activityHistoryLoad';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { ActivityHistoryRow } from '@/components/ActivityHistoryRow';
@@ -165,7 +165,9 @@ const ActivityPage: React.FC = () => {
       const date = getHistoryItemDateKey(item);
       groups.set(date, [...(groups.get(date) ?? []), item]);
     }
-    return [...groups.entries()].sort(([a], [b]) => b.localeCompare(a));
+    return [...groups.entries()]
+      .map(([date, dateItems]): [string, LocalHistoryItem[]] => [date, sortHistoryItemsByEventTimeDesc(dateItems)])
+      .sort(([a], [b]) => b.localeCompare(a));
   }, [items, selectedDate]);
   const availableDates = useMemo(() => new Set([...items.map(getHistoryItemDateKey), todayDate]), [items, todayDate]);
   const nutritionMeasurement = useMemo(() => {
