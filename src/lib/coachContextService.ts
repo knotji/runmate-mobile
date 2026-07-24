@@ -4,6 +4,7 @@ import { loadProfileFromSupabase } from '@/lib/profileStorage';
 import { loadRaceResults } from '@/lib/raceResults';
 import { loadActiveRaceGoalAndPlan } from '@/lib/raceStorage';
 import type { LocalHistoryItem } from '@/lib/localHistory';
+import { pushTodayPlanToWidget } from '@/lib/todayPlanWidget';
 
 const COACH_CONTEXT_CACHE_MS = 30_000;
 export const RECOVERY_CONTEXT_LOOKBACK_DAYS = 45;
@@ -37,6 +38,7 @@ export function buildCoachContextFromSupabase(options: { force?: boolean } = {})
   activeCoachContextLoad = loadCoachContextFromSupabase()
     .then((value) => {
       if (loadRevision === coachContextRevision) cachedCoachContext = { value, loadedAt: Date.now() };
+      void pushTodayPlanToWidget(value);
       return value;
     })
     .finally(() => { activeCoachContextLoad = null; });

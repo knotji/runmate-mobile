@@ -4,4 +4,6 @@
     <string name="title_activity_main">RunMate</string>
     <string name="package_name">com.runmate.mobile</string>
     <string name="custom_url_scheme">com.runmate.mobile</string>
+    <string name="today_plan_widget_label">RunMate: Today\'s Plan</string>
+    <string name="today_plan_widget_description">Shows today\'s planned workout and whether it is done.</string>
 </resources>

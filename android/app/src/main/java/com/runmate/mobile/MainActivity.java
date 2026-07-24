@@ -8,6 +8,7 @@ public class MainActivity extends BridgeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         registerPlugin(BackgroundHealthPlugin.class);
         registerPlugin(StoryImagePlugin.class);
+        registerPlugin(TodayPlanWidgetPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }
