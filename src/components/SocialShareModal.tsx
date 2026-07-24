@@ -481,10 +481,10 @@ function drawStoryBackground(
 function darkPalette(): CanvasPalette {
   return {
     text: '#ffffff',
-    muted: 'rgba(255, 255, 255, .68)',
-    faint: 'rgba(255, 255, 255, .44)',
-    accent: '#42c5e8',
-    hairline: 'rgba(255, 255, 255, .18)',
+    muted: 'rgba(255, 255, 255, .85)',
+    faint: 'rgba(255, 255, 255, .75)',
+    accent: '#00f0ff',
+    hairline: 'rgba(255, 255, 255, .35)',
   };
 }
 
@@ -513,9 +513,11 @@ function drawWorkoutStory(
 
   ctx.save();
 
-  // A short accent flourish above the hero number fills the otherwise bare
-  // top third of the 9:16 canvas and reads as an intentional stat-card
-  // header rather than empty space, without adding any title/date text.
+  // Draw top accent line with drop shadow
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+  ctx.shadowBlur = 10;
+  ctx.shadowOffsetY = 2;
+
   ctx.strokeStyle = palette.accent;
   ctx.lineWidth = 4;
   ctx.lineCap = 'round';
@@ -527,8 +529,6 @@ function drawWorkoutStory(
   ctx.beginPath();
   ctx.arc(centerX, 372, 6, 0, Math.PI * 2);
   ctx.fill();
-  ctx.shadowColor = 'rgba(0, 0, 0, .45)';
-  ctx.shadowBlur = data.theme === 'transparent-overlay' ? 12 : data.theme === 'minimal-glass' || data.theme === 'sunrise-fresh' ? 0 : 10;
 
   if (heroMetric) {
     drawFittedTextCentered(ctx, heroMetric.value, centerX, 550, 900, 180, palette.text, '700');
@@ -538,7 +538,6 @@ function drawWorkoutStory(
     ctx.fillText((heroMetric.unit ?? heroMetric.label).toUpperCase(), centerX, 618);
   }
 
-  ctx.shadowBlur = 0;
   drawWorkoutMetricRow(ctx, palette, secondaryMetrics, 800);
   drawSportSignature(ctx, palette, data.sportType, secondaryMetrics.length > 0 ? 1220 : 1080, 0.95);
   ctx.restore();
@@ -556,6 +555,11 @@ function drawWorkoutMetricRow(ctx: CanvasRenderingContext2D, palette: CanvasPale
   const left = 90;
   const width = 900;
   const columnWidth = width / metrics.length;
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
+  ctx.shadowBlur = 12;
+  ctx.shadowOffsetY = 2;
 
   ctx.strokeStyle = palette.hairline;
   ctx.lineWidth = 2;
@@ -586,6 +590,7 @@ function drawWorkoutMetricRow(ctx: CanvasRenderingContext2D, palette: CanvasPale
       ctx.fillText(metric.unit, textX, y + 94);
     }
   });
+  ctx.restore();
 }
 
 function drawRecoveryStory(
@@ -655,17 +660,18 @@ function drawMetricRow(ctx: CanvasRenderingContext2D, palette: CanvasPalette, me
     ctx.fillText(metric.value, textX, y + 66);
     if (metric.unit) {
       ctx.fillStyle = palette.accent;
-      ctx.font = `500 18px ${STORY_FONT}`;
-      ctx.fillText(metric.unit, textX, y + 105);
+      ctx.font = `600 26px ${STORY_FONT}`;
+      ctx.fillText(metric.unit, textX, y + 103);
     }
   });
 }
 
 function drawFooter(ctx: CanvasRenderingContext2D, palette: CanvasPalette) {
-  ctx.textAlign = 'right';
-  ctx.fillStyle = palette.faint;
-  ctx.font = `600 21px ${STORY_FONT}`;
-  ctx.fillText('RUNMATE', 970, 1760);
+  const y = 1680;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = palette.muted;
+  ctx.font = `600 28px ${STORY_FONT}`;
+  ctx.fillText('RUNMATE', STORY_WIDTH / 2, y);
 }
 
 function drawSportSignature(
@@ -678,6 +684,10 @@ function drawSportSignature(
   const centerX = STORY_WIDTH / 2;
 
   ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
+  ctx.shadowBlur = 12;
+  ctx.shadowOffsetY = 2;
+
   ctx.translate(centerX, centerY);
   ctx.scale(scale, scale);
   ctx.strokeStyle = palette.accent;
