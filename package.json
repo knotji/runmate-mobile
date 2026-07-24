@@ -17,6 +17,7 @@
     "android:distribute": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/distribute-android-release.ps1"
   },
   "dependencies": {
+    "@capacitor-firebase/crashlytics": "^8.3.0",
     "@capacitor/app": "8.1.1",
     "@capacitor/browser": "^8.0.4",
     "@capacitor/core": "8.4.2",

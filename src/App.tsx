@@ -11,6 +11,8 @@ import { completeNativeGoogleSignIn } from '@/lib/googleAuth';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { refreshNotifications } from '@/lib/notificationService';
 import { invalidateCoachContextCache } from '@/lib/coachContextService';
+import { clearAiCoachAnswerCache } from '@/lib/aiCoach';
+import { reportCrash } from '@/lib/crashReporting';
 import { syncTodayHealth } from '@/lib/healthSyncService';
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { AppBootScreen } from '@/components/AppBootScreen';
@@ -49,10 +51,30 @@ const NotificationsPage = lazy(() => loadMorePage('/notifications'));
 const RecoveryTrendsPage = lazy(() => import('@/pages/RecoveryTrendsPage'));
 const AiCoachPage = lazy(() => loadMorePage('/ai-coach'));
 const NutritionTrendsPage = lazy(() => import('@/pages/NutritionTrendsPage'));
+const PrivacyDataPage = lazy(() => loadMorePage('/privacy-data'));
 
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    // React error boundaries only catch render-phase errors. Most real
+    // failures in this app happen in async code (Supabase calls, native
+    // plugin calls) or event handlers, so report those to Crashlytics too.
+    const handleError = (event: ErrorEvent) => {
+      void reportCrash(event.error instanceof Error ? event.error : new Error(event.message), 'Unhandled window error');
+    };
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason;
+      void reportCrash(reason instanceof Error ? reason : new Error(String(reason)), 'Unhandled promise rejection');
+    };
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleRejection);
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleRejection);
+    };
+  }, []);
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
@@ -62,6 +84,7 @@ const App: React.FC = () => {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       invalidateCoachContextCache();
+      clearAiCoachAnswerCache();
       if (_event === 'SIGNED_OUT') clearRecoveryStartupSnapshot();
       setSession(nextSession);
       setCheckingSession(false);
@@ -155,6 +178,7 @@ const App: React.FC = () => {
             <Route exact path="/notifications">{session ? <NotificationsPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/ai-coach">{session ? <AiCoachPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/nutrition-trends">{session ? <NutritionTrendsPage /> : <Redirect to="/login" />}</Route>
+            <Route exact path="/privacy-data">{session ? <PrivacyDataPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/health-test"><Redirect to="/health-connect" /></Route>
             <Route exact path="/history/workout/:id"><Redirect to="/tabs/activity" /></Route>
             <Route exact path="/">

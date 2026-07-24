@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { recordRuntimeError } from '@/lib/runtimeDiagnostics';
+import { reportCrash } from '@/lib/crashReporting';
 import './AppErrorBoundary.css';
 
 type Props = { children: ReactNode };
@@ -12,6 +13,7 @@ export class AppErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     recordRuntimeError(error);
+    void reportCrash(error, `Page render failed at ${window.location.pathname}`);
     console.error('[runtime] page render failed', error, info.componentStack);
   }
 
