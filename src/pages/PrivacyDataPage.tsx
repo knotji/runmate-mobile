@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { useHistory } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
 import { arrowBackOutline, cloudDownloadOutline, documentTextOutline, lockClosedOutline, trashOutline } from 'ionicons/icons';
 import { accountDataExportFileName, buildAccountDataExport, deleteMyAccount } from '@/lib/accountData';
@@ -28,12 +31,17 @@ const PrivacyDataPage: React.FC = () => {
       }
       const json = JSON.stringify(result.data, null, 2);
       const fileName = accountDataExportFileName();
-      const file = new File([json], fileName, { type: 'application/json' });
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ title: 'RunMate Data Export', files: [file] });
+
+      if (Capacitor.isNativePlatform()) {
+        // A plain <a download> blob click does not trigger Android's download
+        // manager inside the Capacitor WebView, so write the file to disk and
+        // hand it to the native share sheet instead.
+        const written = await Filesystem.writeFile({ path: fileName, data: json, directory: Directory.Cache, encoding: Encoding.UTF8 });
+        await Share.share({ title: 'RunMate Data Export', url: written.uri });
         setExportMessage('Export ready. Choose where to save it.');
         return;
       }
+
       const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
       const link = document.createElement('a');
       link.href = url;
