@@ -527,22 +527,65 @@ function drawWorkoutStory(
   ctx.beginPath();
   ctx.arc(centerX, 372, 6, 0, Math.PI * 2);
   ctx.fill();
-
-  ctx.shadowColor = 'rgba(0, 0, 0, .28)';
-  ctx.shadowBlur = data.theme === 'minimal-glass' || data.theme === 'sunrise-fresh' ? 0 : 10;
+  ctx.shadowColor = 'rgba(0, 0, 0, .45)';
+  ctx.shadowBlur = data.theme === 'transparent-overlay' ? 12 : data.theme === 'minimal-glass' || data.theme === 'sunrise-fresh' ? 0 : 10;
 
   if (heroMetric) {
-    drawFittedTextCentered(ctx, heroMetric.value, centerX, 590, 900, 200, palette.text, '700');
+    drawFittedTextCentered(ctx, heroMetric.value, centerX, 610, 900, 200, palette.text, '700');
     ctx.font = `700 36px ${STORY_FONT}`;
     ctx.fillStyle = palette.accent;
     ctx.textAlign = 'center';
-    ctx.fillText((heroMetric.unit ?? heroMetric.label).toUpperCase(), centerX, 658);
+    ctx.fillText((heroMetric.unit ?? heroMetric.label).toUpperCase(), centerX, 678);
   }
 
   ctx.shadowBlur = 0;
-  drawWorkoutMetricRow(ctx, palette, secondaryMetrics, 850);
-  drawSportSignature(ctx, palette, data.sportType, secondaryMetrics.length > 0 ? 1290 : 1150, 0.98);
+  drawWorkoutMetricRow(ctx, palette, secondaryMetrics, 910);
+  drawSportSignature(ctx, palette, data.sportType, secondaryMetrics.length > 0 ? 1360 : 1180, 0.98);
   ctx.restore();
+}
+
+function cleanMetricLabel(label: string): string {
+  return label
+    .replace(/^AVERAGE\s+/i, '')
+    .replace(/^AVG\.\s+/i, '')
+    .toUpperCase();
+}
+
+function drawWorkoutMetricRow(ctx: CanvasRenderingContext2D, palette: CanvasPalette, metrics: StoryMetric[], y: number) {
+  if (metrics.length === 0) return;
+  const left = 110;
+  const width = 860;
+  const columnWidth = width / metrics.length;
+
+  ctx.strokeStyle = palette.hairline;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(left, y - 70);
+  ctx.lineTo(left + width, y - 70);
+  ctx.stroke();
+
+  metrics.forEach((metric, index) => {
+    const textX = left + columnWidth * (index + 0.5);
+    if (index > 0) {
+      const dividerX = left + columnWidth * index;
+      ctx.beginPath();
+      ctx.moveTo(dividerX, y - 18);
+      ctx.lineTo(dividerX, y + 118);
+      ctx.stroke();
+    }
+    ctx.textAlign = 'center';
+    ctx.fillStyle = palette.faint;
+    ctx.font = `600 22px ${STORY_FONT}`;
+    ctx.fillText(cleanMetricLabel(metric.label), textX, y);
+    ctx.fillStyle = palette.text;
+    ctx.font = `700 48px ${STORY_FONT}`;
+    ctx.fillText(metric.value, textX, y + 60);
+    if (metric.unit) {
+      ctx.fillStyle = palette.accent;
+      ctx.font = `600 24px ${STORY_FONT}`;
+      ctx.fillText(metric.unit, textX, y + 100);
+    }
+  });
 }
 
 function drawRecoveryStory(
@@ -592,43 +635,6 @@ function drawStoryHeader(ctx: CanvasRenderingContext2D, palette: CanvasPalette, 
   ctx.fillStyle = palette.muted;
   ctx.font = `500 24px ${STORY_FONT}`;
   ctx.fillText(date, 110, 275);
-}
-
-function drawWorkoutMetricRow(ctx: CanvasRenderingContext2D, palette: CanvasPalette, metrics: StoryMetric[], y: number) {
-  if (metrics.length === 0) return;
-  const left = 135;
-  const width = 810;
-  const columnWidth = width / metrics.length;
-
-  ctx.strokeStyle = palette.hairline;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(left, y - 70);
-  ctx.lineTo(left + width, y - 70);
-  ctx.stroke();
-
-  metrics.forEach((metric, index) => {
-    const textX = left + columnWidth * (index + 0.5);
-    if (index > 0) {
-      const dividerX = left + columnWidth * index;
-      ctx.beginPath();
-      ctx.moveTo(dividerX, y - 18);
-      ctx.lineTo(dividerX, y + 118);
-      ctx.stroke();
-    }
-    ctx.textAlign = 'center';
-    ctx.fillStyle = palette.faint;
-    ctx.font = `650 30px ${STORY_FONT}`;
-    ctx.fillText(metric.label.toUpperCase(), textX, y);
-    ctx.fillStyle = palette.text;
-    ctx.font = `650 68px ${STORY_FONT}`;
-    ctx.fillText(metric.value, textX, y + 65);
-    if (metric.unit) {
-      ctx.fillStyle = palette.accent;
-      ctx.font = `600 26px ${STORY_FONT}`;
-      ctx.fillText(metric.unit, textX, y + 103);
-    }
-  });
 }
 
 function drawMetricRow(ctx: CanvasRenderingContext2D, palette: CanvasPalette, metrics: StoryMetric[], y: number) {
