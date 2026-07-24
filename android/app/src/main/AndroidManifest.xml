@@ -55,6 +55,15 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/today_plan_widget_info" />
         </receiver>
+
+        <activity
+            android:name=".TodayPlanWidgetConfigureActivity"
+            android:exported="false"
+            android:theme="@style/AppTheme">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
     </application>
 
     <!-- Permissions -->

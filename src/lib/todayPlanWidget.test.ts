@@ -21,7 +21,31 @@ function context(overrides: Partial<CoachContext> = {}): CoachContext {
 describe('buildTodayPlanWidgetData', () => {
   it('reports no_plan when there is no active race plan', () => {
     const data = buildTodayPlanWidgetData(context({ racePlan: null }));
-    expect(data).toEqual({ date: TODAY, workoutType: null, description: null, distanceKm: null, pace: null, status: 'no_plan' });
+    expect(data).toEqual({
+      date: TODAY, workoutType: null, description: null, distanceKm: null, pace: null, status: 'no_plan',
+      recoveryScore: null, recoveryZone: null,
+    });
+  });
+
+  it('omits recovery score when Recovery is not yet scorable', () => {
+    const data = buildTodayPlanWidgetData(context({ recoverySystem: { scoreState: 'unscorable' } as CoachContext['recoverySystem'] }));
+    expect(data.recoveryScore).toBeNull();
+    expect(data.recoveryZone).toBeNull();
+  });
+
+  it('reports recovery score and zone when Recovery is scored', () => {
+    const data = buildTodayPlanWidgetData(context({
+      recoverySystem: { scoreState: 'scored', overallScore: 82, overallLabel: 'Good' } as CoachContext['recoverySystem'],
+    }));
+    expect(data.recoveryScore).toBe(82);
+    expect(data.recoveryZone).toBe('good');
+  });
+
+  it('maps a Low recovery label to the low zone', () => {
+    const data = buildTodayPlanWidgetData(context({
+      recoverySystem: { scoreState: 'calibrating', overallScore: 20, overallLabel: 'Low' } as CoachContext['recoverySystem'],
+    }));
+    expect(data.recoveryZone).toBe('low');
   });
 
   it('reports rest for a rest day', () => {

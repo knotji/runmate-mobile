@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
@@ -70,19 +71,42 @@
             android:shadowRadius="3" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/widget_status_badge"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
-        android:background="@drawable/widget_badge_rest"
-        android:paddingLeft="9dp"
-        android:paddingRight="9dp"
-        android:paddingTop="5dp"
-        android:paddingBottom="5dp"
-        android:text="—"
-        android:textColor="#FF667B92"
-        android:textSize="9sp"
-        android:textStyle="bold" />
+        android:orientation="vertical"
+        android:gravity="end">
+
+        <TextView
+            android:id="@+id/widget_recovery_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:background="@drawable/widget_badge_completed"
+            android:paddingLeft="9dp"
+            android:paddingRight="9dp"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp"
+            android:text=""
+            android:textColor="#FF147A66"
+            android:textSize="9sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/widget_status_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_badge_rest"
+            android:paddingLeft="9dp"
+            android:paddingRight="9dp"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp"
+            android:text="—"
+            android:textColor="#FF667B92"
+            android:textSize="9sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 
 </LinearLayout>

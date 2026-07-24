@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#FFF4F8FC"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Today's Plan Widget"
+        android:textColor="#FF172C49"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="20dp"
+        android:text="Choose how the widget looks."
+        android:textColor="#FF667B92"
+        android:textSize="12sp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="BACKGROUND"
+        android:textColor="#FF2474B2"
+        android:textSize="9sp"
+        android:textStyle="bold" />
+
+    <RadioGroup
+        android:id="@+id/configure_style_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="20dp">
+
+        <RadioButton
+            android:id="@+id/configure_style_transparent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:text="Transparent" />
+
+        <RadioButton
+            android:id="@+id/configure_style_frosted"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Frosted glass" />
+
+        <RadioButton
+            android:id="@+id/configure_style_solid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Solid card" />
+    </RadioGroup>
+
+    <CheckBox
+        android:id="@+id/configure_show_recovery"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:checked="true"
+        android:text="Show today's Recovery Score" />
+
+    <Button
+        android:id="@+id/configure_add_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
+        android:text="Add Widget" />
+
+</LinearLayout>

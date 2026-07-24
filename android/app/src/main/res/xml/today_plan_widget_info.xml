@@ -9,4 +9,5 @@
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:label="@string/today_plan_widget_label"
-    android:description="@string/today_plan_widget_description" />
+    android:description="@string/today_plan_widget_description"
+    android:configure="com.runmate.mobile.TodayPlanWidgetConfigureActivity" />

@@ -7,6 +7,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.view.View
 import android.widget.RemoteViews
 import org.json.JSONObject
 
@@ -23,15 +24,20 @@ class TodayPlanWidgetProvider : AppWidgetProvider() {
             updateWidgets(context, manager, ids)
         }
 
-        private fun updateWidgets(context: Context, manager: AppWidgetManager, ids: IntArray) {
-            val plan = TodayPlanWidgetStore.load(context)
-            for (id in ids) manager.updateAppWidget(id, buildRemoteViews(context, plan))
+        fun refreshOne(context: Context, appWidgetId: Int) {
+            updateWidgets(context, AppWidgetManager.getInstance(context), intArrayOf(appWidgetId))
         }
 
-        private fun buildRemoteViews(context: Context, plan: JSONObject?): RemoteViews {
+        private fun updateWidgets(context: Context, manager: AppWidgetManager, ids: IntArray) {
+            val plan = TodayPlanWidgetStore.load(context)
+            for (id in ids) manager.updateAppWidget(id, buildRemoteViews(context, plan, id))
+        }
+
+        private fun buildRemoteViews(context: Context, plan: JSONObject?, appWidgetId: Int): RemoteViews {
             val views = RemoteViews(context.packageName, R.layout.today_plan_widget)
             val status = plan?.optString("status")?.takeIf { it.isNotBlank() } ?: "no_plan"
 
+            views.setInt(R.id.widget_root, "setBackgroundResource", backgroundFor(TodayPlanWidgetConfig.backgroundStyle(context, appWidgetId)))
             views.setTextViewText(R.id.widget_workout_type, workoutTypeLabel(plan, status))
             views.setTextViewText(R.id.widget_meta, metaLabel(plan, status))
 
@@ -39,6 +45,8 @@ class TodayPlanWidgetProvider : AppWidgetProvider() {
             views.setTextViewText(R.id.widget_status_badge, badgeText)
             views.setInt(R.id.widget_status_badge, "setBackgroundResource", badgeDrawable)
             views.setTextColor(R.id.widget_status_badge, badgeTextColor)
+
+            applyRecoveryBadge(views, plan, TodayPlanWidgetConfig.showRecovery(context, appWidgetId))
 
             val intent = Intent(context, MainActivity::class.java).apply {
                 action = Intent.ACTION_VIEW
@@ -56,6 +64,30 @@ class TodayPlanWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(android.R.id.background, pendingIntent)
             views.setOnClickPendingIntent(R.id.widget_workout_type, pendingIntent)
             return views
+        }
+
+        private fun backgroundFor(style: WidgetBackgroundStyle): Int = when (style) {
+            WidgetBackgroundStyle.FROSTED -> R.drawable.widget_bg_frosted
+            WidgetBackgroundStyle.SOLID -> R.drawable.widget_bg_solid
+            WidgetBackgroundStyle.TRANSPARENT -> android.R.color.transparent
+        }
+
+        private fun applyRecoveryBadge(views: RemoteViews, plan: JSONObject?, showRecovery: Boolean) {
+            val score = plan?.optInt("recoveryScore", -1)?.takeIf { it in 0..100 }
+            if (!showRecovery || score == null) {
+                views.setViewVisibility(R.id.widget_recovery_badge, View.GONE)
+                return
+            }
+            val zone = plan?.optString("recoveryZone")
+            val (drawable, textColor) = when (zone) {
+                "good" -> R.drawable.widget_badge_completed to 0xFF147A66.toInt()
+                "fair" -> R.drawable.widget_badge_different to 0xFF9B6729.toInt()
+                else -> R.drawable.widget_badge_low to 0xFFB5495A.toInt()
+            }
+            views.setViewVisibility(R.id.widget_recovery_badge, View.VISIBLE)
+            views.setTextViewText(R.id.widget_recovery_badge, "Recovery $score")
+            views.setInt(R.id.widget_recovery_badge, "setBackgroundResource", drawable)
+            views.setTextColor(R.id.widget_recovery_badge, textColor)
         }
 
         private fun workoutTypeLabel(plan: JSONObject?, status: String): String {
@@ -88,6 +120,10 @@ class TodayPlanWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         updateWidgets(context, appWidgetManager, appWidgetIds)
+    }
+
+    override fun onDeleted(context: Context, appWidgetIds: IntArray) {
+        for (id in appWidgetIds) TodayPlanWidgetConfig.clear(context, id)
     }
 
     override fun onReceive(context: Context, intent: Intent) {
