@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { HealthSample } from '@capgo/capacitor-health';
-import { buildSleepHeartRateTimeline, estimateSleepHeartRate, mapSamsungSleepSample, selectLatestCanonicalSamsungSleepSample } from './samsungSleepSync';
+import { buildSleepHeartRateTimeline, estimateSleepHeartRate, mapSamsungSleepSample, mergeAdjacentSleepSamples, selectLatestCanonicalSamsungSleepSample } from './samsungSleepSync';
 
 describe('Samsung Health sleep importer', () => {
   it('maps a Samsung Health sample into an idempotent history item', () => {
@@ -31,6 +31,60 @@ describe('Samsung Health sleep importer', () => {
     expect(extracted.actualSleepDurationMinutes).toBe(375);
     expect(extracted.timeInBedMinutes).toBe(430);
     expect(extracted.sleepStageMinutes).toEqual({ awake: 55, rem: 111, light: 213, deep: 51 });
+  });
+
+  it('sums stage durations from timestamps instead of pre-rounded per-segment minutes', () => {
+    // Reproduces a real device report: Health Connect rounds each stage
+    // segment's own durationMinutes before we see it, so many sub-minute
+    // segments (e.g. 30s) report 0 and the stage totals fall well short of
+    // the sleep session's real elapsed time when summed directly.
+    const startMs = Date.parse('2026-07-22T17:26:00.000Z');
+    const cycle: Array<['awake' | 'light' | 'deep' | 'rem', number]> = [
+      ['light', 18 * 60_000],
+      ['awake', 3 * 60_000],
+      // Many 30-second segments that each round down to 0 minutes.
+      ['light', 30_000],
+      ['awake', 30_000],
+      ['deep', 30_000],
+      ['light', 30_000],
+      ['rem', 30_000],
+      ['light', 8 * 60_000],
+    ];
+    let cursorMs = startMs;
+    const stages = [];
+    for (let repeat = 0; repeat < 12; repeat += 1) {
+      for (const [stageName, durationMs] of cycle) {
+        const stageStartMs = cursorMs;
+        cursorMs += durationMs;
+        stages.push({
+          stage: stageName,
+          startDate: new Date(stageStartMs).toISOString(),
+          endDate: new Date(cursorMs).toISOString(),
+          // Intentionally pre-rounded per segment, like the real Health Connect payload.
+          durationMinutes: Math.floor(durationMs / 60_000),
+        });
+      }
+    }
+    const endMs = cursorMs;
+
+    const sample: HealthSample = {
+      dataType: 'sleep', value: (endMs - startMs) / 60_000, unit: 'minute',
+      startDate: new Date(startMs).toISOString(), endDate: new Date(endMs).toISOString(),
+      sourceId: 'com.sec.android.app.shealth', platformId: 'stage-rounding-night',
+      hasStageData: true,
+      stages,
+    };
+
+    const item = mapSamsungSleepSample(sample);
+    const extracted = (item?.data as { extracted: Record<string, unknown> }).extracted;
+    const stageMinutes = extracted.sleepStageMinutes as { awake: number; rem: number; light: number; deep: number };
+    const stageTotal = stageMinutes.awake + stageMinutes.rem + stageMinutes.light + stageMinutes.deep;
+    const elapsedMinutes = (endMs - startMs) / 60_000;
+
+    // The stage totals must account for the full elapsed sleep window (allowing
+    // only whole-minute rounding across 4 categories), not fall many minutes short
+    // the way summing each segment's own pre-rounded durationMinutes would.
+    expect(stageTotal).toBeGreaterThanOrEqual(elapsedMinutes - 4);
   });
 
   it('rejects invalid intervals instead of creating corrupt sleep records', () => {
@@ -159,5 +213,48 @@ describe('Samsung Health sleep importer', () => {
     const olderNight = sample('2026-07-18T14:00:00.000Z', '2026-07-18T23:00:00.000Z', 'older-night');
 
     expect(selectLatestCanonicalSamsungSleepSample([laterFragment, olderNight, fullNight])?.platformId).toBe('full-night');
+  });
+
+  it('merges Samsung sleep fragments split by a short Health Connect gap into one night', () => {
+    // Reproduces a real device report: Health Connect returned two Samsung
+    // records for the same overnight sleep, split by a 2-minute gap.
+    const mainBlock: HealthSample = {
+      dataType: 'sleep', value: 269, unit: 'minute',
+      startDate: '2026-07-23T16:20:00.000Z', endDate: '2026-07-23T20:49:00.000Z',
+      sourceId: 'com.sec.android.app.shealth', platformId: 'main-block',
+      hasStageData: true,
+      stages: [{ stage: 'light', startDate: '2026-07-23T16:20:00.000Z', endDate: '2026-07-23T18:20:00.000Z', durationMinutes: 120 }],
+    };
+    const tailFragment: HealthSample = {
+      dataType: 'sleep', value: 127, unit: 'minute',
+      startDate: '2026-07-23T20:51:00.000Z', endDate: '2026-07-23T22:58:00.000Z',
+      sourceId: 'com.sec.android.app.shealth', platformId: 'tail-fragment',
+      hasStageData: true,
+      stages: [{ stage: 'light', startDate: '2026-07-23T20:51:00.000Z', endDate: '2026-07-23T22:00:00.000Z', durationMinutes: 69 }],
+    };
+
+    const merged = mergeAdjacentSleepSamples([tailFragment, mainBlock]);
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0].startDate).toBe(mainBlock.startDate);
+    expect(merged[0].endDate).toBe(tailFragment.endDate);
+    expect(merged[0].value).toBe(396);
+    expect(merged[0].stages).toHaveLength(2);
+    expect(merged[0].platformId).toBe('main-block');
+  });
+
+  it('does not merge Samsung sleep fragments separated by more than the gap threshold', () => {
+    const nap: HealthSample = {
+      dataType: 'sleep', value: 30, unit: 'minute',
+      startDate: '2026-07-23T06:00:00.000Z', endDate: '2026-07-23T06:30:00.000Z',
+      sourceId: 'com.sec.android.app.shealth', platformId: 'afternoon-nap',
+    };
+    const night: HealthSample = {
+      dataType: 'sleep', value: 400, unit: 'minute',
+      startDate: '2026-07-23T16:20:00.000Z', endDate: '2026-07-23T22:58:00.000Z',
+      sourceId: 'com.sec.android.app.shealth', platformId: 'overnight',
+    };
+
+    expect(mergeAdjacentSleepSamples([nap, night])).toHaveLength(2);
   });
 });

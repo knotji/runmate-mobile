@@ -81,7 +81,7 @@ async function runSamsungSleepSync(lookbackDays: number | 'today'): Promise<Sams
       ? { samples: preparedSleep }
       : await Health.readSamples({ dataType: 'sleep', startDate, endDate, ascending: true, limit: 100 });
     const signals = await readAuthorizedSignals(authorization.readAuthorized, startDate, endDate, usePrepared ? prepared : null);
-    const samsungSamples = result.samples.filter((sample) => sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID);
+    const samsungSamples = mergeAdjacentSleepSamples(result.samples.filter((sample) => sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID));
     const mappedItems: Array<LocalHistoryItem | null> = [];
     // Query high-volume HR records per Sleep Window. A single 30-day read can
     // exceed Health Connect's page limit and silently omit the latest nights.
@@ -225,6 +225,43 @@ export function mapSamsungSleepSample(sample: HealthSample, signals?: SamsungSle
   };
 }
 
+const ADJACENT_SLEEP_GAP_MS = 30 * 60_000;
+
+/**
+ * Health Connect sometimes splits one continuous Samsung Health sleep session
+ * into two or more records with only a few minutes between them (seen: a
+ * night ending 20:49 UTC and its next fragment starting 20:51 UTC). Treating
+ * those as separate nights under-counts sleep duration, since only the
+ * longest single fragment would otherwise survive dedupe. Merge same-source
+ * records that are chained within ADJACENT_SLEEP_GAP_MS of each other into one
+ * combined sample before any per-record mapping or dedup happens.
+ */
+export function mergeAdjacentSleepSamples(samples: HealthSample[]): HealthSample[] {
+  const sorted = [...samples].sort((a, b) => Date.parse(a.startDate) - Date.parse(b.startDate));
+  const merged: HealthSample[] = [];
+  for (const sample of sorted) {
+    const previous = merged[merged.length - 1];
+    const gapMs = previous ? Date.parse(sample.startDate) - Date.parse(previous.endDate) : Infinity;
+    if (previous && previous.sourceId === sample.sourceId && Number.isFinite(gapMs) && gapMs >= 0 && gapMs <= ADJACENT_SLEEP_GAP_MS) {
+      merged[merged.length - 1] = combineSleepSamples(previous, sample);
+    } else {
+      merged.push(sample);
+    }
+  }
+  return merged;
+}
+
+function combineSleepSamples(first: HealthSample, second: HealthSample): HealthSample {
+  return {
+    ...first,
+    endDate: second.endDate,
+    value: (first.value || 0) + (second.value || 0),
+    stages: [...(first.stages ?? []), ...(second.stages ?? [])],
+    hasStageData: first.hasStageData === true || second.hasStageData === true,
+    platformId: first.platformId?.trim() ? first.platformId : second.platformId,
+  };
+}
+
 /**
  * Health Connect can expose more than one Samsung sleep record for the same
  * Bangkok wake date. Match RunMate's canonical merge rule by selecting the
@@ -232,8 +269,7 @@ export function mapSamsungSleepSample(sample: HealthSample, signals?: SamsungSle
  * shorter segment that merely ended later.
  */
 export function selectLatestCanonicalSamsungSleepSample(samples: HealthSample[]): HealthSample | null {
-  const candidates = samples
-    .filter((sample) => sample.dataType === 'sleep' && sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID)
+  const candidates = mergeAdjacentSleepSamples(samples.filter((sample) => sample.dataType === 'sleep' && sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID))
     .map((sample) => ({
       sample,
       dateKey: getBangkokDateKey(sample.endDate),
@@ -360,9 +396,17 @@ function summarizeStages(stages: SleepStage[]) {
 }
 
 function sumStages(stages: SleepStage[], target: SleepStage['stage']): number {
+  // Health Connect rounds each stage segment's own durationMinutes to a whole
+  // minute before we see it, so dozens of sub-minute segments (many resolve
+  // to 0) lose real time when summed directly. Re-derive each segment's
+  // duration from its own start/end timestamps and round only the total, so
+  // the sum across all stages matches the sleep session's full elapsed time.
   return Math.round(stages
-    .filter((stage) => stage.stage === target && Number.isFinite(stage.durationMinutes))
-    .reduce((sum, stage) => sum + Math.max(0, stage.durationMinutes), 0));
+    .filter((stage) => stage.stage === target)
+    .reduce((sum, stage) => {
+      const durationMinutes = (Date.parse(stage.endDate) - Date.parse(stage.startDate)) / 60_000;
+      return sum + (Number.isFinite(durationMinutes) ? Math.max(0, durationMinutes) : 0);
+    }, 0));
 }
 
 function hasSpecificStages(stages: ReturnType<typeof summarizeStages>): boolean {
