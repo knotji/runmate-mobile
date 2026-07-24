@@ -37,7 +37,7 @@ const NotificationsPage: React.FC = () => {
     const next = await requestNotificationPermission();
     setPermission(next);
     if (next === 'granted') {
-      const result = await refreshNotifications();
+      const result = await refreshNotifications(undefined, true);
       setMessage(result.scheduled.length ? `Ready: ${result.scheduled.join(', ')}.` : 'Notifications are enabled. RunMate will schedule guidance when matching data is available.');
       await load();
     } else setMessage('Notification permission was not granted. You can enable it in Android App Settings.');
@@ -47,7 +47,7 @@ const NotificationsPage: React.FC = () => {
     const next = { ...prefs, [key]: enabled };
     setPrefs(next); saveNotificationPreferences(next); setMessage(null);
     if (permission === 'granted') {
-      setBusy(true); const result = await refreshNotifications(); setBusy(false);
+      setBusy(true); const result = await refreshNotifications(undefined, true); setBusy(false);
       setMessage(result.scheduled.length ? `Updated: ${result.scheduled.join(', ')}.` : 'Preferences saved. No reminder currently needs scheduling.');
       await load();
     }
@@ -61,7 +61,7 @@ const NotificationsPage: React.FC = () => {
   const refreshSchedule = async () => {
     setBusy(true);
     try {
-      const result = await refreshNotifications();
+      const result = await refreshNotifications(undefined, true);
       setMessage(result.scheduled.length ? `Ready: ${result.scheduled.join(', ')}.` : 'No reminder currently needs scheduling.');
       await load();
     } finally { setBusy(false); }
@@ -70,7 +70,7 @@ const NotificationsPage: React.FC = () => {
     setBusy(true); setMessage(null);
     const exact = await requestExactReminderPermission();
     if (exact === 'granted') {
-      const result = await refreshNotifications();
+      const result = await refreshNotifications(undefined, true);
       setMessage(result.scheduled.includes('Bedtime') ? 'Bedtime Reminder is scheduled.' : 'Exact Reminders are allowed. Set a wake time to schedule Bedtime guidance.');
     } else setMessage('Exact Reminders are still disabled in Android settings.');
     await load(); setBusy(false);
