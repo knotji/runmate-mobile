@@ -1,9 +1,7 @@
 .social-share-modal {
-  --height: auto;
-  --max-height: 90vh;
+  --height: min(84vh, 590px);
   --width: min(100%, 440px);
   --border-radius: 28px 28px 0 0;
-  align-items: flex-end;
 }
 
 .social-share-sheet-handle {
@@ -37,13 +35,13 @@
   width: 100%;
   max-width: 400px;
   margin: 0 auto;
-  padding: 8px 16px calc(20px + env(safe-area-inset-bottom));
+  padding: 10px 16px calc(16px + env(safe-area-inset-bottom));
 }
 
 .social-share-preview-container {
   position: relative;
   display: grid;
-  width: min(100%, 255px);
+  width: min(100%, 225px);
   aspect-ratio: 9 / 16;
   margin: 0 auto;
   overflow: hidden;
@@ -51,7 +49,7 @@
   border: 0;
   border-radius: 16px;
   background: #10263a;
-  box-shadow: 0 12px 28px rgba(32, 58, 78, 0.14);
+  box-shadow: 0 10px 24px rgba(32, 58, 78, 0.12);
   touch-action: pan-y;
   -webkit-user-select: none;
   user-select: none;
