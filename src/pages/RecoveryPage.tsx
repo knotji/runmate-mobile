@@ -17,8 +17,9 @@ import {
   useIonViewWillEnter,
   type RefresherEventDetail,
 } from '@ionic/react';
-import { chevronForwardOutline, moonOutline, sunnyOutline, shareSocialOutline } from 'ionicons/icons';
+import { chevronForwardOutline, moonOutline, sunnyOutline, shareSocialOutline, syncOutline, pulseOutline } from 'ionicons/icons';
 import { SocialShareModal } from '@/components/SocialShareModal';
+import { hapticImpact, hapticNotification } from '@/lib/haptics';
 import type { CoachContext } from '@/lib/buildCoachContext';
 import { buildRecoveryCoreContextFromSupabase, buildRecoveryPageContextFromSupabase } from '@/lib/coachContextService';
 import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
@@ -189,6 +190,24 @@ const RecoveryPage: React.FC = () => {
 
   const [showShareModal, setShowShareModal] = useState(false);
   const visibleRecovery = context?.recoverySystem ?? startupRecovery;
+  const [isSyncingHealth, setIsSyncingHealth] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string>('Today');
+
+  const handleManualSync = async () => {
+    if (isSyncingHealth) return;
+    void hapticImpact();
+    setIsSyncingHealth(true);
+    try {
+      await syncTodayHealth(true);
+      await loadRecovery(false);
+      void hapticNotification();
+      setLastSyncTime(new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }));
+    } catch {
+      // Ignore background sync errors
+    } finally {
+      setIsSyncingHealth(false);
+    }
+  };
 
   return (
     <IonPage>
@@ -212,6 +231,24 @@ const RecoveryPage: React.FC = () => {
           {!error && visibleRecovery && (
             <>
               <RecoveryDials recovery={visibleRecovery} onRecoveryClick={() => history.push('/recovery-trends')} onSleepClick={() => history.push('/sleep')} />
+
+              {/* Live Health Sync Bar */}
+              <div className="live-sync-bar">
+                <div className="live-sync-info">
+                  <IonIcon icon={pulseOutline} />
+                  <span>Health Sync: {lastSyncTime}</span>
+                </div>
+                <button
+                  type="button"
+                  className="live-sync-button"
+                  disabled={isSyncingHealth}
+                  onClick={() => void handleManualSync()}
+                >
+                  <IonIcon icon={syncOutline} className={isSyncingHealth ? 'spin' : ''} />
+                  {isSyncingHealth ? 'Syncing…' : 'Sync Now'}
+                </button>
+              </div>
+
               {secondaryLoading ? <RecoverySecondaryLoading /> : secondaryError ? <RecoverySecondaryError message={secondaryError} onRetry={() => void loadSecondaryRecovery(true)} /> : !context ? <RecoverySecondaryLoading /> : <>
                 <TodayTrainingPlanCard context={context} />
                 <RecoveryPlan recovery={visibleRecovery} wakeOverrideMinutes={wakeOverrideMinutes} onOpen={() => history.push('/sleep-window')} />
