@@ -28,7 +28,7 @@ import {
 } from '@/lib/workoutShareMetrics';
 import './SocialShareModal.css';
 
-export type ShareTheme = 'cyber-dark' | 'sunrise-fresh' | 'minimal-glass' | 'transparent-overlay';
+export type ShareTheme = 'cyber-dark' | 'sunrise-fresh' | 'minimal-glass' | 'transparent-overlay' | 'ultra-minimal';
 export type { SportType } from '@/lib/workoutShareMetrics';
 
 export interface WorkoutShareData {
@@ -89,6 +89,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
   const themeOptions: Array<{ theme: ShareTheme; label: string }> = mode === 'workout'
     ? [
       { theme: 'transparent-overlay', label: 'Overlay' },
+      { theme: 'ultra-minimal', label: 'Ultra Minimal' },
       { theme: 'cyber-dark', label: 'Dark' },
       { theme: 'minimal-glass', label: 'Light' },
     ]
@@ -437,6 +438,21 @@ function drawStoryBackground(
   if (theme === 'transparent-overlay') {
     ctx.clearRect(0, 0, STORY_WIDTH, STORY_HEIGHT);
     return darkPalette();
+  }
+
+  if (theme === 'ultra-minimal') {
+    const background = ctx.createLinearGradient(0, 0, 0, STORY_HEIGHT);
+    background.addColorStop(0, '#0c131a');
+    background.addColorStop(1, '#05090d');
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, STORY_WIDTH, STORY_HEIGHT);
+    return {
+      text: '#ffffff',
+      muted: 'rgba(255, 255, 255, 0.72)',
+      faint: 'rgba(255, 255, 255, 0.45)',
+      accent: '#00f0ff',
+      hairline: 'rgba(255, 255, 255, 0.12)',
+    };
   }
 
   if (theme === 'minimal-glass' || theme === 'sunrise-fresh') {
