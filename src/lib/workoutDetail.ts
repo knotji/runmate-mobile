@@ -36,16 +36,35 @@ export function buildWorkoutDetail(item: LocalHistoryItem, physiology?: { maxHr?
     const parts = [unit(exercise.sets, 'sets'), exercise.reps == null ? null : `${exercise.reps} reps`, unit(exercise.weightKg, 'kg')].filter(Boolean);
     return { name: string(exercise.name) ?? 'Exercise', detail: parts.join(' · ') || 'Recorded' };
   });
+  const distKm = numeric(extracted.distanceKm);
+  const durStr = string(extracted.duration);
+  const avgPace = string(extracted.avgPace);
+  const avgHrVal = numeric(extracted.avgHR) ?? numeric(data.avgHR);
+
+  const synthSummary = string(coach.workoutSummary)
+    ?? (distKm && durStr
+      ? `Completed a ${distKm} km ${title.toLowerCase()} session in ${durStr}${avgPace ? ` at ${avgPace}/km pace` : ''}.`
+      : `Completed a ${title.toLowerCase()} session synced via ${item.source?.provider ? titleCase(item.source.provider) : 'Health Connect'}.`);
+
+  const synthIntensity = string(coach.intensityAssessment)
+    ?? (avgHrVal
+      ? `Average heart rate maintained at ${avgHrVal} bpm during this session.`
+      : 'Session data successfully synced from smart device sensors.');
+
+  const synthRecovery = string(coach.recoveryAdvice)
+    ?? 'Rehydrate well and allow muscle recovery before your next planned session.';
+
   const insights = isStrength
     ? compactValues([
       ['Notes', string(data.notes)],
       ['Coach Note', string(data.coachReason) ?? string(coach.coachNote)],
-      ['Summary', string(coach.workoutSummary)], ['Intensity', string(coach.intensityAssessment)], ['Training Load', string(coach.trainingLoadNote)],
-      ['Recovery', string(coach.recoveryAdvice)], ['Nutrition', string(coach.nutritionAfterWorkout)], ['Next Workout', string(coach.nextWorkoutSuggestion)],
+      ['Summary', synthSummary], ['Intensity', synthIntensity], ['Training Load', string(coach.trainingLoadNote)],
+      ['Recovery', synthRecovery], ['Nutrition', string(coach.nutritionAfterWorkout)], ['Next Workout', string(coach.nextWorkoutSuggestion)],
     ])
     : compactValues([
-      ['Summary', string(coach.workoutSummary)], ['Intensity', string(coach.intensityAssessment)], ['Training Load', string(coach.trainingLoadNote)],
-      ['Recovery', string(coach.recoveryAdvice)], ['Nutrition', string(coach.nutritionAfterWorkout)], ['Next Workout', string(coach.nextWorkoutSuggestion)],
+      ['Coach Note', string(data.coachReason) ?? string(coach.coachNote) ?? string(data.notes)],
+      ['Summary', synthSummary], ['Intensity', synthIntensity], ['Training Load', string(coach.trainingLoadNote)],
+      ['Recovery', synthRecovery], ['Nutrition', string(coach.nutritionAfterWorkout)], ['Next Workout', string(coach.nextWorkoutSuggestion)],
     ]);
   const workoutStart = string(data.workoutStartTime) ?? string(extracted.workoutStartTime) ?? string(extracted.startDate) ?? string(data.startDate) ?? (item.createdAt ? `${item.createdAt}` : null);
   const durationMin = numeric(extracted.durationMinutes) ?? numeric(extracted.durationMin) ?? numeric(data.durationMin) ?? 30;

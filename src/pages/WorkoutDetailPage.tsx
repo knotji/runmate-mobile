@@ -154,7 +154,7 @@ const WorkoutDetailPage: React.FC = () => {
 
               {detail.insights.length > 0 && (
                 <section className="workout-detail-section workout-guidance-section">
-                  <details className="workout-guidance-disclosure">
+                  <details open className="workout-guidance-disclosure">
                     <summary>
                       <div><p>Coach Notes</p><h2>Session Guidance</h2></div>
                       <span>{detail.insights.length} {detail.insights.length === 1 ? 'Note' : 'Notes'}</span>
