@@ -22,12 +22,16 @@ function context(input: {
   strain?: number;
   activePain?: boolean;
   activeSick?: boolean;
+  runDays7d?: number;
+  weeklyTrainingDays?: number;
 } = {}): CoachContext {
   return {
     todayDate: '2026-07-20',
     todayWorkouts: [],
     activePain: input.activePain ?? false,
     activeSick: input.activeSick ?? false,
+    runDays7d: input.runDays7d ?? 3,
+    profile: input.weeklyTrainingDays == null ? {} : { weeklyTrainingDays: input.weeklyTrainingDays },
     recoverySystem: {
       overallScore: input.score ?? 75,
       scoreState: input.scoreState ?? 'scored',
@@ -79,5 +83,27 @@ describe('buildAdaptiveTrainingRecommendation', () => {
     const ctx = context({ score: 20 });
     ctx.todayWorkouts = [{ kind: 'run' } as CoachContext['todayWorkouts'][number]];
     expect(buildAdaptiveTrainingRecommendation(ctx, planned)).toBeNull();
+  });
+
+  it('reduces a demanding workout when this week’s Workout Load is already heavy, even with good Recovery', () => {
+    const result = buildAdaptiveTrainingRecommendation(context({ score: 80, runDays7d: 6 }), planned);
+    expect(result?.action).toBe('reduce');
+    expect(result?.reasons.join(' ')).toContain('6 of the last 7 days');
+  });
+
+  it('does not reduce a demanding workout for high weekly volume alone when few days were run', () => {
+    const result = buildAdaptiveTrainingRecommendation(context({ score: 80, runDays7d: 3 }), planned);
+    expect(result?.action).toBe('keep');
+  });
+
+  it('notes meeting the weekly training-day target when keeping the original plan', () => {
+    const result = buildAdaptiveTrainingRecommendation(context({ score: 80, runDays7d: 4, weeklyTrainingDays: 4 }), planned);
+    expect(result?.action).toBe('keep');
+    expect(result?.reasons.join(' ')).toContain('weekly training-day target (4/4)');
+  });
+
+  it('does not mention the weekly target when it has not been met', () => {
+    const result = buildAdaptiveTrainingRecommendation(context({ score: 80, runDays7d: 2, weeklyTrainingDays: 4 }), planned);
+    expect(result?.reasons.join(' ')).not.toContain('weekly training-day target');
   });
 });

@@ -49,6 +49,16 @@ export function buildAdaptiveTrainingRecommendation(
   const lowSleep = recovery.sleepPerformance.state !== 'unscorable' && sleepScore < 70;
   const highCurrentStrain = recovery.strain.score >= 14;
 
+  // Lightweight Workout Load / Training Adherence proxies from the already-
+  // loaded CoachContext weekly aggregates. This intentionally does not call
+  // the fuller workoutLoadTrend/trainingAdherence modules, which need raw
+  // history items not available here — adding that fetch to the Recovery
+  // page's critical path would reintroduce the load latency fixed earlier.
+  const runDays7d = context.runDays7d ?? 0;
+  const heavyWeeklyLoad = runDays7d >= 6;
+  const weeklyTrainingDaysTarget = toFiniteNumber((context.profile as Record<string, unknown> | null)?.weeklyTrainingDays);
+  const metWeeklyTarget = weeklyTrainingDaysTarget != null && runDays7d >= weeklyTrainingDaysTarget;
+
   if (score < 34) {
     if (hardSession) {
       return recommendation('rest', planned, restWorkout(planned), 'Make Today A Rest Day', 'Low Recovery and a demanding session are not a good match today.', [
@@ -66,6 +76,7 @@ export function buildAdaptiveTrainingRecommendation(
     const reasons = [`Recovery is ${Math.round(score)}/100.`];
     if (hardSession) reasons.push(`${planned.workoutType} carries more intensity than an easy session.`);
     if (lowSleep) reasons.push(`Sleep Performance is ${Math.round(sleepScore)}/100.`);
+    if (heavyWeeklyLoad) reasons.push(`You have already run ${runDays7d} of the last 7 days.`);
     return recommendation('reduce', planned, reducedWorkout(planned), 'Reduce Today’s Load', 'Keep the session, but shorten it and stay at an easy effort.', reasons);
   }
 
@@ -75,10 +86,18 @@ export function buildAdaptiveTrainingRecommendation(
     ]);
   }
 
+  if (hardSession && heavyWeeklyLoad) {
+    return recommendation('reduce', planned, reducedWorkout(planned), 'Reduce Today’s Load', 'This week’s training volume is already high for a demanding session.', [
+      `You have already run ${runDays7d} of the last 7 days.`,
+      `${planned.workoutType} carries more intensity than an easy session.`,
+    ]);
+  }
+
   return recommendation('keep', planned, planned, 'Keep The Original Plan', 'Your current signals support the session as written.', [
     `Recovery is ${Math.round(score)}/100.`,
     lowSleep ? `Sleep Performance is ${Math.round(sleepScore)}/100, so keep the effort controlled.` : 'No safety cap is active.',
-  ]);
+    metWeeklyTarget ? `You have already met your weekly training-day target (${runDays7d}/${weeklyTrainingDaysTarget}).` : null,
+  ].filter((reason): reason is string => reason != null));
 }
 
 function recommendation(
@@ -104,6 +123,11 @@ function recommendation(
     originalWorkout,
     suggestedWorkout,
   };
+}
+
+function toFiniteNumber(value: unknown): number | null {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function isHardSession(workout: WeekWorkout): boolean {
