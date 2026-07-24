@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateHeartRateZones, classifyHeartRateZone, restingHeartRateBaseline } from './hrZones';
+import { calculateHeartRateZones, classifyHeartRateZone, getHeartRateZoneBoundaries, restingHeartRateBaseline } from './hrZones';
 
 describe('HRR Heart Rate Zones', () => {
   it('classifies Zone 0 through Zone 5 from personal heart-rate reserve', () => {
@@ -33,5 +33,22 @@ describe('HRR Heart Rate Zones', () => {
   it('uses the median of plausible recent resting-HR values', () => {
     expect(restingHeartRateBaseline([49, 55, null, 51, 200])).toBe(51);
     expect(restingHeartRateBaseline([])).toBeNull();
+  });
+
+  it('derives personal Zone 0-5 bpm ranges from Max HR and Resting HR', () => {
+    const boundaries = getHeartRateZoneBoundaries(150, 50);
+    expect(boundaries).toEqual([
+      { zone: 0, label: 'Restorative', lowerBpm: null, upperBpm: 89 },
+      { zone: 1, label: 'Recovery', lowerBpm: 90, upperBpm: 109 },
+      { zone: 2, label: 'Endurance', lowerBpm: 110, upperBpm: 119 },
+      { zone: 3, label: 'Aerobic', lowerBpm: 120, upperBpm: 129 },
+      { zone: 4, label: 'Anaerobic', lowerBpm: 130, upperBpm: 139 },
+      { zone: 5, label: 'Peak', lowerBpm: 140, upperBpm: null },
+    ]);
+  });
+
+  it('returns null zone boundaries when Max HR and Resting HR are not usable', () => {
+    expect(getHeartRateZoneBoundaries(Number.NaN, 50)).toBeNull();
+    expect(getHeartRateZoneBoundaries(150, 150)).toBeNull();
   });
 });

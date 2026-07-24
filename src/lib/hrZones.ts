@@ -21,9 +21,33 @@ export type HeartRateZoneSummary = {
   load: { score: number; level: 'Light' | 'Moderate' | 'High' | 'Very High' } | null;
 };
 
+export type HeartRateZoneBoundary = {
+  zone: HeartRateZoneIndex;
+  label: string;
+  lowerBpm: number | null;
+  upperBpm: number | null;
+};
+
 const ZONE_LABELS = ['Restorative', 'Recovery', 'Endurance', 'Aerobic', 'Anaerobic', 'Peak'] as const;
 const ZONE_WEIGHTS = [0, 1, 2, 3, 4, 5] as const;
 const MAX_SAMPLE_INTERVAL_SECONDS = 120;
+
+/**
+ * Personal Zone 0-5 bpm ranges from Max HR and Resting HR (Heart Rate
+ * Reserve/Karvonen method), independent of any single workout's samples.
+ * Shared with calculateHeartRateZones so the boundary math has one source.
+ */
+export function getHeartRateZoneBoundaries(maxHr: number, restingHr: number): HeartRateZoneBoundary[] | null {
+  if (!Number.isFinite(maxHr) || !Number.isFinite(restingHr) || maxHr <= restingHr) return null;
+  const reserve = maxHr - restingHr;
+  const boundaries = [0.4, 0.6, 0.7, 0.8, 0.9].map((ratio) => Math.round(restingHr + reserve * ratio));
+  return ZONE_LABELS.map((label, zone) => ({
+    zone: zone as HeartRateZoneIndex,
+    label,
+    lowerBpm: zone === 0 ? null : boundaries[zone - 1],
+    upperBpm: zone === 5 ? null : boundaries[zone] - 1,
+  }));
+}
 
 export function calculateHeartRateZones(input: {
   points: HeartRatePoint[];
@@ -50,13 +74,12 @@ export function calculateHeartRateZones(input: {
   const measuredSeconds = seconds.reduce((sum, value) => sum + value, 0);
   if (measuredSeconds <= 0) return null;
   const workoutSeconds = Math.round((endMs - startMs) / 1000);
-  const reserve = input.maxHr - input.restingHr;
-  const boundaries = [0.4, 0.6, 0.7, 0.8, 0.9].map((ratio) => Math.round(input.restingHr + reserve * ratio));
+  const boundaryList = getHeartRateZoneBoundaries(input.maxHr, input.restingHr) ?? [];
   const zones = seconds.map((duration, zone): HeartRateZone => ({
     zone: zone as HeartRateZoneIndex,
     label: ZONE_LABELS[zone],
-    lowerBpm: zone === 0 ? null : boundaries[zone - 1],
-    upperBpm: zone === 5 ? null : boundaries[zone] - 1,
+    lowerBpm: boundaryList[zone]?.lowerBpm ?? null,
+    upperBpm: boundaryList[zone]?.upperBpm ?? null,
     seconds: Math.round(duration),
     percentage: Math.round((duration / measuredSeconds) * 100),
   }));

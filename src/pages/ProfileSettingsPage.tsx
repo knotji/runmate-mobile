@@ -6,7 +6,9 @@ import { defaultProfile, type UserProfile } from '@/types/profile';
 import { loadProfileFromSupabase, saveProfileToSupabase } from '@/lib/profileStorage';
 import { applyProfileSettings, DAYS, profileToSettingsDraft, validateProfileSettings, type ProfileSettingsDraft } from '@/lib/profileSettings';
 import { loadHistoryItems } from '@/lib/cloudHistory';
+import type { LocalHistoryItem } from '@/lib/localHistory';
 import { findHighestObservedHeartRate, type ObservedHeartRate } from '@/lib/observedHeartRate';
+import { getHeartRateZoneBoundaries, restingHeartRateBaseline, type HeartRateZoneBoundary } from '@/lib/hrZones';
 import { loadDefaultWakeTime, saveDefaultWakeTime } from '@/lib/sleepWindowStorage';
 import { formatTimeInput, parseTimeInput } from '@/lib/sleepWindow';
 import { PageState } from '@/components/PageState';
@@ -25,12 +27,19 @@ const ProfileSettingsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [observedHr, setObservedHr] = useState<ObservedHeartRate | null>(null);
+  const [restingHrBaseline, setRestingHrBaseline] = useState<number | null>(null);
   const [discardOpen, setDiscardOpen] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
-    const [result, historyResult, defaultWake] = await Promise.all([loadProfileFromSupabase(), loadHistoryItems(['workout', 'strength']), loadDefaultWakeTime()]);
+    const [result, historyResult, sleepResult, defaultWake] = await Promise.all([
+      loadProfileFromSupabase(),
+      loadHistoryItems(['workout', 'strength']),
+      loadHistoryItems(['sleep'], { limit: 14 }),
+      loadDefaultWakeTime(),
+    ]);
     if (historyResult.ok) setObservedHr(findHighestObservedHeartRate(historyResult.items));
+    if (sleepResult.ok) setRestingHrBaseline(restingHeartRateBaseline(sleepResult.items.map(recentRestingHr)));
     if (!result.ok) setError(('message' in result && result.message) || 'Could Not Load Your Profile.');
     else {
       const next = result.profile ?? { ...defaultProfile, timezone: 'Asia/Bangkok' };
@@ -70,6 +79,10 @@ const ProfileSettingsPage: React.FC = () => {
 
   const maxHrSource = draft.maxHr && observedHr?.bpm === Number(draft.maxHr) ? 'Highest Observed' : 'Manual';
   const weightSource = draft.weightKg !== savedDraft.weightKg || profile?.fieldSources?.weightKg !== 'health_connect' ? 'Manual' : 'Samsung Health';
+  const maxHrNumber = Number(draft.maxHr);
+  const zoneBoundaries = draft.maxHr && restingHrBaseline != null
+    ? getHeartRateZoneBoundaries(maxHrNumber, restingHrBaseline)
+    : null;
 
   return <IonPage>
     <IonHeader translucent className="profile-settings-header"><IonToolbar>
@@ -87,6 +100,27 @@ const ProfileSettingsPage: React.FC = () => {
             <label><span>Body Weight <SourceBadge label={weightSource} /></span><div className="profile-input-unit"><input type="number" inputMode="decimal" min="30" max="300" step="0.1" value={draft.weightKg} onChange={(event) => update('weightKg', event.target.value)} placeholder="Example: 68.5" /><small>kg</small></div><em>{weightSource === 'Samsung Health' ? 'Synced from Samsung Health.' : 'Supports health and nutrition context.'}</em></label>
           </div>
           {observedHr && <div className="profile-observed"><div><span>Highest Observed In Workouts</span><strong>{observedHr.bpm} bpm</strong></div><button type="button" disabled={draft.maxHr === String(observedHr.bpm)} onClick={() => update('maxHr', String(observedHr.bpm))}>{draft.maxHr === String(observedHr.bpm) ? 'Selected' : 'Use Value'}</button></div>}
+        </section>
+        <section className="profile-settings-card">
+          <header><IonIcon icon={heartOutline} /><div><p>Recovery</p><h2>My HR Zones</h2></div></header>
+          {zoneBoundaries ? <>
+            <ul className="profile-hr-zone-list">
+              {zoneBoundaries.map((boundary) => (
+                <li key={boundary.zone} className={`profile-hr-zone profile-hr-zone-${boundary.zone}`}>
+                  <span className="profile-hr-zone-index">Zone {boundary.zone}</span>
+                  <span className="profile-hr-zone-label">{boundary.label}</span>
+                  <span className="profile-hr-zone-range">{formatZoneRange(boundary)} <small>bpm</small></span>
+                </li>
+              ))}
+            </ul>
+            <em className="profile-hr-zone-note">From Max Heart Rate ({maxHrNumber} bpm) and your recent Resting HR baseline ({restingHrBaseline} bpm), using the Heart Rate Reserve method.</em>
+          </> : (
+            <p className="profile-hr-zone-empty">
+              {!draft.maxHr
+                ? 'Add your Max Heart Rate above to see your personal HR Zones.'
+                : 'RunMate needs a few recent nights of Sleep with Heart Rate data to calibrate your Resting HR before showing Zones.'}
+            </p>
+          )}
         </section>
         <section className="profile-settings-card">
           <header><IonIcon icon={barbellOutline} /><div><p>Training</p><h2>Weekly Preferences</h2></div></header>
@@ -115,5 +149,19 @@ const ProfileSettingsPage: React.FC = () => {
 };
 
 function SourceBadge({ label }: { label: string }) { return <small className="profile-source-badge">{label}</small>; }
+
+function recentRestingHr(item: LocalHistoryItem): number | null {
+  if (item.type !== 'sleep') return null;
+  const data = item.data as Record<string, unknown> | null;
+  const extracted = data?.extracted as Record<string, unknown> | undefined;
+  const value = extracted?.restingHR;
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function formatZoneRange(boundary: HeartRateZoneBoundary): string {
+  if (boundary.lowerBpm == null) return `Below ${(boundary.upperBpm ?? 0) + 1}`;
+  if (boundary.upperBpm == null) return `${boundary.lowerBpm}+`;
+  return `${boundary.lowerBpm}–${boundary.upperBpm}`;
+}
 
 export default ProfileSettingsPage;
