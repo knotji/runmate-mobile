@@ -531,37 +531,37 @@ function drawWorkoutStory(
   ctx.shadowBlur = data.theme === 'transparent-overlay' ? 12 : data.theme === 'minimal-glass' || data.theme === 'sunrise-fresh' ? 0 : 10;
 
   if (heroMetric) {
-    drawFittedTextCentered(ctx, heroMetric.value, centerX, 610, 900, 200, palette.text, '700');
-    ctx.font = `700 36px ${STORY_FONT}`;
+    drawFittedTextCentered(ctx, heroMetric.value, centerX, 550, 900, 180, palette.text, '700');
+    ctx.font = `700 34px ${STORY_FONT}`;
     ctx.fillStyle = palette.accent;
     ctx.textAlign = 'center';
-    ctx.fillText((heroMetric.unit ?? heroMetric.label).toUpperCase(), centerX, 678);
+    ctx.fillText((heroMetric.unit ?? heroMetric.label).toUpperCase(), centerX, 618);
   }
 
   ctx.shadowBlur = 0;
-  drawWorkoutMetricRow(ctx, palette, secondaryMetrics, 910);
-  drawSportSignature(ctx, palette, data.sportType, secondaryMetrics.length > 0 ? 1360 : 1180, 0.98);
+  drawWorkoutMetricRow(ctx, palette, secondaryMetrics, 800);
+  drawSportSignature(ctx, palette, data.sportType, secondaryMetrics.length > 0 ? 1220 : 1080, 0.95);
   ctx.restore();
 }
 
 function cleanMetricLabel(label: string): string {
   return label
-    .replace(/^AVERAGE\s+/i, '')
-    .replace(/^AVG\.\s+/i, '')
+    .replace(/^AVERAGE\s+/i, 'AVG ')
+    .replace(/^AVG\.\s+/i, 'AVG ')
     .toUpperCase();
 }
 
 function drawWorkoutMetricRow(ctx: CanvasRenderingContext2D, palette: CanvasPalette, metrics: StoryMetric[], y: number) {
   if (metrics.length === 0) return;
-  const left = 110;
-  const width = 860;
+  const left = 90;
+  const width = 900;
   const columnWidth = width / metrics.length;
 
   ctx.strokeStyle = palette.hairline;
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(left, y - 70);
-  ctx.lineTo(left + width, y - 70);
+  ctx.moveTo(left, y - 65);
+  ctx.lineTo(left + width, y - 65);
   ctx.stroke();
 
   metrics.forEach((metric, index) => {
@@ -569,21 +569,21 @@ function drawWorkoutMetricRow(ctx: CanvasRenderingContext2D, palette: CanvasPale
     if (index > 0) {
       const dividerX = left + columnWidth * index;
       ctx.beginPath();
-      ctx.moveTo(dividerX, y - 18);
-      ctx.lineTo(dividerX, y + 118);
+      ctx.moveTo(dividerX, y - 15);
+      ctx.lineTo(dividerX, y + 105);
       ctx.stroke();
     }
     ctx.textAlign = 'center';
     ctx.fillStyle = palette.faint;
-    ctx.font = `600 22px ${STORY_FONT}`;
+    ctx.font = `600 20px ${STORY_FONT}`;
     ctx.fillText(cleanMetricLabel(metric.label), textX, y);
     ctx.fillStyle = palette.text;
     ctx.font = `700 48px ${STORY_FONT}`;
-    ctx.fillText(metric.value, textX, y + 60);
+    ctx.fillText(metric.value, textX, y + 56);
     if (metric.unit) {
       ctx.fillStyle = palette.accent;
-      ctx.font = `600 24px ${STORY_FONT}`;
-      ctx.fillText(metric.unit, textX, y + 100);
+      ctx.font = `600 22px ${STORY_FONT}`;
+      ctx.fillText(metric.unit, textX, y + 94);
     }
   });
 }
