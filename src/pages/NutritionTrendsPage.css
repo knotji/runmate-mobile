@@ -8,7 +8,7 @@
 .nutrition-trends-heading h1 { margin:0; color:#173652; font-size:clamp(22px,5.8vw,25px); line-height:1.18; letter-spacing:-.02em; }
 .nutrition-trends-heading span { display:block; max-width:31rem; margin-top:7px; color:#657d92; font-size:11px; line-height:1.6; }
 .nutrition-range { display:grid; grid-template-columns:1fr 1fr; padding:4px; margin-bottom:16px; border:1px solid #d5e4ed; border-radius:15px; background:#fff; }
-.nutrition-range button { min-height:42px; border:0; border-radius:11px; color:#637b90; background:transparent; font:inherit; font-size:11px; font-weight:750; }
+.nutrition-range button { min-height:44px; border:0; border-radius:11px; color:#637b90; background:transparent; font:inherit; font-size:11px; font-weight:750; }
 .nutrition-range button.active { color:#167ca2; background:#e7f5fa; box-shadow:inset 0 0 0 1px #bee1ec; }
 .nutrition-range button:focus-visible { outline:none; box-shadow:inset 0 0 0 2px #268aaf; }
 .nutrition-coach-button:focus-visible,.nutrition-trends-back:focus-visible { outline:2px solid #268aaf; outline-offset:2px; }
@@ -16,9 +16,9 @@
 .nutrition-overview-card { border-color:#c9e7df; background:linear-gradient(145deg,#fff,#f1fbf7); }
 .nutrition-card-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
 .nutrition-card-heading h2 { margin:0; color:#1c3b57; font-size:16px; line-height:1.3; }
-.nutrition-card-heading > span:not(.nutrition-heading-icon) { padding:5px 8px; border-radius:999px; color:#54788b; background:#edf4f7; font-size:8px; font-weight:750; white-space:nowrap; }
+.nutrition-card-heading > span:not(.nutrition-heading-icon) { padding:5px 8px; border-radius:999px; color:#54788b; background:#edf4f7; font-size:9px; font-weight:750; white-space:nowrap; }
 .nutrition-heading-icon { width:36px; height:36px; display:grid; place-items:center; border-radius:11px; color:#2484a9; background:#e7f5fa; font-size:17px; }
-.nutrition-overview-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:15px; }
+.nutrition-overview-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:16px; }
 .nutrition-overview-metrics > div { min-width:0; padding:12px 10px; border-radius:13px; background:rgba(255,255,255,.78); }
 .nutrition-overview-metrics strong,.nutrition-overview-metrics span { display:block; }
 .nutrition-overview-metrics strong { color:#183e52; font-size:20px; line-height:1.1; }
@@ -35,8 +35,8 @@
 .nutrition-chart-dates { display:flex; justify-content:space-between; margin-top:7px; color:#8194a3; font-size:9px; }
 .nutrition-comparison-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px; }
 .nutrition-comparison-grid > div { padding:13px; border-radius:14px; background:#f3f7fa; }.nutrition-comparison-grid > div:first-child { background:#eef8fb; }
-.nutrition-comparison-grid header { display:flex; justify-content:space-between; gap:8px; margin-bottom:11px; }.nutrition-comparison-grid header strong { color:#31536b; font-size:10px; }.nutrition-comparison-grid header span { color:#8296a5; font-size:8px; }
-.nutrition-comparison-grid p { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin:7px 0 0; }.nutrition-comparison-grid p strong { color:#20445c; font-size:13px; }.nutrition-comparison-grid p span { color:#8194a3; font-size:8px; }
+.nutrition-comparison-grid header { display:flex; justify-content:space-between; gap:8px; margin-bottom:12px; }.nutrition-comparison-grid header strong { color:#31536b; font-size:10px; }.nutrition-comparison-grid header span { color:#8296a5; font-size:9px; }
+.nutrition-comparison-grid p { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin:8px 0 0; }.nutrition-comparison-grid p strong { color:#20445c; font-size:13px; }.nutrition-comparison-grid p span { color:#8194a3; font-size:9px; }
 .nutrition-insight-card { display:grid; grid-template-columns:40px minmax(0,1fr); gap:12px; margin-top:16px; padding:16px; border:1px solid #cfe5dd; border-radius:18px; background:#f2faf7; }
 .nutrition-insight-icon { width:40px; height:40px; display:grid; place-items:center; border-radius:12px; color:#218d75; background:#ddf2ea; font-size:19px; }
 .nutrition-insight-card h2 { margin:0 0 5px; color:#204b45; font-size:15px; line-height:1.35; }.nutrition-insight-card span { display:block; color:#627d78; font-size:10px; line-height:1.55; }

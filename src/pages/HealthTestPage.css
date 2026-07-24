@@ -45,9 +45,9 @@
 .health-background-counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
 .health-background-counts > div { display: grid; gap: 2px; min-width: 0; padding: 9px 7px; border-radius: 11px; background: #f3f8fb; }
 .health-background-counts strong { color: #173f5f; font-size: 14px; }
-.health-background-counts span { overflow: hidden; color: #7890a7; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.health-background-counts span { overflow: hidden; color: #7890a7; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .health-background-card > small { display: block; margin-top: 8px; color: #a56a31; font-size: 9px; line-height: 1.4; }
-.health-background-card ion-button { min-height: 42px; margin: 12px 0 0; font-size: 10px; font-weight: 800; }
+.health-background-card ion-button { min-height: 44px; margin: 12px 0 0; font-size: 10px; font-weight: 800; }
 .health-connect-source-note { margin: 20px 2px 0; color: #6f879c; font-size: 10px; line-height: 1.5; }
 .health-connect-message { margin: 12px 0 0; padding: 11px 13px; border-radius: 12px; color: #37627f; background: #eaf5fb; font-size: 11px; line-height: 1.45; }
 .health-sync-summary { margin-top: 14px; padding: 16px; border: 1px solid #cfe2ee; border-radius: 18px; background: #fff; box-shadow: 0 10px 26px rgba(34,73,105,.05); }
@@ -67,7 +67,7 @@
 @media(max-width:390px){.health-sync-summary-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.health-sync-summary-grid .health-sync-metric:nth-child(n+4){grid-column:span 1}}
 .health-connect-primary-actions { display: grid; gap: 9px; margin-top: 18px; }
 .health-connect-primary-actions ion-button { min-height: 45px; margin: 0; font-size: 11px; font-weight: 800; }
-.health-repair-action { display: grid; gap: 7px; padding: 11px; border: 1px solid #d8e6ef; border-radius: 16px; background: rgba(255,255,255,.72); }
+.health-repair-action { display: grid; gap: 8px; padding: 12px; border: 1px solid #d8e6ef; border-radius: 18px; background: rgba(255,255,255,.72); }
 .health-repair-action ion-button { --border-color: #9dcce1; --color: #247aa7; }
 .health-repair-action p { margin: 0 3px 2px; color: #71879b; font-size: 10px; line-height: 1.45; }
 .health-sync-tools { margin-top: 14px; border-top: 1px solid #dce7f1; }
@@ -82,13 +82,13 @@
 .health-developer-details { margin-top: 28px; border-top: 1px solid #dce7f1; }
 .health-developer-details > summary { min-height: 44px; display: flex; align-items: center; padding: 12px 2px; color: #52718d; cursor: pointer; font-size: 11px; font-weight: 800; }
 .health-developer-body { padding-top: 2px; }
-.health-performance-diagnostics { margin-bottom: 14px; padding: 14px; border: 1px solid #cfe2ee; border-radius: 16px; background: #fff; }
+.health-performance-diagnostics { margin-bottom: 14px; padding: 16px; border: 1px solid #cfe2ee; border-radius: 18px; background: #fff; }
 .health-performance-diagnostics > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .health-performance-diagnostics > header > div { min-width: 0; }
-.health-performance-diagnostics > header span { color: #1976ad; font-size: 8px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.health-performance-diagnostics > header span { color: #1976ad; font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .health-performance-diagnostics h2 { margin: 4px 0 0; color: #173451; font-size: 15px; line-height: 1.3; }
 .health-performance-diagnostics > p { margin: 0 0 10px; color: #627d98; font-size: 10px; line-height: 1.5; }
-.health-performance-diagnostics > small { display: block; margin-top: 10px; color: #8497a9; font-size: 8px; line-height: 1.45; }
+.health-performance-diagnostics > small { display: block; margin-top: 10px; color: #8497a9; font-size: 9px; line-height: 1.45; }
 .health-performance-list { overflow: hidden; border: 1px solid #e0eaf2; border-radius: 12px; }
 .health-performance-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 11px; }
 .health-performance-row + .health-performance-row { border-top: 1px solid #e8eff5; }
@@ -96,14 +96,14 @@
 .health-performance-row > div:last-child { flex: 0 0 auto; text-align: right; }
 .health-performance-row strong { color: #294762; font-size: 11px; }
 .health-performance-row > div:last-child strong { color: #1686a9; font-size: 13px; }
-.health-performance-row span { overflow: hidden; color: #7c90a3; font-size: 8px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
-.health-sync-comparison { margin-top: 11px; padding: 11px; border-radius: 12px; background: #f3f8fb; }
-.health-sync-comparison > span { color: #1976ad; font-size: 8px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-.health-sync-comparison > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 7px; margin-top: 8px; }
+.health-performance-row span { overflow: hidden; color: #7c90a3; font-size: 9px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.health-sync-comparison { margin-top: 12px; padding: 12px; border-radius: 12px; background: #f3f8fb; }
+.health-sync-comparison > span { color: #1976ad; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.health-sync-comparison > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin-top: 8px; }
 .health-sync-comparison > div > div { display: grid; gap: 3px; padding: 8px; border-radius: 9px; background: #fff; }
-.health-sync-comparison b { color: #5f7890; font-size: 8px; }
+.health-sync-comparison b { color: #5f7890; font-size: 9px; }
 .health-sync-comparison strong { color: #1686a9; font-size: 13px; }
-.health-sync-comparison small { color: #8497a9; font-size: 8px; }
+.health-sync-comparison small { color: #8497a9; font-size: 9px; }
 .health-test-note { margin: 0 0 16px; padding: 12px 14px; border: 1px solid #dce7f1; border-radius: 14px; color: #55708d; background: #fff; font-size: 11px; line-height: 1.6; }
 .health-test-actions { display: grid; gap: 8px; margin-bottom: 20px; }
 .health-test-divider { height: 1px; margin: 4px 0; background: #dce7f1; }

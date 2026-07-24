@@ -13,7 +13,7 @@
 .ai-coach-section-heading { margin: 0 2px 13px; }
 .ai-coach-section-heading h2 { margin: 0; color: #1b3857; font-size: 18px; line-height: 1.25; }
 .ai-coach-section-heading > span { display: block; margin-top: 5px; color: #7a8da0; font-size: 10px; line-height: 1.45; }
-.ai-coach-featured { width: 100%; min-height: 82px; display: grid; grid-template-columns: 42px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 15px; border: 1px solid #b9e0ed; border-radius: 17px; color: inherit; background: linear-gradient(135deg,#f1fbff,#effbf7); text-align: left; box-shadow: 0 12px 26px rgba(49,91,124,.06); }
+.ai-coach-featured { width: 100%; min-height: 82px; display: grid; grid-template-columns: 42px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 16px; border: 1px solid #b9e0ed; border-radius: 18px; color: inherit; background: linear-gradient(135deg,#f1fbff,#effbf7); text-align: left; box-shadow: 0 12px 26px rgba(49,91,124,.06); }
 .ai-coach-featured.selected { border-color: #36a4ba; box-shadow: 0 0 0 2px rgba(54,164,186,.09),0 12px 26px rgba(49,91,124,.06); }
 .ai-coach-topic-icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; color: #1b86b8; background: #dff4fc; font-size: 20px; }
 .ai-coach-featured strong,.ai-coach-topic-list strong { display: block; color: #1c3a59; font-size: 13px; line-height: 1.35; }
@@ -26,14 +26,14 @@
 .ai-coach-topic-list button.selected { background: #eff9fc; box-shadow: inset 3px 0 #2697b8; }
 .ai-coach-topic-list button:active { background: #f2f8fb; }
 .ai-coach-topic-list button:focus-visible,.ai-coach-featured:focus-visible,.ai-coach-refresh:focus-visible { outline: 2px solid #258ab7; outline-offset: -3px; }
-.ai-coach-answer-loading { display: flex; gap: 13px; align-items: center; margin-top: 20px; padding: 18px; border: 1px solid #cfe1ed; border-radius: 17px; background: #fff; }
+.ai-coach-answer-loading { display: flex; gap: 12px; align-items: center; margin-top: 20px; padding: 18px; border: 1px solid #cfe1ed; border-radius: 18px; background: #fff; }
 .ai-coach-answer-loading ion-spinner { width: 24px; color: #2587b5; }
 .ai-coach-answer-loading strong,.ai-coach-answer-loading span { display: block; }
 .ai-coach-answer-loading strong { color: #1c3957; font-size: 13px; }
 .ai-coach-answer-loading span { margin-top: 3px; color: #71859a; font-size: 10px; }
 .ai-coach-answer { overflow: hidden; margin-top: 20px; padding: 0 18px 20px; border: 1px solid #c7deea; border-radius: 20px; background: rgba(255,255,255,.96); box-shadow: 0 16px 34px rgba(42,77,108,.08); }
 .ai-coach-answer-header { margin: 0 -18px; padding: 18px 18px 17px; background: linear-gradient(145deg,#f4fbff,#f5fbf9); border-bottom: 1px solid #dfebf2; }
-.ai-coach-answer-label { display: flex; gap: 7px; align-items: center; color: #1882ad; font-size: 8px; font-weight: 850; letter-spacing: .11em; }
+.ai-coach-answer-label { display: flex; gap: 7px; align-items: center; color: #1882ad; font-size: 9px; font-weight: 850; letter-spacing: .11em; }
 .ai-coach-answer-topic { display: block; margin-top: 8px; color: #59768d; font-size: 10px; font-weight: 650; line-height: 1.4; }
 .ai-coach-answer h2 { max-width: 500px; margin: 8px 0 7px; color: #173653; font-size: clamp(18px,5.2vw,21px); font-weight: 700; line-height: 1.35; letter-spacing: -.015em; overflow-wrap: anywhere; }
 .ai-coach-summary { margin: 0; color: #5e7389; font-size: 11px; line-height: 1.7; overflow-wrap: anywhere; }
@@ -43,34 +43,34 @@
 .ai-coach-answer-list li { display: grid; grid-template-columns: 26px minmax(0,1fr); gap: 10px; align-items: start; }
 .ai-coach-answer-list li > span { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 9px; color: #2082ad; background: #e7f6fb; font-size: 10px; font-weight: 800; }
 .ai-coach-answer-list li p { margin: 2px 0 0; color: #425d76; font-size: 11px; line-height: 1.65; overflow-wrap: anywhere; }
-.ai-coach-next-meal { margin-top: 18px; padding: 15px; border: 1px solid #cde9df; border-radius: 16px; background: linear-gradient(145deg,#f2fbf7,#f7fcfa); }
-.ai-coach-next-meal-heading > span { display: block; margin-bottom: 5px; color: #218b76; font-size: 8px; font-weight: 850; letter-spacing: .12em; }
+.ai-coach-next-meal { margin-top: 20px; padding: 16px; border: 1px solid #cde9df; border-radius: 18px; background: linear-gradient(145deg,#f2fbf7,#f7fcfa); }
+.ai-coach-next-meal-heading > span { display: block; margin-bottom: 5px; color: #218b76; font-size: 9px; font-weight: 850; letter-spacing: .12em; }
 .ai-coach-next-meal-heading h3 { margin: 0; color: #1d4a43; font-size: 15px; line-height: 1.4; }
 .ai-coach-next-meal-heading p { margin: 4px 0 0; color: #69837d; font-size: 10px; line-height: 1.5; }
-.ai-coach-meal-options { display: grid; gap: 9px; margin-top: 13px; padding-top: 12px; border-top: 1px solid #dceee8; }
+.ai-coach-meal-options { display: grid; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #dceee8; }
 .ai-coach-meal-options > div { display: grid; grid-template-columns: 24px minmax(0,1fr); gap: 9px; align-items: start; }
 .ai-coach-meal-options span { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 8px; color: #218b76; background: #ddf3eb; font-size: 9px; font-weight: 800; }
 .ai-coach-meal-options p { margin: 2px 0 0; color: #426a62; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
-.ai-coach-missing,.ai-coach-caution { margin-top: 16px; padding: 13px; border-radius: 13px; }
+.ai-coach-missing,.ai-coach-caution { margin-top: 16px; padding: 16px; border-radius: 17px; }
 .ai-coach-missing { border: 1px solid #e1eaf0; background: #f4f7f9; }
 .ai-coach-missing > div { display: flex; gap: 7px; align-items: center; color: #526d83; font-size: 11px; }
 .ai-coach-missing ul { margin: 9px 0 0 18px; padding: 0; color: #708399; font-size: 10px; line-height: 1.65; }
 .ai-coach-caution { display: flex; gap: 9px; color: #8b5e22; background: #fff7e8; font-size: 10px; line-height: 1.55; }
 .ai-coach-caution ion-icon { flex: 0 0 auto; margin-top: 2px; }
-.ai-coach-followups { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 18px; }
+.ai-coach-followups { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
 .ai-coach-followups strong { width: 100%; color: #587086; font-size: 10px; }
 .ai-coach-followups span { padding: 6px 9px; border-radius: 999px; color: #3f657f; background: #edf5f9; font-size: 9px; }
-.ai-coach-refresh { width: 100%; height: 42px; margin-top: 18px; border: 1px solid #b9d9e8; border-radius: 12px; color: #177aa8; background: #f4fbfe; font: inherit; font-size: 11px; font-weight: 800; }
-.ai-coach-privacy { display: flex; justify-content: center; gap: 6px; align-items: center; margin: 14px 4px 0; color: #8092a3; font-size: 9.5px; text-align: center; }
+.ai-coach-refresh { width: 100%; height: 44px; margin-top: 20px; border: 1px solid #b9d9e8; border-radius: 12px; color: #177aa8; background: #f4fbfe; font: inherit; font-size: 11px; font-weight: 800; }
+.ai-coach-privacy { display: flex; justify-content: center; gap: 6px; align-items: center; margin: 14px 4px 0; color: #8092a3; font-size: 10px; text-align: center; }
 .ai-coach-privacy ion-icon { color: #2a9b85; font-size: 13px; }
 .ai-coach-state { margin-top: 16px; }
 
-.ai-coach-context-drawer { margin-bottom: 16px; border: 1px solid #d2e4f0; border-radius: 16px; background: rgba(255,255,255,.94); overflow: hidden; box-shadow: 0 4px 14px rgba(35,78,110,.04); }
-.ai-coach-drawer-toggle { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border: 0; background: transparent; text-align: left; color: inherit; }
+.ai-coach-context-drawer { margin-bottom: 16px; border: 1px solid #d2e4f0; border-radius: 18px; background: rgba(255,255,255,.94); overflow: hidden; box-shadow: 0 4px 14px rgba(35,78,110,.04); }
+.ai-coach-drawer-toggle { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border: 0; background: transparent; text-align: left; color: inherit; }
 .ai-coach-drawer-toggle strong { display: block; color: #1c3957; font-size: 12px; font-weight: 750; }
 .ai-coach-drawer-toggle small { display: block; margin-top: 2px; color: #6a7f94; font-size: 10px; }
 .ai-coach-drawer-toggle ion-icon { color: #1b7ba8; font-size: 18px; transition: transform .2s ease; }
-.ai-coach-drawer-content { padding: 12px 15px 15px; border-top: 1px solid #e3eff7; background: #f7fcff; }
+.ai-coach-drawer-content { padding: 12px 16px 16px; border-top: 1px solid #e3eff7; background: #f7fcff; }
 .ai-coach-context-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
 .ai-coach-context-grid > div { padding: 8px 11px; border-radius: 11px; background: #fff; border: 1px solid #dfebf4; }
 .ai-coach-context-grid span { display: block; color: #6e8499; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
@@ -85,9 +85,9 @@
 .ai-coach-chip:focus-visible { outline: 2px solid #2085b3; outline-offset: 1px; }
 
 .ai-coach-chat-stream { display: flex; flex-direction: column; gap: 16px; min-height: 100px; margin-bottom: 16px; padding-bottom: 0; }
-.ai-coach-empty-chat { text-align: center; padding: 32px 18px; color: #6f859b; border: 1px dashed #c9dce8; border-radius: 18px; background: rgba(255,255,255,.5); }
+.ai-coach-empty-chat { text-align: center; padding: 32px 20px; color: #6f859b; border: 1px dashed #c9dce8; border-radius: 18px; background: rgba(255,255,255,.5); }
 .ai-coach-empty-chat ion-icon { font-size: 32px; color: #218fb8; margin-bottom: 8px; display: block; margin-inline: auto; }
-.ai-coach-empty-chat p { margin: 0; font-size: 11.5px; line-height: 1.6; color: #587087; }
+.ai-coach-empty-chat p { margin: 0; font-size: 12px; line-height: 1.6; color: #587087; }
 
 .ai-coach-msg-bubble.user { align-self: flex-end; max-width: 86%; }
 .ai-coach-user-msg { padding: 12px 16px; border-radius: 18px 18px 4px 18px; background: linear-gradient(135deg, #1d82b3, #166b94); color: #fff; box-shadow: 0 6px 18px rgba(25,105,145,.18); }
@@ -96,10 +96,10 @@
 
 .ai-coach-input-container { position: sticky; bottom: max(12px, env(safe-area-inset-bottom)); z-index: 10; margin-top: 8px; padding-top: 8px; background: linear-gradient(180deg, rgba(247,249,252,0) 0%, rgba(247,249,252,0.95) 40%, rgba(247,249,252,1) 100%); transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .ai-coach-scroll-bottom-btn { display: flex; align-items: center; gap: 6px; margin: 0 auto 10px; padding: 6px 14px; border: 1px solid #b7d6e6; border-radius: 999px; background: #ffffff; color: var(--rm-brand-blue, #2474b2); font-size: 11px; font-weight: 750; box-shadow: 0 4px 12px rgba(23,58,90,.1); cursor: pointer; }
-.ai-coach-input-bar { display: flex; gap: 8px; align-items: center; padding: 6px 8px 6px 16px; border: 1px solid #b7d6e6; border-radius: 999px; background: #ffffff; box-shadow: 0 10px 28px rgba(23,58,90,.12); }
+.ai-coach-input-bar { display: flex; gap: 8px; align-items: center; padding: 4px 4px 4px 16px; border: 1px solid #b7d6e6; border-radius: 999px; background: #ffffff; box-shadow: 0 10px 28px rgba(23,58,90,.12); }
 .ai-coach-chat-input { flex: 1; border: 0; outline: none; padding: 6px 0; font-size: 12px; color: var(--rm-text-primary, #172c49); background: transparent; }
 .ai-coach-chat-input::placeholder { color: #889bb0; }
-.ai-coach-send-btn { width: 38px; height: 38px; min-width: 38px; border: 0; border-radius: 50%; color: #fff; background: var(--rm-brand-blue, #2474b2); display: grid; place-items: center; font-size: 16px; transition: background-color .15s ease; cursor: pointer; }
+.ai-coach-send-btn { width: 44px; height: 44px; min-width: 44px; border: 0; border-radius: 50%; color: #fff; background: var(--rm-brand-blue, #2474b2); display: grid; place-items: center; font-size: 16px; transition: background-color .15s ease; cursor: pointer; }
 .ai-coach-send-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .ai-coach-send-btn:not(:disabled):active { background: #1c6198; }
 .ai-coach-drawer-title { display: flex; align-items: center; gap: 8px; }
@@ -108,10 +108,10 @@
 .ai-coach-welcome-hero { text-align: center; padding: 20px 8px 10px; margin-bottom: 12px; }
 .ai-coach-hero-mark { width: 52px; height: 52px; display: grid; place-items: center; margin: 0 auto 12px; border-radius: 17px; color: #fff; background: linear-gradient(145deg, #2083b8, #24a8af); box-shadow: 0 12px 28px rgba(32,131,184,.22); font-size: 24px; }
 .ai-coach-welcome-hero h2 { margin: 0 0 8px; color: #173654; font-size: 20px; font-weight: 800; line-height: 1.3; }
-.ai-coach-welcome-hero p { margin: 0 0 20px; color: #627991; font-size: 11.5px; line-height: 1.55; }
+.ai-coach-welcome-hero p { margin: 0 0 20px; color: #627991; font-size: 12px; line-height: 1.55; }
 
 .ai-coach-prompt-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; text-align: left; }
-.ai-coach-prompt-card { padding: 14px 14px 15px; border: 1px solid #c9dfed; border-radius: 16px; background: #ffffff; color: inherit; transition: all .16s ease; box-shadow: 0 4px 14px rgba(32,74,106,.04); }
+.ai-coach-prompt-card { padding: 16px; border: 1px solid #c9dfed; border-radius: 18px; background: #ffffff; color: inherit; transition: all .16s ease; box-shadow: 0 4px 14px rgba(32,74,106,.04); }
 .ai-coach-prompt-card:hover,.ai-coach-prompt-card:active { border-color: #2085b4; background: #f4fbff; box-shadow: 0 8px 20px rgba(32,131,184,.08); }
 .ai-coach-prompt-card strong { display: block; color: #193654; font-size: 12px; line-height: 1.35; }
 .ai-coach-prompt-card span { display: block; margin-top: 5px; color: #72879c; font-size: 10px; line-height: 1.45; }
