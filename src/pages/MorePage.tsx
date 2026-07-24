@@ -11,6 +11,7 @@ import {
   chevronForwardOutline,
   flagOutline,
   fitnessOutline,
+  lockClosedOutline,
   logOutOutline,
   notificationsOutline,
   personCircleOutline,
@@ -64,6 +65,12 @@ const plannedItems: Array<{
     title: 'Health Connect',
     summary: 'Connect Samsung Health and manage automatic health data sync.',
     path: '/health-connect',
+  },
+  {
+    icon: lockClosedOutline,
+    title: 'Privacy & Data',
+    summary: 'What RunMate collects, and how to export or delete your data.',
+    path: '/privacy-data',
   },
 ];
 

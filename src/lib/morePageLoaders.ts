@@ -5,6 +5,7 @@ const loaders = {
   '/profile-settings': () => import('@/pages/ProfileSettingsPage'),
   '/notifications': () => import('@/pages/NotificationsPage'),
   '/health-connect': () => import('@/pages/HealthTestPage'),
+  '/privacy-data': () => import('@/pages/PrivacyDataPage'),
 } as const;
 
 export type MorePagePath = keyof typeof loaders;
