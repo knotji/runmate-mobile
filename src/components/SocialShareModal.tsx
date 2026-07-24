@@ -509,6 +509,24 @@ function drawWorkoutStory(
     .filter((metric) => data.selectedMetrics.includes(metric.key));
   const centerX = STORY_WIDTH / 2;
 
+  // Lay everything out at these fixed offsets first, then shift the whole
+  // block up/down so the empty space above the accent dot matches the empty
+  // space below the logo, instead of always leaving a big gap up top.
+  const blockHeight = 250;
+  const baseAccentY = 372;
+  const baseMetricsStartY = 700;
+  const metricsGap = 140;
+  const signatureScale = 1.3;
+  const signatureTextExtra = 138 * signatureScale + 40;
+  const baseSignatureY = metrics.length > 0 ? baseMetricsStartY + metrics.length * blockHeight + metricsGap : 950;
+  const contentTop = baseAccentY - 20;
+  const contentBottom = baseSignatureY + signatureTextExtra;
+  const delta = (STORY_HEIGHT - (contentBottom - contentTop)) / 2 - contentTop;
+
+  const accentY = baseAccentY + delta;
+  const metricsStartY = baseMetricsStartY + delta;
+  const signatureY = baseSignatureY + delta;
+
   ctx.save();
 
   // Draw top accent line with drop shadow
@@ -520,19 +538,16 @@ function drawWorkoutStory(
   ctx.lineWidth = 6;
   ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.moveTo(centerX - 55, 372);
-  ctx.lineTo(centerX + 55, 372);
+  ctx.moveTo(centerX - 55, accentY);
+  ctx.lineTo(centerX + 55, accentY);
   ctx.stroke();
   ctx.fillStyle = palette.accent;
   ctx.beginPath();
-  ctx.arc(centerX, 372, 9, 0, Math.PI * 2);
+  ctx.arc(centerX, accentY, 9, 0, Math.PI * 2);
   ctx.fill();
 
-  const blockHeight = 250;
-  const startY = 700;
-  drawWorkoutMetricColumn(ctx, palette, metrics, startY, blockHeight);
-  const signatureY = metrics.length > 0 ? startY + metrics.length * blockHeight + 140 : 950;
-  drawSportSignature(ctx, palette, data.sportType, signatureY, 1.3);
+  drawWorkoutMetricColumn(ctx, palette, metrics, metricsStartY, blockHeight);
+  drawSportSignature(ctx, palette, data.sportType, signatureY, signatureScale);
   ctx.restore();
 }
 
