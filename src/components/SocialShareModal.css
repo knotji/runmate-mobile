@@ -1,13 +1,25 @@
 .social-share-modal {
-  --height: 96%;
-  --width: min(100%, 460px);
-  --border-radius: 24px 24px 0 0;
+  --height: auto;
+  --max-height: 90vh;
+  --width: min(100%, 440px);
+  --border-radius: 28px 28px 0 0;
+  align-items: flex-end;
+}
+
+.social-share-sheet-handle {
+  width: 36px;
+  height: 4px;
+  margin: 8px auto 2px;
+  border-radius: 999px;
+  background: var(--border, #cce0eb);
 }
 
 .social-share-header ion-toolbar {
   --background: var(--surface, #f7fbfd);
   --color: var(--ink, #17324d);
-  --border-color: var(--border, #d6e4ee);
+  --border-color: transparent;
+  --padding-top: 0;
+  --min-height: 48px;
 }
 
 .social-share-header ion-title {
@@ -25,21 +37,21 @@
   width: 100%;
   max-width: 400px;
   margin: 0 auto;
-  padding: 14px 16px calc(26px + env(safe-area-inset-bottom));
+  padding: 8px 16px calc(20px + env(safe-area-inset-bottom));
 }
 
 .social-share-preview-container {
   position: relative;
   display: grid;
-  width: min(100%, 232px);
+  width: min(100%, 255px);
   aspect-ratio: 9 / 16;
   margin: 0 auto;
   overflow: hidden;
   place-items: center;
   border: 0;
-  border-radius: 15px;
+  border-radius: 16px;
   background: #10263a;
-  box-shadow: 0 10px 24px rgba(32, 58, 78, 0.12);
+  box-shadow: 0 12px 28px rgba(32, 58, 78, 0.14);
   touch-action: pan-y;
   -webkit-user-select: none;
   user-select: none;

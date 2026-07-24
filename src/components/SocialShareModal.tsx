@@ -332,6 +332,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
       className="social-share-modal"
     >
       <IonHeader translucent className="social-share-header">
+        <div className="social-share-sheet-handle" aria-hidden="true" />
         <IonToolbar>
           <IonTitle>{mode === 'workout' ? 'Share Workout' : 'Share Recovery'}</IonTitle>
           <IonButtons slot="end">
