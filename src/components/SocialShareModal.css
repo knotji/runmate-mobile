@@ -1,8 +1,22 @@
-.social-share-modal {
-  --height: min(92vh, 680px);
-  --max-height: 92vh;
-  --width: min(100%, 440px);
+.social-share-modal,
+ion-modal.social-share-modal {
+  --height: min(92vh, 720px);
+  --max-height: 94vh;
+  --width: 100%;
+  --max-width: 100%;
   --border-radius: 28px 28px 0 0;
+  align-items: flex-end;
+}
+
+ion-modal.social-share-modal::part(content) {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: 100%;
+  border-radius: 28px 28px 0 0;
+  box-shadow: 0 -8px 32px rgba(12, 34, 56, 0.2);
 }
 
 .social-share-sheet-handle {
@@ -37,7 +51,7 @@
   flex-direction: column;
   min-height: 100%;
   width: 100%;
-  max-width: 400px;
+  max-width: 520px;
   margin: 0 auto;
   padding: 6px 16px calc(16px + env(safe-area-inset-bottom));
 }
