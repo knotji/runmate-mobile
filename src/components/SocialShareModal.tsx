@@ -512,7 +512,7 @@ function drawWorkoutStory(
   // Lay everything out at these fixed offsets first, then shift the whole
   // block up/down so the empty space above the accent dot matches the empty
   // space below the logo, instead of always leaving a big gap up top.
-  const blockHeight = 250;
+  const blockHeight = 330;
   const baseAccentY = 372;
   const baseMetricsStartY = 700;
   const metricsGap = 140;
@@ -562,11 +562,11 @@ function cleanMetricLabel(label: string): string {
 function drawWorkoutMetricColumn(ctx: CanvasRenderingContext2D, palette: CanvasPalette, metrics: StoryMetric[], startY: number, blockHeight: number) {
   if (metrics.length === 0) return;
   const centerX = STORY_WIDTH / 2;
-  const width = 820;
+  const width = 900;
   const left = centerX - width / 2;
-  const valueSize = 78;
-  const labelSize = 26;
-  const unitSize = 30;
+  const valueSize = 104;
+  const labelSize = 30;
+  const unitSize = 36;
 
   ctx.save();
   ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
@@ -579,21 +579,21 @@ function drawWorkoutMetricColumn(ctx: CanvasRenderingContext2D, palette: CanvasP
       ctx.strokeStyle = palette.hairline;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(left, blockTop - 46);
-      ctx.lineTo(left + width, blockTop - 46);
+      ctx.moveTo(left, blockTop - 60);
+      ctx.lineTo(left + width, blockTop - 60);
       ctx.stroke();
     }
     ctx.textAlign = 'center';
     ctx.fillStyle = palette.faint;
     ctx.font = `600 ${labelSize}px ${STORY_FONT}`;
-    ctx.fillText(cleanMetricLabel(metric.label), centerX, blockTop + 24);
+    ctx.fillText(cleanMetricLabel(metric.label), centerX, blockTop + 32);
     ctx.fillStyle = palette.text;
     ctx.font = `700 ${valueSize}px ${STORY_FONT}`;
-    ctx.fillText(metric.value, centerX, blockTop + 112);
+    ctx.fillText(metric.value, centerX, blockTop + 150);
     if (metric.unit) {
       ctx.fillStyle = palette.accent;
       ctx.font = `600 ${unitSize}px ${STORY_FONT}`;
-      ctx.fillText(metric.unit, centerX, blockTop + 162);
+      ctx.fillText(metric.unit, centerX, blockTop + 216);
     }
   });
   ctx.restore();
