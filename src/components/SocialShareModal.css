@@ -1,5 +1,6 @@
 .social-share-modal {
-  --height: min(84vh, 590px);
+  --height: min(92vh, 680px);
+  --max-height: 92vh;
   --width: min(100%, 440px);
   --border-radius: 28px 28px 0 0;
 }
@@ -17,7 +18,7 @@
   --color: var(--ink, #17324d);
   --border-color: transparent;
   --padding-top: 0;
-  --min-height: 48px;
+  --min-height: 44px;
 }
 
 .social-share-header ion-title {
@@ -32,16 +33,19 @@
 }
 
 .social-share-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
   width: 100%;
   max-width: 400px;
   margin: 0 auto;
-  padding: 10px 16px calc(16px + env(safe-area-inset-bottom));
+  padding: 6px 16px calc(16px + env(safe-area-inset-bottom));
 }
 
 .social-share-preview-container {
   position: relative;
   display: grid;
-  width: min(100%, 225px);
+  width: min(100%, 200px);
   aspect-ratio: 9 / 16;
   margin: 0 auto;
   overflow: hidden;
@@ -252,10 +256,16 @@
 }
 
 .social-share-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
   display: grid;
   grid-template-columns: 1.4fr 1fr;
   gap: 9px;
-  margin-top: 14px;
+  margin-top: auto;
+  padding-top: 10px;
+  padding-bottom: 4px;
+  background: #f4f8fb;
 }
 
 .share-action-btn {
