@@ -517,22 +517,22 @@ function drawWorkoutStory(
   ctx.shadowOffsetY = 2;
 
   ctx.strokeStyle = palette.accent;
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 6;
   ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.moveTo(centerX - 38, 372);
-  ctx.lineTo(centerX + 38, 372);
+  ctx.moveTo(centerX - 55, 372);
+  ctx.lineTo(centerX + 55, 372);
   ctx.stroke();
   ctx.fillStyle = palette.accent;
   ctx.beginPath();
-  ctx.arc(centerX, 372, 6, 0, Math.PI * 2);
+  ctx.arc(centerX, 372, 9, 0, Math.PI * 2);
   ctx.fill();
 
   const blockHeight = 250;
   const startY = 700;
   drawWorkoutMetricColumn(ctx, palette, metrics, startY, blockHeight);
-  const signatureY = metrics.length > 0 ? startY + metrics.length * blockHeight + 110 : 950;
-  drawSportSignature(ctx, palette, data.sportType, signatureY, 0.95);
+  const signatureY = metrics.length > 0 ? startY + metrics.length * blockHeight + 140 : 950;
+  drawSportSignature(ctx, palette, data.sportType, signatureY, 1.3);
   ctx.restore();
 }
 
