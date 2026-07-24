@@ -30,62 +30,7 @@
   width: min(100%, 600px);
   min-height: calc(100% - 56px);
   margin: 0 auto;
-  padding: 18px 20px max(52px, env(safe-area-inset-bottom));
-}
-
-/* Live Health Sync Bar */
-.live-sync-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 14px;
-  padding: 10px 16px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.75);
-  border: 1px solid rgba(190, 215, 235, 0.55);
-  box-shadow: 0 4px 14px rgba(20, 42, 70, 0.04);
-  backdrop-filter: blur(10px);
-}
-
-.live-sync-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.live-sync-info ion-icon {
-  font-size: 18px;
-  color: #1783b8;
-}
-
-.live-sync-info span {
-  font-size: 12px;
-  font-weight: 600;
-  color: #274760;
-}
-
-.live-sync-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid #bfe0f2;
-  background: #eef7fc;
-  color: #1181aa;
-  font-size: 11.5px;
-  font-weight: 700;
-  transition: all 150ms ease;
-}
-
-.live-sync-button:active {
-  transform: scale(0.96);
-  background: #d8edf8;
-}
-
-.live-sync-button ion-icon {
-  font-size: 14px;
+  padding: 24px 20px max(52px, env(safe-area-inset-bottom));
 }
 
 .page-heading .eyebrow,
