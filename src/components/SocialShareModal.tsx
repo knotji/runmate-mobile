@@ -28,7 +28,7 @@ import {
 } from '@/lib/workoutShareMetrics';
 import './SocialShareModal.css';
 
-export type ShareTheme = 'cyber-dark' | 'sunrise-fresh' | 'minimal-glass' | 'transparent-overlay' | 'ultra-minimal';
+export type ShareTheme = 'cyber-dark' | 'sunrise-fresh' | 'minimal-glass' | 'transparent-overlay' | 'ultra-minimal' | 'compact-row' | 'compact-row-overlay';
 export type { SportType } from '@/lib/workoutShareMetrics';
 
 export interface WorkoutShareData {
@@ -66,9 +66,21 @@ type StoryMetric = {
   unit?: string;
 };
 
-const STORY_WIDTH = 1080;
-const STORY_HEIGHT = 1920;
+const PORTRAIT_WIDTH = 833;
+const PORTRAIT_HEIGHT = 1579;
+const LANDSCAPE_WIDTH = 1579;
+const LANDSCAPE_HEIGHT = 833;
 const STORY_FONT = '"IBM Plex Sans Thai", sans-serif';
+
+function isHorizontalTheme(theme: ShareTheme): boolean {
+  return theme === 'compact-row' || theme === 'compact-row-overlay';
+}
+
+function getStoryDimensions(theme: ShareTheme): { width: number; height: number } {
+  return isHorizontalTheme(theme)
+    ? { width: LANDSCAPE_WIDTH, height: LANDSCAPE_HEIGHT }
+    : { width: PORTRAIT_WIDTH, height: PORTRAIT_HEIGHT };
+}
 
 export const SocialShareModal: React.FC<SocialShareModalProps> = ({
   isOpen,
@@ -89,7 +101,9 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
   const themeOptions: Array<{ theme: ShareTheme; label: string }> = mode === 'workout'
     ? [
       { theme: 'transparent-overlay', label: 'Overlay' },
+      { theme: 'compact-row-overlay', label: 'Horizontal Overlay' },
       { theme: 'ultra-minimal', label: 'Ultra Minimal' },
+      { theme: 'compact-row', label: 'Horizontal' },
       { theme: 'cyber-dark', label: 'Dark' },
       { theme: 'minimal-glass', label: 'Light' },
     ]
@@ -138,17 +152,20 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return false;
 
-    canvas.width = STORY_WIDTH;
-    canvas.height = STORY_HEIGHT;
-    ctx.clearRect(0, 0, STORY_WIDTH, STORY_HEIGHT);
+    const { width, height } = getStoryDimensions(selectedTheme);
+    canvas.width = width;
+    canvas.height = height;
+    ctx.clearRect(0, 0, width, height);
 
-    const palette = drawStoryBackground(ctx, selectedTheme);
+    const palette = drawStoryBackground(ctx, selectedTheme, width, height);
 
     if (mode === 'workout') {
       drawWorkoutStory(ctx, palette, {
         title,
         sportType,
         theme: selectedTheme,
+        width,
+        height,
         distanceKm,
         durationSeconds,
         pace,
@@ -160,6 +177,8 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
       });
     } else if (score !== null) {
       drawRecoveryStory(ctx, palette, {
+        width,
+        height,
         score,
         label: recoveryLabel,
         sleepMinutes,
@@ -279,7 +298,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
     if (!dataUrl) return;
     void hapticImpact();
     const fileName = `RunMate-${mode === 'workout' ? 'Workout' : 'Recovery'}-${Date.now()}.png`;
-    const savedMessage = selectedTheme === 'transparent-overlay'
+    const savedMessage = (selectedTheme === 'transparent-overlay' || selectedTheme === 'compact-row-overlay')
       ? 'Saved (Transparent Background)'
       : 'Saved To Pictures / RunMate';
     if (canSaveStoryImageNatively()) {
@@ -297,7 +316,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
     link.href = dataUrl;
     link.click();
     void hapticNotification();
-    showToast(selectedTheme === 'transparent-overlay' ? savedMessage : 'Story image saved');
+    showToast((selectedTheme === 'transparent-overlay' || selectedTheme === 'compact-row-overlay') ? savedMessage : 'Story image saved');
   };
 
   const shareImage = async () => {
@@ -347,7 +366,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
       <IonContent className="social-share-content">
         <div className="social-share-shell">
           <div
-            className={`social-share-preview-container ${selectedTheme === 'transparent-overlay' ? 'transparent-grid' : ''}`}
+            className={`social-share-preview-container ${(selectedTheme === 'transparent-overlay' || selectedTheme === 'compact-row-overlay') ? 'transparent-grid' : ''}`}
             onTouchStart={handlePreviewTouchStart}
             onTouchEnd={handlePreviewTouchEnd}
           >
@@ -364,7 +383,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
           <div className="social-share-theme-slider" aria-labelledby="story-style-label">
             <div className="social-share-theme-current-row">
               <p id="story-style-label" className="social-share-theme-current">{themeOptions[themeIndex]?.label}</p>
-              {selectedTheme === 'transparent-overlay' && (
+              {(selectedTheme === 'transparent-overlay' || selectedTheme === 'compact-row-overlay') && (
                 <button type="button" className="theme-info-btn" aria-label="About Transparent Background" onClick={showOverlayInfo}>
                   <IonIcon icon={informationCircleOutline} />
                 </button>
@@ -434,18 +453,20 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
 function drawStoryBackground(
   ctx: CanvasRenderingContext2D,
   theme: ShareTheme,
+  width: number,
+  height: number,
 ): CanvasPalette {
-  if (theme === 'transparent-overlay') {
-    ctx.clearRect(0, 0, STORY_WIDTH, STORY_HEIGHT);
+  if (theme === 'transparent-overlay' || theme === 'compact-row-overlay') {
+    ctx.clearRect(0, 0, width, height);
     return darkPalette();
   }
 
-  if (theme === 'ultra-minimal') {
-    const background = ctx.createLinearGradient(0, 0, 0, STORY_HEIGHT);
+  if (theme === 'ultra-minimal' || theme === 'compact-row') {
+    const background = ctx.createLinearGradient(0, 0, 0, height);
     background.addColorStop(0, '#0c131a');
     background.addColorStop(1, '#05090d');
     ctx.fillStyle = background;
-    ctx.fillRect(0, 0, STORY_WIDTH, STORY_HEIGHT);
+    ctx.fillRect(0, 0, width, height);
     return {
       text: '#ffffff',
       muted: 'rgba(255, 255, 255, 0.72)',
@@ -456,11 +477,11 @@ function drawStoryBackground(
   }
 
   if (theme === 'minimal-glass' || theme === 'sunrise-fresh') {
-    const background = ctx.createLinearGradient(0, 0, STORY_WIDTH, STORY_HEIGHT);
+    const background = ctx.createLinearGradient(0, 0, width, height);
     background.addColorStop(0, '#f5fbfd');
     background.addColorStop(1, '#dceff4');
     ctx.fillStyle = background;
-    ctx.fillRect(0, 0, STORY_WIDTH, STORY_HEIGHT);
+    ctx.fillRect(0, 0, width, height);
     return {
       text: '#102c43',
       muted: 'rgba(16, 44, 67, .66)',
@@ -470,11 +491,11 @@ function drawStoryBackground(
     };
   }
 
-  const background = ctx.createLinearGradient(0, 0, 0, STORY_HEIGHT);
+  const background = ctx.createLinearGradient(0, 0, 0, height);
   background.addColorStop(0, '#10263a');
   background.addColorStop(1, '#08131f');
   ctx.fillStyle = background;
-  ctx.fillRect(0, 0, STORY_WIDTH, STORY_HEIGHT);
+  ctx.fillRect(0, 0, width, height);
   return darkPalette();
 }
 
@@ -495,6 +516,8 @@ function drawWorkoutStory(
     title: string;
     sportType: SportType;
     theme: ShareTheme;
+    width: number;
+    height: number;
     distanceKm?: number;
     durationSeconds: number;
     pace?: string;
@@ -507,48 +530,65 @@ function drawWorkoutStory(
 ) {
   const metrics = getAvailableWorkoutMetrics(data)
     .filter((metric) => data.selectedMetrics.includes(metric.key));
-  const centerX = STORY_WIDTH / 2;
+  const centerX = data.width / 2;
 
   // Lay everything out at these fixed offsets first, then shift the whole
   // block up/down so the empty space above the accent dot matches the empty
   // space below the logo, instead of always leaving a big gap up top.
-  const blockHeight = 250;
-  const baseAccentY = 372;
-  const baseMetricsStartY = baseAccentY + 60;
-  const metricsGap = 140;
-  const signatureScale = 1.3;
-  const signatureTextExtra = 138 * signatureScale + 40;
-  const baseSignatureY = metrics.length > 0 ? baseMetricsStartY + metrics.length * blockHeight + metricsGap : 950;
-  const contentTop = baseAccentY - 20;
-  const contentBottom = baseSignatureY + signatureTextExtra;
-  const delta = (STORY_HEIGHT - (contentBottom - contentTop)) / 2 - contentTop;
+  const isHorizontal = data.theme === 'compact-row' || data.theme === 'compact-row-overlay';
+  const signatureScale = 0.85;
 
-  const accentY = baseAccentY + delta;
-  const metricsStartY = baseMetricsStartY + delta;
-  const signatureY = baseSignatureY + delta;
+  if (isHorizontal) {
+    // Horizontal layout: sport logo above, metrics row below, vertically
+    // centered as a block within the shorter landscape canvas.
+    const logoY = Math.round(data.height * 0.31);
+    const metricsY = Math.round(data.height * 0.67);
 
-  ctx.save();
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 2;
 
-  // Draw top accent line with drop shadow
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
-  ctx.shadowBlur = 10;
-  ctx.shadowOffsetY = 2;
+    drawSportSignature(ctx, palette, data.sportType, centerX, logoY, signatureScale);
+    drawWorkoutMetricRow(ctx, palette, metrics, centerX, data.width, metricsY);
+    ctx.restore();
+  } else {
+    // Vertical stacked layout
+    const blockHeight = 250;
+    const baseAccentY = 372;
+    const baseMetricsStartY = baseAccentY + 60;
+    const metricsGap = 140;
+    const signatureTextExtra = 138 * signatureScale + 40;
+    const baseSignatureY = metrics.length > 0 ? baseMetricsStartY + metrics.length * blockHeight + metricsGap : 950;
+    const contentTop = baseAccentY - 20;
+    const contentBottom = baseSignatureY + signatureTextExtra;
+    const delta = (data.height - (contentBottom - contentTop)) / 2 - contentTop;
 
-  ctx.strokeStyle = palette.accent;
-  ctx.lineWidth = 6;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(centerX - 55, accentY);
-  ctx.lineTo(centerX + 55, accentY);
-  ctx.stroke();
-  ctx.fillStyle = palette.accent;
-  ctx.beginPath();
-  ctx.arc(centerX, accentY, 9, 0, Math.PI * 2);
-  ctx.fill();
+    const accentY = baseAccentY + delta;
+    const metricsStartY = baseMetricsStartY + delta;
+    const signatureY = baseSignatureY + delta;
 
-  drawWorkoutMetricColumn(ctx, palette, metrics, metricsStartY, blockHeight);
-  drawSportSignature(ctx, palette, data.sportType, signatureY, signatureScale);
-  ctx.restore();
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 2;
+
+    ctx.strokeStyle = palette.accent;
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(centerX - 55, accentY);
+    ctx.lineTo(centerX + 55, accentY);
+    ctx.stroke();
+    ctx.fillStyle = palette.accent;
+    ctx.beginPath();
+    ctx.arc(centerX, accentY, 9, 0, Math.PI * 2);
+    ctx.fill();
+
+    drawWorkoutMetricColumn(ctx, palette, metrics, centerX, metricsStartY, blockHeight);
+    drawSportSignature(ctx, palette, data.sportType, centerX, signatureY, signatureScale);
+    ctx.restore();
+  }
 }
 
 function cleanMetricLabel(label: string): string {
@@ -558,13 +598,12 @@ function cleanMetricLabel(label: string): string {
     .toUpperCase();
 }
 
-/** Stacks each selected metric on its own row, Strava-style, all at one uniform size. */
-function drawWorkoutMetricColumn(ctx: CanvasRenderingContext2D, palette: CanvasPalette, metrics: StoryMetric[], startY: number, blockHeight: number) {
+/** Stacks each selected metric on its own row with unit below the value. */
+function drawWorkoutMetricColumn(ctx: CanvasRenderingContext2D, palette: CanvasPalette, metrics: StoryMetric[], centerX: number, startY: number, blockHeight: number) {
   if (metrics.length === 0) return;
-  const centerX = STORY_WIDTH / 2;
   const valueSize = 104;
   const labelSize = 30;
-  const unitSize = 36;
+  const unitSize = 28;
 
   ctx.save();
   ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
@@ -583,20 +622,55 @@ function drawWorkoutMetricColumn(ctx: CanvasRenderingContext2D, palette: CanvasP
     if (metric.unit) {
       ctx.fillStyle = palette.accent;
       ctx.font = `600 ${unitSize}px ${STORY_FONT}`;
-      ctx.fillText(metric.unit, centerX, blockTop + 216);
+      ctx.fillText(metric.unit, centerX, blockTop + 200);
     }
   });
   ctx.restore();
 }
 
+/** Draws metrics in a horizontal row (side by side columns). */
+function drawWorkoutMetricRow(ctx: CanvasRenderingContext2D, palette: CanvasPalette, metrics: StoryMetric[], centerX: number, canvasWidth: number, y: number) {
+  if (metrics.length === 0) return;
+  const totalWidth = Math.min(1300, canvasWidth - 160);
+  const left = centerX - totalWidth / 2;
+  const colWidth = totalWidth / metrics.length;
+  const valueSize = metrics.length <= 2 ? 80 : 64;
+  const unitSize = metrics.length <= 2 ? 22 : 18;
+  const labelSize = 26;
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
+  ctx.shadowBlur = 12;
+  ctx.shadowOffsetY = 2;
+
+  metrics.forEach((metric, index) => {
+    const colCenter = left + colWidth * index + colWidth / 2;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = palette.faint;
+    ctx.font = `600 ${labelSize}px ${STORY_FONT}`;
+    ctx.fillText(cleanMetricLabel(metric.label), colCenter, y);
+    ctx.fillStyle = palette.text;
+    ctx.font = `700 ${valueSize}px ${STORY_FONT}`;
+    ctx.fillText(metric.value, colCenter, y + 72);
+    if (metric.unit) {
+      ctx.fillStyle = palette.accent;
+      ctx.font = `600 ${unitSize}px ${STORY_FONT}`;
+      ctx.fillText(metric.unit, colCenter, y + 108);
+    }
+  });
+  ctx.restore();
+}
+
+
+
 function drawRecoveryStory(
   ctx: CanvasRenderingContext2D,
   palette: CanvasPalette,
-  data: { score: number; label: string; sleepMinutes: number | null; strainScore: number | null; dateText: string },
+  data: { width: number; height: number; score: number; label: string; sleepMinutes: number | null; strainScore: number | null; dateText: string },
 ) {
   drawStoryHeader(ctx, palette, 'Recovery', data.dateText);
 
-  const centerX = STORY_WIDTH / 2;
+  const centerX = data.width / 2;
   const centerY = 690;
   const radius = 210;
   ctx.lineWidth = 18;
@@ -626,8 +700,8 @@ function drawRecoveryStory(
   const metrics: StoryMetric[] = [];
   if (data.sleepMinutes !== null) metrics.push({ label: 'SLEEP', value: formatSleep(data.sleepMinutes) });
   if (data.strainScore !== null) metrics.push({ label: 'STRAIN', value: data.strainScore.toFixed(1), unit: '/21' });
-  drawMetricRow(ctx, palette, metrics, 1200);
-  drawFooter(ctx, palette);
+  drawMetricRow(ctx, palette, metrics, centerX, 1200);
+  drawFooter(ctx, palette, centerX);
 }
 
 function drawStoryHeader(ctx: CanvasRenderingContext2D, palette: CanvasPalette, title: string, date: string) {
@@ -638,10 +712,10 @@ function drawStoryHeader(ctx: CanvasRenderingContext2D, palette: CanvasPalette, 
   ctx.fillText(date, 110, 275);
 }
 
-function drawMetricRow(ctx: CanvasRenderingContext2D, palette: CanvasPalette, metrics: StoryMetric[], y: number) {
+function drawMetricRow(ctx: CanvasRenderingContext2D, palette: CanvasPalette, metrics: StoryMetric[], centerX: number, y: number) {
   if (metrics.length === 0) return;
-  const left = 110;
   const width = 860;
+  const left = centerX - width / 2;
   const columnWidth = width / metrics.length;
 
   metrics.forEach((metric, index) => {
@@ -662,23 +736,22 @@ function drawMetricRow(ctx: CanvasRenderingContext2D, palette: CanvasPalette, me
   });
 }
 
-function drawFooter(ctx: CanvasRenderingContext2D, palette: CanvasPalette) {
+function drawFooter(ctx: CanvasRenderingContext2D, palette: CanvasPalette, centerX: number) {
   const y = 1680;
   ctx.textAlign = 'center';
   ctx.fillStyle = palette.muted;
   ctx.font = `600 28px ${STORY_FONT}`;
-  ctx.fillText('RUNMATE', STORY_WIDTH / 2, y);
+  ctx.fillText('RUNMATE', centerX, y);
 }
 
 function drawSportSignature(
   ctx: CanvasRenderingContext2D,
   palette: CanvasPalette,
   sportType: SportType,
-  centerY = 1510,
+  centerX: number,
+  centerY: number,
   scale = 1,
 ) {
-  const centerX = STORY_WIDTH / 2;
-
   ctx.save();
   ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
   ctx.shadowBlur = 12;
