@@ -55,16 +55,21 @@ const RaceGoalPage: React.FC = () => {
   const load = useCallback(async () => {
     setError(null);
     setHistoryError(null);
-    const [result, completed, workoutHistory] = await Promise.all([loadActiveRaceGoalAndPlan(), loadRaceResults(20), loadHistoryItems(['workout', 'strength'])]);
-    if (result.ok) {
-      const summary = result.goal ? buildMobileRaceSummary(result.goal, result.plan, todayBangkokDateKey()) : null;
-      setAdherence(summary && workoutHistory.ok ? buildTrainingAdherence(summary.workouts, dedupeWorkoutItems(workoutHistory.items), todayBangkokDateKey()) : null);
-    } else {
-      setError(result.error);
+    try {
+      const [result, completed, workoutHistory] = await Promise.all([loadActiveRaceGoalAndPlan(), loadRaceResults(20), loadHistoryItems(['workout', 'strength'])]);
+      if (result.ok) {
+        const summary = result.goal ? buildMobileRaceSummary(result.goal, result.plan, todayBangkokDateKey()) : null;
+        setAdherence(summary && workoutHistory.ok ? buildTrainingAdherence(summary.workouts, dedupeWorkoutItems(workoutHistory.items), todayBangkokDateKey()) : null);
+      } else {
+        setError(result.error);
+      }
+      if (completed.ok) setRaceResults(completed.results);
+      else setHistoryError(completed.error);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Could Not Load Your Race Goal.');
+    } finally {
+      setLoading(false);
     }
-    if (completed.ok) setRaceResults(completed.results);
-    else setHistoryError(completed.error);
-    setLoading(false);
   }, []);
 
   useEffect(() => { void load(); }, [load]);

@@ -24,21 +24,27 @@ const WorkoutDetailPage: React.FC = () => {
   const [restingHr, setRestingHr] = useState<number | null>(null);
 
   const load = useCallback(async () => {
-    const [result, profileResult] = await Promise.all([loadHistoryItems(['workout', 'strength', 'sleep']), loadProfileFromSupabase()]);
-    if (!result.ok) setError(result.error);
-    else {
-      const sleepRestingHr = result.items
-        .filter((record) => record.type === 'sleep')
-        .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
-        .slice(0, 14)
-        .map((record) => numberValue(objectValue(objectValue(record.data).extracted).restingHR));
-      setRestingHr(restingHeartRateBaseline(sleepRestingHr) ?? (profileResult.ok ? profileResult.profile?.normalRestingHr ?? null : null));
-      const requestedId = decodeURIComponent(id);
-      const match = dedupeWorkoutItems(result.items.filter((record) => record.type === 'workout' || record.type === 'strength')).find((record) => record.id === requestedId || record.sourceRecordIds?.includes(requestedId));
-      if (match) setItem(match);
-      else setError('This workout record could not be found.');
+    setError(null);
+    try {
+      const [result, profileResult] = await Promise.all([loadHistoryItems(['workout', 'strength', 'sleep']), loadProfileFromSupabase()]);
+      if (!result.ok) setError(result.error);
+      else {
+        const sleepRestingHr = result.items
+          .filter((record) => record.type === 'sleep')
+          .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+          .slice(0, 14)
+          .map((record) => numberValue(objectValue(objectValue(record.data).extracted).restingHR));
+        setRestingHr(restingHeartRateBaseline(sleepRestingHr) ?? (profileResult.ok ? profileResult.profile?.normalRestingHr ?? null : null));
+        const requestedId = decodeURIComponent(id);
+        const match = dedupeWorkoutItems(result.items.filter((record) => record.type === 'workout' || record.type === 'strength')).find((record) => record.id === requestedId || record.sourceRecordIds?.includes(requestedId));
+        if (match) setItem(match);
+        else setError('This workout record could not be found.');
+      }
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Could Not Load This Workout.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [id]);
 
   useEffect(() => { void load(); }, [load]);

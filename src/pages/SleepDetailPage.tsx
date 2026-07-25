@@ -18,6 +18,7 @@ const SleepDetailPage: React.FC = () => {
   const initialDate = routeParams.get('date');
   const backPath = routeParams.get('from') === 'activity' ? '/tabs/activity' : '/tabs/recovery';
   const context = useCoachContextStore((state) => state.context);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(initialDate);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -28,8 +29,10 @@ const SleepDetailPage: React.FC = () => {
     setNightLoading(false);
   }, [initialDate]);
   const load = useCallback(async () => {
+    setError(null);
     try { await buildCoachContextFromSupabase(); }
     catch (loadError) { console.error('[sleep-detail] load failed', loadError); setError('Unable to load sleep details.'); }
+    finally { setLoading(false); }
   }, []);
   useEffect(() => { void load(); }, [load]);
 
@@ -76,9 +79,9 @@ const SleepDetailPage: React.FC = () => {
       </IonHeader>
       <IonContent fullscreen className="sleep-detail-content">
         <main className="sleep-detail-shell">
-          {!context && !error && <PageDataSkeleton variant="detail" label="Loading Sleep Details" />}
-          {error && <PageState kind="error" title="Sleep Details Are Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="sleep-detail-loading" />}
-          {context && recovery && diagnostics && (
+          {loading && <PageDataSkeleton variant="detail" label="Loading Sleep Details" />}
+          {!loading && error && <PageState kind="error" title="Sleep Details Are Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="sleep-detail-loading" />}
+          {!loading && !error && context && recovery && diagnostics && (
             <>
               {selectedNight && (
                 <nav className={`sleep-date-navigator${!isLatestNight ? ' has-current' : ''}`} aria-label="Choose sleep night">

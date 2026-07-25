@@ -124,7 +124,12 @@ export async function ensureSupabaseProfileSession() {
   return { ok: true as const, supabase, userId: data.session.user.id };
 }
 
+// Guards against two concurrent loadProfileFromSupabase() calls letting the
+// slower/older one resolve last and overwrite userProfileStore with stale data.
+let latestProfileRequestId = 0;
+
 export async function loadProfileFromSupabase() {
+  const requestId = ++latestProfileRequestId;
   const session = await ensureSupabaseProfileSession();
   if (!session.ok) return session;
 
@@ -145,13 +150,13 @@ export async function loadProfileFromSupabase() {
   }
   if (!data) {
     logSupabaseSyncSuccess({ table: "profiles", operation: "select", userId: session.userId, count: 0 });
-    useUserProfileStore.getState().setProfile(null);
+    if (requestId === latestProfileRequestId) useUserProfileStore.getState().setProfile(null);
     return { ok: true as const, profile: null, userId: session.userId };
   }
 
   const profile = rowToProfile(data as ProfileRow);
   logSupabaseSyncSuccess({ table: "profiles", operation: "select", userId: session.userId, count: 1 });
-  useUserProfileStore.getState().setProfile(profile);
+  if (requestId === latestProfileRequestId) useUserProfileStore.getState().setProfile(profile);
   return { ok: true as const, profile, userId: session.userId };
 }
 

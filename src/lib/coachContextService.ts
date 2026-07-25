@@ -17,6 +17,22 @@ let cachedRecoveryCoreContext: { value: CoachContext; loadedAt: number } | null 
 let cachedRecoveryPageContext: { value: CoachContext; loadedAt: number } | null = null;
 let coachContextRevision = 0;
 
+// buildCoachContextFromSupabase/buildRecoveryCoreContextFromSupabase/
+// buildRecoveryPageContextFromSupabase all resolve independently and all
+// write the same shared coachContextStore slot. Without this guard, a
+// slower older call (e.g. the full page context) could resolve after a
+// newer call (e.g. a fresh core-dial fetch) and clobber the store with a
+// stale/less-complete value. Only ever apply the result of the most
+// recently *started* call.
+let latestContextRequestId = 0;
+function nextContextRequestId(): number {
+  latestContextRequestId += 1;
+  return latestContextRequestId;
+}
+function applyContextIfLatest(requestId: number, value: CoachContext): void {
+  if (requestId === latestContextRequestId) useCoachContextStore.getState().setContext(value);
+}
+
 export function invalidateCoachContextCache(): void {
   cachedCoachContext = null;
   cachedRecoveryCoreContext = null;
@@ -37,10 +53,11 @@ export function buildCoachContextFromSupabase(options: { force?: boolean } = {})
   }
 
   const loadRevision = coachContextRevision;
+  const requestId = nextContextRequestId();
   activeCoachContextLoad = loadCoachContextFromSupabase()
     .then((value) => {
       if (loadRevision === coachContextRevision) cachedCoachContext = { value, loadedAt: Date.now() };
-      useCoachContextStore.getState().setContext(value);
+      applyContextIfLatest(requestId, value);
       void pushTodayPlanToWidget(value);
       return value;
     })
@@ -60,6 +77,7 @@ export async function buildRecoveryCoreContextFromSupabase(options: { force?: bo
   }
 
   const loadRevision = coachContextRevision;
+  const requestId = nextContextRequestId();
   try {
     const [historyResult, profileResult] = await Promise.all([
       loadHistoryItems(
@@ -77,7 +95,7 @@ export async function buildRecoveryCoreContextFromSupabase(options: { force?: bo
       raceResults: [],
     });
     if (loadRevision === coachContextRevision) cachedRecoveryCoreContext = { value, loadedAt: Date.now() };
-    useCoachContextStore.getState().setContext(value);
+    applyContextIfLatest(requestId, value);
     return value;
   } catch {
     if (cachedRecoveryCoreContext) return cachedRecoveryCoreContext.value;
@@ -100,6 +118,7 @@ export async function buildRecoveryPageContextFromSupabase(options: { force?: bo
   }
 
   const loadRevision = coachContextRevision;
+  const requestId = nextContextRequestId();
   try {
     const [recentResult, durableResult, profileResult, raceResult, completedRaceResult] = await Promise.all([
       loadHistoryItems(
@@ -122,7 +141,7 @@ export async function buildRecoveryPageContextFromSupabase(options: { force?: bo
       raceResults: completedRaceResult.ok ? completedRaceResult.results : [],
     });
     if (loadRevision === coachContextRevision) cachedRecoveryPageContext = { value, loadedAt: Date.now() };
-    useCoachContextStore.getState().setContext(value);
+    applyContextIfLatest(requestId, value);
     return value;
   } catch {
     if (cachedRecoveryPageContext) return cachedRecoveryPageContext.value;

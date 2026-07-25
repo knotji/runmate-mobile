@@ -38,10 +38,16 @@ type TrainingPlanRow = {
   updated_at: string | null;
 };
 
+// Guards against two concurrent loadActiveRaceGoalAndPlan() calls (e.g. two
+// pages both fetching around the same time) letting the slower/older one
+// resolve last and overwrite racePlanStore with stale data.
+let latestRacePlanRequestId = 0;
+
 export async function loadActiveRaceGoalAndPlan(): Promise<
   | { ok: true; goal: RaceGoal | null; plan: RacePlan | null }
   | { ok: false; error: string }
 > {
+  const requestId = ++latestRacePlanRequestId;
   const session = await ensureSupabaseProfileSession();
   if (!session.ok) return { ok: false, error: sessionMessage(session) };
 
@@ -62,7 +68,7 @@ export async function loadActiveRaceGoalAndPlan(): Promise<
 
   if (!goalRow) {
     logSupabaseSyncSuccess({ table: "race_goals", operation: "select", userId: session.userId, count: 0 });
-    useRacePlanStore.getState().setRacePlan(null, null);
+    if (requestId === latestRacePlanRequestId) useRacePlanStore.getState().setRacePlan(null, null);
     return { ok: true, goal: null, plan: null };
   }
   logSupabaseSyncSuccess({ table: "race_goals", operation: "select", userId: session.userId, count: 1 });
@@ -85,7 +91,7 @@ export async function loadActiveRaceGoalAndPlan(): Promise<
   logSupabaseSyncSuccess({ table: "training_plans", operation: "select", userId: session.userId, count: planRow ? 1 : 0 });
 
   const plan = planRowToPlan(planRow as TrainingPlanRow | null);
-  useRacePlanStore.getState().setRacePlan(goal, plan);
+  if (requestId === latestRacePlanRequestId) useRacePlanStore.getState().setRacePlan(goal, plan);
   return { ok: true, goal, plan };
 }
 
