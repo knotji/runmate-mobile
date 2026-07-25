@@ -275,7 +275,7 @@ const ActivityPage: React.FC = () => {
       <IonModal className="history-date-modal" isOpen={calendarOpen} onDidDismiss={() => setCalendarOpen(false)}>
         {(archiveLoading || archiveError) && (
           <div className={archiveError ? 'history-archive-status is-error' : 'history-archive-status'} role="status">
-            {archiveLoading ? <><IonSpinner name="crescent" />Loading Older Datesâ€¦</> : <><span>{archiveError}</span><button type="button" onClick={() => void loadArchive()}>Retry</button></>}
+            {archiveLoading ? <><IonSpinner name="crescent" />Loading Older Dates...</> : <><span>{archiveError}</span><button type="button" onClick={() => void loadArchive()}>Retry</button></>}
           </div>
         )}
         <IonDatetime
