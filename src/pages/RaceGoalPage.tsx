@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   IonButton,
@@ -6,7 +6,6 @@ import {
   IonContent,
   IonHeader,
   IonIcon,
-  IonModal,
   IonPage,
   IonRefresher,
   IonRefresherContent,
@@ -15,7 +14,7 @@ import {
   IonToolbar,
   type RefresherEventDetail,
 } from '@ionic/react';
-import { arrowBackOutline, calendarClearOutline, chevronDownOutline, chevronForwardOutline, closeOutline, flagOutline } from 'ionicons/icons';
+import { arrowBackOutline, calendarClearOutline, chevronDownOutline, chevronForwardOutline, flagOutline } from 'ionicons/icons';
 import { todayBangkokDateKey } from '@/lib/date';
 import { buildMobileRaceSummary, formatRaceWorkoutMetric, isRaceWorkoutToday } from '@/lib/mobileRaceGoal';
 import { loadActiveRaceGoalAndPlan, saveRaceGoalAndPlan } from '@/lib/raceStorage';
@@ -23,17 +22,28 @@ import { loadRaceResults } from '@/lib/raceResults';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { useRacePlanStore } from '@/lib/race/racePlanStore';
 import { generateRacePlan } from '@/lib/racePlanGeneration';
-import { translatePlanFieldToEnglish } from '@/lib/todayTrainingPlan';
 import { applyProfilePreferencesToRaceGoal } from '@/lib/raceProfilePreferences';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
 import { buildTrainingAdherence, type TrainingAdherence } from '@/lib/trainingAdherence';
+import {
+  adherenceStatusDetail,
+  adherenceStatusLabel,
+  formatPlanUpdated,
+  formatRaceDate,
+  formatRaceResultDay,
+  formatRaceResultMonth,
+  raceResultLabel,
+  shortDay,
+} from '@/lib/raceGoalFormatting';
 import type { RaceResult, WeekWorkout } from '@/types/race';
 import type { UserProfile } from '@/types/profile';
 import RaceGoalEditor from '@/components/RaceGoalEditor';
+import { WorkoutPlanDetail } from '@/components/race/WorkoutPlanDetail';
 import './RaceGoalPage.css';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
+import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
 
 const RaceGoalPage: React.FC = () => {
   const history = useHistory();
@@ -49,30 +59,19 @@ const RaceGoalPage: React.FC = () => {
   const [selectedWorkout, setSelectedWorkout] = useState<WeekWorkout | null>(null);
   const [adherence, setAdherence] = useState<TrainingAdherence | null>(null);
   const [adherenceOpen, setAdherenceOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setError(null);
+  const { loading, error, setError, reload: load } = useAsyncLoad(async () => {
     setHistoryError(null);
-    try {
-      const [result, completed, workoutHistory] = await Promise.all([loadActiveRaceGoalAndPlan(), loadRaceResults(20), loadHistoryItems(['workout', 'strength'])]);
-      if (result.ok) {
-        const summary = result.goal ? buildMobileRaceSummary(result.goal, result.plan, todayBangkokDateKey()) : null;
-        setAdherence(summary && workoutHistory.ok ? buildTrainingAdherence(summary.workouts, dedupeWorkoutItems(workoutHistory.items), todayBangkokDateKey()) : null);
-      } else {
-        setError(result.error);
-      }
-      if (completed.ok) setRaceResults(completed.results);
-      else setHistoryError(completed.error);
-    } catch (failure) {
-      setError(failure instanceof Error ? failure.message : 'Could Not Load Your Race Goal.');
-    } finally {
-      setLoading(false);
+    const [result, completed, workoutHistory] = await Promise.all([loadActiveRaceGoalAndPlan(), loadRaceResults(20), loadHistoryItems(['workout', 'strength'])]);
+    if (result.ok) {
+      const summary = result.goal ? buildMobileRaceSummary(result.goal, result.plan, todayBangkokDateKey()) : null;
+      setAdherence(summary && workoutHistory.ok ? buildTrainingAdherence(summary.workouts, dedupeWorkoutItems(workoutHistory.items), todayBangkokDateKey()) : null);
+    } else {
+      setError(result.error);
     }
-  }, []);
-
-  useEffect(() => { void load(); }, [load]);
+    if (completed.ok) setRaceResults(completed.results);
+    else setHistoryError(completed.error);
+  }, 'Could Not Load Your Race Goal.');
 
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => {
     await load();
@@ -250,105 +249,8 @@ const RaceGoalPage: React.FC = () => {
   );
 };
 
-function WorkoutPlanDetail({ workout, onClose }: { workout: WeekWorkout | null; onClose: () => void }) {
-  const metrics = workout ? [
-    workout.distanceKm != null && workout.distanceKm > 0 ? { label: 'Distance', value: `${workout.distanceKm} km` } : null,
-    workout.durationMin != null && workout.durationMin > 0 ? { label: 'Duration', value: `${workout.durationMin} min` } : null,
-    workout.targetPace && !/^n\/?a$/i.test(workout.targetPace.trim()) ? { label: 'Target Pace', value: translatePlanFieldToEnglish(workout.targetPace) } : null,
-    workout.targetHR && !/^n\/?a$/i.test(workout.targetHR.trim()) ? { label: 'Target Effort', value: translatePlanFieldToEnglish(workout.targetHR) } : null,
-  ].filter((metric): metric is { label: string; value: string } => Boolean(metric)) : [];
-
-  return (
-    <IonModal isOpen={Boolean(workout)} onDidDismiss={onClose} className="workout-plan-modal">
-      <IonHeader className="workout-plan-header">
-        <IonToolbar>
-          <IonTitle>Session Details</IonTitle>
-          <IonButton slot="end" fill="clear" aria-label="Close Session Details" onClick={onClose}><IonIcon slot="icon-only" icon={closeOutline} /></IonButton>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent className="workout-plan-content">
-        {workout && <main className="workout-plan-shell">
-          <header><p>{shortDay(workout.day)} · TRAINING PLAN</p><h1>{workout.workoutType}</h1><span>{formatRaceWorkoutMetric(workout)}</span></header>
-          {metrics.length > 0 && <section className="workout-plan-metrics">{metrics.map((metric) => <div key={metric.label}><span>{metric.label}</span><strong>{metric.value}</strong></div>)}</section>}
-          <section className="workout-plan-guidance">
-            <p>COACH GUIDANCE</p>
-            <h2>How To Approach It</h2>
-            <div><strong>Session</strong><span>{workout.description || 'Follow the planned session at a comfortable, controlled effort.'}</span></div>
-            {workout.purpose && <div><strong>Why It Matters</strong><span>{workout.purpose}</span></div>}
-            {workout.adjustment && <div><strong>If You Need To Adjust</strong><span>{workout.adjustment}</span></div>}
-          </section>
-        </main>}
-      </IonContent>
-    </IonModal>
-  );
-}
-
 function RaceMetric({ label, value }: { label: string; value: string }) {
   return <div className="race-metric"><span>{label}</span><strong>{value}</strong></div>;
-}
-
-function adherenceStatusLabel(status: TrainingAdherence['days'][number]['status']): string {
-  return ({ completed: 'Completed', modified: 'Adjusted', missed: 'Missed', upcoming: 'Upcoming', recovery: 'Support' })[status];
-}
-
-function adherenceStatusDetail(status: TrainingAdherence['days'][number]['status']): string {
-  if (status === 'missed') return 'No workout was logged for this day.';
-  if (status === 'recovery') return 'Not Counted Toward Adherence';
-  if (status === 'upcoming') return '';
-  return 'Matched to the planned session.';
-}
-
-function formatRaceDate(value: string): string {
-  const date = new Date(`${value}T12:00:00+07:00`);
-  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Bangkok' }).format(date);
-}
-
-function shortDay(value: string): string {
-  const thaiDays: Record<string, string> = {
-    'อาทิตย์': 'SUN', 'วันอาทิตย์': 'SUN',
-    'จันทร์': 'MON', 'วันจันทร์': 'MON',
-    'อังคาร': 'TUE', 'วันอังคาร': 'TUE',
-    'พุธ': 'WED', 'วันพุธ': 'WED',
-    'พฤหัสบดี': 'THU', 'วันพฤหัสบดี': 'THU',
-    'ศุกร์': 'FRI', 'วันศุกร์': 'FRI',
-    'เสาร์': 'SAT', 'วันเสาร์': 'SAT',
-  };
-  const trimmed = value.trim();
-  if (thaiDays[trimmed]) return thaiDays[trimmed];
-  const normalized = trimmed.slice(0, 3);
-  return normalized ? normalized.toUpperCase() : 'DAY';
-}
-
-function formatRaceResultDay(value: string | null): string {
-  const date = parseRaceDate(value);
-  return date ? String(date.getDate()).padStart(2, '0') : '—';
-}
-
-function formatRaceResultMonth(value: string | null): string {
-  const date = parseRaceDate(value);
-  return date ? new Intl.DateTimeFormat('en-US', { month: 'short', year: '2-digit', timeZone: 'Asia/Bangkok' }).format(date) : 'No Date';
-}
-
-function parseRaceDate(value: string | null): Date | null {
-  if (!value) return null;
-  const date = new Date(`${value.slice(0, 10)}T12:00:00+07:00`);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function raceResultLabel(result: RaceResult['goalResult']): string {
-  if (result === 'achieved') return 'Goal Achieved';
-  if (result === 'missed') return 'Goal Missed';
-  if (result === 'completed') return 'Completed';
-  return 'Logged';
-}
-
-function formatPlanUpdated(value: string | null | undefined): string {
-  if (!value) return 'Update Date Unavailable';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Update Date Unavailable';
-  const dateKey = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
-  if (dateKey === todayBangkokDateKey()) return 'Updated Today';
-  return `Updated ${new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Bangkok' }).format(date)}`;
 }
 
 export default RaceGoalPage;
