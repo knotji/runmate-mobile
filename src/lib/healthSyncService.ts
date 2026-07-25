@@ -3,6 +3,8 @@ import { syncSamsungSleep, type SamsungSleepSyncResult } from '@/lib/samsungSlee
 import { syncSamsungWeight, type SamsungWeightSyncResult } from '@/lib/samsungProfileSync';
 import { syncSamsungWorkouts, type SamsungWorkoutSyncResult } from '@/lib/samsungWorkoutSync';
 import { syncSamsungBody, type SamsungBodySyncResult } from '@/lib/samsungBodySync';
+import { invalidateCoachContextCache } from '@/lib/coachContextService';
+import { healthSyncStore } from '@/lib/health/healthSyncStore';
 
 export const TODAY_SYNC_COOLDOWN_MS = 3 * 60_000;
 export const TODAY_SYNC_STORAGE_KEY = 'runmate:today-health-last-completed-at';
@@ -49,11 +51,20 @@ export function syncTodayHealth(force = false): Promise<TodayHealthSyncResult> {
     return Promise.resolve({ performed: false, changed: false, sleep: null, workout: null });
   }
 
+  healthSyncStore.startSync();
   activeTodaySync = Promise.all([syncSamsungSleep('today'), syncSamsungWorkouts('today')])
     .then(([sleep, workout]) => {
       lastCompletedAt = Date.now();
       persistTodaySyncAt(lastCompletedAt);
-      return { performed: true, changed: hasHealthChanges(sleep, workout), sleep, workout };
+      invalidateCoachContextCache();
+      const changed = hasHealthChanges(sleep, workout);
+      const detail = { sleep, workout, changed };
+      healthSyncStore.dispatchSyncCompleted(detail);
+      return { performed: true, changed, sleep, workout };
+    })
+    .catch((error) => {
+      healthSyncStore.setState({ isSyncing: false });
+      throw error;
     })
     .finally(() => { activeTodaySync = null; });
   return activeTodaySync;
@@ -62,19 +73,30 @@ export function syncTodayHealth(force = false): Promise<TodayHealthSyncResult> {
 /** Syncs the user-requested Health Connect history window plus the latest weight. */
 export function syncHealthHistory(): Promise<HealthHistorySyncResult> {
   if (activeHistorySync) return activeHistorySync;
+  healthSyncStore.startSync();
   activeHistorySync = Promise.all([
     syncSamsungSleep(HEALTH_HISTORY_LOOKBACK_DAYS),
     syncSamsungWorkouts(HEALTH_HISTORY_LOOKBACK_DAYS),
     syncSamsungWeight(),
     syncSamsungBody(HEALTH_HISTORY_LOOKBACK_DAYS),
   ])
-    .then(([sleep, workout, weight, body]) => ({
-      changed: hasHealthChanges(sleep, workout),
-      sleep,
-      workout,
-      weight,
-      body,
-    }))
+    .then(([sleep, workout, weight, body]) => {
+      invalidateCoachContextCache();
+      const changed = hasHealthChanges(sleep, workout);
+      const detail = { sleep, workout, weight, body, changed };
+      healthSyncStore.dispatchSyncCompleted(detail);
+      return {
+        changed,
+        sleep,
+        workout,
+        weight,
+        body,
+      };
+    })
+    .catch((error) => {
+      healthSyncStore.setState({ isSyncing: false });
+      throw error;
+    })
     .finally(() => { activeHistorySync = null; });
   return activeHistorySync;
 }

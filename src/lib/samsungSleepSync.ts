@@ -81,7 +81,7 @@ async function runSamsungSleepSync(lookbackDays: number | 'today'): Promise<Sams
       ? { samples: preparedSleep }
       : await Health.readSamples({ dataType: 'sleep', startDate, endDate, ascending: true, limit: 100 });
     const signals = await readAuthorizedSignals(authorization.readAuthorized, startDate, endDate, usePrepared ? prepared : null);
-    const samsungSamples = mergeAdjacentSleepSamples(result.samples.filter((sample) => sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID));
+    const samsungSamples = mergeAdjacentSleepSamples(result.samples.filter((sample) => isSamsungHealthSource(sample.sourceId)));
     const mappedItems: Array<LocalHistoryItem | null> = [];
     // Query high-volume HR records per Sleep Window. A single 30-day read can
     // exceed Health Connect's page limit and silently omit the latest nights.
@@ -89,7 +89,7 @@ async function runSamsungSleepSync(lookbackDays: number | 'today'): Promise<Sams
       const batch = await Promise.all(samsungSamples.slice(index, index + 4).map(async (sample) => {
         const heartRate = usePrepared
           ? inSleepWindow(prepared?.heartRate?.samples ?? [], Date.parse(sample.startDate), Date.parse(sample.endDate))
-              .filter((point) => point.sourceId === SAMSUNG_HEALTH_SOURCE_ID)
+              .filter((point) => isSamsungHealthSource(point.sourceId))
           : await readSleepHeartRate(authorization.readAuthorized, sample);
         return mapSamsungSleepSample(sample, { ...signals, heartRate });
       }));
@@ -268,8 +268,19 @@ function combineSleepSamples(first: HealthSample, second: HealthSample): HealthS
  * longest valid Samsung record from the most recent wake date, rather than a
  * shorter segment that merely ended later.
  */
+export function isSamsungHealthSource(sourceId: string | undefined): boolean {
+  if (!sourceId) return true;
+  const lower = sourceId.toLowerCase();
+  return lower === SAMSUNG_HEALTH_SOURCE_ID
+    || lower.includes('shealth')
+    || lower.includes('samsung')
+    || lower.includes('sec.android')
+    || lower.includes('healthdata')
+    || lower.includes('health.connect');
+}
+
 export function selectLatestCanonicalSamsungSleepSample(samples: HealthSample[]): HealthSample | null {
-  const candidates = mergeAdjacentSleepSamples(samples.filter((sample) => sample.dataType === 'sleep' && sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID))
+  const candidates = mergeAdjacentSleepSamples(samples.filter((sample) => sample.dataType === 'sleep' && isSamsungHealthSource(sample.sourceId)))
     .map((sample) => ({
       sample,
       dateKey: getBangkokDateKey(sample.endDate),
@@ -293,9 +304,9 @@ async function readAuthorizedSignals(
   const read = async (dataType: typeof SIGNAL_TYPES[number]) => {
     if (!authorized.includes(dataType)) return [];
     const preparedSamples = prepared?.[dataType]?.samples;
-    if (preparedSamples) return preparedSamples.filter((sample) => sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID);
+    if (preparedSamples) return preparedSamples.filter((sample) => isSamsungHealthSource(sample.sourceId));
     const result = await Health.readSamples({ dataType, startDate, endDate, ascending: true, limit: 500 });
-    return result.samples.filter((sample) => sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID);
+    return result.samples.filter((sample) => isSamsungHealthSource(sample.sourceId));
   };
   const [heartRateVariability, restingHeartRate, respiratoryRate] = await Promise.all([
     read('heartRateVariability'),
@@ -315,7 +326,7 @@ async function readSleepHeartRate(authorized: string[], sleep: HealthSample): Pr
       ascending: true,
       limit: 2000,
     });
-    return result.samples.filter((sample) => sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID);
+    return result.samples.filter((sample) => isSamsungHealthSource(sample.sourceId));
   } catch (error) {
     console.warn('[sleep-sync] Sleep-window heart rate read failed', error);
     return [];

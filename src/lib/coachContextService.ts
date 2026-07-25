@@ -5,6 +5,7 @@ import { loadRaceResults } from '@/lib/raceResults';
 import { loadActiveRaceGoalAndPlan } from '@/lib/raceStorage';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { pushTodayPlanToWidget } from '@/lib/todayPlanWidget';
+import { coachContextStore } from '@/lib/context/coachContextStore';
 
 const COACH_CONTEXT_CACHE_MS = 30_000;
 export const RECOVERY_CONTEXT_LOOKBACK_DAYS = 45;
@@ -21,6 +22,7 @@ export function invalidateCoachContextCache(): void {
   cachedRecoveryCoreContext = null;
   cachedRecoveryPageContext = null;
   coachContextRevision += 1;
+  coachContextStore.invalidate();
 }
 
 export function buildCoachContextFromSupabase(options: { force?: boolean } = {}): Promise<CoachContext> {
@@ -38,6 +40,7 @@ export function buildCoachContextFromSupabase(options: { force?: boolean } = {})
   activeCoachContextLoad = loadCoachContextFromSupabase()
     .then((value) => {
       if (loadRevision === coachContextRevision) cachedCoachContext = { value, loadedAt: Date.now() };
+      coachContextStore.setContext(value);
       void pushTodayPlanToWidget(value);
       return value;
     })
@@ -74,6 +77,7 @@ export async function buildRecoveryCoreContextFromSupabase(options: { force?: bo
       raceResults: [],
     });
     if (loadRevision === coachContextRevision) cachedRecoveryCoreContext = { value, loadedAt: Date.now() };
+    coachContextStore.setContext(value);
     return value;
   } catch {
     if (cachedRecoveryCoreContext) return cachedRecoveryCoreContext.value;
@@ -118,6 +122,7 @@ export async function buildRecoveryPageContextFromSupabase(options: { force?: bo
       raceResults: completedRaceResult.ok ? completedRaceResult.results : [],
     });
     if (loadRevision === coachContextRevision) cachedRecoveryPageContext = { value, loadedAt: Date.now() };
+    coachContextStore.setContext(value);
     return value;
   } catch {
     if (cachedRecoveryPageContext) return cachedRecoveryPageContext.value;

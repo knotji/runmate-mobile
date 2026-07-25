@@ -20,7 +20,10 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules/@ionic') || id.includes('node_modules/ionicons')) {
+          if (id.includes('node_modules/ionicons')) {
+            return 'ionicons-vendor';
+          }
+          if (id.includes('node_modules/@ionic')) {
             return 'ionic-vendor';
           }
           if (id.includes('node_modules/@supabase')) {

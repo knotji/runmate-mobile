@@ -48,13 +48,13 @@ const RecoveryPage: React.FC = () => {
   const visibleRef = useRef(false);
   const syncTimerRef = useRef<number | null>(null);
 
-  const loadSecondaryRecovery = useCallback(async (showPlaceholder = false) => {
+  const loadSecondaryRecovery = useCallback(async (showPlaceholder = false, force = false) => {
     if (showPlaceholder) setSecondaryLoading(true);
     setSecondaryError(null);
     try {
       const nextContext = await measurePerformanceDiagnostic(
         'recovery_secondary',
-        () => buildRecoveryPageContextFromSupabase(),
+        () => buildRecoveryPageContextFromSupabase({ force }),
         () => ({ detail: showPlaceholder ? 'Foreground guidance load' : 'Background guidance refresh' }),
       );
       setContext(nextContext);
@@ -67,10 +67,10 @@ const RecoveryPage: React.FC = () => {
     }
   }, []);
 
-  const loadRecoveryCore = useCallback(async () => {
+  const loadRecoveryCore = useCallback(async (force = false) => {
     const nextContext = await measurePerformanceDiagnostic(
       'recovery_core',
-      () => buildRecoveryCoreContextFromSupabase(),
+      () => buildRecoveryCoreContextFromSupabase({ force }),
     );
     setContext(nextContext);
     setStartupRecovery(nextContext.recoverySystem);
@@ -80,11 +80,11 @@ const RecoveryPage: React.FC = () => {
     setLoading(false);
   }, []);
 
-  const loadRecovery = useCallback(async (showSecondaryPlaceholder = false) => {
+  const loadRecovery = useCallback(async (showSecondaryPlaceholder = false, force = false) => {
     setError(null);
     try {
-      await loadRecoveryCore();
-      await loadSecondaryRecovery(showSecondaryPlaceholder);
+      await loadRecoveryCore(force);
+      await loadSecondaryRecovery(showSecondaryPlaceholder, force);
     } catch (loadError) {
       console.error('[recovery] load failed', loadError);
       setError('Unable to load your latest metrics. Please try again.');
@@ -96,7 +96,7 @@ const RecoveryPage: React.FC = () => {
   useEffect(() => {
     const handleHealthSynced = () => {
       if (visibleRef.current) {
-        void loadRecovery(false);
+        void loadRecovery(false, true);
       }
     };
     window.addEventListener('runmate:health-synced', handleHealthSynced);
@@ -109,7 +109,7 @@ const RecoveryPage: React.FC = () => {
     setError(null);
     const healthSyncPromise = measurePerformanceDiagnostic(
       'health_sync',
-      () => syncTodayHealth(),
+      () => syncTodayHealth(true),
       (syncResult) => describeTodayHealthSyncPerformance(syncResult),
     ).catch((syncError) => {
       console.warn('[health-sync] Today sync failed before Recovery load', syncError);
@@ -121,8 +121,8 @@ const RecoveryPage: React.FC = () => {
     // interactive in < 200ms while Health Connect sync completes in background.
     setLoadingStage('calculating');
     try {
-      await loadRecoveryCore();
-      void loadSecondaryRecovery(forceContext);
+      await loadRecoveryCore(forceContext);
+      void loadSecondaryRecovery(forceContext, forceContext);
     } catch (loadError) {
       console.error('[recovery] initial core load failed', loadError);
       if (startupRecovery) {
@@ -139,7 +139,7 @@ const RecoveryPage: React.FC = () => {
       if (result?.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
       if (result?.workout?.error) console.warn('[workout-sync] Samsung Health sync failed', result.workout.error);
       if (result?.changed && visibleRef.current) {
-        void loadRecovery(false);
+        void loadRecovery(false, true);
       }
     });
   }, [loadRecoveryCore, loadSecondaryRecovery, startupRecovery, loadRecovery]);
@@ -165,7 +165,7 @@ const RecoveryPage: React.FC = () => {
         ).then((result) => {
           if (result.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
           if (result.workout?.error) console.warn('[workout-sync] Samsung Health sync failed', result.workout.error);
-          if (result.changed && visibleRef.current) void loadRecovery(false);
+          if (result.changed && visibleRef.current) void loadRecovery(false, true);
         });
       }, 1200);
     }
@@ -183,7 +183,7 @@ const RecoveryPage: React.FC = () => {
       () => syncTodayHealth(true),
       (syncResult) => describeTodayHealthSyncPerformance(syncResult, 'Pull to refresh'),
     );
-    await loadRecovery(false);
+    await loadRecovery(false, true);
     event.detail.complete();
   };
 

@@ -32,6 +32,7 @@ class TodayPlanWidgetConfigureActivity : AppCompatActivity() {
     private fun save() {
         val styleGroup = findViewById<RadioGroup>(R.id.configure_style_group)
         val style = when (styleGroup.checkedRadioButtonId) {
+            R.id.configure_style_system_dynamic -> WidgetBackgroundStyle.SYSTEM_DYNAMIC
             R.id.configure_style_frosted -> WidgetBackgroundStyle.FROSTED
             R.id.configure_style_solid -> WidgetBackgroundStyle.SOLID
             else -> WidgetBackgroundStyle.TRANSPARENT

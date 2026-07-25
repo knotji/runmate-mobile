@@ -30,7 +30,7 @@ export type HeartRateZoneBoundary = {
 
 const ZONE_LABELS = ['Restorative', 'Recovery', 'Endurance', 'Aerobic', 'Anaerobic', 'Peak'] as const;
 const ZONE_WEIGHTS = [0, 1, 2, 3, 4, 5] as const;
-const MAX_SAMPLE_INTERVAL_SECONDS = 120;
+const MAX_SAMPLE_INTERVAL_SECONDS = 300;
 
 /**
  * Personal Zone 0-5 bpm ranges from Max HR and Resting HR (Heart Rate

@@ -23,7 +23,7 @@ describe('buildTodayPlanWidgetData', () => {
     const data = buildTodayPlanWidgetData(context({ racePlan: null }));
     expect(data).toEqual({
       date: TODAY, workoutType: null, description: null, distanceKm: null, pace: null, status: 'no_plan',
-      recoveryScore: null, recoveryZone: null,
+      recoveryScore: null, recoveryZone: null, strainScore: null, sleepScore: null,
     });
   });
 

@@ -67,27 +67,58 @@ class TodayPlanWidgetProvider : AppWidgetProvider() {
         }
 
         private fun backgroundFor(style: WidgetBackgroundStyle): Int = when (style) {
+            WidgetBackgroundStyle.SYSTEM_DYNAMIC -> R.drawable.widget_bg_system_dynamic
             WidgetBackgroundStyle.FROSTED -> R.drawable.widget_bg_frosted
             WidgetBackgroundStyle.SOLID -> R.drawable.widget_bg_solid
             WidgetBackgroundStyle.TRANSPARENT -> android.R.color.transparent
         }
 
         private fun applyRecoveryBadge(views: RemoteViews, plan: JSONObject?, showRecovery: Boolean) {
-            val score = plan?.optInt("recoveryScore", -1)?.takeIf { it in 0..100 }
-            if (!showRecovery || score == null) {
+            if (!showRecovery || plan == null) {
                 views.setViewVisibility(R.id.widget_recovery_badge, View.GONE)
+                views.setViewVisibility(R.id.widget_strain_badge, View.GONE)
+                views.setViewVisibility(R.id.widget_sleep_badge, View.GONE)
                 return
             }
-            val zone = plan?.optString("recoveryZone")
-            val (drawable, textColor) = when (zone) {
-                "good" -> R.drawable.widget_badge_completed to 0xFF147A66.toInt()
-                "fair" -> R.drawable.widget_badge_different to 0xFF9B6729.toInt()
-                else -> R.drawable.widget_badge_low to 0xFFB5495A.toInt()
+
+            // 1. Recovery Score Dial
+            val recoveryScore = plan.optInt("recoveryScore", -1).takeIf { it in 0..100 }
+            if (recoveryScore != null) {
+                val zone = plan.optString("recoveryZone")
+                val (drawable, textColor) = when (zone) {
+                    "good" -> R.drawable.widget_badge_completed to 0xFF147A66.toInt()
+                    "fair" -> R.drawable.widget_badge_different to 0xFF9B6729.toInt()
+                    else -> R.drawable.widget_badge_low to 0xFFB5495A.toInt()
+                }
+                views.setViewVisibility(R.id.widget_recovery_badge, View.VISIBLE)
+                views.setTextViewText(R.id.widget_recovery_badge, "Rec $recoveryScore%")
+                views.setInt(R.id.widget_recovery_badge, "setBackgroundResource", drawable)
+                views.setTextColor(R.id.widget_recovery_badge, textColor)
+            } else {
+                views.setViewVisibility(R.id.widget_recovery_badge, View.GONE)
             }
-            views.setViewVisibility(R.id.widget_recovery_badge, View.VISIBLE)
-            views.setTextViewText(R.id.widget_recovery_badge, "Recovery $score")
-            views.setInt(R.id.widget_recovery_badge, "setBackgroundResource", drawable)
-            views.setTextColor(R.id.widget_recovery_badge, textColor)
+
+            // 2. Day Strain Dial
+            val strainScore = plan.optDouble("strainScore").takeIf { !it.isNaN() && it >= 0 }
+            if (strainScore != null) {
+                views.setViewVisibility(R.id.widget_strain_badge, View.VISIBLE)
+                views.setTextViewText(R.id.widget_strain_badge, "Str ${String.format(java.util.Locale.US, "%.1f", strainScore)}")
+                views.setInt(R.id.widget_strain_badge, "setBackgroundResource", R.drawable.widget_badge_pending)
+                views.setTextColor(R.id.widget_strain_badge, 0xFF176F9F.toInt())
+            } else {
+                views.setViewVisibility(R.id.widget_strain_badge, View.GONE)
+            }
+
+            // 3. Sleep Score Dial
+            val sleepScore = plan.optInt("sleepScore", -1).takeIf { it in 0..100 }
+            if (sleepScore != null) {
+                views.setViewVisibility(R.id.widget_sleep_badge, View.VISIBLE)
+                views.setTextViewText(R.id.widget_sleep_badge, "Slp $sleepScore%")
+                views.setInt(R.id.widget_sleep_badge, "setBackgroundResource", R.drawable.widget_badge_rest)
+                views.setTextColor(R.id.widget_sleep_badge, 0xFF5B6998.toInt())
+            } else {
+                views.setViewVisibility(R.id.widget_sleep_badge, View.GONE)
+            }
         }
 
         private fun workoutTypeLabel(plan: JSONObject?, status: String): String {

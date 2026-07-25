@@ -7,6 +7,7 @@ import {
 } from "@/lib/supabase/debug";
 import type { RaceGoal, RacePlan } from "@/types/race";
 import { todayBangkokDateKey } from "@/lib/date";
+import { racePlanStore } from "@/lib/race/racePlanStore";
 
 type RaceGoalRow = {
   id: string;
@@ -58,8 +59,10 @@ export async function loadActiveRaceGoalAndPlan(): Promise<
     logSupabaseSyncError({ table: "race_goals", operation: "select", userId: session.userId, error: goalError });
     return { ok: false, error: friendlySupabaseError(goalError) };
   }
+
   if (!goalRow) {
     logSupabaseSyncSuccess({ table: "race_goals", operation: "select", userId: session.userId, count: 0 });
+    racePlanStore.setRacePlan(null, null);
     return { ok: true, goal: null, plan: null };
   }
   logSupabaseSyncSuccess({ table: "race_goals", operation: "select", userId: session.userId, count: 1 });
@@ -81,7 +84,9 @@ export async function loadActiveRaceGoalAndPlan(): Promise<
   }
   logSupabaseSyncSuccess({ table: "training_plans", operation: "select", userId: session.userId, count: planRow ? 1 : 0 });
 
-  return { ok: true, goal, plan: planRowToPlan(planRow as TrainingPlanRow | null) };
+  const plan = planRowToPlan(planRow as TrainingPlanRow | null);
+  racePlanStore.setRacePlan(goal, plan);
+  return { ok: true, goal, plan };
 }
 
 export async function saveRaceGoalAndPlan(goal: RaceGoal, plan: RacePlan): Promise<

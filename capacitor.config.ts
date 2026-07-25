@@ -4,6 +4,10 @@ const config: CapacitorConfig = {
   appId: 'com.runmate.mobile',
   appName: 'RunMate',
   webDir: 'dist',
+  server: {
+    androidScheme: 'https',
+    iosScheme: 'runmate'
+  },
   plugins: {
     LocalNotifications: {
       smallIcon: 'ic_stat_runmate',

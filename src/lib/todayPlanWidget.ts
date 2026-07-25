@@ -14,6 +14,8 @@ export type TodayPlanWidgetData = {
   status: TodayPlanWidgetStatus;
   recoveryScore: number | null;
   recoveryZone: TodayPlanWidgetRecoveryZone | null;
+  strainScore: number | null;
+  sleepScore: number | null;
 };
 
 interface TodayPlanWidgetNativePlugin {
@@ -23,13 +25,13 @@ interface TodayPlanWidgetNativePlugin {
 const TodayPlanWidget = registerPlugin<TodayPlanWidgetNativePlugin>('TodayPlanWidget');
 
 export function buildTodayPlanWidgetData(context: CoachContext): TodayPlanWidgetData {
-  const { recoveryScore, recoveryZone } = buildRecoveryFields(context);
+  const { recoveryScore, recoveryZone, strainScore, sleepScore } = buildRecoveryFields(context);
   const planned = getTodayPlannedWorkout(context);
   if (!planned) {
-    return { date: context.todayDate, workoutType: null, description: null, distanceKm: null, pace: null, status: 'no_plan', recoveryScore, recoveryZone };
+    return { date: context.todayDate, workoutType: null, description: null, distanceKm: null, pace: null, status: 'no_plan', recoveryScore, recoveryZone, strainScore, sleepScore };
   }
   if (isRestDayWorkout(planned)) {
-    return { date: context.todayDate, workoutType: 'Rest Day', description: null, distanceKm: null, pace: null, status: 'rest', recoveryScore, recoveryZone };
+    return { date: context.todayDate, workoutType: 'Rest Day', description: null, distanceKm: null, pace: null, status: 'rest', recoveryScore, recoveryZone, strainScore, sleepScore };
   }
 
   const status = getTodayTrainingPlanStatus(context, planned);
@@ -46,15 +48,28 @@ export function buildTodayPlanWidgetData(context: CoachContext): TodayPlanWidget
     status,
     recoveryScore,
     recoveryZone,
+    strainScore,
+    sleepScore,
   };
 }
 
-function buildRecoveryFields(context: CoachContext): { recoveryScore: number | null; recoveryZone: TodayPlanWidgetRecoveryZone | null } {
+function buildRecoveryFields(context: CoachContext): {
+  recoveryScore: number | null;
+  recoveryZone: TodayPlanWidgetRecoveryZone | null;
+  strainScore: number | null;
+  sleepScore: number | null;
+} {
   const recovery = context.recoverySystem;
   const scorable = recovery != null && (recovery.scoreState === 'scored' || recovery.scoreState === 'calibrating');
-  if (!scorable) return { recoveryScore: null, recoveryZone: null };
-  const zone: TodayPlanWidgetRecoveryZone = recovery.overallLabel === 'Low' ? 'low' : recovery.overallLabel === 'Fair' ? 'fair' : 'good';
-  return { recoveryScore: recovery.overallScore, recoveryZone: zone };
+  const recoveryScore = scorable ? recovery.overallScore : null;
+  const recoveryZone: TodayPlanWidgetRecoveryZone | null = scorable
+    ? (recovery.overallLabel === 'Low' ? 'low' : recovery.overallLabel === 'Fair' ? 'fair' : 'good')
+    : null;
+  const strainScore = recovery != null && typeof recovery.strain?.score === 'number' && Number.isFinite(recovery.strain.score)
+    ? Math.round(recovery.strain.score * 10) / 10
+    : null;
+  const sleepScore = context.latestSleepScore ?? (recovery != null && typeof recovery.sleepPerformance?.score === 'number' ? recovery.sleepPerformance.score : null);
+  return { recoveryScore, recoveryZone, strainScore, sleepScore };
 }
 
 /** Best-effort: keeps the Android home-screen widget in sync with today's plan. No-op off native Android. */

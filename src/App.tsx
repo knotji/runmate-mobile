@@ -19,8 +19,9 @@ import { AppBootScreen } from '@/components/AppBootScreen';
 import { RouteLoadingScreen } from '@/components/RouteLoadingScreen';
 import { NetworkStatusToast } from '@/components/NetworkStatusToast';
 import { loadMorePage } from '@/lib/morePageLoaders';
-import { notificationRouteFromUrl } from '@/lib/nativeNavigation';
+import { navigateToAppRoute, notificationRouteFromUrl, onAppNavigate } from '@/lib/nativeNavigation';
 import { clearRecoveryStartupSnapshot } from '@/lib/recoveryStartupCache';
+import { useHistory } from 'react-router-dom';
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -35,6 +36,16 @@ import '@ionic/react/css/display.css';
 import './theme/variables.css';
 
 setupIonicReact();
+
+const AppNavigationListener: React.FC = () => {
+  const history = useHistory();
+  useEffect(() => {
+    return onAppNavigate((route) => {
+      history.push(route);
+    });
+  }, [history]);
+  return null;
+};
 
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
 const MainTabs = lazy(() => import('@/components/MainTabs'));
@@ -105,7 +116,7 @@ const App: React.FC = () => {
     let stateListener: PluginListenerHandle | null = null;
     void LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
       const route = action.notification.extra?.route;
-      if (typeof route === 'string' && route.startsWith('/')) window.location.assign(route);
+      if (typeof route === 'string' && route.startsWith('/')) navigateToAppRoute(route);
     }).then((handle) => { listener = handle; });
     void CapacitorApp.addListener('appStateChange', ({ isActive }) => {
       if (isActive) {
@@ -128,7 +139,7 @@ const App: React.FC = () => {
       try {
         const notificationRoute = notificationRouteFromUrl(url);
         if (notificationRoute) {
-          window.location.assign(notificationRoute);
+          navigateToAppRoute(notificationRoute);
           return;
         }
         const completed = await completeNativeGoogleSignIn(url);
@@ -152,6 +163,7 @@ const App: React.FC = () => {
       {checkingSession && <AppBootScreen message="Checking Your Account" />}
       {!checkingSession && (
         <IonReactRouter>
+          <AppNavigationListener />
           <Suspense fallback={<RouteLoadingScreen />}>
             {/* The root outlet swaps the complete tab shell for standalone pages.
                 Animating that swap also moves/resizes the tab bar, which causes a

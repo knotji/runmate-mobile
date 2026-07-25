@@ -78,21 +78,61 @@
         android:orientation="vertical"
         android:gravity="end">
 
-        <TextView
-            android:id="@+id/widget_recovery_badge"
+        <LinearLayout
+            android:id="@+id/widget_dials_container"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="4dp"
-            android:background="@drawable/widget_badge_completed"
-            android:paddingLeft="9dp"
-            android:paddingRight="9dp"
-            android:paddingTop="5dp"
-            android:paddingBottom="5dp"
-            android:text=""
-            android:textColor="#FF147A66"
-            android:textSize="9sp"
-            android:textStyle="bold"
-            android:visibility="gone" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/widget_recovery_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="3dp"
+                android:background="@drawable/widget_badge_completed"
+                android:paddingLeft="7dp"
+                android:paddingRight="7dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:text="Rec 85%"
+                android:textColor="#FF147A66"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/widget_strain_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="3dp"
+                android:background="@drawable/widget_badge_different"
+                android:paddingLeft="7dp"
+                android:paddingRight="7dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:text="Str 11.4"
+                android:textColor="#FF9B6729"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/widget_sleep_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/widget_badge_rest"
+                android:paddingLeft="7dp"
+                android:paddingRight="7dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:text="Slp 92%"
+                android:textColor="#FF2474B2"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/widget_status_badge"

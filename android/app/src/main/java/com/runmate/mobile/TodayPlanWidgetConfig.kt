@@ -3,10 +3,23 @@ package com.runmate.mobile
 import android.content.Context
 
 internal enum class WidgetBackgroundStyle {
-    TRANSPARENT, FROSTED, SOLID;
+    SYSTEM_DYNAMIC, TRANSPARENT, FROSTED, SOLID;
 
     companion object {
-        fun fromName(name: String?): WidgetBackgroundStyle = entries.find { it.name == name } ?: TRANSPARENT
+        fun fromName(name: String?): WidgetBackgroundStyle {
+            if (name != null) {
+                return entries.find { it.name == name } ?: defaultStyle()
+            }
+            return defaultStyle()
+        }
+
+        fun defaultStyle(): WidgetBackgroundStyle {
+            return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                SYSTEM_DYNAMIC
+            } else {
+                FROSTED
+            }
+        }
     }
 }
 

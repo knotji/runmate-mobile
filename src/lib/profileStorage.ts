@@ -6,6 +6,7 @@ import {
   logSupabaseSyncSuccess,
 } from "@/lib/supabase/debug";
 import type { UserProfile } from "@/types/profile";
+import { userProfileStore } from "@/lib/profile/userProfileStore";
 
 type ProfileRow = {
   id: string;
@@ -77,7 +78,7 @@ type ProfileRow = {
   normal_sleep_score: number | null;
   normal_energy_score: number | null;
   normal_resting_hr: number | null;
-  normal_hrv: number | null; // numeric in DB (migration 012)
+  normal_hrv: number | null;
   recovery_rules: string | null;
   sleep_notes: string | null;
 
@@ -144,11 +145,13 @@ export async function loadProfileFromSupabase() {
   }
   if (!data) {
     logSupabaseSyncSuccess({ table: "profiles", operation: "select", userId: session.userId, count: 0 });
+    userProfileStore.setProfile(null);
     return { ok: true as const, profile: null, userId: session.userId };
   }
 
   const profile = rowToProfile(data as ProfileRow);
   logSupabaseSyncSuccess({ table: "profiles", operation: "select", userId: session.userId, count: 1 });
+  userProfileStore.setProfile(profile);
   return { ok: true as const, profile, userId: session.userId };
 }
 
@@ -170,6 +173,7 @@ export async function saveProfileToSupabase(profile: UserProfile) {
     };
   }
   logSupabaseSyncSuccess({ table: "profiles", operation: "upsert", userId: session.userId, count: 1 });
+  userProfileStore.setProfile(profile);
   return { ok: true as const, userId: session.userId };
 }
 

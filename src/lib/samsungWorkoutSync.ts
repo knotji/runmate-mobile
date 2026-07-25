@@ -132,7 +132,7 @@ export async function queryAllHealthConnectWorkouts(options: Omit<QueryWorkoutsO
 
 async function readWorkoutHeartRate(workout: Workout): Promise<HealthSample[]> {
   const result = await Health.readSamples({ dataType: 'heartRate', startDate: workout.startDate, endDate: workout.endDate, ascending: true, limit: 2000 });
-  return result.samples.filter((sample) => sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID);
+  return result.samples.filter((sample) => supportedWorkoutSource(sample.sourceId));
 }
 
 async function readWorkoutHeartRateWithPreparedFallback(
@@ -157,7 +157,7 @@ function selectWorkoutHeartRate(samples: HealthSample[], workout: Workout): Heal
   const end = Date.parse(workout.endDate);
   return samples.filter((sample) => {
     const at = Date.parse(sample.startDate);
-    return sample.sourceId === SAMSUNG_HEALTH_SOURCE_ID && Number.isFinite(at) && at >= start && at <= end;
+    return supportedWorkoutSource(sample.sourceId) && Number.isFinite(at) && at >= start && at <= end;
   });
 }
 
@@ -172,23 +172,30 @@ export function workoutHeartRateCoverage(samples: HealthSample[], workout: Pick<
   if (points.length < 2) return 0;
   let measuredMs = 0;
   for (let index = 0; index < points.length - 1; index += 1) {
-    measuredMs += Math.min(120_000, Math.max(0, points[index + 1] - points[index]));
+    measuredMs += Math.min(300_000, Math.max(0, points[index + 1] - points[index]));
   }
   return Math.min(100, Math.round((measuredMs / (end - start)) * 100));
 }
 
 export function selectImportableHealthConnectWorkouts(workouts: Workout[]): Workout[] {
   return workouts
-    .filter((workout) => workout.sourceId === SAMSUNG_HEALTH_SOURCE_ID)
+    .filter((workout) => supportedWorkoutSource(workout.sourceId))
     .sort((a, b) => Date.parse(a.startDate) - Date.parse(b.startDate));
 }
 
 function supportedWorkoutSource(sourceId: string | undefined): boolean {
-  return sourceId === SAMSUNG_HEALTH_SOURCE_ID;
+  if (!sourceId) return true;
+  const lower = sourceId.toLowerCase();
+  return lower === SAMSUNG_HEALTH_SOURCE_ID
+    || lower.includes('shealth')
+    || lower.includes('samsung')
+    || lower.includes('sec.android')
+    || lower.includes('healthdata')
+    || lower.includes('health.connect');
 }
 
 export function mapSamsungWorkout(workout: Workout, heartRate: HealthSample[] = [], vo2MaxSamples: HealthSample[] = []): LocalHistoryItem | null {
-  if (workout.sourceId !== SAMSUNG_HEALTH_SOURCE_ID) return null;
+  if (!supportedWorkoutSource(workout.sourceId)) return null;
   const startMs = Date.parse(workout.startDate);
   const endMs = Date.parse(workout.endDate);
   if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) return null;
@@ -269,10 +276,12 @@ export function preserveWorkoutHeartRate(incoming: LocalHistoryItem, previous?: 
   const previousData = asRecord(previous?.data);
   const incomingSamples = Array.isArray(incomingData.heartRateSamples) ? incomingData.heartRateSamples : [];
   const previousSamples = Array.isArray(previousData.heartRateSamples) ? previousData.heartRateSamples : [];
-  if (incomingSamples.length > 0 || previousSamples.length === 0) return incoming;
-
   const incomingExtracted = asRecord(incomingData.extracted);
   const previousExtracted = asRecord(previousData.extracted);
+
+  const preservedHrSamples = previousSamples.length > incomingSamples.length ? previousSamples : incomingSamples;
+  const preservedVo2Max = numeric(incomingExtracted.vo2Max) ?? numeric(previousExtracted.vo2Max) ?? null;
+
   return {
     ...incoming,
     data: {
@@ -281,8 +290,9 @@ export function preserveWorkoutHeartRate(incoming: LocalHistoryItem, previous?: 
         ...incomingExtracted,
         avgHR: validHeartRate(incomingExtracted.avgHR) ?? validHeartRate(previousExtracted.avgHR),
         maxHR: validHeartRate(incomingExtracted.maxHR) ?? validHeartRate(previousExtracted.maxHR),
+        vo2Max: preservedVo2Max,
       },
-      heartRateSamples: previousSamples,
+      heartRateSamples: preservedHrSamples,
     },
   };
 }
@@ -314,10 +324,11 @@ function swimKind(type: WorkoutType): 'pool' | 'open_water' | null { return type
 function nearestWorkoutSignal(samples: HealthSample[], startMs: number, endMs: number, afterGraceMs: number): number | null {
   const candidates = samples
     .map((sample) => ({ value: sample.value, at: Date.parse(sample.startDate) }))
-    .filter(({ value, at }) => Number.isFinite(value) && value > 0 && Number.isFinite(at) && at >= startMs && at <= endMs + afterGraceMs)
+    .filter(({ value, at }) => Number.isFinite(value) && value > 0 && Number.isFinite(at) && at >= startMs - 60_000 && at <= endMs + Math.max(afterGraceMs, 24 * 60 * 60_000))
     .sort((a, b) => Math.abs(a.at - endMs) - Math.abs(b.at - endMs));
   return candidates[0] ? round(candidates[0].value, 1) : null;
 }
+function numeric(value: unknown): number | null { return typeof value === 'number' && Number.isFinite(value) ? value : null; }
 function positive(value: number | undefined): number | null { return typeof value === 'number' && Number.isFinite(value) && value > 0 ? round(value, 1) : null; }
 function validHeartRate(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) && value >= 30 && value <= 260 ? value : null;

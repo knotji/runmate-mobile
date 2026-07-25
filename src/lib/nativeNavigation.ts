@@ -11,3 +11,23 @@ export function notificationRouteFromUrl(value: string): string | null {
     return null;
   }
 }
+
+export const APP_NAVIGATE_EVENT = 'runmate:navigate';
+
+export function navigateToAppRoute(route: string): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(APP_NAVIGATE_EVENT, { detail: { route } }));
+}
+
+export function onAppNavigate(callback: (route: string) => void): () => void {
+  if (typeof window === 'undefined') return () => undefined;
+  const handler = (event: Event) => {
+    const customEvent = event as CustomEvent<{ route: string }>;
+    if (customEvent.detail?.route) {
+      callback(customEvent.detail.route);
+    }
+  };
+  window.addEventListener(APP_NAVIGATE_EVENT, handler);
+  return () => window.removeEventListener(APP_NAVIGATE_EVENT, handler);
+}
+

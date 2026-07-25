@@ -39,10 +39,16 @@
         android:layout_marginBottom="20dp">
 
         <RadioButton
-            android:id="@+id/configure_style_transparent"
+            android:id="@+id/configure_style_system_dynamic"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:checked="true"
+            android:text="System Dynamic (Material You)" />
+
+        <RadioButton
+            android:id="@+id/configure_style_transparent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:text="Transparent" />
 
         <RadioButton
