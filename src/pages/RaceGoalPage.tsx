@@ -28,7 +28,7 @@ import { applyProfilePreferencesToRaceGoal } from '@/lib/raceProfilePreferences'
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
 import { buildTrainingAdherence, type TrainingAdherence } from '@/lib/trainingAdherence';
-import type { RaceGoal, RacePlan, RaceResult, WeekWorkout } from '@/types/race';
+import type { RaceResult, WeekWorkout } from '@/types/race';
 import type { UserProfile } from '@/types/profile';
 import RaceGoalEditor from '@/components/RaceGoalEditor';
 import './RaceGoalPage.css';

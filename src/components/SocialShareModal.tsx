@@ -512,9 +512,9 @@ function drawWorkoutStory(
   // Lay everything out at these fixed offsets first, then shift the whole
   // block up/down so the empty space above the accent dot matches the empty
   // space below the logo, instead of always leaving a big gap up top.
-  const blockHeight = 330;
+  const blockHeight = 250;
   const baseAccentY = 372;
-  const baseMetricsStartY = baseAccentY + 160;
+  const baseMetricsStartY = baseAccentY + 60;
   const metricsGap = 140;
   const signatureScale = 1.3;
   const signatureTextExtra = 138 * signatureScale + 40;
@@ -562,8 +562,6 @@ function cleanMetricLabel(label: string): string {
 function drawWorkoutMetricColumn(ctx: CanvasRenderingContext2D, palette: CanvasPalette, metrics: StoryMetric[], startY: number, blockHeight: number) {
   if (metrics.length === 0) return;
   const centerX = STORY_WIDTH / 2;
-  const width = 900;
-  const left = centerX - width / 2;
   const valueSize = 104;
   const labelSize = 30;
   const unitSize = 36;
@@ -575,14 +573,6 @@ function drawWorkoutMetricColumn(ctx: CanvasRenderingContext2D, palette: CanvasP
 
   metrics.forEach((metric, index) => {
     const blockTop = startY + index * blockHeight;
-    if (index > 0) {
-      ctx.strokeStyle = palette.hairline;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(left, blockTop - 60);
-      ctx.lineTo(left + width, blockTop - 60);
-      ctx.stroke();
-    }
     ctx.textAlign = 'center';
     ctx.fillStyle = palette.faint;
     ctx.font = `600 ${labelSize}px ${STORY_FONT}`;
