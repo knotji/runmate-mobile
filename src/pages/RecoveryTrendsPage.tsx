@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
 import { alertCircleOutline, arrowBackOutline, checkmarkCircleOutline, informationCircleOutline, trendingDownOutline, trendingUpOutline } from 'ionicons/icons';
@@ -8,6 +8,7 @@ import { loadProfileFromSupabase } from '@/lib/profileStorage';
 import { buildRecoveryTrend, type RecoveryCalibration, type RecoveryTrendPoint } from '@/lib/recoveryTrends';
 import { syncTodayHealth } from '@/lib/healthSyncService';
 import type { LocalHistoryItem } from '@/lib/localHistory';
+import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import './RecoveryTrendsPage.css';
@@ -16,27 +17,17 @@ const RecoveryTrendsPage: React.FC = () => {
   const history = useHistory();
   const [days, setDays] = useState<7 | 30>(7);
   const [source, setSource] = useState<{ items: LocalHistoryItem[]; profile: Record<string, unknown> | null } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async (sync = false) => {
-    setError(null);
-    try {
-      if (sync) await syncTodayHealth(true);
-      const [historyResult, profileResult] = await Promise.all([
-        loadHistoryItems(['sleep', 'workout', 'strength']),
-        loadProfileFromSupabase(),
-      ]);
-      if (!historyResult.ok) throw new Error(historyResult.error ?? 'Could Not Load Recovery History.');
-      setSource({ items: historyResult.items, profile: profileResult.ok ? profileResult.profile ?? null : null });
-    } catch (failure) {
-      setError(failure instanceof Error ? failure.message : 'Could Not Load Recovery Trends.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { loading, error, reload: load } = useAsyncLoad(async (sync) => {
+    if (sync) await syncTodayHealth(true);
+    const [historyResult, profileResult] = await Promise.all([
+      loadHistoryItems(['sleep', 'workout', 'strength']),
+      loadProfileFromSupabase(),
+    ]);
+    if (!historyResult.ok) throw new Error(historyResult.error ?? 'Could Not Load Recovery History.');
+    setSource({ items: historyResult.items, profile: profileResult.ok ? profileResult.profile ?? null : null });
+  }, 'Could Not Load Recovery Trends.');
 
-  useEffect(() => { void load(); }, [load]);
   const trend = useMemo(() => source ? buildRecoveryTrend(source.items, source.profile, days, todayBangkokDateKey()) : null, [source, days]);
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(true); event.detail.complete(); };
 

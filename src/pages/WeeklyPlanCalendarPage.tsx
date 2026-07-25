@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
 import { arrowBackOutline, calendarOutline, checkmarkCircleOutline, closeCircleOutline, moonOutline, timeOutline } from 'ionicons/icons';
@@ -6,6 +6,7 @@ import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
 import { buildWeeklyPlanCalendar, type CalendarDayStatus, type WeeklyCalendarDay } from '@/lib/weeklyPlanCalendar';
 import { translatePlanFieldToEnglish } from '@/lib/todayTrainingPlan';
+import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import './WeeklyPlanCalendarPage.css';
@@ -13,21 +14,11 @@ import './WeeklyPlanCalendarPage.css';
 const WeeklyPlanCalendarPage: React.FC = () => {
   const history = useHistory();
   const context = useCoachContextStore((state) => state.context);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setError(null);
-    try {
-      await buildCoachContextFromSupabase();
-    } catch (failure) {
-      setError(failure instanceof Error ? failure.message : 'Could Not Load Your Weekly Plan.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { loading, error, reload: load } = useAsyncLoad(async () => {
+    await buildCoachContextFromSupabase();
+  }, 'Could Not Load Your Weekly Plan.');
 
-  useEffect(() => { void load(); }, [load]);
   const days = useMemo(() => context ? buildWeeklyPlanCalendar(context) : null, [context]);
   const hasPlan = days?.some((day) => day.planned) ?? false;
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(); event.detail.complete(); };

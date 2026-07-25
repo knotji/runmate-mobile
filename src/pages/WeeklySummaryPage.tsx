@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
 import { arrowBackOutline, barbellOutline, bedOutline, checkmarkCircleOutline, chevronDownOutline, fastFoodOutline, fitnessOutline, pulseOutline, timeOutline } from 'ionicons/icons';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
+import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
 import { buildWeeklyTrainingSummary } from '@/lib/weeklyTrainingSummary';
 import { syncTodayHealth } from '@/lib/healthSyncService';
 import { loadActiveRaceGoalAndPlan } from '@/lib/raceStorage';
@@ -21,28 +22,18 @@ import './WeeklySummaryPage.css';
 const WeeklySummaryPage: React.FC = () => {
   const history = useHistory();
   const context = useCoachContextStore((state) => state.context);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [adherenceWeeks, setAdherenceWeeks] = useState<TrainingAdherenceWeek[]>([]);
   const [workoutItems, setWorkoutItems] = useState<LocalHistoryItem[]>([]);
   const [openAdherenceWeek, setOpenAdherenceWeek] = useState<number | null>(null);
 
-  const load = useCallback(async (forceSync = false) => {
-    setError(null);
-    try {
-      if (forceSync) await syncTodayHealth(true);
-      const [nextContext, race, workoutHistory] = await Promise.all([buildCoachContextFromSupabase(), loadActiveRaceGoalAndPlan(), loadHistoryItems(['workout', 'strength'])]);
-      const canonicalWorkouts = workoutHistory.ok ? dedupeWorkoutItems(workoutHistory.items) : [];
-      setWorkoutItems(canonicalWorkouts);
-      setAdherenceWeeks(race.ok && race.plan ? buildTrainingAdherenceHistory(race.plan, canonicalWorkouts, nextContext.todayDate, 4) : []);
-    } catch (failure) {
-      setError(failure instanceof Error ? failure.message : 'Could Not Load Your Weekly Summary.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { loading, error, reload: load } = useAsyncLoad(async (forceSync) => {
+    if (forceSync) await syncTodayHealth(true);
+    const [nextContext, race, workoutHistory] = await Promise.all([buildCoachContextFromSupabase(), loadActiveRaceGoalAndPlan(), loadHistoryItems(['workout', 'strength'])]);
+    const canonicalWorkouts = workoutHistory.ok ? dedupeWorkoutItems(workoutHistory.items) : [];
+    setWorkoutItems(canonicalWorkouts);
+    setAdherenceWeeks(race.ok && race.plan ? buildTrainingAdherenceHistory(race.plan, canonicalWorkouts, nextContext.todayDate, 4) : []);
+  }, 'Could Not Load Your Weekly Summary.');
 
-  useEffect(() => { void load(false); }, [load]);
   const summary = useMemo(() => context ? buildWeeklyTrainingSummary(context) : null, [context]);
   const loadTrend = useMemo(() => {
     if (!context) return null;

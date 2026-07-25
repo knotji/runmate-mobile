@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
 import { alertCircleOutline, arrowBackOutline, checkmarkCircleOutline, informationCircleOutline, trendingDownOutline, trendingUpOutline } from 'ionicons/icons';
@@ -6,6 +6,7 @@ import { loadHistoryItems } from '@/lib/cloudHistory';
 import { todayBangkokDateKey } from '@/lib/date';
 import { buildPainTrend, type PainTrendLog, type PainTrendPoint } from '@/lib/painTrends';
 import type { LocalHistoryItem } from '@/lib/localHistory';
+import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import './PainTrendsPage.css';
@@ -14,23 +15,13 @@ const PainTrendsPage: React.FC = () => {
   const history = useHistory();
   const [days, setDays] = useState<7 | 30>(7);
   const [items, setItems] = useState<LocalHistoryItem[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setError(null);
-    try {
-      const result = await loadHistoryItems(['pain']);
-      if (!result.ok) throw new Error(result.error ?? 'Could Not Load Pain History.');
-      setItems(result.items);
-    } catch (failure) {
-      setError(failure instanceof Error ? failure.message : 'Could Not Load Pain Trends.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { loading, error, reload: load } = useAsyncLoad(async () => {
+    const result = await loadHistoryItems(['pain']);
+    if (!result.ok) throw new Error(result.error ?? 'Could Not Load Pain History.');
+    setItems(result.items);
+  }, 'Could Not Load Pain Trends.');
 
-  useEffect(() => { void load(); }, [load]);
   const trend = useMemo(() => items ? buildPainTrend(items, days, todayBangkokDateKey()) : null, [items, days]);
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(); event.detail.complete(); };
 

@@ -9,6 +9,7 @@ import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { AI_COACH_TOPICS, askAiCoach, askAiCoachChat, type AiCoachAnswer, type AiCoachTopic } from '@/lib/aiCoach';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
+import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
 import { hapticImpact } from '@/lib/haptics';
 import './AiCoachPage.css';
 
@@ -26,23 +27,16 @@ type ChatMessage = {
 const AiCoachPage: React.FC = () => {
   const history = useHistory();
   const context = useCoachContextStore((state) => state.context);
-  const [loadingContext, setLoadingContext] = useState(true);
   const [asking, setAsking] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputQuery, setInputQuery] = useState('');
   const [showContextDrawer, setShowContextDrawer] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [isNearBottom, setIsNearBottom] = useState(true);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const loadContext = useCallback(async () => {
-    setLoadingContext(true); setError(null);
-    try { await buildCoachContextFromSupabase(); }
-    catch (failure) { setError(message(failure, 'Your RunMate data could not be loaded.')); }
-    finally { setLoadingContext(false); }
-  }, []);
-
-  useEffect(() => { void loadContext(); }, [loadContext]);
+  const { loading: loadingContext, error, setError, reload: loadContext } = useAsyncLoad(async () => {
+    await buildCoachContextFromSupabase();
+  }, 'Your RunMate data could not be loaded.');
 
   const scrollToBottom = useCallback(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
