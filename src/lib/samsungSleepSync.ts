@@ -5,7 +5,7 @@ import { loadHistoryItems, saveHistoryItems } from '@/lib/cloudHistory';
 import { classifyHealthSyncItems, selectChangedHealthSyncItems, type HealthSyncCounts } from '@/lib/healthSyncSummary';
 import { getBangkokDateKey, todayBangkokDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
-import { acknowledgeBackgroundHealthRecords, backgroundHealthRecordKey, getFreshPreparedHealthSnapshot, type PreparedHealthSnapshot } from '@/lib/backgroundHealth';
+import { acknowledgeBackgroundHealthRecords, backgroundHealthRecordKey, type PreparedHealthSnapshot } from '@/lib/backgroundHealth';
 import { formatReconciliationSyncError, isReconciliationPermissionError } from '@/lib/reconciliationPolicy';
 import { createLastSyncedAtStore, stableKey } from '@/lib/healthSyncHelpers';
 
@@ -68,29 +68,18 @@ async function runSamsungSleepSync(lookbackDays: number | 'today'): Promise<Sams
     const todayOnly = lookbackDays === 'today';
     const today = todayBangkokDateKey();
     const endDate = new Date().toISOString();
-    // Start at noon on the previous Bangkok day so an overnight session that
-    // began yesterday but woke today remains visible to Health Connect.
-    const startDate = todayOnly
-      ? new Date(Date.parse(`${today}T00:00:00+07:00`) - 12 * 60 * 60_000).toISOString()
-      : new Date(Date.now() - Math.max(1, lookbackDays) * 86_400_000).toISOString();
-    const prepared = todayOnly ? await getFreshPreparedHealthSnapshot() : null;
-    const preparedSleep = prepared?.sleep?.samples.filter((sample) => getBangkokDateKey(sample.endDate) === today) ?? [];
-    const usePrepared = preparedSleep.length > 0;
-    dataSource = usePrepared ? 'prepared' : 'live';
-    const result = usePrepared
-      ? { samples: preparedSleep }
-      : await Health.readSamples({ dataType: 'sleep', startDate, endDate, ascending: true, limit: 100 });
-    const signals = await readAuthorizedSignals(authorization.readAuthorized, startDate, endDate, usePrepared ? prepared : null);
+    const startDate = typeof lookbackDays === 'number'
+      ? new Date(Date.now() - Math.max(1, lookbackDays) * 86_400_000).toISOString()
+      : new Date(Date.parse(`${today}T00:00:00+07:00`) - 24 * 60 * 60_000).toISOString();
+
+    dataSource = 'live';
+    const result = await Health.readSamples({ dataType: 'sleep', startDate, endDate, ascending: true, limit: 100 });
+    const signals = await readAuthorizedSignals(authorization.readAuthorized, startDate, endDate);
     const samsungSamples = mergeAdjacentSleepSamples(result.samples.filter((sample) => isSamsungHealthSource(sample.sourceId)));
     const mappedItems: Array<LocalHistoryItem | null> = [];
-    // Query high-volume HR records per Sleep Window. A single 30-day read can
-    // exceed Health Connect's page limit and silently omit the latest nights.
     for (let index = 0; index < samsungSamples.length; index += 4) {
       const batch = await Promise.all(samsungSamples.slice(index, index + 4).map(async (sample) => {
-        const heartRate = usePrepared
-          ? inSleepWindow(prepared?.heartRate?.samples ?? [], Date.parse(sample.startDate), Date.parse(sample.endDate))
-              .filter((point) => isSamsungHealthSource(point.sourceId))
-          : await readSleepHeartRate(authorization.readAuthorized, sample);
+        const heartRate = await readSleepHeartRate(authorization.readAuthorized, sample);
         return mapSamsungSleepSample(sample, { ...signals, heartRate });
       }));
       mappedItems.push(...batch);

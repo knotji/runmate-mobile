@@ -138,7 +138,7 @@ const RecoveryPage: React.FC = () => {
     void healthSyncPromise.then((result) => {
       if (result?.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
       if (result?.workout?.error) console.warn('[workout-sync] Samsung Health sync failed', result.workout.error);
-      if (result?.changed && visibleRef.current) {
+      if (visibleRef.current) {
         void loadRecovery(false, true);
       }
     });

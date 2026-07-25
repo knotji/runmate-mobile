@@ -121,11 +121,9 @@ const App: React.FC = () => {
     void CapacitorApp.addListener('appStateChange', ({ isActive }) => {
       if (isActive) {
         void refreshNotifications().catch((error) => console.warn('[notifications] resume refresh failed', error));
-        void syncTodayHealth(true).then((result) => {
-          if (result.changed) {
-            invalidateCoachContextCache();
-            window.dispatchEvent(new CustomEvent('runmate:health-synced'));
-          }
+        void syncTodayHealth(true).then(() => {
+          invalidateCoachContextCache();
+          window.dispatchEvent(new CustomEvent('runmate:health-synced'));
         }).catch((syncError) => console.warn('[health-sync] resume sync failed', syncError));
       }
     }).then((handle) => { stateListener = handle; });

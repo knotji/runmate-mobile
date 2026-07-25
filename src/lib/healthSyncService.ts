@@ -52,7 +52,7 @@ export function syncTodayHealth(force = false): Promise<TodayHealthSyncResult> {
   }
 
   healthSyncStore.startSync();
-  activeTodaySync = Promise.all([syncSamsungSleep('today'), syncSamsungWorkouts('today')])
+  activeTodaySync = Promise.all([syncSamsungSleep(force ? 7 : 2), syncSamsungWorkouts('today')])
     .then(([sleep, workout]) => {
       lastCompletedAt = Date.now();
       persistTodaySyncAt(lastCompletedAt);

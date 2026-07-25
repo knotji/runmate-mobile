@@ -22,7 +22,7 @@ describe('Health Sync orchestration', () => {
 
   it('limits foreground sync to today and reports changed records', async () => {
     const result = await syncTodayHealth(true);
-    expect(syncSamsungSleep).toHaveBeenCalledWith('today');
+    expect(syncSamsungSleep).toHaveBeenCalledWith(7);
     expect(syncSamsungWorkouts).toHaveBeenCalledWith('today');
     expect(syncSamsungWeight).not.toHaveBeenCalled();
     expect(result).toMatchObject({ performed: true, changed: true });
