@@ -7,8 +7,8 @@ import { Keyboard } from '@capacitor/keyboard';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { AI_COACH_TOPICS, askAiCoach, askAiCoachChat, type AiCoachAnswer, type AiCoachTopic } from '@/lib/aiCoach';
-import type { CoachContext } from '@/lib/buildCoachContext';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
+import { useCoachContextStore } from '@/lib/context/coachContextStore';
 import { hapticImpact } from '@/lib/haptics';
 import './AiCoachPage.css';
 
@@ -25,7 +25,7 @@ type ChatMessage = {
 
 const AiCoachPage: React.FC = () => {
   const history = useHistory();
-  const [context, setContext] = useState<CoachContext | null>(null);
+  const context = useCoachContextStore((state) => state.context);
   const [loadingContext, setLoadingContext] = useState(true);
   const [asking, setAsking] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -37,7 +37,7 @@ const AiCoachPage: React.FC = () => {
 
   const loadContext = useCallback(async () => {
     setLoadingContext(true); setError(null);
-    try { setContext(await buildCoachContextFromSupabase()); }
+    try { await buildCoachContextFromSupabase(); }
     catch (failure) { setError(message(failure, 'Your RunMate data could not be loaded.')); }
     finally { setLoadingContext(false); }
   }, []);

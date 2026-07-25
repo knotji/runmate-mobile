@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { IonButton, IonContent, IonDatetime, IonHeader, IonIcon, IonModal, IonPage, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
 import { arrowBackOutline, calendarClearOutline, checkmarkCircleOutline, chevronBackOutline, chevronForwardOutline, warningOutline } from 'ionicons/icons';
-import type { CoachContext, WeekSleepRow } from '@/lib/buildCoachContext';
+import type { WeekSleepRow } from '@/lib/buildCoachContext';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
+import { useCoachContextStore } from '@/lib/context/coachContextStore';
 import { buildSleepDiagnostics } from '@/lib/sleepDiagnostics';
 import { calculateRunMateSleepScore, type RunMateSleepScoreResult, type SleepScoreComponent } from '@/lib/runMateSleepScore';
 import { PageState } from '@/components/PageState';
@@ -16,7 +17,7 @@ const SleepDetailPage: React.FC = () => {
   const routeParams = new URLSearchParams(location.search);
   const initialDate = routeParams.get('date');
   const backPath = routeParams.get('from') === 'activity' ? '/tabs/activity' : '/tabs/recovery';
-  const [context, setContext] = useState<CoachContext | null>(null);
+  const context = useCoachContextStore((state) => state.context);
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(initialDate);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -27,7 +28,7 @@ const SleepDetailPage: React.FC = () => {
     setNightLoading(false);
   }, [initialDate]);
   const load = useCallback(async () => {
-    try { setContext(await buildCoachContextFromSupabase()); }
+    try { await buildCoachContextFromSupabase(); }
     catch (loadError) { console.error('[sleep-detail] load failed', loadError); setError('Unable to load sleep details.'); }
   }, []);
   useEffect(() => { void load(); }, [load]);

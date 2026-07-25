@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
 import { arrowBackOutline, calendarOutline, checkmarkCircleOutline, closeCircleOutline, moonOutline, timeOutline } from 'ionicons/icons';
-import type { CoachContext } from '@/lib/buildCoachContext';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
+import { useCoachContextStore } from '@/lib/context/coachContextStore';
 import { buildWeeklyPlanCalendar, type CalendarDayStatus, type WeeklyCalendarDay } from '@/lib/weeklyPlanCalendar';
 import { translatePlanFieldToEnglish } from '@/lib/todayTrainingPlan';
 import { PageState } from '@/components/PageState';
@@ -12,14 +12,14 @@ import './WeeklyPlanCalendarPage.css';
 
 const WeeklyPlanCalendarPage: React.FC = () => {
   const history = useHistory();
-  const [context, setContext] = useState<CoachContext | null>(null);
+  const context = useCoachContextStore((state) => state.context);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
     try {
-      setContext(await buildCoachContextFromSupabase());
+      await buildCoachContextFromSupabase();
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Could Not Load Your Weekly Plan.');
     } finally {

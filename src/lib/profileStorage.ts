@@ -6,7 +6,7 @@ import {
   logSupabaseSyncSuccess,
 } from "@/lib/supabase/debug";
 import type { UserProfile } from "@/types/profile";
-import { userProfileStore } from "@/lib/profile/userProfileStore";
+import { useUserProfileStore } from "@/lib/profile/userProfileStore";
 
 type ProfileRow = {
   id: string;
@@ -145,13 +145,13 @@ export async function loadProfileFromSupabase() {
   }
   if (!data) {
     logSupabaseSyncSuccess({ table: "profiles", operation: "select", userId: session.userId, count: 0 });
-    userProfileStore.setProfile(null);
+    useUserProfileStore.getState().setProfile(null);
     return { ok: true as const, profile: null, userId: session.userId };
   }
 
   const profile = rowToProfile(data as ProfileRow);
   logSupabaseSyncSuccess({ table: "profiles", operation: "select", userId: session.userId, count: 1 });
-  userProfileStore.setProfile(profile);
+  useUserProfileStore.getState().setProfile(profile);
   return { ok: true as const, profile, userId: session.userId };
 }
 
@@ -173,7 +173,7 @@ export async function saveProfileToSupabase(profile: UserProfile) {
     };
   }
   logSupabaseSyncSuccess({ table: "profiles", operation: "upsert", userId: session.userId, count: 1 });
-  userProfileStore.setProfile(profile);
+  useUserProfileStore.getState().setProfile(profile);
   return { ok: true as const, userId: session.userId };
 }
 

@@ -21,6 +21,7 @@ import { buildMobileRaceSummary, formatRaceWorkoutMetric, isRaceWorkoutToday } f
 import { loadActiveRaceGoalAndPlan, saveRaceGoalAndPlan } from '@/lib/raceStorage';
 import { loadRaceResults } from '@/lib/raceResults';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
+import { useRacePlanStore } from '@/lib/race/racePlanStore';
 import { generateRacePlan } from '@/lib/racePlanGeneration';
 import { translatePlanFieldToEnglish } from '@/lib/todayTrainingPlan';
 import { applyProfilePreferencesToRaceGoal } from '@/lib/raceProfilePreferences';
@@ -36,8 +37,8 @@ import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 
 const RaceGoalPage: React.FC = () => {
   const history = useHistory();
-  const [goal, setGoal] = useState<RaceGoal | null>(null);
-  const [plan, setPlan] = useState<RacePlan | null>(null);
+  const goal = useRacePlanStore((state) => state.goal);
+  const plan = useRacePlanStore((state) => state.plan);
   const [raceResults, setRaceResults] = useState<RaceResult[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
@@ -56,8 +57,6 @@ const RaceGoalPage: React.FC = () => {
     setHistoryError(null);
     const [result, completed, workoutHistory] = await Promise.all([loadActiveRaceGoalAndPlan(), loadRaceResults(20), loadHistoryItems(['workout', 'strength'])]);
     if (result.ok) {
-      setGoal(result.goal);
-      setPlan(result.plan);
       const summary = result.goal ? buildMobileRaceSummary(result.goal, result.plan, todayBangkokDateKey()) : null;
       setAdherence(summary && workoutHistory.ok ? buildTrainingAdherence(summary.workouts, dedupeWorkoutItems(workoutHistory.items), todayBangkokDateKey()) : null);
     } else {
@@ -88,8 +87,6 @@ const RaceGoalPage: React.FC = () => {
       const nextPlan = await generateRacePlan(nextGoal, context);
       const saved = await saveRaceGoalAndPlan(nextGoal, nextPlan);
       if (!saved.ok) throw new Error(saved.error);
-      setGoal(saved.goal);
-      setPlan(saved.plan);
       await load();
     } catch (refreshFailure) {
       setRefreshError(refreshFailure instanceof Error ? refreshFailure.message : 'Could Not Refresh This Plan. Please Try Again.');
@@ -231,7 +228,7 @@ const RaceGoalPage: React.FC = () => {
           )}
         </main>
       </IonContent>
-      <RaceGoalEditor isOpen={editorOpen} goal={goal} onClose={() => setEditorOpen(false)} onSaved={(savedGoal, savedPlan) => { setGoal(savedGoal); setPlan(savedPlan); setEditorOpen(false); void load(); }} />
+      <RaceGoalEditor isOpen={editorOpen} goal={goal} onClose={() => setEditorOpen(false)} onSaved={() => { setEditorOpen(false); void load(); }} />
       <WorkoutPlanDetail workout={selectedWorkout} onClose={() => setSelectedWorkout(null)} />
       <IonAlert
         isOpen={refreshConfirmOpen}

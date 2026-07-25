@@ -19,8 +19,9 @@ import {
 } from '@ionic/react';
 import { chevronForwardOutline, moonOutline, sunnyOutline, shareSocialOutline } from 'ionicons/icons';
 import { SocialShareModal } from '@/components/SocialShareModal';
-import type { CoachContext } from '@/lib/buildCoachContext';
 import { buildRecoveryCoreContextFromSupabase, buildRecoveryPageContextFromSupabase } from '@/lib/coachContextService';
+import { useCoachContextStore } from '@/lib/context/coachContextStore';
+import { useHealthSyncStore } from '@/lib/health/healthSyncStore';
 import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
 import { TodayTrainingPlanCard } from '@/components/TodayTrainingPlanCard';
 import { PageState } from '@/components/PageState';
@@ -35,7 +36,7 @@ import './RecoveryPage.css';
 
 const RecoveryPage: React.FC = () => {
   const history = useHistory();
-  const [context, setContext] = useState<CoachContext | null>(null);
+  const context = useCoachContextStore((state) => state.context);
   const [startupRecovery, setStartupRecovery] = useState<RunMateRecoverySystem | null>(() => loadRecoveryStartupSnapshot());
   const [loading, setLoading] = useState(() => startupRecovery === null);
   const [loadingStage, setLoadingStage] = useState<'syncing' | 'calculating'>('syncing');
@@ -57,7 +58,6 @@ const RecoveryPage: React.FC = () => {
         () => buildRecoveryPageContextFromSupabase({ force }),
         () => ({ detail: showPlaceholder ? 'Foreground guidance load' : 'Background guidance refresh' }),
       );
-      setContext(nextContext);
       void refreshNotifications(nextContext, true).catch((notificationError) => console.warn('[notifications] refresh failed', notificationError));
     } catch (loadError) {
       console.error('[recovery] secondary load failed', loadError);
@@ -72,7 +72,6 @@ const RecoveryPage: React.FC = () => {
       'recovery_core',
       () => buildRecoveryCoreContextFromSupabase({ force }),
     );
-    setContext(nextContext);
     setStartupRecovery(nextContext.recoverySystem);
     saveRecoveryStartupSnapshot(nextContext.recoverySystem);
     loadedRef.current = true;
@@ -94,13 +93,11 @@ const RecoveryPage: React.FC = () => {
   }, [loadRecoveryCore, loadSecondaryRecovery]);
 
   useEffect(() => {
-    const handleHealthSynced = () => {
-      if (visibleRef.current) {
+    return useHealthSyncStore.subscribe((state, previous) => {
+      if (state.lastSyncedAt !== previous.lastSyncedAt && visibleRef.current) {
         void loadRecovery(false, true);
       }
-    };
-    window.addEventListener('runmate:health-synced', handleHealthSynced);
-    return () => window.removeEventListener('runmate:health-synced', handleHealthSynced);
+    });
   }, [loadRecovery]);
 
   const loadInitialRecovery = useCallback(async (forceContext = false) => {

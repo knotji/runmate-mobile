@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
 import { arrowBackOutline, barbellOutline, bedOutline, checkmarkCircleOutline, chevronDownOutline, fastFoodOutline, fitnessOutline, pulseOutline, timeOutline } from 'ionicons/icons';
-import type { CoachContext } from '@/lib/buildCoachContext';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
+import { useCoachContextStore } from '@/lib/context/coachContextStore';
 import { buildWeeklyTrainingSummary } from '@/lib/weeklyTrainingSummary';
 import { syncTodayHealth } from '@/lib/healthSyncService';
 import { loadActiveRaceGoalAndPlan } from '@/lib/raceStorage';
@@ -20,7 +20,7 @@ import './WeeklySummaryPage.css';
 
 const WeeklySummaryPage: React.FC = () => {
   const history = useHistory();
-  const [context, setContext] = useState<CoachContext | null>(null);
+  const context = useCoachContextStore((state) => state.context);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [adherenceWeeks, setAdherenceWeeks] = useState<TrainingAdherenceWeek[]>([]);
@@ -33,7 +33,6 @@ const WeeklySummaryPage: React.FC = () => {
       if (forceSync) await syncTodayHealth(true);
       const [nextContext, race, workoutHistory] = await Promise.all([buildCoachContextFromSupabase(), loadActiveRaceGoalAndPlan(), loadHistoryItems(['workout', 'strength'])]);
       const canonicalWorkouts = workoutHistory.ok ? dedupeWorkoutItems(workoutHistory.items) : [];
-      setContext(nextContext);
       setWorkoutItems(canonicalWorkouts);
       setAdherenceWeeks(race.ok && race.plan ? buildTrainingAdherenceHistory(race.plan, canonicalWorkouts, nextContext.todayDate, 4) : []);
     } catch (failure) {

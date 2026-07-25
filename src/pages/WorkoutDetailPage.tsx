@@ -8,8 +8,8 @@ import type { LocalHistoryItem } from '@/lib/localHistory';
 import { buildWorkoutDetail } from '@/lib/workoutDetail';
 import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
 import { loadProfileFromSupabase } from '@/lib/profileStorage';
+import { useUserProfileStore } from '@/lib/profile/userProfileStore';
 import { restingHeartRateBaseline } from '@/lib/hrZones';
-import type { UserProfile } from '@/types/profile';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import './WorkoutDetailPage.css';
@@ -20,12 +20,11 @@ const WorkoutDetailPage: React.FC = () => {
   const [item, setItem] = useState<LocalHistoryItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const profile = useUserProfileStore((state) => state.profile);
   const [restingHr, setRestingHr] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     const [result, profileResult] = await Promise.all([loadHistoryItems(['workout', 'strength', 'sleep']), loadProfileFromSupabase()]);
-    if (profileResult.ok) setProfile(profileResult.profile);
     if (!result.ok) setError(result.error);
     else {
       const sleepRestingHr = result.items

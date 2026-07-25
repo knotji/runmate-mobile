@@ -29,6 +29,7 @@ import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { ActivityHistoryRow } from '@/components/ActivityHistoryRow';
 import { describeHistoryItem } from '@/lib/activityHistoryPresentation';
 import { measurePerformanceDiagnostic, recordPerformanceDiagnostic } from '@/lib/performanceDiagnostics';
+import { useHealthSyncStore } from '@/lib/health/healthSyncStore';
 import './ActivityPage.css';
 
 const ActivityPage: React.FC = () => {
@@ -105,17 +106,16 @@ const ActivityPage: React.FC = () => {
       const uploadedDate = uploadedActivityDateFromEvent(event);
       if (uploadedDate) setSelectedDate(uploadedDate);
     };
-    const handleHealthSynced = () => {
-      if (visibleRef.current) {
+    window.addEventListener('runmate:cloud-data-updated', markCloudDataDirty);
+    const unsubscribeHealthSync = useHealthSyncStore.subscribe((state, previous) => {
+      if (state.lastSyncedAt !== previous.lastSyncedAt && visibleRef.current) {
         cloudDataDirtyRef.current = false;
         void loadRecent();
       }
-    };
-    window.addEventListener('runmate:cloud-data-updated', markCloudDataDirty);
-    window.addEventListener('runmate:health-synced', handleHealthSynced);
+    });
     return () => {
       window.removeEventListener('runmate:cloud-data-updated', markCloudDataDirty);
-      window.removeEventListener('runmate:health-synced', handleHealthSynced);
+      unsubscribeHealthSync();
     };
   }, [loadRecent]);
 

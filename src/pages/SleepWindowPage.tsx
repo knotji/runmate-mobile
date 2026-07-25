@@ -2,8 +2,8 @@ import { useCallback, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonButton, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar, useIonViewWillEnter } from '@ionic/react';
 import { arrowBackOutline, checkmarkCircleOutline, moonOutline, refreshOutline, timeOutline } from 'ionicons/icons';
-import type { CoachContext } from '@/lib/buildCoachContext';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
+import { useCoachContextStore } from '@/lib/context/coachContextStore';
 import {
   formatClockMinutes,
   formatTimeInput,
@@ -18,7 +18,7 @@ import './SleepWindowPage.css';
 
 const SleepWindowPage: React.FC = () => {
   const history = useHistory();
-  const [context, setContext] = useState<CoachContext | null>(null);
+  const context = useCoachContextStore((state) => state.context);
   const [loading, setLoading] = useState(true);
   const [wakeOverride, setWakeOverride] = useState<number | null>(null);
   const [savedWake, setSavedWake] = useState<number | null>(null);
@@ -29,8 +29,7 @@ const SleepWindowPage: React.FC = () => {
   const load = useCallback(async () => {
     try {
       setLoadError(null);
-      const [nextContext, storedWake, storedDefaultWake] = await Promise.all([buildCoachContextFromSupabase(), loadTonightWakePlan(), loadDefaultWakeTime()]);
-      setContext(nextContext);
+      const [, storedWake, storedDefaultWake] = await Promise.all([buildCoachContextFromSupabase(), loadTonightWakePlan(), loadDefaultWakeTime()]);
       setWakeOverride(storedWake.minutes);
       setSavedWake(storedWake.synced ? storedWake.minutes : null);
       setDefaultWake(storedDefaultWake);
