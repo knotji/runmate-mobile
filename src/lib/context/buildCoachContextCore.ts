@@ -117,6 +117,7 @@ export function buildCoachContextFromData(input: {
   const sleepAvg7dHours = avgSleepMinutes != null ? Math.round((avgSleepMinutes / 60) * 10) / 10 : null;
   const sleepAvg7dText = avgSleepMinutes != null ? formatSleepMinutesShortThai(avgSleepMinutes) : null;
   const latestSleep = sleep7d[0] ?? null;
+  const latestSleepDurationText = latestSleep?.durationMinutes ? formatSleepMinutesThai(latestSleep.durationMinutes) : latestSleep?.durationH ?? null;
 
   const reconciledWorkoutItems = dedupeWorkoutItems(items.filter((i) => i.type === "workout" || i.type === "strength"));
   const workoutItems = reconciledWorkoutItems
@@ -427,7 +428,7 @@ export function buildCoachContextFromData(input: {
     sleepAvg7dHours,
     sleepAvg7dText,
     sleepNightCount7d: sleep7d.length,
-    latestSleepDurationText: latestSleep?.durationMinutes ? formatSleepMinutesThai(latestSleep.durationMinutes) : latestSleep?.durationH ?? null,
+    latestSleepDurationText,
     latestSleepScore: latestSleep?.score ?? null,
     latestEnergyScore: latestSleep?.energyScore ?? null,
     latestSleepDateKey: latestSleep?.date ?? null,
@@ -486,7 +487,7 @@ export function buildCoachContextFromData(input: {
       lastWorkoutDate,
       sleepAvg7dText,
       sleepNightCount7d: sleep7d.length,
-      latestSleepDurationText: latestSleep?.durationMinutes ? formatSleepMinutesThai(latestSleep.durationMinutes) : latestSleep?.durationH ?? null,
+      latestSleepDurationText,
       latestSleepScore: latestSleep?.score ?? null,
       latestEnergyScore: latestSleep?.energyScore ?? null,
       latestSleepDateKey: latestSleep?.date ?? null,

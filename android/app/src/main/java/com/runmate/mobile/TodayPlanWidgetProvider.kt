@@ -75,50 +75,42 @@ class TodayPlanWidgetProvider : AppWidgetProvider() {
 
         private fun applyRecoveryBadge(views: RemoteViews, plan: JSONObject?, showRecovery: Boolean) {
             if (!showRecovery || plan == null) {
-                views.setViewVisibility(R.id.widget_recovery_badge, View.GONE)
-                views.setViewVisibility(R.id.widget_strain_badge, View.GONE)
-                views.setViewVisibility(R.id.widget_sleep_badge, View.GONE)
+                renderDial(views, R.id.widget_recovery_badge, null)
+                renderDial(views, R.id.widget_strain_badge, null)
+                renderDial(views, R.id.widget_sleep_badge, null)
                 return
             }
 
-            // 1. Recovery Score Dial
             val recoveryScore = plan.optInt("recoveryScore", -1).takeIf { it in 0..100 }
-            if (recoveryScore != null) {
-                val zone = plan.optString("recoveryZone")
-                val (drawable, textColor) = when (zone) {
-                    "good" -> R.drawable.widget_badge_completed to 0xFF147A66.toInt()
-                    "fair" -> R.drawable.widget_badge_different to 0xFF9B6729.toInt()
-                    else -> R.drawable.widget_badge_low to 0xFFB5495A.toInt()
-                }
-                views.setViewVisibility(R.id.widget_recovery_badge, View.VISIBLE)
-                views.setTextViewText(R.id.widget_recovery_badge, "Rec $recoveryScore%")
-                views.setInt(R.id.widget_recovery_badge, "setBackgroundResource", drawable)
-                views.setTextColor(R.id.widget_recovery_badge, textColor)
-            } else {
-                views.setViewVisibility(R.id.widget_recovery_badge, View.GONE)
+            val recoveryStyle = when (plan.optString("recoveryZone")) {
+                "good" -> R.drawable.widget_badge_completed to 0xFF147A66.toInt()
+                "fair" -> R.drawable.widget_badge_different to 0xFF9B6729.toInt()
+                else -> R.drawable.widget_badge_low to 0xFFB5495A.toInt()
             }
+            renderDial(views, R.id.widget_recovery_badge, recoveryScore?.let { DialContent("Rec $it%", recoveryStyle.first, recoveryStyle.second) })
 
-            // 2. Day Strain Dial
             val strainScore = plan.optDouble("strainScore").takeIf { !it.isNaN() && it >= 0 }
-            if (strainScore != null) {
-                views.setViewVisibility(R.id.widget_strain_badge, View.VISIBLE)
-                views.setTextViewText(R.id.widget_strain_badge, "Str ${String.format(java.util.Locale.US, "%.1f", strainScore)}")
-                views.setInt(R.id.widget_strain_badge, "setBackgroundResource", R.drawable.widget_badge_pending)
-                views.setTextColor(R.id.widget_strain_badge, 0xFF176F9F.toInt())
-            } else {
-                views.setViewVisibility(R.id.widget_strain_badge, View.GONE)
-            }
+            renderDial(views, R.id.widget_strain_badge, strainScore?.let {
+                DialContent("Str ${String.format(java.util.Locale.US, "%.1f", it)}", R.drawable.widget_badge_pending, 0xFF176F9F.toInt())
+            })
 
-            // 3. Sleep Score Dial
             val sleepScore = plan.optInt("sleepScore", -1).takeIf { it in 0..100 }
-            if (sleepScore != null) {
-                views.setViewVisibility(R.id.widget_sleep_badge, View.VISIBLE)
-                views.setTextViewText(R.id.widget_sleep_badge, "Slp $sleepScore%")
-                views.setInt(R.id.widget_sleep_badge, "setBackgroundResource", R.drawable.widget_badge_rest)
-                views.setTextColor(R.id.widget_sleep_badge, 0xFF5B6998.toInt())
-            } else {
-                views.setViewVisibility(R.id.widget_sleep_badge, View.GONE)
+            renderDial(views, R.id.widget_sleep_badge, sleepScore?.let {
+                DialContent("Slp $it%", R.drawable.widget_badge_rest, 0xFF5B6998.toInt())
+            })
+        }
+
+        private data class DialContent(val text: String, val drawable: Int, val textColor: Int)
+
+        private fun renderDial(views: RemoteViews, viewId: Int, content: DialContent?) {
+            if (content == null) {
+                views.setViewVisibility(viewId, View.GONE)
+                return
             }
+            views.setViewVisibility(viewId, View.VISIBLE)
+            views.setTextViewText(viewId, content.text)
+            views.setInt(viewId, "setBackgroundResource", content.drawable)
+            views.setTextColor(viewId, content.textColor)
         }
 
         private fun workoutTypeLabel(plan: JSONObject?, status: String): String {
