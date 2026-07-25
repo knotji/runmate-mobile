@@ -12,16 +12,14 @@ const MorePage = lazy(() => import('@/pages/MorePage'));
 
 const MainTabs: React.FC = () => (
   <IonTabs>
-    <Suspense fallback={<RouteLoadingScreen />}>
-      <IonRouterOutlet>
-        <Route exact path="/tabs/recovery" component={RecoveryPage} />
-        <Route exact path="/tabs/activity" component={ActivityPage} />
-        <Route exact path="/tabs/upload" component={UploadPage} />
-        <Route exact path="/tabs/more" component={MorePage} />
-        <Route exact path="/tabs/history"><Redirect to="/tabs/activity" /></Route>
-        <Route exact path="/tabs"><Redirect to="/tabs/recovery" /></Route>
-      </IonRouterOutlet>
-    </Suspense>
+    <IonRouterOutlet>
+      <Route exact path="/tabs/recovery"><Suspense fallback={<RouteLoadingScreen />}><RecoveryPage /></Suspense></Route>
+      <Route exact path="/tabs/activity"><Suspense fallback={<RouteLoadingScreen />}><ActivityPage /></Suspense></Route>
+      <Route exact path="/tabs/upload"><Suspense fallback={<RouteLoadingScreen />}><UploadPage /></Suspense></Route>
+      <Route exact path="/tabs/more"><Suspense fallback={<RouteLoadingScreen />}><MorePage /></Suspense></Route>
+      <Route exact path="/tabs/history"><Redirect to="/tabs/activity" /></Route>
+      <Route exact path="/tabs"><Redirect to="/tabs/recovery" /></Route>
+    </IonRouterOutlet>
     <IonTabBar slot="bottom" className="main-tab-bar">
       <IonTabButton tab="recovery" href="/tabs/recovery" onClick={() => void hapticSelection()}><IonIcon icon={pulseOutline} /><IonLabel>Recovery</IonLabel></IonTabButton>
       <IonTabButton tab="upload" href="/tabs/upload" onClick={() => void hapticSelection()}><IonIcon icon={addCircleOutline} /><IonLabel>Upload</IonLabel></IonTabButton>
