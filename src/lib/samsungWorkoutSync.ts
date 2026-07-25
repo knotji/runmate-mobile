@@ -131,7 +131,7 @@ export async function queryAllHealthConnectWorkouts(options: Omit<QueryWorkoutsO
 }
 
 async function readWorkoutHeartRate(workout: Workout): Promise<HealthSample[]> {
-  const result = await Health.readSamples({ dataType: 'heartRate', startDate: workout.startDate, endDate: workout.endDate, ascending: true, limit: 2000 });
+  const result = await Health.readSamples({ dataType: 'heartRate', startDate: workout.startDate, endDate: workout.endDate, ascending: true, limit: 20000 });
   return result.samples.filter((sample) => supportedWorkoutSource(sample.sourceId));
 }
 
@@ -140,7 +140,6 @@ async function readWorkoutHeartRateWithPreparedFallback(
   workout: Workout,
 ): Promise<HealthSample[]> {
   const prepared = selectWorkoutHeartRate(preparedSamples, workout);
-  if (workoutHeartRateCoverage(prepared, workout) >= 50) return prepared;
   try {
     const live = await readWorkoutHeartRate(workout);
     return workoutHeartRateCoverage(live, workout) >= workoutHeartRateCoverage(prepared, workout)

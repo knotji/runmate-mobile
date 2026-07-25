@@ -86,7 +86,7 @@ export function calculateHeartRateZones(input: {
   const coveragePercentage = Math.min(100, Math.round((measuredSeconds / workoutSeconds) * 100));
   const weightedMinutes = zones.reduce((sum, zone) => sum + (zone.seconds / 60) * ZONE_WEIGHTS[zone.zone], 0);
   const score = Math.min(100, Math.round(weightedMinutes / 3));
-  const load = coveragePercentage >= 50 ? { score, level: loadLevel(score) } : null;
+  const load = coveragePercentage >= 20 ? { score, level: loadLevel(score) } : null;
   return { method: 'hrr', maxHr: Math.round(input.maxHr), restingHr: Math.round(input.restingHr), measuredSeconds: Math.round(measuredSeconds), workoutSeconds, coveragePercentage, zones, load };
 }
 
