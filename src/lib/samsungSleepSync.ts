@@ -215,6 +215,9 @@ export function mapSamsungSleepSample(sample: HealthSample, signals?: SamsungSle
 }
 
 const ADJACENT_SLEEP_GAP_MS = 30 * 60_000;
+const OVERNIGHT_CONTINUATION_GAP_MS = 90 * 60_000;
+const MIN_MAIN_SLEEP_BLOCK_MS = 3 * 60 * 60_000;
+const BANGKOK_UTC_OFFSET_MS = 7 * 60 * 60_000;
 
 /**
  * Health Connect sometimes splits one continuous Samsung Health sleep session
@@ -222,8 +225,11 @@ const ADJACENT_SLEEP_GAP_MS = 30 * 60_000;
  * night ending 20:49 UTC and its next fragment starting 20:51 UTC). Treating
  * those as separate nights under-counts sleep duration, since only the
  * longest single fragment would otherwise survive dedupe. Merge same-source
- * records that are chained within ADJACENT_SLEEP_GAP_MS of each other into one
- * combined sample before any per-record mapping or dedup happens.
+ * records that are chained within ADJACENT_SLEEP_GAP_MS. Samsung can also
+ * split an overnight sleep around a longer early-morning wake period. Merge
+ * that continuation only when the first block is a main sleep (3h+), both
+ * records belong to the same Bangkok wake date, and the continuation begins
+ * before 08:00, so a later nap is not folded into the night.
  */
 export function mergeAdjacentSleepSamples(samples: HealthSample[]): HealthSample[] {
   const sorted = [...samples].sort((a, b) => Date.parse(a.startDate) - Date.parse(b.startDate));
@@ -231,13 +237,31 @@ export function mergeAdjacentSleepSamples(samples: HealthSample[]): HealthSample
   for (const sample of sorted) {
     const previous = merged[merged.length - 1];
     const gapMs = previous ? Date.parse(sample.startDate) - Date.parse(previous.endDate) : Infinity;
-    if (previous && previous.sourceId === sample.sourceId && Number.isFinite(gapMs) && gapMs >= 0 && gapMs <= ADJACENT_SLEEP_GAP_MS) {
+    const sameSource = previous && previous.sourceId === sample.sourceId;
+    const shouldMerge = sameSource && Number.isFinite(gapMs) && gapMs >= 0 && (
+      gapMs <= ADJACENT_SLEEP_GAP_MS
+      || isOvernightContinuation(previous, sample, gapMs)
+    );
+    if (previous && shouldMerge) {
       merged[merged.length - 1] = combineSleepSamples(previous, sample);
     } else {
       merged.push(sample);
     }
   }
   return merged;
+}
+
+function isOvernightContinuation(first: HealthSample, second: HealthSample, gapMs: number): boolean {
+  const firstStartMs = Date.parse(first.startDate);
+  const firstEndMs = Date.parse(first.endDate);
+  const secondStartMs = Date.parse(second.startDate);
+  return gapMs <= OVERNIGHT_CONTINUATION_GAP_MS
+    && Number.isFinite(firstStartMs)
+    && Number.isFinite(firstEndMs)
+    && Number.isFinite(secondStartMs)
+    && firstEndMs - firstStartMs >= MIN_MAIN_SLEEP_BLOCK_MS
+    && getBangkokDateKey(first.endDate) === getBangkokDateKey(second.endDate)
+    && new Date(secondStartMs + BANGKOK_UTC_OFFSET_MS).getUTCHours() < 8;
 }
 
 function combineSleepSamples(first: HealthSample, second: HealthSample): HealthSample {

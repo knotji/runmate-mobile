@@ -243,6 +243,43 @@ describe('Samsung Health sleep importer', () => {
     expect(merged[0].platformId).toBe('main-block');
   });
 
+  it('merges an early-morning Samsung continuation after a longer wake gap', () => {
+    const mainBlock: HealthSample = {
+      dataType: 'sleep', value: 378, unit: 'minute',
+      startDate: '2026-07-26T15:07:00.000Z', endDate: '2026-07-26T21:25:00.000Z',
+      sourceId: 'com.sec.android.app.shealth', platformId: 'main-block',
+      stages: [{ stage: 'light', startDate: '2026-07-26T15:07:00.000Z', endDate: '2026-07-26T21:25:00.000Z', durationMinutes: 378 }],
+    };
+    const morningContinuation: HealthSample = {
+      dataType: 'sleep', value: 54, unit: 'minute',
+      startDate: '2026-07-26T22:44:00.000Z', endDate: '2026-07-26T23:38:00.000Z',
+      sourceId: 'com.sec.android.app.shealth', platformId: 'morning-continuation',
+      stages: [{ stage: 'light', startDate: '2026-07-26T22:44:00.000Z', endDate: '2026-07-26T23:38:00.000Z', durationMinutes: 54 }],
+    };
+
+    const merged = mergeAdjacentSleepSamples([morningContinuation, mainBlock]);
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0].startDate).toBe(mainBlock.startDate);
+    expect(merged[0].endDate).toBe(morningContinuation.endDate);
+    expect(merged[0].value).toBe(432);
+  });
+
+  it('does not merge a later morning nap into the overnight sleep', () => {
+    const night: HealthSample = {
+      dataType: 'sleep', value: 360, unit: 'minute',
+      startDate: '2026-07-26T16:00:00.000Z', endDate: '2026-07-27T00:00:00.000Z',
+      sourceId: 'com.sec.android.app.shealth', platformId: 'night',
+    };
+    const laterNap: HealthSample = {
+      dataType: 'sleep', value: 45, unit: 'minute',
+      startDate: '2026-07-27T01:15:00.000Z', endDate: '2026-07-27T02:00:00.000Z',
+      sourceId: 'com.sec.android.app.shealth', platformId: 'later-nap',
+    };
+
+    expect(mergeAdjacentSleepSamples([night, laterNap])).toHaveLength(2);
+  });
+
   it('does not merge Samsung sleep fragments separated by more than the gap threshold', () => {
     const nap: HealthSample = {
       dataType: 'sleep', value: 30, unit: 'minute',
