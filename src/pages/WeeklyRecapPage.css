@@ -1,0 +1,41 @@
+.recap-content { --background: radial-gradient(circle at 50% -12%, #e5f4ff 0, #f4f8fc 34%, #f7f9fc 74%); }
+.recap-header ion-toolbar { --background: rgba(247,250,253,.82); --border-color: rgba(173,194,217,.22); --min-height: 56px; backdrop-filter: blur(20px); }
+.recap-header ion-title { color: #142a46; font-size: 16px; font-weight: 800; text-align: center; }
+.recap-back { position: relative; z-index: 2; display: grid; place-items: center; width: 48px; height: 48px; margin-left: 4px; border: 0; color: #52708f; background: transparent; font-size: 22px; }
+.recap-shell { width: min(100%,600px); margin: 0 auto; padding: 20px 20px max(52px,env(safe-area-inset-bottom)); }
+
+.recap-period-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 20px; padding: 4px; border: 1px solid #d9e6f0; border-radius: 14px; background: #fff; }
+.recap-period-toggle button { min-height: 44px; border: 0; border-radius: 10px; color: #70869b; background: transparent; font: inherit; font-size: 12px; font-weight: 800; }
+.recap-period-toggle button.active { color: #176f9f; background: #e7f5fc; box-shadow: inset 0 0 0 1px #c9e6f4; }
+
+.recap-state { min-height: 320px; display: grid; place-content: center; justify-items: center; gap: 12px; color: #6d8398; font-size: 11px; }
+.recap-state button { min-height: 44px; padding: 0 18px; border: 1px solid #a9cee1; border-radius: 12px; color: #2379a7; background: #fff; font: inherit; font-weight: 800; }
+
+.recap-period-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; padding: 4px 6px; border: 1px solid #d9e6f0; border-radius: 14px; background: #fff; }
+.recap-period-nav span { color: #2474b2; font-size: 11px; font-weight: 850; letter-spacing: .04em; text-transform: uppercase; }
+.recap-period-arrow { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 10px; color: #52708f; background: transparent; font-size: 18px; }
+.recap-period-arrow:disabled { color: #c4d3df; }
+
+.recap-heading { margin: 4px 2px 18px; text-align: center; }
+.recap-heading p { margin: 0 0 6px; color: #2474b2; font-size: 10px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.recap-heading h1 { margin: 0; color: #173451; font-size: 26px; line-height: 1.18; }
+
+.recap-hero-card { display: grid; justify-items: center; gap: 10px; padding: 28px 20px; margin-bottom: 16px; border: 1px solid #d6e5ef; border-radius: 20px; background: #fff; box-shadow: 0 10px 24px rgba(34,73,105,.05); text-align: center; }
+.recap-recovery-ring { display: grid; justify-items: center; gap: 4px; width: 168px; height: 168px; border-radius: 50%; border: 10px solid #eaf2f7; background: #fbfdfe; align-content: center; }
+.recap-recovery-ring[data-has-score="true"] { border-color: #cdeee6; }
+.recap-recovery-ring strong { color: #173451; font-size: 48px; font-weight: 800; line-height: 1; }
+.recap-recovery-ring span { color: #6d8398; font-size: 9px; font-weight: 800; letter-spacing: .05em; }
+.recap-insight-title { margin: 4px 0 0; color: #193753; font-size: 16px; font-weight: 800; }
+.recap-insight-summary { margin: 0; max-width: 320px; color: #6d8398; font-size: 11px; line-height: 1.5; }
+
+.recap-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.recap-stat { display: grid; justify-items: center; gap: 4px; padding: 16px 8px; border: 1px solid #d6e5ef; border-radius: 16px; background: #fff; text-align: center; }
+.recap-stat strong { color: #173451; font-size: 18px; font-weight: 800; }
+.recap-stat span { color: #6d8398; font-size: 9px; font-weight: 750; letter-spacing: .03em; text-transform: uppercase; }
+
+.recap-adherence-card { display: grid; gap: 8px; padding: 16px; margin-bottom: 20px; border: 1px solid #d6e5ef; border-radius: 16px; background: #fff; }
+.recap-adherence-track { position: relative; height: 8px; border-radius: 999px; background: #eaf2f7; overflow: hidden; }
+.recap-adherence-track i { position: absolute; inset: 0; border-radius: 999px; background: #2474b2; }
+.recap-adherence-card span { color: #6d8398; font-size: 10px; font-weight: 700; text-align: center; }
+
+.recap-share-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 52px; border: 0; border-radius: 14px; color: #fff; background: var(--rm-brand-blue, #2474b2); font: inherit; font-size: 15px; font-weight: 800; }

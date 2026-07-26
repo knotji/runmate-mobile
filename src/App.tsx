@@ -60,6 +60,7 @@ const WeeklySummaryPage = lazy(() => loadMorePage('/weekly-summary'));
 const ProfileSettingsPage = lazy(() => loadMorePage('/profile-settings'));
 const NotificationsPage = lazy(() => loadMorePage('/notifications'));
 const RecoveryTrendsPage = lazy(() => import('@/pages/RecoveryTrendsPage'));
+const WeeklyRecapPage = lazy(() => import('@/pages/WeeklyRecapPage'));
 const AiCoachPage = lazy(() => loadMorePage('/ai-coach'));
 const NutritionTrendsPage = lazy(() => import('@/pages/NutritionTrendsPage'));
 const PrivacyDataPage = lazy(() => loadMorePage('/privacy-data'));
@@ -184,6 +185,7 @@ const App: React.FC = () => {
             <Route exact path="/race-goal">{session ? <RaceGoalPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/health-connect">{session ? <HealthTestPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/weekly-summary">{session ? <WeeklySummaryPage /> : <Redirect to="/login" />}</Route>
+            <Route exact path="/weekly-recap">{session ? <WeeklyRecapPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/profile-settings">{session ? <ProfileSettingsPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/notifications">{session ? <NotificationsPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/ai-coach">{session ? <AiCoachPage /> : <Redirect to="/login" />}</Route>

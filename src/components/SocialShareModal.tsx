@@ -20,6 +20,7 @@ import {
 import type { CoachContext } from '@/lib/buildCoachContext';
 import { hapticImpact, hapticNotification } from '@/lib/haptics';
 import { canSaveStoryImageNatively, saveStoryImageNatively } from '@/lib/storyImage';
+import type { WeeklyRecapHighlights } from '@/lib/weeklyRecapHighlights';
 import {
   getAvailableWorkoutMetrics,
   WORKOUT_METRIC_ORDER,
@@ -28,7 +29,7 @@ import {
 } from '@/lib/workoutShareMetrics';
 import './SocialShareModal.css';
 
-export type ShareTheme = 'cyber-dark' | 'sunrise-fresh' | 'minimal-glass' | 'transparent-overlay' | 'ultra-minimal' | 'compact-row' | 'compact-row-overlay';
+export type ShareTheme = 'cyber-dark' | 'sunrise-fresh' | 'minimal-glass' | 'transparent-overlay' | 'ultra-minimal' | 'compact-row' | 'compact-row-overlay' | 'calendar-dots';
 export type { SportType } from '@/lib/workoutShareMetrics';
 
 export interface WorkoutShareData {
@@ -48,8 +49,9 @@ interface SocialShareModalProps {
   isOpen: boolean;
   onDismiss: () => void;
   context?: CoachContext | null;
-  mode?: 'recovery' | 'workout';
+  mode?: 'recovery' | 'workout' | 'weekly';
   workoutData?: WorkoutShareData | null;
+  weeklyData?: WeeklyRecapHighlights | null;
 }
 
 type CanvasPalette = {
@@ -76,6 +78,10 @@ function isHorizontalTheme(theme: ShareTheme): boolean {
   return theme === 'compact-row' || theme === 'compact-row-overlay';
 }
 
+function isTransparentTheme(theme: ShareTheme): boolean {
+  return theme === 'transparent-overlay' || theme === 'compact-row-overlay' || theme === 'calendar-dots';
+}
+
 function getStoryDimensions(theme: ShareTheme): { width: number; height: number } {
   return isHorizontalTheme(theme)
     ? { width: LANDSCAPE_WIDTH, height: LANDSCAPE_HEIGHT }
@@ -88,6 +94,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
   context = null,
   mode = 'recovery',
   workoutData = null,
+  weeklyData = null,
 }) => {
   const defaultTheme: ShareTheme = mode === 'workout' ? 'transparent-overlay' : 'minimal-glass';
   const [selectedTheme, setSelectedTheme] = useState<ShareTheme>(defaultTheme);
@@ -107,10 +114,16 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
       { theme: 'cyber-dark', label: 'Dark' },
       { theme: 'minimal-glass', label: 'Light' },
     ]
-    : [
-      { theme: 'cyber-dark', label: 'Dark' },
-      { theme: 'minimal-glass', label: 'Light' },
-    ];
+    : mode === 'weekly'
+      ? [
+        { theme: 'cyber-dark', label: 'Dark' },
+        { theme: 'minimal-glass', label: 'Light' },
+        { theme: 'calendar-dots', label: 'Calendar' },
+      ]
+      : [
+        { theme: 'cyber-dark', label: 'Dark' },
+        { theme: 'minimal-glass', label: 'Light' },
+      ];
   const themeIndex = Math.max(0, themeOptions.findIndex(({ theme }) =>
     theme === selectedTheme || (theme === 'minimal-glass' && selectedTheme === 'sunrise-fresh')));
 
@@ -175,6 +188,12 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
         dateText,
         selectedMetrics: selectedWorkoutMetrics,
       });
+    } else if (mode === 'weekly' && weeklyData) {
+      if (selectedTheme === 'calendar-dots') {
+        drawWeeklyRecapCalendar(ctx, palette, { width, height, ...weeklyData });
+      } else {
+        drawWeeklyRecapStory(ctx, palette, { width, height, ...weeklyData });
+      }
     } else if (score !== null) {
       drawRecoveryStory(ctx, palette, {
         width,
@@ -206,6 +225,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
     sportType,
     strainScore,
     title,
+    weeklyData,
   ]);
 
   const prepareStory = useCallback(async () => {
@@ -297,8 +317,8 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
   const saveImage = async () => {
     if (!dataUrl) return;
     void hapticImpact();
-    const fileName = `RunMate-${mode === 'workout' ? 'Workout' : 'Recovery'}-${Date.now()}.png`;
-    const savedMessage = (selectedTheme === 'transparent-overlay' || selectedTheme === 'compact-row-overlay')
+    const fileName = `RunMate-${mode === 'workout' ? 'Workout' : mode === 'weekly' ? 'Recap' : 'Recovery'}-${Date.now()}.png`;
+    const savedMessage = isTransparentTheme(selectedTheme)
       ? 'Saved (Transparent Background)'
       : 'Saved To Pictures / RunMate';
     if (canSaveStoryImageNatively()) {
@@ -316,7 +336,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
     link.href = dataUrl;
     link.click();
     void hapticNotification();
-    showToast((selectedTheme === 'transparent-overlay' || selectedTheme === 'compact-row-overlay') ? savedMessage : 'Story image saved');
+    showToast(isTransparentTheme(selectedTheme) ? savedMessage : 'Story image saved');
   };
 
   const shareImage = async () => {
@@ -327,10 +347,12 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
       const file = new File([await response.blob()], 'runmate-story.png', { type: 'image/png' });
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({
-          title: mode === 'workout' ? 'RunMate Workout' : 'RunMate Recovery',
+          title: mode === 'workout' ? 'RunMate Workout' : mode === 'weekly' ? 'RunMate Recap' : 'RunMate Recovery',
           text: mode === 'workout'
             ? `${title}${distanceKm ? ` · ${distanceKm.toFixed(2)} km` : ''}`
-            : `Recovery ${score ?? '—'}/100`,
+            : mode === 'weekly'
+              ? `${weeklyData?.periodTitle ?? 'Your Recap'}${weeklyData?.recoveryAverage != null ? ` · Recovery ${weeklyData.recoveryAverage}/100` : ''}`
+              : `Recovery ${score ?? '—'}/100`,
           files: [file],
         });
         void hapticNotification();
@@ -354,7 +376,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
       <IonHeader translucent className="social-share-header">
         <div className="social-share-sheet-handle" aria-hidden="true" />
         <IonToolbar>
-          <IonTitle>{mode === 'workout' ? 'Share Workout' : 'Share Recovery'}</IonTitle>
+          <IonTitle>{mode === 'workout' ? 'Share Workout' : mode === 'weekly' ? 'Share Recap' : 'Share Recovery'}</IonTitle>
           <IonButtons slot="end">
             <IonButton onClick={onDismiss} aria-label="Close Share">
               <IonIcon icon={closeOutline} />
@@ -366,7 +388,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
       <IonContent className="social-share-content">
         <div className="social-share-shell">
           <div
-            className={`social-share-preview-container ${(selectedTheme === 'transparent-overlay' || selectedTheme === 'compact-row-overlay') ? 'transparent-grid' : ''}`}
+            className={`social-share-preview-container ${isTransparentTheme(selectedTheme) ? 'transparent-grid' : ''}`}
             onTouchStart={handlePreviewTouchStart}
             onTouchEnd={handlePreviewTouchEnd}
           >
@@ -383,7 +405,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
           <div className="social-share-theme-slider" aria-labelledby="story-style-label">
             <div className="social-share-theme-current-row">
               <p id="story-style-label" className="social-share-theme-current">{themeOptions[themeIndex]?.label}</p>
-              {(selectedTheme === 'transparent-overlay' || selectedTheme === 'compact-row-overlay') && (
+              {isTransparentTheme(selectedTheme) && (
                 <button type="button" className="theme-info-btn" aria-label="About Transparent Background" onClick={showOverlayInfo}>
                   <IonIcon icon={informationCircleOutline} />
                 </button>
@@ -456,7 +478,7 @@ function drawStoryBackground(
   width: number,
   height: number,
 ): CanvasPalette {
-  if (theme === 'transparent-overlay' || theme === 'compact-row-overlay') {
+  if (isTransparentTheme(theme)) {
     ctx.clearRect(0, 0, width, height);
     return darkPalette();
   }
@@ -701,6 +723,122 @@ function drawRecoveryStory(
   if (data.sleepMinutes !== null) metrics.push({ label: 'SLEEP', value: formatSleep(data.sleepMinutes) });
   if (data.strainScore !== null) metrics.push({ label: 'STRAIN', value: data.strainScore.toFixed(1), unit: '/21' });
   drawMetricRow(ctx, palette, metrics, centerX, 1200);
+  drawFooter(ctx, palette, centerX);
+}
+
+function drawWeeklyRecapStory(
+  ctx: CanvasRenderingContext2D,
+  palette: CanvasPalette,
+  data: WeeklyRecapHighlights & { width: number; height: number },
+) {
+  drawStoryHeader(ctx, palette, data.periodTitle, data.dateRangeLabel);
+
+  const centerX = data.width / 2;
+  const centerY = 690;
+  const radius = 210;
+  ctx.lineWidth = 18;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = palette.hairline;
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  ctx.stroke();
+
+  const hasRecovery = data.recoveryAverage !== null;
+  const accent = hasRecovery ? recoveryAccent(data.recoveryAverage as number) : palette.faint;
+  if (hasRecovery) {
+    ctx.strokeStyle = accent;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * Math.max(0, Math.min(100, data.recoveryAverage as number))) / 100);
+    ctx.stroke();
+  }
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = palette.text;
+  ctx.font = `700 178px ${STORY_FONT}`;
+  ctx.fillText(hasRecovery ? `${data.recoveryAverage}` : '—', centerX, centerY + 45);
+  ctx.fillStyle = palette.muted;
+  ctx.font = `600 26px ${STORY_FONT}`;
+  ctx.fillText('AVG RECOVERY / 100', centerX, centerY + 105);
+  ctx.fillStyle = accent;
+  ctx.font = `700 30px ${STORY_FONT}`;
+  ctx.fillText(data.recoveryInsightTitle, centerX, centerY + 290);
+
+  const topMetrics: StoryMetric[] = [
+    { label: 'SLEEP BEST', value: data.sleepBestScore !== null ? `${data.sleepBestScore}` : '—' },
+    { label: 'ADHERENCE', value: data.adherencePlanned > 0 ? `${data.adherencePercentage}%` : '—' },
+    { label: 'SESSIONS', value: `${data.sessions}` },
+  ];
+  drawMetricRow(ctx, palette, topMetrics, centerX, 1160);
+
+  const bottomMetrics: StoryMetric[] = [
+    { label: 'DISTANCE', value: data.distanceKm.toFixed(1), unit: 'km' },
+    { label: 'ACTIVE TIME', value: formatSleep(data.activeMinutes) },
+  ];
+  drawMetricRow(ctx, palette, bottomMetrics, centerX, 1340);
+
+  drawFooter(ctx, palette, centerX);
+}
+
+/** Calendar grid: one dot per day of the period, filled solid for days with a workout, hollow otherwise. */
+function drawWeeklyRecapCalendar(
+  ctx: CanvasRenderingContext2D,
+  palette: CanvasPalette,
+  data: WeeklyRecapHighlights & { width: number; height: number },
+) {
+  drawStoryHeader(ctx, palette, data.periodTitle, data.dateRangeLabel);
+
+  const centerX = data.width / 2;
+  const gridWidth = Math.min(700, data.width - 100);
+  const left = centerX - gridWidth / 2;
+  const cellSize = gridWidth / 7;
+  const activeDates = new Set(data.activeDateKeys);
+  const weekdayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const gridTop = 420;
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = palette.faint;
+  ctx.font = `700 22px ${STORY_FONT}`;
+  weekdayLabels.forEach((label, index) => {
+    ctx.fillText(label, left + cellSize * index + cellSize / 2, gridTop - 24);
+  });
+
+  const dotRadius = Math.min(24, cellSize * 0.32);
+  data.periodDates.forEach((date, index) => {
+    const slot = data.periodStartWeekday + index;
+    const column = slot % 7;
+    const row = Math.floor(slot / 7);
+    const x = left + cellSize * column + cellSize / 2;
+    const y = gridTop + cellSize * row + cellSize / 2;
+    const dayNumber = Number(date.slice(8, 10));
+    const isActive = activeDates.has(date);
+
+    ctx.beginPath();
+    ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+    if (isActive) {
+      ctx.fillStyle = palette.accent;
+      ctx.fill();
+    } else {
+      ctx.strokeStyle = palette.hairline;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = isActive ? '#0b1a26' : palette.faint;
+    ctx.font = `700 ${Math.round(dotRadius * 0.8)}px ${STORY_FONT}`;
+    ctx.fillText(String(dayNumber), x, y + dotRadius * 0.3);
+  });
+
+  const rows = Math.ceil((data.periodStartWeekday + data.periodDates.length) / 7);
+  const legendY = gridTop + cellSize * rows + 60;
+  ctx.beginPath();
+  ctx.fillStyle = palette.accent;
+  ctx.arc(centerX - 96, legendY - 8, 10, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.textAlign = 'left';
+  ctx.fillStyle = palette.muted;
+  ctx.font = `600 24px ${STORY_FONT}`;
+  ctx.fillText(`${data.activeDateKeys.length} Training ${data.activeDateKeys.length === 1 ? 'Day' : 'Days'}`, centerX - 76, legendY);
+
   drawFooter(ctx, palette, centerX);
 }
 

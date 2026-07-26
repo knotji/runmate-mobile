@@ -10,6 +10,7 @@ const routeDetails: Record<string, RouteLoadingDetails> = {
   '/ai-coach': { title: 'AI Coach', variant: 'coach' },
   '/race-goal': { title: 'Race Goal', variant: 'race' },
   '/weekly-summary': { title: 'Weekly Summary', variant: 'summary' },
+  '/weekly-recap': { title: 'Your Recap', variant: 'summary' },
   '/profile-settings': { title: 'Profile & Settings', variant: 'profile' },
   '/notifications': { title: 'Notifications', variant: 'notifications' },
   '/health-connect': { title: 'Health Connect', variant: 'health' },

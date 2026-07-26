@@ -35,6 +35,47 @@ export function shiftDate(dateKey: string, days: number): string {
   return getBangkokDateKey(d);
 }
 
+/** 0 (Sunday) through 6 (Saturday), resolved against the Bangkok calendar regardless of the runtime's local timezone. */
+export function weekdayIndex(dateKey: string): number {
+  const d = new Date(`${dateKey.slice(0, 10)}T12:00:00+07:00`);
+  const weekdayName = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Bangkok', weekday: 'short' }).format(d);
+  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(weekdayName);
+}
+
+/** Sunday of the Bangkok calendar week containing dateKey. */
+export function startOfWeek(dateKey: string): string {
+  return shiftDate(dateKey, -weekdayIndex(dateKey));
+}
+
+/** First day (YYYY-MM-01) of the Bangkok calendar month containing dateKey. */
+export function startOfMonth(dateKey: string): string {
+  const d = new Date(`${dateKey.slice(0, 10)}T12:00:00+07:00`);
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit' }).formatToParts(d);
+  const year = parts.find((p) => p.type === 'year')?.value;
+  const month = parts.find((p) => p.type === 'month')?.value;
+  return `${year}-${month}-01`;
+}
+
+/** The 1st of the month that is `months` calendar months before/after dateKey's month. */
+export function shiftMonths(dateKey: string, months: number): string {
+  let cursor = startOfMonth(dateKey);
+  const step = months >= 0 ? 32 : -1;
+  for (let i = 0; i < Math.abs(months); i++) cursor = startOfMonth(shiftDate(cursor, step));
+  return cursor;
+}
+
+/** Last day of the Bangkok calendar month containing dateKey. */
+export function endOfMonth(dateKey: string): string {
+  return shiftDate(shiftMonths(dateKey, 1), -1);
+}
+
+/** Whole-day difference (toDateKey - fromDateKey), both interpreted as Bangkok dates. */
+export function daysBetween(fromDateKey: string, toDateKey: string): number {
+  const from = new Date(`${fromDateKey.slice(0, 10)}T12:00:00+07:00`);
+  const to = new Date(`${toDateKey.slice(0, 10)}T12:00:00+07:00`);
+  return Math.round((to.getTime() - from.getTime()) / 86_400_000);
+}
+
 export function formatThaiDate(date = new Date()) {
   return new Intl.DateTimeFormat("th-TH", {
     weekday: "long",

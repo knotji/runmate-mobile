@@ -63,7 +63,7 @@ type SleepSignals = {
 export function buildRecoveryTrend(
   items: LocalHistoryItem[],
   profile: Record<string, unknown> | null,
-  days: 7 | 30,
+  days: number,
   todayDate: string,
 ): { points: RecoveryTrendPoint[]; insight: RecoveryTrendInsight; calibration: RecoveryCalibration } {
   const startDate = shiftDate(todayDate, -(days - 1));

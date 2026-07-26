@@ -161,7 +161,7 @@ function normalizedPlanKind(value: string): string | null {
   return name.trim() || null;
 }
 
-function normalizedActualKind(item: LocalHistoryItem): string | null {
+export function normalizedActualKind(item: LocalHistoryItem): string | null {
   const extracted = record(record(item.data).extracted);
   const kind = String(extracted.workoutKind ?? (item.type === 'strength' ? 'strength' : '')).toLowerCase();
   if (/outdoor_run|running|run/.test(kind)) return 'run';
@@ -193,7 +193,7 @@ function localDateKey(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function durationMinutes(value: unknown): number | null {
+export function durationMinutes(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value !== 'string') return null;
   const parts = value.trim().split(':').map(Number);
@@ -203,5 +203,5 @@ function durationMinutes(value: unknown): number | null {
 }
 
 function metersToKm(value: unknown): number | null { const parsed = number(value); return parsed == null ? null : parsed / 1000; }
-function number(value: unknown): number | null { const parsed = typeof value === 'number' ? value : typeof value === 'string' ? Number(value.replace(/,/g, '').match(/-?\d+(?:\.\d+)?/)?.[0]) : NaN; return Number.isFinite(parsed) ? parsed : null; }
+export function number(value: unknown): number | null { const parsed = typeof value === 'number' ? value : typeof value === 'string' ? Number(value.replace(/,/g, '').match(/-?\d+(?:\.\d+)?/)?.[0]) : NaN; return Number.isFinite(parsed) ? parsed : null; }
 function record(value: unknown): Record<string, unknown> { return typeof value === 'object' && value !== null ? value as Record<string, unknown> : {}; }

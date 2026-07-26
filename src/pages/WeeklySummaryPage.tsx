@@ -59,6 +59,7 @@ const WeeklySummaryPage: React.FC = () => {
       <IonRefresher slot="fixed" onIonRefresh={refresh}><IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" /></IonRefresher>
       <main className="weekly-shell">
         <header className="weekly-heading"><p>Last 7 Days</p><h1>Your Training Week</h1><span>A factual summary of sleep, workouts, and meals logged in RunMate.</span></header>
+        <button type="button" className="weekly-recap-link" onClick={() => history.push('/weekly-recap')}>View Your Recap</button>
         {loading && <PageDataSkeleton variant="summary" label="Building Your Summary" />}
         {!loading && error && <PageState kind="error" title="Summary Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="weekly-state weekly-error" />}
         {!loading && summary && <>
