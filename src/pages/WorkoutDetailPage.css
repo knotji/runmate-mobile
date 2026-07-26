@@ -3,16 +3,9 @@
 .workout-hero { position: relative; display: grid; grid-template-columns: 48px minmax(0,1fr) auto; align-items: center; gap: 14px; margin-bottom: 26px; padding: 18px; border: 1px solid #d8e7f0; border-radius: 20px; background: linear-gradient(145deg,#edf8fd,#fff); }.workout-hero-strength { border-color: #eadfc8; background: linear-gradient(145deg,#fff8e9,#fff); }.workout-hero-icon { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 16px; color: #287ba5; background: #dff1f8; }.workout-hero-strength .workout-hero-icon { color: #8a672e; background: #f9ebce; }.workout-hero-icon ion-icon { width: 23px; height: 23px; }.workout-hero p { margin: 0 0 5px; color: #2474a4; font-size: 9px; font-weight: 800; letter-spacing: .04em; }.workout-hero h1 { margin: 0; color: #183651; font-size: 22px; line-height: 1.1; letter-spacing: -.03em; }.workout-hero span { display: block; margin-top: 6px; color: #74899d; font-size: 10px; }.workout-hero > strong { align-self: start; padding: 6px 9px; border-radius: 999px; color: #24779c; background: #e6f4f8; font-size: 9px; }
 .workout-detail-section { margin-bottom: 32px; }.workout-detail-section > header { margin: 0 2px 13px; }.workout-detail-section > header p { margin: 0 0 5px; color: #2474b2; font-size: 9px; font-weight: 850; letter-spacing: .05em; }.workout-detail-section > header h2 { margin: 0; color: #172f4b; font-size: 20px; letter-spacing: -.025em; }
 .workout-route-card,.workout-route-empty { overflow: hidden; border: 1px solid #d7e5ef; border-radius: 20px; background: #fff; box-shadow: 0 10px 24px rgba(36,75,111,.06); }
-.workout-route-map { width: 100%; height: 280px; background: #dfeaf0; }
+.workout-route-map { width: 100%; height: 300px; background: #dfeaf0; }
+.workout-route-map .leaflet-tile-pane { filter: saturate(.55) brightness(1.08) contrast(.86); }
 .workout-route-map .leaflet-control-attribution { font-size: 8px; }
-.workout-route-summary { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); border-top: 1px solid #e5edf3; }
-.workout-route-summary > div { display: grid; gap: 5px; padding: 13px 15px; }
-.workout-route-summary > div + div { border-left: 1px solid #e5edf3; }
-.workout-route-summary span,.workout-route-card footer span { color: #7a8fa2; font-size: 9px; }
-.workout-route-summary strong { color: #234963; font-size: 15px; }
-.workout-route-card footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 15px; border-top: 1px solid #e5edf3; }
-.workout-route-card footer span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.workout-route-card footer button { flex: 0 0 auto; min-height: 44px; border: 0; color: #9a5962; background: transparent; font: inherit; font-size: 9px; font-weight: 750; }
 .workout-route-empty { display: grid; justify-items: start; gap: 13px; padding: 17px; }
 .workout-route-empty p { margin: 0; color: #647d91; font-size: 11px; line-height: 1.55; }
 .workout-route-empty ion-button { min-height: 44px; margin: 0; --border-color: #80b9d2; --color: #247aa5; }
