@@ -4,7 +4,7 @@ import { Browser } from '@capacitor/browser';
 import { Capacitor, type PluginListenerHandle } from '@capacitor/core';
 import type { Session } from '@supabase/supabase-js';
 import { Redirect, Route } from 'react-router-dom';
-import { IonApp, IonRouterOutlet, IonToast, setupIonicReact } from '@ionic/react';
+import { IonApp, IonRouterOutlet, setupIonicReact } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
 import { supabase } from '@/lib/supabaseClient';
 import { completeNativeGoogleSignIn } from '@/lib/googleAuth';
@@ -22,7 +22,6 @@ import { loadMorePage } from '@/lib/morePageLoaders';
 import { navigateToAppRoute, notificationRouteFromUrl, onAppNavigate } from '@/lib/nativeNavigation';
 import { clearRecoveryStartupSnapshot } from '@/lib/recoveryStartupCache';
 import { useHistory } from 'react-router-dom';
-import { consumeSharedGpx, onSharedGpxAvailable, sharedGpxSupported } from '@/lib/sharedGpx';
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -72,7 +71,6 @@ const BodyWeightTrendPage = lazy(() => loadMorePage('/body-weight-trend'));
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
-  const [sharedGpxMessage, setSharedGpxMessage] = useState<string | null>(null);
 
   useEffect(() => {
     // React error boundaries only catch render-phase errors. Most real
@@ -92,30 +90,6 @@ const App: React.FC = () => {
       window.removeEventListener('unhandledrejection', handleRejection);
     };
   }, []);
-
-  useEffect(() => {
-    if (!session || !sharedGpxSupported()) return;
-    let listener: PluginListenerHandle | null = null;
-    let processing = false;
-    const processSharedGpx = async () => {
-      if (processing) return;
-      processing = true;
-      try {
-        const result = await consumeSharedGpx();
-        if (result) {
-          setSharedGpxMessage('Run Map saved.');
-          navigateToAppRoute(`/activity/workout/${encodeURIComponent(result.workoutId)}`);
-        }
-      } catch (error) {
-        setSharedGpxMessage(error instanceof Error ? error.message : 'The shared GPX route could not be saved.');
-      } finally {
-        processing = false;
-      }
-    };
-    void onSharedGpxAvailable(() => { void processSharedGpx(); }).then((handle) => { listener = handle; });
-    void processSharedGpx();
-    return () => { void listener?.remove(); };
-  }, [session]);
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
@@ -182,7 +156,6 @@ const App: React.FC = () => {
     <IonApp>
       <AppErrorBoundary>
       <NetworkStatusToast />
-      <IonToast isOpen={sharedGpxMessage !== null} message={sharedGpxMessage ?? ''} duration={3500} onDidDismiss={() => setSharedGpxMessage(null)} />
       {checkingSession && <AppBootScreen message="Checking Your Account" />}
       {!checkingSession && (
         <IonReactRouter>

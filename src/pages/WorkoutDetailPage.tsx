@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useHistory, useParams } from 'react-router-dom';
 import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar } from '@ionic/react';
 import { arrowBackOutline, barbellOutline, bicycleOutline, fitnessOutline, shareSocialOutline, walkOutline, waterOutline } from 'ionicons/icons';
@@ -12,9 +12,6 @@ import { useUserProfileStore } from '@/lib/profile/userProfileStore';
 import { restingHeartRateBaseline } from '@/lib/hrZones';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
-import { WorkoutRouteMap } from '@/components/WorkoutRouteMap';
-import { loadGpxRoute, parseGpx, routeMatchesWorkout, saveGpxRoute, type StoredGpxRoute } from '@/lib/gpxRoute';
-import { loadCloudWorkoutRoute, saveCloudWorkoutRoute } from '@/lib/cloudWorkoutRoute';
 import './WorkoutDetailPage.css';
 
 const WorkoutDetailPage: React.FC = () => {
@@ -25,9 +22,6 @@ const WorkoutDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const profile = useUserProfileStore((state) => state.profile);
   const [restingHr, setRestingHr] = useState<number | null>(null);
-  const [gpxRoute, setGpxRoute] = useState<StoredGpxRoute | null>(null);
-  const [gpxError, setGpxError] = useState<string | null>(null);
-  const gpxInput = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -69,40 +63,6 @@ const WorkoutDetailPage: React.FC = () => {
   };
 
   const shareExtracted = objectValue(objectValue(item?.data).extracted);
-  const itemData = objectValue(item?.data);
-  const isOutdoorRun = shareExtracted.workoutKind === 'outdoor_run';
-  const workoutStart = stringValue(itemData.workoutStartTime) ?? item?.recordedAt ?? null;
-
-  useEffect(() => {
-    if (!item) return;
-    const ids = [item.id, ...((item as LocalHistoryItem & { sourceRecordIds?: string[] }).sourceRecordIds ?? [])];
-    const cached = ids.map(loadGpxRoute).find(Boolean) ?? null;
-    setGpxRoute(cached);
-    setGpxError(null);
-    void loadCloudWorkoutRoute(ids).then((result) => {
-      if (result.ok && result.route) {
-        saveGpxRoute(item.id, result.route);
-        setGpxRoute(result.route);
-      }
-    });
-  }, [item]);
-
-  const importGpx = async (file: File | undefined) => {
-    if (!file || !item) return;
-    setGpxError(null);
-    try {
-      const route = parseGpx(await file.text(), file.name);
-      if (!routeMatchesWorkout(route, workoutStart)) throw new Error('This GPX starts at a different time and does not appear to belong to this workout.');
-      const cloudResult = await saveCloudWorkoutRoute(item.id, route);
-      if (!cloudResult.ok) throw new Error(cloudResult.error);
-      saveGpxRoute(item.id, route);
-      setGpxRoute(route);
-    } catch (failure) {
-      setGpxError(failure instanceof Error ? failure.message : 'This GPX route could not be imported.');
-    } finally {
-      if (gpxInput.current) gpxInput.current.value = '';
-    }
-  };
 
   const workoutShareData: WorkoutShareData | null = detail ? {
     title: detail.title,
@@ -150,24 +110,6 @@ const WorkoutDetailPage: React.FC = () => {
                 <div><p>{detail.isStrength ? 'Strength Training' : 'Workout'}</p><h1>{detail.title}</h1><span>{detail.date}</span></div>
                 {detail.intensity && <strong>{detail.intensity}</strong>}
               </section>
-
-              {isOutdoorRun && (
-                <section className="workout-detail-section workout-route-section">
-                  <header><h2>Run Map</h2></header>
-                  {gpxRoute ? (
-                    <div className="workout-route-card">
-                      <WorkoutRouteMap route={gpxRoute} />
-                    </div>
-                  ) : (
-                    <div className="workout-route-empty">
-                      <p>Share a GPX route to RunMate or select a file to add this run map.</p>
-                      <IonButton fill="outline" onClick={() => gpxInput.current?.click()}>Select GPX File</IonButton>
-                    </div>
-                  )}
-                  <input ref={gpxInput} className="workout-gpx-input" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml" onChange={(event) => void importGpx(event.target.files?.[0])} />
-                  {gpxError && <p className="workout-route-error" role="alert">{gpxError}</p>}
-                </section>
-              )}
 
               {detail.heartRateZones ? (
                 <section className="workout-detail-section">
@@ -255,7 +197,6 @@ const WorkoutDetailPage: React.FC = () => {
 export default WorkoutDetailPage;
 
 function objectValue(value: unknown): Record<string, unknown> { return typeof value === 'object' && value !== null ? value as Record<string, unknown> : {}; }
-function stringValue(value: unknown): string | null { return typeof value === 'string' && value.trim() ? value : null; }
 function numberValue(value: unknown): number | null { return typeof value === 'number' && Number.isFinite(value) ? value : null; }
 function metersToKilometers(value: number | null): number | null { return value === null ? null : value / 1000; }
 function metricNumber(metrics: Array<{ label: string; value: string }>, label: string): number | null {
