@@ -22,6 +22,7 @@ import {
   buildVitalsDiagnostic,
 } from '@/lib/healthDiagnosticsQueries';
 import { copyToClipboard } from '@/lib/clipboard';
+import { readLatestRunningRoute } from '@/lib/exerciseRoute';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import {
   getBackgroundHealthStatus,
@@ -216,6 +217,7 @@ const HealthTestPage: React.FC = () => {
     { label: 'read: oxygenSaturation (7d)', title: 'Read SpO2 (7d)', action: () => Health.readSamples({ dataType: 'oxygenSaturation', startDate: daysAgo(7), limit: 50 }) },
     { label: 'queryWorkouts (30d, all pages)', title: 'Query Workouts (30d, All Pages)', action: async () => ({ workouts: await queryAllHealthConnectWorkouts({ startDate: daysAgo(30), ascending: false }) }) },
     { label: 'queryWorkouts (today, Bangkok-aligned)', title: 'Query Workouts (Today Only)', action: () => Health.queryWorkouts({ startDate: bangkokMidnightDaysAgo(0), ascending: false, limit: 20 }) },
+    { label: 'exerciseRoute (latest run, 30d)', title: 'Read Route For Latest Run (30d)', action: () => readLatestRunningRoute() },
     {
       label: 'workout window: distance/calories/heartRate (today)',
       title: "Read Distance/Calories/HR For Today's Workouts",
