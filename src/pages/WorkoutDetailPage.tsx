@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useHistory, useParams } from 'react-router-dom';
 import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar } from '@ionic/react';
 import { arrowBackOutline, barbellOutline, bicycleOutline, fitnessOutline, shareSocialOutline, walkOutline, waterOutline } from 'ionicons/icons';
@@ -12,6 +12,8 @@ import { useUserProfileStore } from '@/lib/profile/userProfileStore';
 import { restingHeartRateBaseline } from '@/lib/hrZones';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
+import { WorkoutRouteMap } from '@/components/WorkoutRouteMap';
+import { loadGpxRoute, parseGpx, removeGpxRoute, routeMatchesWorkout, saveGpxRoute, type StoredGpxRoute } from '@/lib/gpxRoute';
 import './WorkoutDetailPage.css';
 
 const WorkoutDetailPage: React.FC = () => {
@@ -22,6 +24,9 @@ const WorkoutDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const profile = useUserProfileStore((state) => state.profile);
   const [restingHr, setRestingHr] = useState<number | null>(null);
+  const [gpxRoute, setGpxRoute] = useState<StoredGpxRoute | null>(null);
+  const [gpxError, setGpxError] = useState<string | null>(null);
+  const gpxInput = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -63,6 +68,36 @@ const WorkoutDetailPage: React.FC = () => {
   };
 
   const shareExtracted = objectValue(objectValue(item?.data).extracted);
+  const itemData = objectValue(item?.data);
+  const isOutdoorRun = shareExtracted.workoutKind === 'outdoor_run';
+  const workoutStart = stringValue(itemData.workoutStartTime) ?? item?.recordedAt ?? null;
+
+  useEffect(() => {
+    setGpxRoute(item ? loadGpxRoute(item.id) : null);
+    setGpxError(null);
+  }, [item]);
+
+  const importGpx = async (file: File | undefined) => {
+    if (!file || !item) return;
+    setGpxError(null);
+    try {
+      const route = parseGpx(await file.text(), file.name);
+      if (!routeMatchesWorkout(route, workoutStart)) throw new Error('This GPX starts at a different time and does not appear to belong to this workout.');
+      saveGpxRoute(item.id, route);
+      setGpxRoute(route);
+    } catch (failure) {
+      setGpxError(failure instanceof Error ? failure.message : 'This GPX route could not be imported.');
+    } finally {
+      if (gpxInput.current) gpxInput.current.value = '';
+    }
+  };
+
+  const clearGpx = () => {
+    if (!item) return;
+    removeGpxRoute(item.id);
+    setGpxRoute(null);
+    setGpxError(null);
+  };
   const workoutShareData: WorkoutShareData | null = detail ? {
     title: detail.title,
     type: getSportType(),
@@ -109,6 +144,29 @@ const WorkoutDetailPage: React.FC = () => {
                 <div><p>{detail.isStrength ? 'Strength Training' : 'Workout'}</p><h1>{detail.title}</h1><span>{detail.date}</span></div>
                 {detail.intensity && <strong>{detail.intensity}</strong>}
               </section>
+
+              {isOutdoorRun && (
+                <section className="workout-detail-section workout-route-section">
+                  <header><p>Samsung GPX</p><h2>Run Map</h2></header>
+                  {gpxRoute ? (
+                    <div className="workout-route-card">
+                      <WorkoutRouteMap route={gpxRoute} />
+                      <div className="workout-route-summary">
+                        <div><span>Route Distance</span><strong>{gpxRoute.distanceKm.toFixed(2)} km</strong></div>
+                        <div><span>GPS Points</span><strong>{gpxRoute.points.length.toLocaleString()}</strong></div>
+                      </div>
+                      <footer><span>{gpxRoute.fileName} · Stored only on this device</span><button type="button" onClick={clearGpx}>Remove Route</button></footer>
+                    </div>
+                  ) : (
+                    <div className="workout-route-empty">
+                      <p>Samsung Health keeps the GPS route outside Health Connect. Export “Share route as GPX file”, then select it here.</p>
+                      <IonButton fill="outline" onClick={() => gpxInput.current?.click()}>Select GPX File</IonButton>
+                    </div>
+                  )}
+                  <input ref={gpxInput} className="workout-gpx-input" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml" onChange={(event) => void importGpx(event.target.files?.[0])} />
+                  {gpxError && <p className="workout-route-error" role="alert">{gpxError}</p>}
+                </section>
+              )}
 
               {detail.heartRateZones ? (
                 <section className="workout-detail-section">
@@ -196,6 +254,7 @@ const WorkoutDetailPage: React.FC = () => {
 export default WorkoutDetailPage;
 
 function objectValue(value: unknown): Record<string, unknown> { return typeof value === 'object' && value !== null ? value as Record<string, unknown> : {}; }
+function stringValue(value: unknown): string | null { return typeof value === 'string' && value.trim() ? value : null; }
 function numberValue(value: unknown): number | null { return typeof value === 'number' && Number.isFinite(value) ? value : null; }
 function metersToKilometers(value: number | null): number | null { return value === null ? null : value / 1000; }
 function metricNumber(metrics: Array<{ label: string; value: string }>, label: string): number | null {
