@@ -30,26 +30,33 @@ import { describeTodayHealthSyncPerformance, syncTodayHealth } from '@/lib/healt
 import { refreshNotifications } from '@/lib/notificationService';
 import { getBangkokDateKey } from '@/lib/date';
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
-import { loadRecoveryStartupSnapshot, saveRecoveryStartupSnapshot } from '@/lib/recoveryStartupCache';
+import {
+  loadRecoveryContextStartupSnapshot,
+  loadRecoveryStartupSnapshot,
+  saveRecoveryContextStartupSnapshot,
+  saveRecoveryStartupSnapshot,
+} from '@/lib/recoveryStartupCache';
 import './RecoveryPage.css';
 
 const RecoveryPage: React.FC = () => {
   const history = useHistory();
   const context = useCoachContextStore((state) => state.context);
-  const [startupRecovery, setStartupRecovery] = useState<RunMateRecoverySystem | null>(() => loadRecoveryStartupSnapshot());
+  const [startupContext, setStartupContext] = useState(() => loadRecoveryContextStartupSnapshot());
+  const [startupRecovery, setStartupRecovery] = useState<RunMateRecoverySystem | null>(() => startupContext?.recoverySystem ?? loadRecoveryStartupSnapshot());
   const [loading, setLoading] = useState(() => startupRecovery === null);
   const [loadingStage, setLoadingStage] = useState<'syncing' | 'calculating'>('syncing');
   const [error, setError] = useState<string | null>(null);
-  const [secondaryLoading, setSecondaryLoading] = useState(true);
+  const [secondaryLoading, setSecondaryLoading] = useState(() => startupContext === null);
   const [secondaryError, setSecondaryError] = useState<string | null>(null);
   const [wakeOverrideMinutes, setWakeOverrideMinutes] = useState<number | null>(() => loadTonightWakeOverride());
   const loadedRef = useRef(false);
   const loadedDateRef = useRef<string | null>(null);
   const visibleRef = useRef(false);
   const syncTimerRef = useRef<number | null>(null);
+  const ownedHealthSyncRef = useRef(false);
 
   const loadSecondaryRecovery = useCallback(async (showPlaceholder = false, force = false) => {
-    if (showPlaceholder) setSecondaryLoading(true);
+    setSecondaryLoading(true);
     setSecondaryError(null);
     try {
       const nextContext = await measurePerformanceDiagnostic(
@@ -57,6 +64,8 @@ const RecoveryPage: React.FC = () => {
         () => buildRecoveryPageContextFromSupabase({ force }),
         () => ({ detail: showPlaceholder ? 'Foreground guidance load' : 'Background guidance refresh' }),
       );
+      setStartupContext(nextContext);
+      saveRecoveryContextStartupSnapshot(nextContext);
       void refreshNotifications(nextContext, true).catch((notificationError) => console.warn('[notifications] refresh failed', notificationError));
     } catch (loadError) {
       console.error('[recovery] secondary load failed', loadError);
@@ -94,6 +103,9 @@ const RecoveryPage: React.FC = () => {
   useEffect(() => {
     return useHealthSyncStore.subscribe((state, previous) => {
       if (state.lastSyncedAt !== previous.lastSyncedAt && visibleRef.current) {
+        if (ownedHealthSyncRef.current) return;
+        const detail = state.lastSyncDetail as { changed?: unknown } | null;
+        if (detail?.changed !== true) return;
         void loadRecovery(false, true);
       }
     });
@@ -103,6 +115,7 @@ const RecoveryPage: React.FC = () => {
     setLoading(startupRecovery === null);
     setLoadingStage('syncing');
     setError(null);
+    ownedHealthSyncRef.current = true;
     const healthSyncPromise = measurePerformanceDiagnostic(
       'health_sync',
       () => syncTodayHealth(true),
@@ -134,9 +147,12 @@ const RecoveryPage: React.FC = () => {
     void healthSyncPromise.then((result) => {
       if (result?.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
       if (result?.workout?.error) console.warn('[workout-sync] Samsung Health sync failed', result.workout.error);
-      if (visibleRef.current) {
-        void loadRecovery(false, true);
+      if (result?.changed && visibleRef.current) {
+        return loadRecovery(false, true);
       }
+      return undefined;
+    }).finally(() => {
+      ownedHealthSyncRef.current = false;
     });
   }, [loadRecoveryCore, loadSecondaryRecovery, startupRecovery, loadRecovery]);
 
@@ -154,6 +170,7 @@ const RecoveryPage: React.FC = () => {
       void loadInitialRecovery(needsFreshDay);
     } else {
       syncTimerRef.current = window.setTimeout(() => {
+        ownedHealthSyncRef.current = true;
         void measurePerformanceDiagnostic(
           'health_sync',
           () => syncTodayHealth(),
@@ -161,8 +178,9 @@ const RecoveryPage: React.FC = () => {
         ).then((result) => {
           if (result.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
           if (result.workout?.error) console.warn('[workout-sync] Samsung Health sync failed', result.workout.error);
-          if (result.changed && visibleRef.current) void loadRecovery(false, true);
-        });
+          if (result.changed && visibleRef.current) return loadRecovery(false, true);
+          return undefined;
+        }).finally(() => { ownedHealthSyncRef.current = false; });
       }, 1200);
     }
   });
@@ -174,17 +192,23 @@ const RecoveryPage: React.FC = () => {
   });
 
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => {
-    await measurePerformanceDiagnostic(
-      'health_sync',
-      () => syncTodayHealth(true),
-      (syncResult) => describeTodayHealthSyncPerformance(syncResult, 'Pull to refresh'),
-    );
-    await loadRecovery(false, true);
-    event.detail.complete();
+    ownedHealthSyncRef.current = true;
+    try {
+      await measurePerformanceDiagnostic(
+        'health_sync',
+        () => syncTodayHealth(true),
+        (syncResult) => describeTodayHealthSyncPerformance(syncResult, 'Pull to refresh'),
+      );
+      await loadRecovery(false, true);
+    } finally {
+      ownedHealthSyncRef.current = false;
+      event.detail.complete();
+    }
   };
 
   const [showShareModal, setShowShareModal] = useState(false);
   const visibleRecovery = context?.recoverySystem ?? startupRecovery;
+  const visibleContext = secondaryLoading && startupContext ? startupContext : context ?? startupContext;
 
   return (
     <IonPage>
@@ -208,8 +232,8 @@ const RecoveryPage: React.FC = () => {
           {!error && visibleRecovery && (
             <>
               <RecoveryDials recovery={visibleRecovery} onRecoveryClick={() => history.push('/recovery-trends')} onSleepClick={() => history.push('/sleep')} />
-              {secondaryLoading ? <RecoverySecondaryLoading /> : secondaryError ? <RecoverySecondaryError message={secondaryError} onRetry={() => void loadSecondaryRecovery(true)} /> : !context ? <RecoverySecondaryLoading /> : <>
-                <TodayTrainingPlanCard context={context} />
+              {secondaryLoading && !visibleContext ? <RecoverySecondaryLoading /> : secondaryError && !visibleContext ? <RecoverySecondaryError message={secondaryError} onRetry={() => void loadSecondaryRecovery(true)} /> : !visibleContext ? <RecoverySecondaryLoading /> : <>
+                <TodayTrainingPlanCard context={visibleContext} />
                 <RecoveryPlan recovery={visibleRecovery} wakeOverrideMinutes={wakeOverrideMinutes} onOpen={() => history.push('/sleep-window')} />
               </>}
             </>
@@ -219,7 +243,7 @@ const RecoveryPage: React.FC = () => {
         <SocialShareModal
           isOpen={showShareModal}
           onDismiss={() => setShowShareModal(false)}
-          context={context}
+          context={visibleContext}
         />
       </IonContent>
     </IonPage>

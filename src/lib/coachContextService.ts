@@ -15,6 +15,8 @@ let cachedCoachContext: { value: CoachContext; loadedAt: number } | null = null;
 let activeCoachContextLoad: Promise<CoachContext> | null = null;
 let cachedRecoveryCoreContext: { value: CoachContext; loadedAt: number } | null = null;
 let cachedRecoveryPageContext: { value: CoachContext; loadedAt: number } | null = null;
+let activeRecoveryCoreLoad: Promise<CoachContext> | null = null;
+let activeRecoveryPageLoad: Promise<CoachContext> | null = null;
 let coachContextRevision = 0;
 
 // buildCoachContextFromSupabase/buildRecoveryCoreContextFromSupabase/
@@ -70,15 +72,17 @@ export function buildCoachContextFromSupabase(options: { force?: boolean } = {})
  * safety input, while leaving nutrition, race, and long-form coaching data for
  * the progressive page load.
  */
-export async function buildRecoveryCoreContextFromSupabase(options: { force?: boolean } = {}): Promise<CoachContext> {
+export function buildRecoveryCoreContextFromSupabase(options: { force?: boolean } = {}): Promise<CoachContext> {
   const now = Date.now();
   if (!options.force && cachedRecoveryCoreContext && now - cachedRecoveryCoreContext.loadedAt < COACH_CONTEXT_CACHE_MS) {
-    return cachedRecoveryCoreContext.value;
+    return Promise.resolve(cachedRecoveryCoreContext.value);
   }
+  if (activeRecoveryCoreLoad) return activeRecoveryCoreLoad;
 
   const loadRevision = coachContextRevision;
   const requestId = nextContextRequestId();
-  try {
+  activeRecoveryCoreLoad = (async () => {
+   try {
     const [historyResult, profileResult] = await Promise.all([
       loadHistoryItems(
         ['sleep', 'workout', 'pain', 'strength', 'sick'],
@@ -97,7 +101,7 @@ export async function buildRecoveryCoreContextFromSupabase(options: { force?: bo
     if (loadRevision === coachContextRevision) cachedRecoveryCoreContext = { value, loadedAt: Date.now() };
     applyContextIfLatest(requestId, value);
     return value;
-  } catch {
+   } catch {
     if (cachedRecoveryCoreContext) return cachedRecoveryCoreContext.value;
     if (cachedCoachContext) return cachedCoachContext.value;
     return buildCoachContextFromData({
@@ -107,19 +111,23 @@ export async function buildRecoveryCoreContextFromSupabase(options: { force?: bo
       racePlan: null,
       raceResults: [],
     });
-  }
+   }
+  })().finally(() => { activeRecoveryCoreLoad = null; });
+  return activeRecoveryCoreLoad;
 }
 
 /** Loads the rest of the Recovery page without downloading the full history table. */
-export async function buildRecoveryPageContextFromSupabase(options: { force?: boolean } = {}): Promise<CoachContext> {
+export function buildRecoveryPageContextFromSupabase(options: { force?: boolean } = {}): Promise<CoachContext> {
   const now = Date.now();
   if (!options.force && cachedRecoveryPageContext && now - cachedRecoveryPageContext.loadedAt < COACH_CONTEXT_CACHE_MS) {
-    return cachedRecoveryPageContext.value;
+    return Promise.resolve(cachedRecoveryPageContext.value);
   }
+  if (activeRecoveryPageLoad) return activeRecoveryPageLoad;
 
   const loadRevision = coachContextRevision;
   const requestId = nextContextRequestId();
-  try {
+  activeRecoveryPageLoad = (async () => {
+   try {
     const [recentResult, durableResult, profileResult, raceResult, completedRaceResult] = await Promise.all([
       loadHistoryItems(
         ['sleep', 'workout', 'meal', 'pain', 'strength', 'sick'],
@@ -143,7 +151,7 @@ export async function buildRecoveryPageContextFromSupabase(options: { force?: bo
     if (loadRevision === coachContextRevision) cachedRecoveryPageContext = { value, loadedAt: Date.now() };
     applyContextIfLatest(requestId, value);
     return value;
-  } catch {
+   } catch {
     if (cachedRecoveryPageContext) return cachedRecoveryPageContext.value;
     if (cachedCoachContext) return cachedCoachContext.value;
     return buildCoachContextFromData({
@@ -153,7 +161,9 @@ export async function buildRecoveryPageContextFromSupabase(options: { force?: bo
       racePlan: null,
       raceResults: [],
     });
-  }
+   }
+  })().finally(() => { activeRecoveryPageLoad = null; });
+  return activeRecoveryPageLoad;
 }
 
 async function loadCoachContextFromSupabase(): Promise<CoachContext> {

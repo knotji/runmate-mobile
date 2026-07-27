@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { RunMateRecoverySystem } from './recoverySystem';
+import type { CoachContext } from './buildCoachContext';
 import {
   clearRecoveryStartupSnapshot,
+  loadRecoveryContextStartupSnapshot,
   loadRecoveryStartupSnapshot,
+  saveRecoveryContextStartupSnapshot,
   saveRecoveryStartupSnapshot,
 } from './recoveryStartupCache';
 
@@ -33,8 +36,26 @@ describe('Recovery startup cache', () => {
 
   it('can be cleared when the account signs out', () => {
     saveRecoveryStartupSnapshot(recovery, '2026-07-22T12:00:00.000Z');
+    saveRecoveryContextStartupSnapshot({
+      todayDate: '2026-07-22',
+      recoverySystem: recovery,
+      recoveryLoop: {},
+    } as CoachContext, '2026-07-22T12:00:00.000Z');
     clearRecoveryStartupSnapshot();
 
     expect(loadRecoveryStartupSnapshot('2026-07-22T12:00:00.000Z')).toBeNull();
+    expect(loadRecoveryContextStartupSnapshot('2026-07-22T12:00:00.000Z')).toBeNull();
+  });
+
+  it('restores full-page context only during the same Bangkok day', () => {
+    const context = {
+      todayDate: '2026-07-22',
+      recoverySystem: recovery,
+      recoveryLoop: {},
+    } as CoachContext;
+    saveRecoveryContextStartupSnapshot(context, '2026-07-22T01:00:00.000Z');
+
+    expect(loadRecoveryContextStartupSnapshot('2026-07-22T12:00:00.000Z')).toEqual(context);
+    expect(loadRecoveryContextStartupSnapshot('2026-07-22T18:00:00.000Z')).toBeNull();
   });
 });

@@ -80,9 +80,27 @@ describe('coachContextService', () => {
     expect(loadHistoryItems).toHaveBeenCalledTimes(1);
   });
 
+  it('shares concurrent forced Recovery core loads', async () => {
+    await Promise.all([
+      buildRecoveryCoreContextFromSupabase({ force: true }),
+      buildRecoveryCoreContextFromSupabase({ force: true }),
+    ]);
+
+    expect(loadHistoryItems).toHaveBeenCalledTimes(1);
+  });
+
   it('reuses the cached Recovery page context within the TTL', async () => {
     await buildRecoveryPageContextFromSupabase();
     await buildRecoveryPageContextFromSupabase();
+
+    expect(loadHistoryItems).toHaveBeenCalledTimes(2);
+  });
+
+  it('shares concurrent forced Recovery page loads', async () => {
+    await Promise.all([
+      buildRecoveryPageContextFromSupabase({ force: true }),
+      buildRecoveryPageContextFromSupabase({ force: true }),
+    ]);
 
     expect(loadHistoryItems).toHaveBeenCalledTimes(2);
   });
