@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { useHistory } from 'react-router-dom';
-import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
+import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonSpinner, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
 import { arrowBackOutline, barbellOutline, bedOutline, calendarClearOutline, checkmarkCircleOutline, chevronBackOutline, chevronForwardOutline, fastFoodOutline, fitnessOutline, pulseOutline, shareSocialOutline, timeOutline } from 'ionicons/icons';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
@@ -34,10 +34,12 @@ const WeeklySummaryPage: React.FC = () => {
   const visibleContext = context ?? startupContext;
   const [startupHistory] = useState(() => loadWeeklySummaryHistorySnapshot());
   const [period, setPeriod] = useState<RecapPeriod>('week');
+  const [requestedPeriod, setRequestedPeriod] = useState<RecapPeriod>('week');
   const [offset, setOffset] = useState(0);
   const [historyItems, setHistoryItems] = useState<LocalHistoryItem[]>(startupHistory ?? []);
   const [historyReady, setHistoryReady] = useState(startupHistory !== null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [periodChanging, startPeriodTransition] = useTransition();
 
   const { loading, error, reload: load } = useAsyncLoad(async (forceSync) => {
     if (forceSync) await syncTodayHealth(true);
@@ -84,7 +86,7 @@ const WeeklySummaryPage: React.FC = () => {
     return calculateTrainingStressBalance(historyItems, visibleContext.profile ?? null, visibleContext.todayDate);
   }, [historyItems, historyReady, offset, visibleContext]);
   const shareHighlights = useMemo(() => {
-    if (!visibleContext || !range || !historyReady || !adherence) return null;
+    if (!shareOpen || !visibleContext || !range || !historyReady || !adherence) return null;
     const analysisEnd = range.end > visibleContext.todayDate ? visibleContext.todayDate : range.end;
     const elapsedDays = Math.max(1, daysBetween(range.start, analysisEnd) + 1);
     const { points, insight } = buildRecoveryTrend(historyItems, visibleContext.profile ?? null, elapsedDays, analysisEnd);
@@ -97,20 +99,23 @@ const WeeklySummaryPage: React.FC = () => {
       recoveryPoints: points,
       recoveryInsight: insight,
     });
-  }, [adherence, historyItems, historyReady, period, range, visibleContext]);
+  }, [adherence, historyItems, historyReady, period, range, shareOpen, visibleContext]);
 
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => {
     await load(true);
     event.detail.complete();
   };
   const selectPeriod = (next: RecapPeriod) => {
-    if (next === period) return;
-    setPeriod(next);
-    setOffset(0);
+    if (next === requestedPeriod) return;
+    setRequestedPeriod(next);
+    startPeriodTransition(() => {
+      setPeriod(next);
+      setOffset(0);
+    });
   };
   const movePeriod = (nextOffset: number) => {
     if (nextOffset === offset) return;
-    setOffset(nextOffset);
+    startPeriodTransition(() => setOffset(nextOffset));
   };
 
   return <IonPage>
@@ -124,23 +129,27 @@ const WeeklySummaryPage: React.FC = () => {
         <header className="weekly-heading"><p>Training History</p><h1>Week And Month At A Glance</h1><span>Calendar-aligned sleep, workouts, and meals logged in RunMate.</span></header>
 
         <div className="weekly-period-toggle" role="group" aria-label="Summary period">
-          <button type="button" className={period === 'week' ? 'active' : ''} aria-pressed={period === 'week'} onClick={() => selectPeriod('week')}>Week</button>
-          <button type="button" className={period === 'month' ? 'active' : ''} aria-pressed={period === 'month'} onClick={() => selectPeriod('month')}>Month</button>
+          <button type="button" className={requestedPeriod === 'week' ? 'active' : ''} aria-pressed={requestedPeriod === 'week'} onClick={() => selectPeriod('week')}>Week</button>
+          <button type="button" className={requestedPeriod === 'month' ? 'active' : ''} aria-pressed={requestedPeriod === 'month'} onClick={() => selectPeriod('month')}>Month</button>
         </div>
         <nav className="weekly-period-nav" aria-label={`Choose ${period}`}>
           <button type="button" aria-label={`Previous ${period}`} onClick={() => movePeriod(offset + 1)}><IonIcon icon={chevronBackOutline} /></button>
           <span><IonIcon icon={calendarClearOutline} />{range ? formatPeriodRange(range.start, range.end) : '—'}</span>
           <button type="button" aria-label={`Next ${period}`} disabled={offset === 0} onClick={() => movePeriod(Math.max(0, offset - 1))}><IonIcon icon={chevronForwardOutline} /></button>
         </nav>
+        <div className={`weekly-period-loading${periodChanging ? ' visible' : ''}`} role="status" aria-live="polite">
+          {periodChanging && <><IonSpinner name="crescent" /><span>Updating {requestedPeriod === 'week' ? 'Week' : 'Month'}…</span></>}
+        </div>
 
         <div className="weekly-summary-actions">
-          <button type="button" className="weekly-share-link" disabled={!shareHighlights} onClick={() => setShareOpen(true)}>
+          <button type="button" className="weekly-share-link" disabled={!historyReady || periodChanging} onClick={() => setShareOpen(true)}>
             <span><small>Selected {period}</small><strong>Share This {period === 'week' ? 'Week' : 'Month'}</strong></span><IonIcon icon={shareSocialOutline} />
           </button>
         </div>
         {loading && !historyReady && <PageDataSkeleton variant="summary" label="Building Your Summary" />}
         {!historyReady && error && <PageState kind="error" title="Summary Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="weekly-state weekly-error" />}
 
+        <div className={periodChanging ? 'weekly-results is-updating' : 'weekly-results'} aria-busy={periodChanging}>
         {summary && range && <>
           <section className="weekly-hero" aria-labelledby="weekly-training-heading">
             <SectionHeading eyebrow="Training Volume" title="Movement At A Glance" id="weekly-training-heading" icon={fitnessOutline} />
@@ -211,6 +220,7 @@ const WeeklySummaryPage: React.FC = () => {
           </section>}
           <footer className="weekly-footer"><IonIcon icon={timeOutline} /><span>Pull to refresh today’s Samsung Health data.</span></footer>
         </>}
+        </div>
       </main>
     </IonContent>
     <SocialShareModal isOpen={shareOpen} onDismiss={() => setShareOpen(false)} mode="weekly" weeklyData={shareHighlights} />
