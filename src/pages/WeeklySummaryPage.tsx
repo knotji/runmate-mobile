@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonSpinner, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
+import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
 import { arrowBackOutline, barbellOutline, bedOutline, calendarClearOutline, checkmarkCircleOutline, chevronBackOutline, chevronForwardOutline, fastFoodOutline, fitnessOutline, pulseOutline, shareSocialOutline, timeOutline } from 'ionicons/icons';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
@@ -37,9 +37,7 @@ const WeeklySummaryPage: React.FC = () => {
   const [offset, setOffset] = useState(0);
   const [historyItems, setHistoryItems] = useState<LocalHistoryItem[]>(startupHistory ?? []);
   const [historyReady, setHistoryReady] = useState(startupHistory !== null);
-  const [periodChanging, setPeriodChanging] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  const periodMounted = useRef(false);
 
   const { loading, error, reload: load } = useAsyncLoad(async (forceSync) => {
     if (forceSync) await syncTodayHealth(true);
@@ -61,15 +59,6 @@ const WeeklySummaryPage: React.FC = () => {
     saveWeeklySummaryHistorySnapshot(nextItems);
     setHistoryReady(true);
   }, 'Could Not Load Your Training Summary.');
-
-  useEffect(() => {
-    if (!periodMounted.current) {
-      periodMounted.current = true;
-      return;
-    }
-    const timer = window.setTimeout(() => setPeriodChanging(false), 220);
-    return () => window.clearTimeout(timer);
-  }, [offset, period]);
 
   const range = useMemo(
     () => visibleContext ? calendarPeriodRange(period, offset, visibleContext.todayDate) : null,
@@ -116,13 +105,11 @@ const WeeklySummaryPage: React.FC = () => {
   };
   const selectPeriod = (next: RecapPeriod) => {
     if (next === period) return;
-    setPeriodChanging(true);
     setPeriod(next);
     setOffset(0);
   };
   const movePeriod = (nextOffset: number) => {
     if (nextOffset === offset) return;
-    setPeriodChanging(true);
     setOffset(nextOffset);
   };
 
@@ -141,18 +128,12 @@ const WeeklySummaryPage: React.FC = () => {
           <button type="button" className={period === 'month' ? 'active' : ''} aria-pressed={period === 'month'} onClick={() => selectPeriod('month')}>Month</button>
         </div>
         <nav className="weekly-period-nav" aria-label={`Choose ${period}`}>
-          <button type="button" aria-label={`Previous ${period}`} disabled={periodChanging} onClick={() => movePeriod(offset + 1)}><IonIcon icon={chevronBackOutline} /></button>
+          <button type="button" aria-label={`Previous ${period}`} onClick={() => movePeriod(offset + 1)}><IonIcon icon={chevronBackOutline} /></button>
           <span><IonIcon icon={calendarClearOutline} />{range ? formatPeriodRange(range.start, range.end) : '—'}</span>
-          <button type="button" aria-label={`Next ${period}`} disabled={offset === 0 || periodChanging} onClick={() => movePeriod(Math.max(0, offset - 1))}><IonIcon icon={chevronForwardOutline} /></button>
+          <button type="button" aria-label={`Next ${period}`} disabled={offset === 0} onClick={() => movePeriod(Math.max(0, offset - 1))}><IonIcon icon={chevronForwardOutline} /></button>
         </nav>
-        <div className={`weekly-period-loading${periodChanging ? ' visible' : ''}`} role="status" aria-live="polite">
-          {periodChanging && <><IonSpinner name="crescent" /><span>Updating {period === 'week' ? 'Week' : 'Month'}</span></>}
-        </div>
 
         <div className="weekly-summary-actions">
-          {offset === 0 && <button type="button" className="weekly-recap-link" onClick={() => history.push('/weekly-recap')}>
-            <span><small>{period === 'week' ? 'Weekly' : 'Monthly'} Story</small><strong>View Your Recap</strong></span><IonIcon icon={chevronForwardOutline} />
-          </button>}
           <button type="button" className="weekly-share-link" disabled={!shareHighlights} onClick={() => setShareOpen(true)}>
             <span><small>Selected {period}</small><strong>Share This {period === 'week' ? 'Week' : 'Month'}</strong></span><IonIcon icon={shareSocialOutline} />
           </button>
