@@ -66,6 +66,9 @@ const WeeklyPlanCalendarPage: React.FC = () => {
 function CalendarRow({ day }: { day: WeeklyCalendarDay }) {
   const { planned } = day;
   const description = planned ? translatePlanFieldToEnglish(planned.description || planned.workoutType) : null;
+  const targetPace = planned?.targetPace ? translatePlanFieldToEnglish(planned.targetPace) : null;
+  const hasTargetPace = targetPace && targetPace.toLowerCase() !== 'n/a';
+  const showTrainingMeta = day.status !== 'rest' && ((planned?.distanceKm ?? 0) > 0 || hasTargetPace);
   return <article className={`weekly-plan-row status-${day.status}${day.isToday ? ' is-today' : ''}`}>
     <div className="weekly-plan-date">
       <strong>{day.weekdayLabel}</strong>
@@ -74,7 +77,7 @@ function CalendarRow({ day }: { day: WeeklyCalendarDay }) {
     <div className="weekly-plan-detail">
       <p className="weekly-plan-type">{planned?.workoutType ?? 'No Plan'}</p>
       {description && description !== planned?.workoutType && <span className="weekly-plan-description">{description}</span>}
-      {planned?.distanceKm != null && <span className="weekly-plan-meta">{planned.distanceKm} km{planned.targetPace ? ` · ${translatePlanFieldToEnglish(planned.targetPace)}` : ''}</span>}
+      {showTrainingMeta && <span className="weekly-plan-meta">{(planned?.distanceKm ?? 0) > 0 ? `${planned?.distanceKm} km` : ''}{(planned?.distanceKm ?? 0) > 0 && hasTargetPace ? ' · ' : ''}{hasTargetPace ? targetPace : ''}</span>}
     </div>
     <StatusBadge status={day.status} isToday={day.isToday} />
   </article>;
