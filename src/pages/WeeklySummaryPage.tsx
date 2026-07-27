@@ -1,80 +1,117 @@
 import { useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
-import { arrowBackOutline, barbellOutline, bedOutline, checkmarkCircleOutline, chevronDownOutline, chevronForwardOutline, fastFoodOutline, fitnessOutline, pulseOutline, timeOutline } from 'ionicons/icons';
+import { arrowBackOutline, barbellOutline, bedOutline, calendarClearOutline, checkmarkCircleOutline, chevronBackOutline, chevronForwardOutline, fastFoodOutline, fitnessOutline, pulseOutline, timeOutline } from 'ionicons/icons';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
 import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
-import { buildWeeklyTrainingSummary } from '@/lib/weeklyTrainingSummary';
+import { buildCalendarTrainingSummary } from '@/lib/weeklyTrainingSummary';
 import { syncTodayHealth } from '@/lib/healthSyncService';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
-import { buildTrainingAdherenceHistory, type TrainingAdherenceWeek } from '@/lib/trainingAdherence';
 import { restingHeartRateBaseline } from '@/lib/hrZones';
 import type { LocalHistoryItem } from '@/lib/localHistory';
-import { buildWorkoutLoadTrend } from '@/lib/workoutLoadTrend';
+import { buildWorkoutLoadTrend, type WorkoutLoadTrend } from '@/lib/workoutLoadTrend';
 import { calculateTrainingStressBalance } from '@/lib/trainingLoadAnalytics';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { loadRecoveryContextStartupSnapshot } from '@/lib/recoveryStartupCache';
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
+import { daysBetween, endOfMonth, shiftDate, shiftMonths, startOfMonth, weekdayIndex } from '@/lib/date';
+import { buildPeriodAdherence, type RecapPeriod } from '@/lib/weeklyRecapHighlights';
 import type { RacePlan } from '@/types/race';
 import './WeeklySummaryPage.css';
+
+type CalendarRange = { start: string; end: string };
 
 const WeeklySummaryPage: React.FC = () => {
   const history = useHistory();
   const context = useCoachContextStore((state) => state.context);
   const [startupContext] = useState(() => loadRecoveryContextStartupSnapshot());
   const visibleContext = context ?? startupContext;
-  const [adherenceWeeks, setAdherenceWeeks] = useState<TrainingAdherenceWeek[]>([]);
-  const [workoutItems, setWorkoutItems] = useState<LocalHistoryItem[]>([]);
-  const [workoutHistoryReady, setWorkoutHistoryReady] = useState(false);
-  const [openAdherenceWeek, setOpenAdherenceWeek] = useState<number | null>(null);
+  const [period, setPeriod] = useState<RecapPeriod>('week');
+  const [offset, setOffset] = useState(0);
+  const [historyItems, setHistoryItems] = useState<LocalHistoryItem[]>([]);
+  const [historyReady, setHistoryReady] = useState(false);
 
   const { loading, error, reload: load } = useAsyncLoad(async (forceSync) => {
     if (forceSync) await syncTodayHealth(true);
-    const [nextContext, workoutHistory] = await measurePerformanceDiagnostic(
+    const [, result] = await measurePerformanceDiagnostic(
       'weekly_summary',
-      () => Promise.all([buildCoachContextFromSupabase(), loadHistoryItems(['workout', 'strength'])]),
-      () => ({ detail: 'Weekly context and workout history prepared' }),
+      () => Promise.all([
+        buildCoachContextFromSupabase(),
+        loadHistoryItems(['workout', 'strength', 'sleep', 'meal']),
+      ]),
+      () => ({ detail: 'Calendar summary context and history prepared' }),
     );
-    const canonicalWorkouts = workoutHistory.ok ? dedupeWorkoutItems(workoutHistory.items) : [];
-    setWorkoutItems(canonicalWorkouts);
-    setWorkoutHistoryReady(true);
-    setAdherenceWeeks(nextContext.racePlan ? buildTrainingAdherenceHistory(nextContext.racePlan as RacePlan, canonicalWorkouts, nextContext.todayDate, 4) : []);
-  }, 'Could Not Load Your Weekly Summary.');
+    if (!result.ok) throw new Error(result.error);
+    const workouts = dedupeWorkoutItems(result.items.filter((item) => item.type === 'workout' || item.type === 'strength'));
+    setHistoryItems([...workouts, ...result.items.filter((item) => item.type === 'sleep' || item.type === 'meal')]);
+    setHistoryReady(true);
+  }, 'Could Not Load Your Training Summary.');
 
-  const summary = useMemo(() => visibleContext ? buildWeeklyTrainingSummary(visibleContext) : null, [visibleContext]);
+  const range = useMemo(
+    () => visibleContext ? calendarPeriodRange(period, offset, visibleContext.todayDate) : null,
+    [offset, period, visibleContext],
+  );
+  const summary = useMemo(
+    () => range && historyReady ? buildCalendarTrainingSummary(historyItems, range.start, range.end) : null,
+    [historyItems, historyReady, range],
+  );
+  const adherence = useMemo(() => {
+    if (!visibleContext || !range || !historyReady) return null;
+    return buildPeriodAdherence(visibleContext.racePlan as RacePlan | null, historyItems, range.start, range.end, visibleContext.todayDate);
+  }, [historyItems, historyReady, range, visibleContext]);
   const loadTrend = useMemo(() => {
-    if (!visibleContext || !workoutHistoryReady) return null;
+    if (!visibleContext || !range || !historyReady) return null;
     const profile = visibleContext.profile ?? {};
     const maxHr = finiteNumber(profile.maxHr);
     const restingHr = restingHeartRateBaseline(visibleContext.sleepHistory.slice(0, 14).map((night) => night.restingHR)) ?? finiteNumber(profile.normalRestingHr);
-    return buildWorkoutLoadTrend({ items: workoutItems, todayDate: visibleContext.todayDate, maxHr, restingHr });
-  }, [visibleContext, workoutHistoryReady, workoutItems]);
-
+    return buildWorkoutLoadTrend({ items: historyItems, todayDate: visibleContext.todayDate, periodStart: range.start, periodEnd: range.end, maxHr, restingHr });
+  }, [historyItems, historyReady, range, visibleContext]);
   const tsbData = useMemo(() => {
-    if (!visibleContext || !workoutHistoryReady) return null;
-    return calculateTrainingStressBalance(workoutItems, visibleContext.profile ?? null, visibleContext.todayDate);
-  }, [visibleContext, workoutHistoryReady, workoutItems]);
+    if (!visibleContext || !historyReady || offset !== 0) return null;
+    return calculateTrainingStressBalance(historyItems, visibleContext.profile ?? null, visibleContext.todayDate);
+  }, [historyItems, historyReady, offset, visibleContext]);
 
-  const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(true); event.detail.complete(); };
+  const refresh = async (event: CustomEvent<RefresherEventDetail>) => {
+    await load(true);
+    event.detail.complete();
+  };
+  const selectPeriod = (next: RecapPeriod) => {
+    setPeriod(next);
+    setOffset(0);
+  };
 
   return <IonPage>
     <IonHeader translucent className="weekly-header"><IonToolbar>
       <button type="button" className="weekly-back" aria-label="Back To More" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
-      <IonTitle>Weekly Summary</IonTitle>
+      <IonTitle>Training Summary</IonTitle>
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="weekly-content">
       <IonRefresher slot="fixed" onIonRefresh={refresh}><IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" /></IonRefresher>
       <main className="weekly-shell">
-        <header className="weekly-heading"><p>Last 7 Days</p><h1>Your Training Week</h1><span>A factual summary of sleep, workouts, and meals logged in RunMate.</span></header>
-        <button type="button" className="weekly-recap-link" onClick={() => history.push('/weekly-recap')}><span><small>Weekly Story</small><strong>View Your Recap</strong></span><IonIcon icon={chevronForwardOutline} /></button>
-        {loading && !visibleContext && <PageDataSkeleton variant="summary" label="Building Your Summary" />}
-        {!visibleContext && error && <PageState kind="error" title="Summary Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="weekly-state weekly-error" />}
-        {summary && <>
+        <header className="weekly-heading"><p>Training History</p><h1>Week And Month At A Glance</h1><span>Calendar-aligned sleep, workouts, and meals logged in RunMate.</span></header>
+
+        <div className="weekly-period-toggle" role="group" aria-label="Summary period">
+          <button type="button" className={period === 'week' ? 'active' : ''} aria-pressed={period === 'week'} onClick={() => selectPeriod('week')}>Week</button>
+          <button type="button" className={period === 'month' ? 'active' : ''} aria-pressed={period === 'month'} onClick={() => selectPeriod('month')}>Month</button>
+        </div>
+        <nav className="weekly-period-nav" aria-label={`Choose ${period}`}>
+          <button type="button" aria-label={`Previous ${period}`} onClick={() => setOffset((value) => value + 1)}><IonIcon icon={chevronBackOutline} /></button>
+          <span><IonIcon icon={calendarClearOutline} />{range ? formatPeriodRange(range.start, range.end) : '—'}</span>
+          <button type="button" aria-label={`Next ${period}`} disabled={offset === 0} onClick={() => setOffset((value) => Math.max(0, value - 1))}><IonIcon icon={chevronForwardOutline} /></button>
+        </nav>
+
+        {offset === 0 && <button type="button" className="weekly-recap-link" onClick={() => history.push('/weekly-recap')}>
+          <span><small>{period === 'week' ? 'Weekly' : 'Monthly'} Story</small><strong>View Your Recap</strong></span><IonIcon icon={chevronForwardOutline} />
+        </button>}
+        {loading && !historyReady && <PageDataSkeleton variant="summary" label="Building Your Summary" />}
+        {!historyReady && error && <PageState kind="error" title="Summary Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="weekly-state weekly-error" />}
+
+        {summary && range && <>
           <section className="weekly-hero" aria-labelledby="weekly-training-heading">
-            <div className="weekly-section-heading"><div><p>Training Volume</p><h2 id="weekly-training-heading">Movement At A Glance</h2></div><IonIcon icon={fitnessOutline} /></div>
+            <SectionHeading eyebrow="Training Volume" title="Movement At A Glance" id="weekly-training-heading" icon={fitnessOutline} />
             <div className="weekly-primary-metrics">
               <Metric value={String(summary.sessions)} label="Sessions" />
               <Metric value={`${formatNumber(summary.distanceKm)} km`} label="Running" />
@@ -84,85 +121,60 @@ const WeeklySummaryPage: React.FC = () => {
           </section>
 
           {loadTrend && <section className="weekly-card weekly-load-card" aria-labelledby="weekly-load-heading">
-            <div className="weekly-section-heading"><div><p>Measured Intensity</p><h2 id="weekly-load-heading">Workout Load</h2></div><IonIcon icon={pulseOutline} /></div>
+            <SectionHeading eyebrow="Measured Intensity" title="Workout Load" id="weekly-load-heading" icon={pulseOutline} />
             <div className="weekly-load-summary">
-              <div><strong>{loadTrend.total ?? '—'}</strong><span>{loadTrend.total == null ? '7-Day Total' : 'Load Points · 7-Day Total'}</span></div>
+              <div><strong>{loadTrend.total ?? '—'}</strong><span>{loadTrend.total == null ? 'Period Total' : `Load Points · ${period === 'week' ? 'Week' : 'Month'} Total`}</span></div>
               <div className={`weekly-load-status status-${loadTrend.status.toLowerCase().replaceAll(' ', '-')}`}><em>Estimated</em><strong>{loadStatusLabel(loadTrend.status)}</strong></div>
             </div>
-            <div className="weekly-load-chart" role="img" aria-label={loadChartLabel(loadTrend.days)}>
+            <div className={`weekly-load-chart period-${period}`} role="img" aria-label={loadChartLabel(loadTrend.days)}>
               {loadTrend.days.map((day) => {
                 const max = Math.max(1, ...loadTrend.days.map((value) => value.load ?? 0));
                 return <div className={`weekly-load-day${day.load != null ? ' has-load' : day.sessions ? ' needs-data' : ''}`} key={day.date}>
                   <div><i style={{ height: day.load != null ? `${Math.max(8, (day.load / max) * 100)}%` : undefined }} /></div>
-                  <strong>{day.load ?? (day.sessions ? '—' : '')}</strong><span>{formatWeekday(day.date)}</span>
+                  <strong>{day.load ?? (day.sessions ? '—' : '')}</strong><span>{period === 'week' ? formatWeekday(day.date) : formatMonthDay(day.date)}</span>
                 </div>;
               })}
             </div>
-            <div className="weekly-load-context"><strong>{loadComparison(loadTrend.changePercentage)}</strong><span>{loadTrend.measuredSessions} Of {loadTrend.sessions} Sessions Included</span></div>
+            <div className="weekly-load-context"><strong>{loadComparison(loadTrend.changePercentage, period)}</strong><span>{loadTrend.measuredSessions} Of {loadTrend.sessions} Sessions Included</span></div>
             <p className="weekly-data-note">Calculated only from sessions with at least 50% measured HR coverage. It does not change Recovery or your Training Plan.</p>
           </section>}
 
-          {tsbData && (
-            <section className="weekly-card weekly-tsb-card">
-              <div className="weekly-section-heading">
-                <div><p>Fitness Vs Fatigue</p><h2>Training Stress Balance</h2></div>
-                <IonIcon icon={pulseOutline} />
-              </div>
-              <div className="weekly-inline-stats">
-                <Metric value={String(tsbData.fatigue.ctl)} label="Fitness (42d CTL)" />
-                <Metric value={String(tsbData.fatigue.atl)} label="Fatigue (7d ATL)" />
-                <Metric value={`${tsbData.fatigue.tsb > 0 ? '+' : ''}${tsbData.fatigue.tsb}`} label="Stress Balance" />
-              </div>
-              <div className="weekly-load-context">
-                <strong>{tsbData.fatigue.label}</strong>
-              </div>
-              <p className="weekly-data-note">{tsbData.fatigue.summary}</p>
+          {tsbData && <section className="weekly-card weekly-tsb-card">
+            <SectionHeading eyebrow="Current Fitness Vs Fatigue" title="Training Stress Balance" icon={pulseOutline} />
+            <div className="weekly-inline-stats weekly-triple-stats">
+              <Metric value={String(tsbData.fatigue.ctl)} label="Fitness (42d CTL)" />
+              <Metric value={String(tsbData.fatigue.atl)} label="Fatigue (7d ATL)" />
+              <Metric value={`${tsbData.fatigue.tsb > 0 ? '+' : ''}${tsbData.fatigue.tsb}`} label="Stress Balance" />
+            </div>
+            <div className="weekly-load-context"><strong>{tsbData.fatigue.label}</strong></div>
+            <p className="weekly-data-note">{tsbData.fatigue.summary}</p>
+          </section>}
 
-              {tsbData.vo2Max.current != null && (
-                <div className="weekly-nutrition-line" style={{ marginTop: '12px' }}>
-                  <span>VO₂ Max Indicator</span>
-                  <strong>{tsbData.vo2Max.current} ml/kg/min ({tsbData.vo2Max.direction})</strong>
-                </div>
-              )}
-            </section>
-          )}
-
-          {adherenceWeeks.some((week) => week.planAvailable) && <section className="weekly-card weekly-adherence" aria-labelledby="weekly-adherence-heading">
-            <div className="weekly-section-heading"><div><p>Plan Follow-Through</p><h2 id="weekly-adherence-heading">Training Adherence</h2></div><IonIcon icon={checkmarkCircleOutline} /></div>
+          {adherence && adherence.planned > 0 && <section className="weekly-card weekly-adherence" aria-labelledby="weekly-adherence-heading">
+            <SectionHeading eyebrow="Plan Follow-Through" title="Training Adherence" id="weekly-adherence-heading" icon={checkmarkCircleOutline} />
             <div className="weekly-adherence-current">
-              <div><strong>{adherenceWeeks[0]?.percentage ?? 0}%</strong><span>This Week</span></div>
-              <p>{adherenceWeeks[0]?.planned ? `${adherenceWeeks[0].completed + adherenceWeeks[0].modified} Of ${adherenceWeeks[0].planned} Sessions Done` : 'No active sessions are planned this week.'}</p>
+              <div><strong>{adherence.percentage}%</strong><span>Selected {period === 'week' ? 'Week' : 'Month'}</span></div>
+              <p>{adherence.completed + adherence.modified} Of {adherence.planned} Sessions Done</p>
             </div>
-            <div className="weekly-adherence-track"><i style={{ width: `${adherenceWeeks[0]?.percentage ?? 0}%` }} /></div>
-            <div className="weekly-adherence-history">
-              {adherenceWeeks.map((week, index) => ({ week, index })).filter(({ week, index }) => index === 0 || week.planAvailable).map(({ week, index }) => <div className={`weekly-adherence-week${openAdherenceWeek === index ? ' open' : ''}`} key={week.weekStart}>
-                <button type="button" disabled={!week.planAvailable} aria-expanded={openAdherenceWeek === index} onClick={() => setOpenAdherenceWeek((open) => open === index ? null : index)}>
-                  <span><strong>{index === 0 ? 'View This Week' : week.label}</strong><small>{`${week.completed} Completed · ${week.modified} Adjusted · ${week.missed} Missed`}</small></span>
-                  <em>{index === 0 ? 'Sessions' : `${week.percentage}%`}</em><IonIcon icon={chevronDownOutline} />
-                </button>
-                {openAdherenceWeek === index && <div className="weekly-adherence-details">
-                  {week.days.filter((day) => day.status !== 'recovery').map((day, dayIndex) => <div key={`${day.date}-${dayIndex}`}><span>{formatShortDate(day.date)}</span><strong>{day.workout.workoutType}</strong><em className={`status-${day.status}`}>{adherenceLabel(day.status)}</em></div>)}
-                </div>}
-              </div>)}
-            </div>
-            {!adherenceWeeks.slice(1).some((week) => week.planAvailable) && <p className="weekly-adherence-empty-history">Previous weeks will appear after you complete another week of this plan.</p>}
+            <div className="weekly-adherence-track"><i style={{ width: `${adherence.percentage}%` }} /></div>
+            <div className="weekly-adherence-totals"><span>{adherence.completed} Completed</span><span>{adherence.modified} Adjusted</span><span>{adherence.missed} Missed</span></div>
             <p className="weekly-data-note">Rest and Recovery days are not counted toward adherence.</p>
           </section>}
 
           <section className="weekly-card" aria-labelledby="weekly-recovery-heading">
-            <div className="weekly-section-heading"><div><p>Recovery Base</p><h2 id="weekly-recovery-heading">Sleep Consistency</h2></div><IonIcon icon={bedOutline} /></div>
+            <SectionHeading eyebrow="Recovery Base" title="Sleep Consistency" id="weekly-recovery-heading" icon={bedOutline} />
             <div className="weekly-inline-stats"><Metric value={summary.sleepAverageHours === null ? '—' : `${formatNumber(summary.sleepAverageHours)} h`} label="Average Sleep" /><Metric value={String(summary.sleepNights)} label="Nights Logged" /></div>
-            <p className="weekly-data-note">Averages include only sleep records available this week.</p>
+            <p className="weekly-data-note">Average includes only Sleep records in the selected {period}.</p>
           </section>
 
           <section className="weekly-card" aria-labelledby="weekly-nutrition-heading">
-            <div className="weekly-section-heading"><div><p>Nutrition Logs</p><h2 id="weekly-nutrition-heading">Meals This Week</h2></div><IonIcon icon={fastFoodOutline} /></div>
-            <div className="weekly-inline-stats"><Metric value={String(summary.mealCount)} label="Meals Logged" /><Metric value={`${summary.mealDays} / 7`} label="Days Logged" /></div>
+            <SectionHeading eyebrow="Nutrition Logs" title={`Meals This ${period === 'week' ? 'Week' : 'Month'}`} id="weekly-nutrition-heading" icon={fastFoodOutline} />
+            <div className="weekly-inline-stats"><Metric value={String(summary.mealCount)} label="Meals Logged" /><Metric value={`${summary.mealDays} / ${daysBetween(range.start, range.end) + 1}`} label="Days Logged" /></div>
             <div className="weekly-nutrition-line"><span>Average Per Logged Day</span><strong>{summary.averageCaloriesPerLoggedDay === null ? '—' : `${summary.averageCaloriesPerLoggedDay} kcal`} · {summary.averageProteinPerLoggedDay === null ? '—' : `${summary.averageProteinPerLoggedDay} g protein`}</strong></div>
           </section>
 
           {summary.trainingMix.length > 0 && <section className="weekly-card" aria-labelledby="weekly-mix-heading">
-            <div className="weekly-section-heading"><div><p>Training Mix</p><h2 id="weekly-mix-heading">How You Trained</h2></div><IonIcon icon={barbellOutline} /></div>
+            <SectionHeading eyebrow="Training Mix" title="How You Trained" id="weekly-mix-heading" icon={barbellOutline} />
             <div className="weekly-mix-list">{summary.trainingMix.map((item) => <div key={item.label}><span>{item.label}</span><strong>{item.sessions} {item.sessions === 1 ? 'Session' : 'Sessions'}</strong></div>)}</div>
           </section>}
           <footer className="weekly-footer"><IonIcon icon={timeOutline} /><span>Pull to refresh today’s Samsung Health data.</span></footer>
@@ -172,15 +184,34 @@ const WeeklySummaryPage: React.FC = () => {
   </IonPage>;
 };
 
+function SectionHeading({ eyebrow, title, icon, id }: { eyebrow: string; title: string; icon: string; id?: string }) {
+  return <div className="weekly-section-heading"><div><p>{eyebrow}</p><h2 id={id}>{title}</h2></div><IonIcon icon={icon} /></div>;
+}
 function Metric({ value, label }: { value: string; label: string }) { return <div className="weekly-metric"><strong>{value}</strong><span>{label}</span></div>; }
+function calendarPeriodRange(period: RecapPeriod, offset: number, today: string): CalendarRange {
+  if (period === 'week') {
+    const monday = shiftDate(today, -((weekdayIndex(today) + 6) % 7));
+    const start = shiftDate(monday, -7 * offset);
+    return { start, end: shiftDate(start, 6) };
+  }
+  const start = shiftMonths(startOfMonth(today), -offset);
+  return { start, end: endOfMonth(start) };
+}
+function formatPeriodRange(start: string, end: string): string {
+  const startDate = new Date(`${start}T12:00:00Z`);
+  const endDate = new Date(`${end}T12:00:00Z`);
+  const sameMonth = start.slice(0, 7) === end.slice(0, 7);
+  const first = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(startDate);
+  const last = new Intl.DateTimeFormat('en-US', { month: sameMonth ? undefined : 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(endDate);
+  return `${first} – ${last}`;
+}
 function formatNumber(value: number): string { return new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(value); }
 function formatMinutes(minutes: number): string { if (!minutes) return '0 min'; const hours = Math.floor(minutes / 60); const rest = Math.round(minutes % 60); return hours ? `${hours}h ${rest}m` : `${rest} min`; }
-function formatShortDate(value: string): string { return new Intl.DateTimeFormat('en-US', { weekday: 'short', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T12:00:00Z`)); }
-function adherenceLabel(status: TrainingAdherenceWeek['days'][number]['status']): string { return ({ completed: 'Completed', modified: 'Adjusted', missed: 'Missed', upcoming: 'Upcoming', recovery: 'Support' })[status]; }
 function finiteNumber(value: unknown): number | null { return typeof value === 'number' && Number.isFinite(value) ? value : null; }
 function formatWeekday(value: string): string { return new Intl.DateTimeFormat('en-US', { weekday: 'narrow', timeZone: 'UTC' }).format(new Date(`${value}T12:00:00Z`)); }
-function loadComparison(change: number | null): string { if (change == null) return 'Building Your Baseline'; if (change === 0) return 'Same As Previous 7 Days'; return `${Math.abs(change)}% ${change > 0 ? 'Higher' : 'Lower'} Than Previous 7 Days`; }
-function loadStatusLabel(status: ReturnType<typeof buildWorkoutLoadTrend>['status']): string { return status === 'Starting Point' ? 'Baseline In Progress' : status; }
-function loadChartLabel(days: Array<{ date: string; load: number | null; sessions: number }>): string { return days.map((day) => `${day.date}: ${day.load == null ? day.sessions ? 'insufficient HR coverage' : 'no workout' : `${day.load} load points`}`).join('; '); }
+function formatMonthDay(value: string): string { const day = Number(value.slice(-2)); return day === 1 || day % 5 === 0 ? String(day) : ''; }
+function loadComparison(change: number | null, period: RecapPeriod): string { if (change == null) return 'Building Your Baseline'; if (change === 0) return `Same As Previous ${period === 'week' ? 'Week' : 'Month'}`; return `${Math.abs(change)}% ${change > 0 ? 'Higher' : 'Lower'} Than Previous ${period === 'week' ? 'Week' : 'Month'}`; }
+function loadStatusLabel(status: WorkoutLoadTrend['status']): string { return status === 'Starting Point' ? 'Baseline In Progress' : status; }
+function loadChartLabel(days: WorkoutLoadTrend['days']): string { return days.map((day) => `${day.date}: ${day.load == null ? day.sessions ? 'insufficient HR coverage' : 'no workout' : `${day.load} load points`}`).join('; '); }
 
 export default WeeklySummaryPage;

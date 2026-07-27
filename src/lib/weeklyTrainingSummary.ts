@@ -1,4 +1,9 @@
 import type { CoachContext, DayWorkoutSummary, NutritionDaySummary } from '@/lib/buildCoachContext';
+import { buildDailyNutritionSummary } from '@/lib/activityNutritionSummary';
+import { getHistoryItemDateKey, shiftDate } from '@/lib/date';
+import type { LocalHistoryItem } from '@/lib/localHistory';
+import { parseSleepDurationToMinutes } from '@/lib/sleepDuration';
+import { buildPeriodTrainingSummary } from '@/lib/weeklyRecapHighlights';
 
 export type WeeklyTrainingSummary = {
   sessions: number;
@@ -70,10 +75,47 @@ function addWorkoutDay(total: { activeMinutes: number; activeDays: number; dista
   return total;
 }
 
-function shiftDate(date: string, days: number): string {
-  const value = new Date(`${date}T12:00:00Z`);
-  value.setUTCDate(value.getUTCDate() + days);
-  return value.toISOString().slice(0, 10);
+export function buildCalendarTrainingSummary(items: LocalHistoryItem[], periodStart: string, periodEnd: string): WeeklyTrainingSummary {
+  const training = buildPeriodTrainingSummary(items, periodStart, periodEnd);
+  const dates: string[] = [];
+  for (let date = periodStart; date <= periodEnd; date = shiftDate(date, 1)) dates.push(date);
+
+  const nutritionDays = dates
+    .map((date) => buildDailyNutritionSummary(items, date))
+    .filter((day): day is NonNullable<typeof day> => day !== null);
+  const nutrition = nutritionDays.reduce((total, day) => {
+    total.mealCount += day.mealCount;
+    if (day.caloriesKcal !== null) { total.calories += day.caloriesKcal; total.calorieDays += 1; }
+    if (day.proteinG !== null) { total.protein += day.proteinG; total.proteinDays += 1; }
+    return total;
+  }, { mealCount: 0, calories: 0, calorieDays: 0, protein: 0, proteinDays: 0 });
+
+  const sleepByDate = new Map<string, number>();
+  items.filter((item) => item.type === 'sleep').forEach((item) => {
+    const date = getHistoryItemDateKey(item);
+    if (date < periodStart || date > periodEnd) return;
+    const data = item.data as { extracted?: Record<string, unknown> } | null;
+    const extracted = data?.extracted ?? {};
+    const duration = parseSleepDurationToMinutes(extracted.actualSleepDurationMinutes ?? extracted.sleepDuration);
+    if (duration !== null) sleepByDate.set(date, duration);
+  });
+  const sleepMinutes = [...sleepByDate.values()];
+
+  return {
+    sessions: training.sessions,
+    distanceKm: training.distanceKm,
+    activeMinutes: training.activeMinutes,
+    activeDays: training.activeDays,
+    sleepAverageHours: sleepMinutes.length
+      ? Math.round((sleepMinutes.reduce((sum, value) => sum + value, 0) / sleepMinutes.length / 60) * 10) / 10
+      : null,
+    sleepNights: sleepMinutes.length,
+    mealCount: nutrition.mealCount,
+    mealDays: nutritionDays.length,
+    averageCaloriesPerLoggedDay: nutrition.calorieDays ? Math.round(nutrition.calories / nutrition.calorieDays) : null,
+    averageProteinPerLoggedDay: nutrition.proteinDays ? Math.round(nutrition.protein / nutrition.proteinDays) : null,
+    trainingMix: training.trainingMix,
+  };
 }
 
 function addNutritionDay(total: { mealCount: number; calories: number; calorieDays: number; protein: number; proteinDays: number }, day: NutritionDaySummary) {

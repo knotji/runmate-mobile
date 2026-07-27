@@ -64,8 +64,8 @@ const menuGroups: Array<{ label: string; title: string; items: MoreMenuItem[] }>
     items: [
   {
     icon: statsChartOutline,
-    title: 'Weekly Summary',
-    summary: 'Review the last 7 days of training, sleep, and logged meals.',
+    title: 'Training Summary',
+    summary: 'Review workouts, sleep, and logged meals by calendar week or month.',
     path: '/weekly-summary',
   },
   {

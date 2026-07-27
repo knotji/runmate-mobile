@@ -22,15 +22,19 @@ export type WorkoutLoadTrend = {
 export function buildWorkoutLoadTrend(input: {
   items: LocalHistoryItem[];
   todayDate: string;
+  periodStart?: string;
+  periodEnd?: string;
   maxHr: number | null;
   restingHr: number | null;
 }): WorkoutLoadTrend {
-  const currentStart = shiftDate(input.todayDate, -6);
-  const previousStart = shiftDate(input.todayDate, -13);
-  const previousEnd = shiftDate(input.todayDate, -7);
+  const currentStart = input.periodStart ?? shiftDate(input.todayDate, -6);
+  const currentEnd = input.periodEnd ?? input.todayDate;
+  const periodDays = Math.max(1, dateRange(currentStart, currentEnd).length);
+  const previousStart = shiftDate(currentStart, -periodDays);
+  const previousEnd = shiftDate(currentStart, -1);
   const relevant = input.items.filter((item) => {
     const date = getHistoryItemDateKey(item);
-    return date >= previousStart && date <= input.todayDate;
+    return date >= previousStart && date <= currentEnd;
   });
   const scored = relevant.map((item) => ({
     date: getHistoryItemDateKey(item),
@@ -38,7 +42,7 @@ export function buildWorkoutLoadTrend(input: {
       ? buildWorkoutDetail(item, { maxHr: input.maxHr, restingHr: input.restingHr }).heartRateZones?.load?.score ?? null
       : null,
   }));
-  const days = dateRange(currentStart, input.todayDate).map((date) => summarizeDay(date, scored));
+  const days = dateRange(currentStart, currentEnd).map((date) => summarizeDay(date, scored));
   const previousDays = dateRange(previousStart, previousEnd).map((date) => summarizeDay(date, scored));
   const total = sumMeasured(days);
   const previousTotal = sumMeasured(previousDays);
