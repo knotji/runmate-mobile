@@ -22,17 +22,22 @@ import {
   statsChartOutline,
 } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
-import { useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { loadMorePage, preloadMorePages, type MorePagePath } from '@/lib/morePageLoaders';
+import { loadMorePage, type MorePagePath } from '@/lib/morePageLoaders';
 import './MorePage.css';
 
-const plannedItems: Array<{
+type MoreMenuItem = {
   icon: string;
   title: string;
   summary: string;
   path: MorePagePath;
-}> = [
+};
+
+const menuGroups: Array<{ label: string; title: string; items: MoreMenuItem[] }> = [
+  {
+    label: 'Plan',
+    title: 'Training & Goals',
+    items: [
   {
     icon: sparklesOutline,
     title: 'AI Coach',
@@ -51,6 +56,12 @@ const plannedItems: Array<{
     summary: 'This week’s full training plan, with what actually happened.',
     path: '/weekly-plan',
   },
+    ],
+  },
+  {
+    label: 'Insights',
+    title: 'Trends & Summaries',
+    items: [
   {
     icon: statsChartOutline,
     title: 'Weekly Summary',
@@ -69,6 +80,12 @@ const plannedItems: Array<{
     summary: 'Track weigh-ins synced from Health Connect over time.',
     path: '/body-weight-trend',
   },
+    ],
+  },
+  {
+    label: 'RunMate',
+    title: 'Settings & Data',
+    items: [
   {
     icon: personCircleOutline,
     title: 'Profile & Settings',
@@ -93,17 +110,19 @@ const plannedItems: Array<{
     summary: 'What RunMate collects, and how to export or delete your data.',
     path: '/privacy-data',
   },
+    ],
+  },
 ];
 
 const MorePage: React.FC = () => {
   const history = useHistory();
 
-  useEffect(() => {
-    void preloadMorePages().catch(() => undefined);
-  }, []);
-
   const openPage = (path: MorePagePath) => {
-    void loadMorePage(path).catch(() => undefined).finally(() => history.push(path));
+    history.push(path);
+  };
+
+  const warmPage = (path: MorePagePath) => {
+    void loadMorePage(path).catch(() => undefined);
   };
 
   return (
@@ -119,18 +138,28 @@ const MorePage: React.FC = () => {
           <span>Manage goals, connected health data, summaries, and app preferences.</span>
         </header>
 
-        <section className="more-menu" aria-label="More Features">
-          {plannedItems.map((item) => (
-            <button className="more-menu-row more-menu-button" type="button" onPointerDown={() => { void loadMorePage(item.path).catch(() => undefined); }} onClick={() => openPage(item.path)} key={item.title}>
-              <div className="more-menu-icon"><IonIcon icon={item.icon} /></div>
-              <div className="more-menu-copy">
-                <strong>{item.title}</strong>
-                <span>{item.summary}</span>
+        <div className="more-groups">
+          {menuGroups.map((group) => (
+            <section className="more-group" aria-labelledby={`more-${group.label.toLowerCase()}`} key={group.label}>
+              <header className="more-group-heading">
+                <p>{group.label}</p>
+                <h2 id={`more-${group.label.toLowerCase()}`}>{group.title}</h2>
+              </header>
+              <div className="more-menu">
+                {group.items.map((item) => (
+                  <button className="more-menu-row more-menu-button" type="button" onPointerEnter={() => warmPage(item.path)} onPointerDown={() => warmPage(item.path)} onFocus={() => warmPage(item.path)} onClick={() => openPage(item.path)} key={item.title}>
+                    <div className="more-menu-icon"><IonIcon icon={item.icon} /></div>
+                    <div className="more-menu-copy">
+                      <strong>{item.title}</strong>
+                      <span>{item.summary}</span>
+                    </div>
+                    <IonIcon className="more-chevron" icon={chevronForwardOutline} />
+                  </button>
+                ))}
               </div>
-              <IonIcon className="more-chevron" icon={chevronForwardOutline} />
-            </button>
+            </section>
           ))}
-        </section>
+        </div>
 
         <section className="more-account" aria-labelledby="account-heading">
           <p id="account-heading">ACCOUNT</p>
