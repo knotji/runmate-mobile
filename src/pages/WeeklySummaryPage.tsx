@@ -1,13 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
-import { arrowBackOutline, barbellOutline, bedOutline, checkmarkCircleOutline, chevronDownOutline, fastFoodOutline, fitnessOutline, pulseOutline, timeOutline } from 'ionicons/icons';
+import { arrowBackOutline, barbellOutline, bedOutline, checkmarkCircleOutline, chevronDownOutline, chevronForwardOutline, fastFoodOutline, fitnessOutline, pulseOutline, timeOutline } from 'ionicons/icons';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
 import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
 import { buildWeeklyTrainingSummary } from '@/lib/weeklyTrainingSummary';
 import { syncTodayHealth } from '@/lib/healthSyncService';
-import { loadActiveRaceGoalAndPlan } from '@/lib/raceStorage';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
 import { buildTrainingAdherenceHistory, type TrainingAdherenceWeek } from '@/lib/trainingAdherence';
@@ -17,36 +16,47 @@ import { buildWorkoutLoadTrend } from '@/lib/workoutLoadTrend';
 import { calculateTrainingStressBalance } from '@/lib/trainingLoadAnalytics';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
+import { loadRecoveryContextStartupSnapshot } from '@/lib/recoveryStartupCache';
+import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
+import type { RacePlan } from '@/types/race';
 import './WeeklySummaryPage.css';
 
 const WeeklySummaryPage: React.FC = () => {
   const history = useHistory();
   const context = useCoachContextStore((state) => state.context);
+  const [startupContext] = useState(() => loadRecoveryContextStartupSnapshot());
+  const visibleContext = context ?? startupContext;
   const [adherenceWeeks, setAdherenceWeeks] = useState<TrainingAdherenceWeek[]>([]);
   const [workoutItems, setWorkoutItems] = useState<LocalHistoryItem[]>([]);
+  const [workoutHistoryReady, setWorkoutHistoryReady] = useState(false);
   const [openAdherenceWeek, setOpenAdherenceWeek] = useState<number | null>(null);
 
   const { loading, error, reload: load } = useAsyncLoad(async (forceSync) => {
     if (forceSync) await syncTodayHealth(true);
-    const [nextContext, race, workoutHistory] = await Promise.all([buildCoachContextFromSupabase(), loadActiveRaceGoalAndPlan(), loadHistoryItems(['workout', 'strength'])]);
+    const [nextContext, workoutHistory] = await measurePerformanceDiagnostic(
+      'weekly_summary',
+      () => Promise.all([buildCoachContextFromSupabase(), loadHistoryItems(['workout', 'strength'])]),
+      () => ({ detail: 'Weekly context and workout history prepared' }),
+    );
     const canonicalWorkouts = workoutHistory.ok ? dedupeWorkoutItems(workoutHistory.items) : [];
     setWorkoutItems(canonicalWorkouts);
-    setAdherenceWeeks(race.ok && race.plan ? buildTrainingAdherenceHistory(race.plan, canonicalWorkouts, nextContext.todayDate, 4) : []);
+    setWorkoutHistoryReady(true);
+    setAdherenceWeeks(nextContext.racePlan ? buildTrainingAdherenceHistory(nextContext.racePlan as RacePlan, canonicalWorkouts, nextContext.todayDate, 4) : []);
   }, 'Could Not Load Your Weekly Summary.');
 
-  const summary = useMemo(() => context ? buildWeeklyTrainingSummary(context) : null, [context]);
+  const summary = useMemo(() => visibleContext ? buildWeeklyTrainingSummary(visibleContext) : null, [visibleContext]);
   const loadTrend = useMemo(() => {
-    if (!context) return null;
-    const profile = context.profile ?? {};
+    if (!visibleContext || !workoutHistoryReady) return null;
+    const profile = visibleContext.profile ?? {};
     const maxHr = finiteNumber(profile.maxHr);
-    const restingHr = restingHeartRateBaseline(context.sleepHistory.slice(0, 14).map((night) => night.restingHR)) ?? finiteNumber(profile.normalRestingHr);
-    return buildWorkoutLoadTrend({ items: workoutItems, todayDate: context.todayDate, maxHr, restingHr });
-  }, [context, workoutItems]);
+    const restingHr = restingHeartRateBaseline(visibleContext.sleepHistory.slice(0, 14).map((night) => night.restingHR)) ?? finiteNumber(profile.normalRestingHr);
+    return buildWorkoutLoadTrend({ items: workoutItems, todayDate: visibleContext.todayDate, maxHr, restingHr });
+  }, [visibleContext, workoutHistoryReady, workoutItems]);
 
   const tsbData = useMemo(() => {
-    if (!context) return null;
-    return calculateTrainingStressBalance(workoutItems, context.profile ?? null, context.todayDate);
-  }, [context, workoutItems]);
+    if (!visibleContext || !workoutHistoryReady) return null;
+    return calculateTrainingStressBalance(workoutItems, visibleContext.profile ?? null, visibleContext.todayDate);
+  }, [visibleContext, workoutHistoryReady, workoutItems]);
 
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(true); event.detail.complete(); };
 
@@ -59,10 +69,10 @@ const WeeklySummaryPage: React.FC = () => {
       <IonRefresher slot="fixed" onIonRefresh={refresh}><IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" /></IonRefresher>
       <main className="weekly-shell">
         <header className="weekly-heading"><p>Last 7 Days</p><h1>Your Training Week</h1><span>A factual summary of sleep, workouts, and meals logged in RunMate.</span></header>
-        <button type="button" className="weekly-recap-link" onClick={() => history.push('/weekly-recap')}>View Your Recap</button>
-        {loading && <PageDataSkeleton variant="summary" label="Building Your Summary" />}
-        {!loading && error && <PageState kind="error" title="Summary Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="weekly-state weekly-error" />}
-        {!loading && summary && <>
+        <button type="button" className="weekly-recap-link" onClick={() => history.push('/weekly-recap')}><span><small>Weekly Story</small><strong>View Your Recap</strong></span><IonIcon icon={chevronForwardOutline} /></button>
+        {loading && !visibleContext && <PageDataSkeleton variant="summary" label="Building Your Summary" />}
+        {!visibleContext && error && <PageState kind="error" title="Summary Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="weekly-state weekly-error" />}
+        {summary && <>
           <section className="weekly-hero" aria-labelledby="weekly-training-heading">
             <div className="weekly-section-heading"><div><p>Training Volume</p><h2 id="weekly-training-heading">Movement At A Glance</h2></div><IonIcon icon={fitnessOutline} /></div>
             <div className="weekly-primary-metrics">
