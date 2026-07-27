@@ -63,3 +63,21 @@
 .plan-support-list .plan-support-data::before { background: #65aa91; }
 .plan-support-list strong { font-size: 12px; }
 .plan-support-list p { margin: 0; }
+
+/* Quiet Performance */
+.plan-card {
+  gap: 15px;
+  margin-bottom: 28px;
+  padding: 20px 20px 14px;
+  border-color: rgba(28,60,79,.08);
+  border-radius: 24px;
+  background: rgba(252,253,253,.96);
+  box-shadow: 0 14px 38px rgba(37,65,80,.07);
+  backdrop-filter: none;
+}
+.plan-card-main { gap: 7px; }
+.plan-card-eyebrow > span { color: #438c91; letter-spacing: .1em; }
+.plan-card > .plan-card-main > strong { color: #18364d; font-size: 22px; font-weight: 680; letter-spacing: -.035em; }
+.adaptive-action { color: #2a766d; background: #eaf5f1; }
+.adaptive-guidance { margin-top: 7px; padding: 13px 14px; border-radius: 16px; background: #f3f7f7; }
+.plan-support-details { border-top-color: #e4eaeb; }

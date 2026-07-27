@@ -44,10 +44,19 @@ export function RecoveryDials({ recovery, onRecoveryClick, onSleepClick }: { rec
   return (
     <IonCard className="recovery-dials">
       <IonCardContent>
-        <div className="dial-grid">
-          <MetricDial label="Recovery" value={recoveryAvailable ? Math.round(recovery.overallScore) : null} max={100} tone="recovery" onClick={onRecoveryClick} />
-          <MetricDial label="Strain" value={recovery.strain.score} max={21} tone="strain" />
-          <MetricDial label="Sleep" value={recovery.dataFreshness.status === 'today' ? recovery.sleepPerformance.score : null} max={100} tone="sleep" onClick={onSleepClick} />
+        <div className="recovery-hero-layout">
+          <div className="recovery-score-stage">
+            <MetricDial label="Recovery" value={recoveryAvailable ? Math.round(recovery.overallScore) : null} max={100} tone="recovery" onClick={onRecoveryClick} />
+            <div className="recovery-hero-copy">
+              <span>Daily readiness</span>
+              <strong>{recoveryAvailable ? recovery.overallLabel : 'Not ready yet'}</strong>
+              <p>{recoveryAvailable ? recovery.overallDisplayStatus.note ?? 'Your latest signals are ready for today.' : waitingMessage}</p>
+            </div>
+          </div>
+          <div className="recovery-support-metrics">
+            <MetricDial label="Sleep" value={recovery.dataFreshness.status === 'today' ? recovery.sleepPerformance.score : null} max={100} tone="sleep" onClick={onSleepClick} />
+            <MetricDial label="Strain" value={recovery.strain.score} max={21} tone="strain" />
+          </div>
         </div>
         {waitingMessage && (
           <div className="recovery-waiting-message" role="status">
