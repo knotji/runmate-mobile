@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { IonButton, IonContent, IonDatetime, IonHeader, IonIcon, IonModal, IonPage, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
 import { arrowBackOutline, calendarClearOutline, checkmarkCircleOutline, chevronBackOutline, chevronForwardOutline, warningOutline } from 'ionicons/icons';
-import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
+import { buildCoachContextFromSupabase, buildRecoveryCoreContextFromSupabase } from '@/lib/coachContextService';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
 import { buildSleepDiagnostics } from '@/lib/sleepDiagnostics';
 import { calculateRunMateSleepScore } from '@/lib/runMateSleepScore';
@@ -11,6 +11,8 @@ import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { RecordReliability, SleepHeartRate, SleepScoreBreakdown, SleepStages } from '@/components/health/SleepDetailSections';
 import { formatDisplayDate, formatEfficiency, formatOptionalMinutes, formatScore, toSleepScoreNight } from '@/lib/sleepDetailFormatting';
 import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
+import { loadRecoveryContextStartupSnapshot, saveRecoveryContextStartupSnapshot } from '@/lib/recoveryStartupCache';
+import { requiresFullSleepHistory } from '@/lib/sleepDetailLoad';
 import './SleepDetailPage.css';
 
 const SleepDetailPage: React.FC = () => {
@@ -20,6 +22,7 @@ const SleepDetailPage: React.FC = () => {
   const initialDate = routeParams.get('date');
   const backPath = routeParams.get('from') === 'activity' ? '/tabs/activity' : '/tabs/recovery';
   const context = useCoachContextStore((state) => state.context);
+  const [startupContext] = useState(() => loadRecoveryContextStartupSnapshot());
   const [selectedDate, setSelectedDate] = useState<string | null>(initialDate);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [nightLoading, setNightLoading] = useState(false);
@@ -28,18 +31,23 @@ const SleepDetailPage: React.FC = () => {
     setCalendarOpen(false);
     setNightLoading(false);
   }, [initialDate]);
-  const { loading, error, reload: load } = useAsyncLoad(async () => {
-    await buildCoachContextFromSupabase();
+  const { loading, error, reload: load } = useAsyncLoad(async (force = false) => {
+    let nextContext = await buildRecoveryCoreContextFromSupabase({ force });
+    if (requiresFullSleepHistory(nextContext, initialDate)) {
+      nextContext = await buildCoachContextFromSupabase({ force });
+      saveRecoveryContextStartupSnapshot(nextContext);
+    }
   }, 'Unable to load sleep details.');
 
-  const recovery = context?.recoverySystem ?? null;
-  const selectedNight = context?.sleepHistory.find((night) => night.date === selectedDate)
-    ?? context?.sleepHistory[0]
+  const visibleContext = context ?? startupContext;
+  const recovery = visibleContext?.recoverySystem ?? null;
+  const selectedNight = visibleContext?.sleepHistory.find((night) => night.date === selectedDate)
+    ?? visibleContext?.sleepHistory[0]
     ?? null;
-  const diagnostics = context ? buildSleepDiagnostics(context, selectedNight?.date) : null;
-  const latestDate = context?.sleepHistory[0]?.date ?? null;
+  const diagnostics = visibleContext ? buildSleepDiagnostics(visibleContext, selectedNight?.date) : null;
+  const latestDate = visibleContext?.sleepHistory[0]?.date ?? null;
   const isLatestNight = selectedNight?.date === latestDate;
-  const availableNights = context?.sleepHistory ?? [];
+  const availableNights = visibleContext?.sleepHistory ?? [];
   const selectedNightIndex = availableNights.findIndex((night) => night.date === selectedNight?.date);
   const scoreBreakdown = selectedNightIndex >= 0
     ? calculateRunMateSleepScore(availableNights.slice(selectedNightIndex, selectedNightIndex + 31).map(toSleepScoreNight))
@@ -75,9 +83,9 @@ const SleepDetailPage: React.FC = () => {
       </IonHeader>
       <IonContent fullscreen className="sleep-detail-content">
         <main className="sleep-detail-shell">
-          {loading && <PageDataSkeleton variant="detail" label="Loading Sleep Details" />}
-          {!loading && error && <PageState kind="error" title="Sleep Details Are Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="sleep-detail-loading" />}
-          {!loading && !error && context && recovery && diagnostics && (
+          {loading && !visibleContext && <PageDataSkeleton variant="detail" label="Loading Sleep Details" />}
+          {!loading && error && !visibleContext && <PageState kind="error" title="Sleep Details Are Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="sleep-detail-loading" />}
+          {visibleContext && recovery && diagnostics && (
             <>
               {selectedNight && (
                 <nav className={`sleep-date-navigator${!isLatestNight ? ' has-current' : ''}`} aria-label="Choose sleep night">
