@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
 import { arrowBackOutline, barChartOutline, fitnessOutline, restaurantOutline, sparklesOutline, trendingUpOutline } from 'ionicons/icons';
@@ -6,27 +6,53 @@ import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import type { LocalHistoryItem } from '@/lib/localHistory';
-import { buildNutritionTrend, type NutritionTrend, type NutritionTrendDay } from '@/lib/nutritionTrends';
+import { buildNutritionTrend, nutritionTrendHistoryOptions, type NutritionTrend, type NutritionTrendDay } from '@/lib/nutritionTrends';
+import { loadNutritionTrendsStartupSnapshot, saveNutritionTrendsStartupSnapshot } from '@/lib/nutritionTrendsStartupCache';
+import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import { todayBangkokDateKey } from '@/lib/date';
 import './NutritionTrendsPage.css';
 
 const NutritionTrendsPage: React.FC = () => {
   const history = useHistory();
   const [range, setRange] = useState<7 | 30>(7);
+  const [startupTrends] = useState(() => loadNutritionTrendsStartupSnapshot());
   const [items, setItems] = useState<LocalHistoryItem[] | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => startupTrends === null);
   const [error, setError] = useState<string | null>(null);
+  const activeLoadRef = useRef<Promise<void> | null>(null);
 
   const load = useCallback(async () => {
-    setError(null);
-    const result = await loadHistoryItems(['meal', 'workout', 'strength']);
-    if (result.ok) setItems(result.items);
-    else setError(result.error);
-    setLoading(false);
+    if (activeLoadRef.current) return activeLoadRef.current;
+    const operation = (async () => {
+      setError(null);
+      const result = await measurePerformanceDiagnostic(
+        'nutrition_trends',
+        () => loadHistoryItems(['meal', 'workout', 'strength'], nutritionTrendHistoryOptions()),
+        (value) => ({
+          status: value.ok ? 'success' : 'failed',
+          detail: value.ok ? `${value.items.length} meal and training records prepared` : value.error,
+        }),
+      );
+      if (result.ok) {
+        const today = todayBangkokDateKey();
+        setItems(result.items);
+        saveNutritionTrendsStartupSnapshot({
+          sevenDay: buildNutritionTrend(result.items, 7, today),
+          thirtyDay: buildNutritionTrend(result.items, 30, today),
+        });
+      } else {
+        setError(result.error);
+      }
+      setLoading(false);
+    })().finally(() => { activeLoadRef.current = null; });
+    activeLoadRef.current = operation;
+    return operation;
   }, []);
 
   useEffect(() => { void load(); }, [load]);
-  const trend = useMemo(() => items ? buildNutritionTrend(items, range, todayBangkokDateKey()) : null, [items, range]);
+  const trend = useMemo(() => items
+    ? buildNutritionTrend(items, range, todayBangkokDateKey())
+    : range === 7 ? startupTrends?.sevenDay ?? null : startupTrends?.thirtyDay ?? null, [items, range, startupTrends]);
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(); event.detail.complete(); };
 
   return <IonPage>
@@ -44,7 +70,7 @@ const NutritionTrendsPage: React.FC = () => {
         </div>
 
         {loading && <PageDataSkeleton variant="nutrition" label="Building Your Nutrition Trends" />}
-        {!loading && error && <PageState kind="error" title="Nutrition Trends Are Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="nutrition-trends-state" />}
+        {!loading && error && !trend && <PageState kind="error" title="Nutrition Trends Are Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="nutrition-trends-state" />}
         {!loading && trend && trend.loggedDays === 0 && <PageState kind="empty" icon={restaurantOutline} title="No Meals In This Range" detail="Log a meal to start building your nutrition trends." className="nutrition-trends-state" />}
         {!loading && trend && trend.loggedDays > 0 && <TrendContent trend={trend} onAskCoach={() => history.push('/ai-coach')} />}
       </main>

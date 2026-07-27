@@ -22,6 +22,7 @@ import { loadMorePage } from '@/lib/morePageLoaders';
 import { navigateToAppRoute, notificationRouteFromUrl, onAppNavigate } from '@/lib/nativeNavigation';
 import { clearRecoveryStartupSnapshot } from '@/lib/recoveryStartupCache';
 import { clearActivityStartupSnapshot } from '@/lib/activityStartupCache';
+import { clearNutritionTrendsStartupSnapshot } from '@/lib/nutritionTrendsStartupCache';
 import { useHistory } from 'react-router-dom';
 
 import '@ionic/react/css/core.css';
@@ -104,6 +105,7 @@ const App: React.FC = () => {
       if (_event === 'SIGNED_OUT') {
         clearRecoveryStartupSnapshot();
         clearActivityStartupSnapshot();
+        clearNutritionTrendsStartupSnapshot();
       }
       setSession(nextSession);
       setCheckingSession(false);

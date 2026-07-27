@@ -2,6 +2,9 @@ import { buildDailyNutritionSummary } from '@/lib/activityNutritionSummary';
 import { getHistoryItemDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 
+export const NUTRITION_TRENDS_LOOKBACK_DAYS = 45;
+export const NUTRITION_TRENDS_ROW_LIMIT = 700;
+
 export type NutritionTrendDay = {
   date: string;
   mealCount: number;
@@ -32,6 +35,13 @@ export type NutritionTrend = {
   rest: NutritionDayComparison;
   insight: { title: string; summary: string };
 };
+
+export function nutritionTrendHistoryOptions(now: Date | string | number = Date.now()) {
+  return {
+    limit: NUTRITION_TRENDS_ROW_LIMIT,
+    createdAfter: new Date(new Date(now).getTime() - NUTRITION_TRENDS_LOOKBACK_DAYS * 86_400_000).toISOString(),
+  };
+}
 
 export function buildNutritionTrend(items: LocalHistoryItem[], rangeDays: 7 | 30, endDate: string): NutritionTrend {
   const dates = Array.from({ length: rangeDays }, (_, index) => shiftDate(endDate, index - rangeDays + 1));

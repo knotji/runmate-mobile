@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildNutritionTrend } from '@/lib/nutritionTrends';
+import { buildNutritionTrend, nutritionTrendHistoryOptions } from '@/lib/nutritionTrends';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 
 function meal(id: string, date: string, nutrition: Record<string, number>): LocalHistoryItem {
@@ -10,6 +10,13 @@ function workout(id: string, date: string): LocalHistoryItem {
 }
 
 describe('buildNutritionTrend', () => {
+  it('loads only the bounded history needed for the longest range', () => {
+    expect(nutritionTrendHistoryOptions('2026-07-27T00:00:00.000Z')).toEqual({
+      limit: 700,
+      createdAfter: '2026-06-12T00:00:00.000Z',
+    });
+  });
+
   it('builds an exact range and averages only days with available values', () => {
     const result = buildNutritionTrend([
       meal('a', '2026-07-19', { caloriesKcal: 1200, proteinG: 80, carbsG: 150, fatG: 40 }),

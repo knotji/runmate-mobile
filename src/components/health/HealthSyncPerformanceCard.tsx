@@ -77,6 +77,7 @@ function performancePhaseLabel(phase: PerformanceDiagnosticPhase): string {
   if (phase === 'recovery_secondary') return 'Secondary Content';
   if (phase === 'activity_health_sync') return 'Activity Health Sync';
   if (phase === 'activity_records') return 'Activity Records';
+  if (phase === 'nutrition_trends') return 'Nutrition Trends';
   if (phase === 'activity_archive') return 'Activity Archive';
   return 'Nutrition Summary';
 }
