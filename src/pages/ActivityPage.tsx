@@ -30,46 +30,59 @@ import { ActivityHistoryRow } from '@/components/ActivityHistoryRow';
 import { describeHistoryItem } from '@/lib/activityHistoryPresentation';
 import { measurePerformanceDiagnostic, recordPerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import { useHealthSyncStore } from '@/lib/health/healthSyncStore';
+import { loadActivityStartupSnapshot, saveActivityStartupSnapshot } from '@/lib/activityStartupCache';
 import './ActivityPage.css';
 
 const ActivityPage: React.FC = () => {
   const history = useHistory();
   const todayDate = todayBangkokDateKey();
-  const [items, setItems] = useState<LocalHistoryItem[]>([]);
+  const [startupItems] = useState(() => loadActivityStartupSnapshot());
+  const [items, setItems] = useState<LocalHistoryItem[]>(() => startupItems ?? []);
   const [selectedDate, setSelectedDate] = useState(todayDate);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [archiveLoading, setArchiveLoading] = useState(false);
   const [archiveError, setArchiveError] = useState<string | null>(null);
   const [dateLoading, setDateLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => startupItems === null);
   const [error, setError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<LocalHistoryItem | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const loadedRef = useRef(false);
+  const loadedRef = useRef(startupItems !== null);
+  const startupCacheUsedRef = useRef(startupItems !== null);
+  const recentLoadingRef = useRef<Promise<void> | null>(null);
   const archiveLoadedRef = useRef(false);
   const archiveLoadingRef = useRef(false);
   const visibleRef = useRef(false);
   const syncTimerRef = useRef<number | null>(null);
   const cloudDataDirtyRef = useRef(false);
 
-  const loadRecent = useCallback(async () => {
+  const loadRecent = useCallback(() => {
+    if (recentLoadingRef.current) return recentLoadingRef.current;
     setError(null);
-    const result = await measurePerformanceDiagnostic(
-      'activity_records',
-      async () => {
-        const historyResult = await loadHistoryItems(undefined, activityRecentHistoryOptions());
-        if (!historyResult.ok) return historyResult;
-        return { ...historyResult, items: prepareActivityHistoryItems(historyResult.items) };
-      },
-      (historyResult) => ({ detail: historyResult.ok ? `${historyResult.items.length} recent records prepared` : 'Activity query failed' }),
-    );
-    if (result.ok) {
-      setItems((current) => mergeActivityHistoryItems(current, result.items));
-      loadedRef.current = true;
-    }
-    else setError(result.error);
-    setLoading(false);
+    recentLoadingRef.current = (async () => {
+      const result = await measurePerformanceDiagnostic(
+        'activity_records',
+        async () => {
+          const historyResult = await loadHistoryItems(undefined, activityRecentHistoryOptions());
+          if (!historyResult.ok) return historyResult;
+          return { ...historyResult, items: prepareActivityHistoryItems(historyResult.items) };
+        },
+        (historyResult) => ({ detail: historyResult.ok ? `${historyResult.items.length} recent records prepared` : 'Activity query failed' }),
+      );
+      if (result.ok) {
+        setItems((current) => {
+          const next = mergeActivityHistoryItems(current, result.items);
+          saveActivityStartupSnapshot(next);
+          return next;
+        });
+        loadedRef.current = true;
+        startupCacheUsedRef.current = false;
+      }
+      else setError(result.error);
+      setLoading(false);
+    })().finally(() => { recentLoadingRef.current = null; });
+    return recentLoadingRef.current;
   }, []);
 
   const loadArchive = useCallback(async () => {
@@ -109,6 +122,8 @@ const ActivityPage: React.FC = () => {
     window.addEventListener('runmate:cloud-data-updated', markCloudDataDirty);
     const unsubscribeHealthSync = useHealthSyncStore.subscribe((state, previous) => {
       if (state.lastSyncedAt !== previous.lastSyncedAt && visibleRef.current) {
+        const detail = state.lastSyncDetail as { changed?: unknown } | null;
+        if (detail?.changed !== true) return;
         cloudDataDirtyRef.current = false;
         void loadRecent();
       }
@@ -133,7 +148,7 @@ const ActivityPage: React.FC = () => {
       ).then((result) => {
         if (result.sleep?.error) console.warn('[sleep-sync] Samsung Health sync failed', result.sleep.error);
         if (result.workout?.error) console.warn('[workout-sync] Samsung Health sync failed', result.workout.error);
-        if (result.changed && visibleRef.current) {
+        if ((result.changed || startupCacheUsedRef.current) && visibleRef.current) {
           cloudDataDirtyRef.current = false;
           void loadRecent();
         }
@@ -203,7 +218,11 @@ const ActivityPage: React.FC = () => {
     const result = await deleteHistoryItem(target.id);
     if (result.ok) {
       cloudDataDirtyRef.current = false;
-      setItems((current) => current.filter((item) => item.id !== target.id));
+      setItems((current) => {
+        const next = current.filter((item) => item.id !== target.id);
+        saveActivityStartupSnapshot(next);
+        return next;
+      });
     }
     else setDeleteError(result.error ?? 'Could Not Delete This Activity. Please Try Again.');
     setDeletingId(null);

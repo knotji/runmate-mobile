@@ -21,6 +21,7 @@ import { NetworkStatusToast } from '@/components/NetworkStatusToast';
 import { loadMorePage } from '@/lib/morePageLoaders';
 import { navigateToAppRoute, notificationRouteFromUrl, onAppNavigate } from '@/lib/nativeNavigation';
 import { clearRecoveryStartupSnapshot } from '@/lib/recoveryStartupCache';
+import { clearActivityStartupSnapshot } from '@/lib/activityStartupCache';
 import { useHistory } from 'react-router-dom';
 
 import '@ionic/react/css/core.css';
@@ -100,7 +101,10 @@ const App: React.FC = () => {
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       invalidateCoachContextCache();
       clearAiCoachAnswerCache();
-      if (_event === 'SIGNED_OUT') clearRecoveryStartupSnapshot();
+      if (_event === 'SIGNED_OUT') {
+        clearRecoveryStartupSnapshot();
+        clearActivityStartupSnapshot();
+      }
       setSession(nextSession);
       setCheckingSession(false);
     });
