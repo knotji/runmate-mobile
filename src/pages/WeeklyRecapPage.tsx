@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
+import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonSpinner, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
 import { arrowBackOutline, chevronBackOutline, chevronForwardOutline, shareSocialOutline } from 'ionicons/icons';
-import { daysBetween, endOfMonth, shiftDate, shiftMonths, startOfMonth, startOfWeek, todayBangkokDateKey } from '@/lib/date';
+import { daysBetween, endOfMonth, shiftDate, shiftMonths, startOfMonth, todayBangkokDateKey, weekdayIndex } from '@/lib/date';
 import { loadActiveRaceGoalAndPlan } from '@/lib/raceStorage';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import { loadProfileFromSupabase } from '@/lib/profileStorage';
@@ -12,43 +12,76 @@ import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { SocialShareModal } from '@/components/SocialShareModal';
+import { useCoachContextStore } from '@/lib/context/coachContextStore';
+import { loadRecoveryContextStartupSnapshot } from '@/lib/recoveryStartupCache';
+import { loadWeeklySummaryHistorySnapshot, saveWeeklySummaryHistorySnapshot } from '@/lib/weeklySummaryStartupCache';
+import type { LocalHistoryItem } from '@/lib/localHistory';
+import type { RacePlan } from '@/types/race';
 import './WeeklyRecapPage.css';
 
-/** [periodStart, periodEnd] for the given period/offset. offset 0 is the current, still-in-progress period (periodEnd capped at today); offset > 0 is a fully-elapsed past period. */
+/** Full Bangkok calendar period. Weeks run Monday through Sunday. */
 function periodRange(period: RecapPeriod, offset: number, todayDate: string): { periodStart: string; periodEnd: string } {
   if (period === 'week') {
-    const periodStart = shiftDate(startOfWeek(todayDate), -7 * offset);
-    return { periodStart, periodEnd: offset === 0 ? todayDate : shiftDate(periodStart, 6) };
+    const monday = shiftDate(todayDate, -((weekdayIndex(todayDate) + 6) % 7));
+    const periodStart = shiftDate(monday, -7 * offset);
+    return { periodStart, periodEnd: shiftDate(periodStart, 6) };
   }
   const periodStart = shiftMonths(startOfMonth(todayDate), -offset);
-  return { periodStart, periodEnd: offset === 0 ? todayDate : endOfMonth(periodStart) };
+  return { periodStart, periodEnd: endOfMonth(periodStart) };
 }
 
 const WeeklyRecapPage: React.FC = () => {
   const history = useHistory();
+  const context = useCoachContextStore((state) => state.context);
+  const [startupContext] = useState(() => loadRecoveryContextStartupSnapshot());
+  const visibleContext = context ?? startupContext;
+  const [startupHistory] = useState(() => loadWeeklySummaryHistorySnapshot());
   const [period, setPeriod] = useState<RecapPeriod>('week');
   const [offset, setOffset] = useState(0);
-  const [highlights, setHighlights] = useState<WeeklyRecapHighlights | null>(null);
+  const [items, setItems] = useState<LocalHistoryItem[]>(startupHistory ?? []);
+  const [racePlan, setRacePlan] = useState<RacePlan | null>(() => visibleContext?.racePlan as RacePlan | null ?? null);
+  const [profile, setProfile] = useState(() => visibleContext?.profile ?? null);
+  const [dataReady, setDataReady] = useState(startupHistory !== null && visibleContext !== null);
   const [shareOpen, setShareOpen] = useState(false);
-  const isFirstRender = useRef(true);
+  const [periodChanging, setPeriodChanging] = useState(false);
+  const periodMounted = useRef(false);
+  const todayDate = visibleContext?.todayDate ?? todayBangkokDateKey();
 
-  const { loading, error, reload: load } = useAsyncLoad(async () => {
-    const todayDate = todayBangkokDateKey();
+  const { loading, error, reload: load } = useAsyncLoad(async (force) => {
     const [race, historyResult, profileResult] = await Promise.all([
-      loadActiveRaceGoalAndPlan(),
-      loadHistoryItems(['workout', 'strength', 'sleep']),
-      loadProfileFromSupabase(),
+      force || !visibleContext ? loadActiveRaceGoalAndPlan() : Promise.resolve(null),
+      loadHistoryItems(['workout', 'strength', 'sleep', 'meal']),
+      force || !visibleContext ? loadProfileFromSupabase() : Promise.resolve(null),
     ]);
-    if (!historyResult.ok) throw new Error(historyResult.error ?? 'Could Not Load Your Recap.');
-    const items = historyResult.items;
-    const profile = profileResult.ok ? profileResult.profile ?? null : null;
+    if (!historyResult.ok) {
+      if (!startupHistory) throw new Error(historyResult.error ?? 'Could Not Load Your Recap.');
+    } else {
+      setItems(historyResult.items);
+      saveWeeklySummaryHistorySnapshot(historyResult.items);
+    }
+    if (race) setRacePlan(race.ok ? race.plan : null);
+    if (profileResult) setProfile(profileResult.ok ? profileResult.profile ?? null : null);
+    setDataReady(true);
+  }, 'Could Not Load Your Recap.');
 
+  useEffect(() => {
+    if (!periodMounted.current) {
+      periodMounted.current = true;
+      return;
+    }
+    const timer = window.setTimeout(() => setPeriodChanging(false), 220);
+    return () => window.clearTimeout(timer);
+  }, [period, offset]);
+
+  const highlights = useMemo<WeeklyRecapHighlights | null>(() => {
+    if (!dataReady) return null;
     const { periodStart, periodEnd } = periodRange(period, offset, todayDate);
-    const elapsedDays = daysBetween(periodStart, periodEnd) + 1;
-    const { points, insight } = buildRecoveryTrend(items, profile, elapsedDays, periodEnd);
+    const analysisEnd = periodEnd > todayDate ? todayDate : periodEnd;
+    const elapsedDays = Math.max(1, daysBetween(periodStart, analysisEnd) + 1);
+    const { points, insight } = buildRecoveryTrend(items, profile, elapsedDays, analysisEnd);
     const summary = buildPeriodTrainingSummary(items, periodStart, periodEnd);
-    const adherence = buildPeriodAdherence(race.ok ? race.plan : null, items, periodStart, periodEnd, todayDate);
-    setHighlights(buildWeeklyRecapHighlights({
+    const adherence = buildPeriodAdherence(racePlan, items, periodStart, periodEnd, todayDate);
+    return buildWeeklyRecapHighlights({
       period,
       periodStart,
       periodEnd,
@@ -56,22 +89,21 @@ const WeeklyRecapPage: React.FC = () => {
       adherence,
       recoveryPoints: points,
       recoveryInsight: insight,
-    }));
-  }, 'Could Not Load Your Recap.');
+    });
+  }, [dataReady, items, offset, period, profile, racePlan, todayDate]);
 
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-    void load();
-  }, [period, offset, load]);
-
-  const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(); event.detail.complete(); };
+  const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(true); event.detail.complete(); };
 
   const changePeriod = (next: RecapPeriod) => {
+    if (next === period) return;
+    setPeriodChanging(true);
     setPeriod(next);
     setOffset(0);
+  };
+  const movePeriod = (nextOffset: number) => {
+    if (nextOffset === offset) return;
+    setPeriodChanging(true);
+    setOffset(nextOffset);
   };
 
   return (
@@ -91,19 +123,22 @@ const WeeklyRecapPage: React.FC = () => {
           </div>
 
           <nav className="recap-period-nav" aria-label={`Choose ${period}`}>
-            <button type="button" className="recap-period-arrow" aria-label={`Previous ${period}`} disabled={loading} onClick={() => setOffset((value) => value + 1)}>
+            <button type="button" className="recap-period-arrow" aria-label={`Previous ${period}`} disabled={periodChanging} onClick={() => movePeriod(offset + 1)}>
               <IonIcon icon={chevronBackOutline} />
             </button>
             <span>{highlights ? highlights.dateRangeLabel : '—'}</span>
-            <button type="button" className="recap-period-arrow" aria-label={`Next ${period}`} disabled={loading || offset === 0} onClick={() => setOffset((value) => Math.max(0, value - 1))}>
+            <button type="button" className="recap-period-arrow" aria-label={`Next ${period}`} disabled={periodChanging || offset === 0} onClick={() => movePeriod(Math.max(0, offset - 1))}>
               <IonIcon icon={chevronForwardOutline} />
             </button>
           </nav>
+          <div className={`recap-period-loading${periodChanging ? ' visible' : ''}`} role="status" aria-live="polite">
+            {periodChanging && <><IonSpinner name="crescent" /><span>Updating {period === 'week' ? 'Week' : 'Month'}</span></>}
+          </div>
 
-          {loading && <PageDataSkeleton variant="summary" label="Building Your Recap" />}
-          {!loading && error && <PageState kind="error" title="Recap Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="recap-state" />}
+          {loading && !dataReady && <PageDataSkeleton variant="summary" label="Building Your Recap" />}
+          {!dataReady && error && <PageState kind="error" title="Recap Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="recap-state" />}
 
-          {!loading && !error && highlights && (
+          {highlights && (
             <>
               <header className="recap-heading">
                 <h1>{offset === 0 ? highlights.periodTitle : highlights.period === 'week' ? 'That Week' : 'That Month'}</h1>
