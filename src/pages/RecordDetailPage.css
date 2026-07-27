@@ -16,3 +16,66 @@
 .meal-detail-shell .record-metric-grid > div:last-child:nth-child(odd) { grid-column:1 / -1; }
 .meal-detail-shell .record-food-list li { padding-block:11px; }
 .meal-detail-shell .record-notes-disclosure summary { min-height:66px; padding-block:12px; }
+
+.meal-nutrition-card {
+  overflow:hidden;
+  border:1px solid #d7e6ed;
+  border-radius:21px;
+  background:rgba(255,255,255,.96);
+  box-shadow:0 10px 24px rgba(42,78,105,.045);
+}
+.meal-calorie-summary {
+  display:flex;
+  align-items:end;
+  justify-content:space-between;
+  gap:16px;
+  padding:15px 16px 13px;
+  border-bottom:1px solid #e8eff3;
+}
+.meal-calorie-summary span { color:#71879b; font-size:9px; }
+.meal-calorie-summary strong { color:#183f54; font-size:20px; line-height:1; }
+.meal-macro-composition { padding:13px 16px 14px; }
+.meal-macro-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+.meal-macro-heading strong { color:#315169; font-size:10px; }
+.meal-macro-heading span { color:#8799a7; font-size:8px; }
+.meal-macro-bar {
+  height:10px;
+  display:flex;
+  overflow:hidden;
+  margin-top:10px;
+  border-radius:999px;
+  background:#e8eff2;
+}
+.meal-macro-bar > span { display:block; min-width:3px; height:100%; }
+.meal-macro-bar .macro-protein { background:#3eaa91; }
+.meal-macro-bar .macro-carbs { background:#58a9d1; }
+.meal-macro-bar .macro-fat { background:#e3ad4f; }
+.meal-macro-legend { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); margin-top:12px; }
+.meal-macro-legend > div { position:relative; min-width:0; padding-left:12px; }
+.meal-macro-legend > div::before {
+  content:'';
+  position:absolute;
+  top:3px;
+  left:0;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+}
+.meal-macro-legend .macro-protein::before { background:#3eaa91; }
+.meal-macro-legend .macro-carbs::before { background:#58a9d1; }
+.meal-macro-legend .macro-fat::before { background:#e3ad4f; }
+.meal-macro-legend span,.meal-macro-legend strong { display:block; }
+.meal-macro-legend span { color:#74899a; font-size:8px; }
+.meal-macro-legend strong { margin-top:3px; color:#294b61; font-size:12px; }
+.meal-fiber-row {
+  min-height:42px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 16px;
+  border-top:1px solid #e8eff3;
+  color:#6f8596;
+  background:#f8fbfa;
+  font-size:9px;
+}
+.meal-fiber-row strong { color:#2d5a55; font-size:12px; }
