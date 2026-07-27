@@ -283,7 +283,10 @@ const ActivityPage: React.FC = () => {
           {deleteError && <div className="history-delete-error"><span>{deleteError}</span><button type="button" onClick={() => setDeleteError(null)}>Dismiss</button></div>}
           {!loading && !error && groupedItems.map(([date, dateItems]) => (
             <section className="history-day" key={date}>
-              <header><span>{dateItems.length} {dateItems.length === 1 ? 'Record' : 'Records'}</span></header>
+              <header>
+                <div><p>{selectedDate === todayDate ? 'Today' : 'Selected Day'}</p><h2>{selectedDate === todayDate ? "Today's Records" : 'Daily Records'}</h2></div>
+                <span>{dateItems.length} {dateItems.length === 1 ? 'Record' : 'Records'}</span>
+              </header>
               <div className="history-list">
                 {dateItems.map((item) => <ActivityHistoryRow item={item} deleting={deletingId === item.id} onDelete={() => setPendingDelete(item)} key={item.id} />)}
               </div>

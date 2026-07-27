@@ -42,3 +42,95 @@
   .activity-date-navigator.has-current { grid-template-columns: 44px minmax(0,1fr) 44px; }
   .activity-inline-current { grid-column: 1 / -1; justify-self: end; }
 }
+
+/* Quiet premium Activity hierarchy */
+.history-intro span {
+  color: #62798d;
+  font-size: 10.5px;
+}
+
+.daily-nutrition-summary {
+  margin-bottom: 24px;
+  padding: 14px;
+  border-radius: 20px;
+  box-shadow: 0 12px 30px rgba(35,61,76,.055);
+}
+
+.daily-nutrition-summary h2 { font-size: 15px; }
+.daily-nutrition-calories { margin: 11px 0 9px; }
+.daily-nutrition-calories strong { font-size: 24px; }
+.daily-nutrition-macros div { padding-block: 8px; }
+.daily-nutrition-summary > small { margin-top: 8px; }
+.daily-nutrition-trends-link {
+  min-height: 38px;
+  margin-top: 8px;
+  padding-bottom: 1px;
+}
+
+.history-day { margin-bottom: 26px; }
+.history-day > header {
+  align-items: flex-end;
+  justify-content: space-between;
+  margin: 0 2px 11px;
+}
+.history-day > header div { display: grid; gap: 3px; }
+.history-day > header p {
+  margin: 0;
+  color: #438c91;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.history-day > header h2 {
+  margin: 0;
+  color: #18364d;
+  font-size: 18px;
+  font-weight: 680;
+  letter-spacing: -.025em;
+}
+.history-day > header span {
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: #6e8493;
+  background: #eaf2f5;
+  font-size: 8px;
+  font-weight: 750;
+}
+
+.history-list {
+  display: grid;
+  gap: 8px;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.history-row-shell {
+  overflow: hidden;
+  grid-template-columns: minmax(0,1fr) 38px;
+  border: 1px solid #e0e9ee;
+  border-radius: 17px;
+  background: rgba(255,255,255,.94);
+  box-shadow: 0 8px 20px rgba(42,68,82,.045);
+}
+.history-row-shell:last-child { border-bottom: 1px solid #e0e9ee; }
+.history-row {
+  min-height: 68px;
+  padding: 10px 5px 10px 12px;
+}
+.history-row-button:active { background: #f4f8f8; }
+.history-row-delete {
+  min-width: 38px;
+  color: #9caab1;
+  background: #fbfcfc;
+}
+.history-row-delete:active {
+  color: #a75e69;
+  background: #fff1f3;
+}
+.history-row-delete ion-icon {
+  width: 14px;
+  height: 14px;
+}
