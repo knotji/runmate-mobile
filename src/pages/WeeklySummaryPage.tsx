@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonSpinner, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
-import { arrowBackOutline, barbellOutline, bedOutline, calendarClearOutline, checkmarkCircleOutline, chevronBackOutline, chevronForwardOutline, fastFoodOutline, fitnessOutline, pulseOutline, timeOutline } from 'ionicons/icons';
+import { arrowBackOutline, barbellOutline, bedOutline, calendarClearOutline, checkmarkCircleOutline, chevronBackOutline, chevronForwardOutline, fastFoodOutline, fitnessOutline, pulseOutline, shareSocialOutline, timeOutline } from 'ionicons/icons';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
 import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
@@ -18,9 +18,11 @@ import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { loadRecoveryContextStartupSnapshot } from '@/lib/recoveryStartupCache';
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import { daysBetween, endOfMonth, shiftDate, shiftMonths, startOfMonth, weekdayIndex } from '@/lib/date';
-import { buildPeriodAdherence, type RecapPeriod } from '@/lib/weeklyRecapHighlights';
+import { buildPeriodAdherence, buildPeriodTrainingSummary, buildWeeklyRecapHighlights, type RecapPeriod } from '@/lib/weeklyRecapHighlights';
 import type { RacePlan } from '@/types/race';
 import { loadWeeklySummaryHistorySnapshot, saveWeeklySummaryHistorySnapshot } from '@/lib/weeklySummaryStartupCache';
+import { buildRecoveryTrend } from '@/lib/recoveryTrends';
+import { SocialShareModal } from '@/components/SocialShareModal';
 import './WeeklySummaryPage.css';
 
 type CalendarRange = { start: string; end: string };
@@ -36,6 +38,7 @@ const WeeklySummaryPage: React.FC = () => {
   const [historyItems, setHistoryItems] = useState<LocalHistoryItem[]>(startupHistory ?? []);
   const [historyReady, setHistoryReady] = useState(startupHistory !== null);
   const [periodChanging, setPeriodChanging] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const periodMounted = useRef(false);
 
   const { loading, error, reload: load } = useAsyncLoad(async (forceSync) => {
@@ -91,6 +94,21 @@ const WeeklySummaryPage: React.FC = () => {
     if (!visibleContext || !historyReady || offset !== 0) return null;
     return calculateTrainingStressBalance(historyItems, visibleContext.profile ?? null, visibleContext.todayDate);
   }, [historyItems, historyReady, offset, visibleContext]);
+  const shareHighlights = useMemo(() => {
+    if (!visibleContext || !range || !historyReady || !adherence) return null;
+    const analysisEnd = range.end > visibleContext.todayDate ? visibleContext.todayDate : range.end;
+    const elapsedDays = Math.max(1, daysBetween(range.start, analysisEnd) + 1);
+    const { points, insight } = buildRecoveryTrend(historyItems, visibleContext.profile ?? null, elapsedDays, analysisEnd);
+    return buildWeeklyRecapHighlights({
+      period,
+      periodStart: range.start,
+      periodEnd: range.end,
+      summary: buildPeriodTrainingSummary(historyItems, range.start, range.end),
+      adherence,
+      recoveryPoints: points,
+      recoveryInsight: insight,
+    });
+  }, [adherence, historyItems, historyReady, period, range, visibleContext]);
 
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => {
     await load(true);
@@ -131,9 +149,14 @@ const WeeklySummaryPage: React.FC = () => {
           {periodChanging && <><IonSpinner name="crescent" /><span>Updating {period === 'week' ? 'Week' : 'Month'}</span></>}
         </div>
 
-        {offset === 0 && <button type="button" className="weekly-recap-link" onClick={() => history.push('/weekly-recap')}>
-          <span><small>{period === 'week' ? 'Weekly' : 'Monthly'} Story</small><strong>View Your Recap</strong></span><IonIcon icon={chevronForwardOutline} />
-        </button>}
+        <div className="weekly-summary-actions">
+          {offset === 0 && <button type="button" className="weekly-recap-link" onClick={() => history.push('/weekly-recap')}>
+            <span><small>{period === 'week' ? 'Weekly' : 'Monthly'} Story</small><strong>View Your Recap</strong></span><IonIcon icon={chevronForwardOutline} />
+          </button>}
+          <button type="button" className="weekly-share-link" disabled={!shareHighlights} onClick={() => setShareOpen(true)}>
+            <span><small>Selected {period}</small><strong>Share This {period === 'week' ? 'Week' : 'Month'}</strong></span><IonIcon icon={shareSocialOutline} />
+          </button>
+        </div>
         {loading && !historyReady && <PageDataSkeleton variant="summary" label="Building Your Summary" />}
         {!historyReady && error && <PageState kind="error" title="Summary Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="weekly-state weekly-error" />}
 
@@ -209,6 +232,7 @@ const WeeklySummaryPage: React.FC = () => {
         </>}
       </main>
     </IonContent>
+    <SocialShareModal isOpen={shareOpen} onDismiss={() => setShareOpen(false)} mode="weekly" weeklyData={shareHighlights} />
   </IonPage>;
 };
 
