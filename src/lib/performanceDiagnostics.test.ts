@@ -32,6 +32,7 @@ describe('Performance Diagnostics', () => {
     recordPerformanceDiagnostic('activity_archive', 1800, 'success', '80 archive records prepared');
     recordPerformanceDiagnostic('activity_nutrition', 2, 'success', '3 meals summarized');
     recordPerformanceDiagnostic('nutrition_trends', 310, 'success', '40 meal and training records prepared');
+    recordPerformanceDiagnostic('recovery_trends', 440, 'success', '60 sleep and training records prepared');
 
     expect(getPerformanceDiagnosticSummaries().map((summary) => summary.phase)).toEqual([
       'activity_health_sync',
@@ -39,6 +40,7 @@ describe('Performance Diagnostics', () => {
       'activity_archive',
       'activity_nutrition',
       'nutrition_trends',
+      'recovery_trends',
     ]);
   });
 

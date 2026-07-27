@@ -78,6 +78,7 @@ function performancePhaseLabel(phase: PerformanceDiagnosticPhase): string {
   if (phase === 'activity_health_sync') return 'Activity Health Sync';
   if (phase === 'activity_records') return 'Activity Records';
   if (phase === 'nutrition_trends') return 'Nutrition Trends';
+  if (phase === 'recovery_trends') return 'Recovery Trends';
   if (phase === 'activity_archive') return 'Activity Archive';
   return 'Nutrition Summary';
 }

@@ -5,6 +5,9 @@ import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
 import { calculateRunMateSleepScore, type RunMateSleepScoreNight } from '@/lib/runMateSleepScore';
 import { parseSleepDurationToMinutes } from '@/lib/sleepDuration';
 
+export const RECOVERY_TRENDS_LOOKBACK_DAYS = 75;
+export const RECOVERY_TRENDS_ROW_LIMIT = 700;
+
 export type RecoveryTrendPoint = {
   date: string;
   recovery: number | null;
@@ -45,6 +48,19 @@ export type RecoveryCalibration = {
   signals: RecoveryCalibrationSignal[];
 };
 
+export type RecoveryTrend = {
+  points: RecoveryTrendPoint[];
+  insight: RecoveryTrendInsight;
+  calibration: RecoveryCalibration;
+};
+
+export function recoveryTrendHistoryOptions(now: Date | string | number = Date.now()) {
+  return {
+    limit: RECOVERY_TRENDS_ROW_LIMIT,
+    createdAfter: new Date(new Date(now).getTime() - RECOVERY_TRENDS_LOOKBACK_DAYS * 86_400_000).toISOString(),
+  };
+}
+
 type SleepSignals = {
   date: string;
   sleep: number | null;
@@ -65,7 +81,7 @@ export function buildRecoveryTrend(
   profile: Record<string, unknown> | null,
   days: number,
   todayDate: string,
-): { points: RecoveryTrendPoint[]; insight: RecoveryTrendInsight; calibration: RecoveryCalibration } {
+): RecoveryTrend {
   const startDate = shiftDate(todayDate, -(days - 1));
   const sleep = dedupeSleepItems(items.filter((item) => item.type === 'sleep'))
     .map(toSleepSignals)

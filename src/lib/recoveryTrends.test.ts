@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { LocalHistoryItem } from './localHistory';
-import { buildRecoveryTrend } from './recoveryTrends';
+import { buildRecoveryTrend, recoveryTrendHistoryOptions } from './recoveryTrends';
 
 function sleep(date: string, score: number, hrv: number, restingHR: number): LocalHistoryItem {
   return { id: `sleep-${date}`, type: 'sleep', createdAt: `${date}T00:00:00Z`, dateKey: date, data: { extracted: { sleepScore: score, sleepDuration: '7h 0m', timeInBedMinutes: 450, sleepStartTime: `${date}T16:00:00Z`, sleepEndTime: `${date}T23:00:00Z`, sleepStageMinutes: { rem: 80, light: 260, deep: 80 }, hrv, restingHR, avgRespiratoryRate: 15 } } };
@@ -11,6 +11,13 @@ function workout(date: string): LocalHistoryItem {
 }
 
 describe('recovery trends', () => {
+  it('loads enough bounded history for a 30-day view and its baseline', () => {
+    expect(recoveryTrendHistoryOptions('2026-07-27T00:00:00.000Z')).toEqual({
+      limit: 700,
+      createdAfter: '2026-05-13T00:00:00.000Z',
+    });
+  });
+
   it('builds calendar-aligned points without manufacturing missing nights', () => {
     const result = buildRecoveryTrend([
       sleep('2026-07-15', 70, 90, 52), sleep('2026-07-16', 75, 94, 51),

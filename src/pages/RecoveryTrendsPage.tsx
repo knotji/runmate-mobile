@@ -5,7 +5,9 @@ import { alertCircleOutline, arrowBackOutline, checkmarkCircleOutline, informati
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import { todayBangkokDateKey } from '@/lib/date';
 import { loadProfileFromSupabase } from '@/lib/profileStorage';
-import { buildRecoveryTrend, type RecoveryCalibration, type RecoveryTrendPoint } from '@/lib/recoveryTrends';
+import { buildRecoveryTrend, recoveryTrendHistoryOptions, type RecoveryCalibration, type RecoveryTrendPoint } from '@/lib/recoveryTrends';
+import { loadRecoveryTrendsStartupSnapshot, saveRecoveryTrendsStartupSnapshot } from '@/lib/recoveryTrendsStartupCache';
+import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import { syncTodayHealth } from '@/lib/healthSyncService';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
@@ -16,19 +18,36 @@ import './RecoveryTrendsPage.css';
 const RecoveryTrendsPage: React.FC = () => {
   const history = useHistory();
   const [days, setDays] = useState<7 | 30>(7);
+  const [startupTrends] = useState(() => loadRecoveryTrendsStartupSnapshot());
   const [source, setSource] = useState<{ items: LocalHistoryItem[]; profile: Record<string, unknown> | null } | null>(null);
 
   const { loading, error, reload: load } = useAsyncLoad(async (sync) => {
     if (sync) await syncTodayHealth(true);
-    const [historyResult, profileResult] = await Promise.all([
-      loadHistoryItems(['sleep', 'workout', 'strength']),
-      loadProfileFromSupabase(),
-    ]);
+    const [historyResult, profileResult] = await measurePerformanceDiagnostic(
+      'recovery_trends',
+      () => Promise.all([
+        loadHistoryItems(['sleep', 'workout', 'strength'], recoveryTrendHistoryOptions()),
+        loadProfileFromSupabase(),
+      ]),
+      ([history]) => ({
+        status: history.ok ? 'success' : 'failed',
+        detail: history.ok ? `${history.items.length} sleep and training records prepared` : history.error,
+      }),
+    );
     if (!historyResult.ok) throw new Error(historyResult.error ?? 'Could Not Load Recovery History.');
-    setSource({ items: historyResult.items, profile: profileResult.ok ? profileResult.profile ?? null : null });
+    const profile = profileResult.ok ? profileResult.profile ?? null : null;
+    const today = todayBangkokDateKey();
+    setSource({ items: historyResult.items, profile });
+    saveRecoveryTrendsStartupSnapshot({
+      sevenDay: buildRecoveryTrend(historyResult.items, profile, 7, today),
+      thirtyDay: buildRecoveryTrend(historyResult.items, profile, 30, today),
+    });
   }, 'Could Not Load Recovery Trends.');
 
-  const trend = useMemo(() => source ? buildRecoveryTrend(source.items, source.profile, days, todayBangkokDateKey()) : null, [source, days]);
+  const trend = useMemo(() => source
+    ? buildRecoveryTrend(source.items, source.profile, days, todayBangkokDateKey())
+    : days === 7 ? startupTrends?.sevenDay ?? null : startupTrends?.thirtyDay ?? null, [source, days, startupTrends]);
+  const showLoading = loading && !trend;
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(true); event.detail.complete(); };
 
   return <IonPage>
@@ -44,9 +63,9 @@ const RecoveryTrendsPage: React.FC = () => {
           <button type="button" className={days === 7 ? 'active' : ''} aria-pressed={days === 7} onClick={() => setDays(7)}>7 Days</button>
           <button type="button" className={days === 30 ? 'active' : ''} aria-pressed={days === 30} onClick={() => setDays(30)}>30 Days</button>
         </div>
-        {loading && <PageDataSkeleton variant="trends" label="Building Your Recovery Trends" />}
-        {!loading && error && <PageState kind="error" title="Trends Are Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="recovery-trends-state" />}
-        {!loading && trend && <>
+        {showLoading && <PageDataSkeleton variant="trends" label="Building Your Recovery Trends" />}
+        {!showLoading && error && !trend && <PageState kind="error" title="Trends Are Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="recovery-trends-state" />}
+        {!showLoading && trend && <>
           <section className="trend-chart-card" aria-labelledby="trend-chart-heading">
             <div className="trend-section-heading"><div><p>Last {days} Days</p><h2 id="trend-chart-heading">Recovery At A Glance</h2></div><Coverage points={trend.points} /></div>
             <TrendChart points={trend.points} compact={days === 30} />
@@ -98,7 +117,7 @@ function CalibrationExplanation({ calibration }: { calibration: RecoveryCalibrat
 }
 
 function TrendChart({ points, compact }: { points: RecoveryTrendPoint[]; compact: boolean }) {
-  const width = 320; const height = 154; const left = 14; const right = 8; const top = 12; const bottom = 24;
+  const width = 320; const height = 138; const left = 14; const right = 8; const top = 10; const bottom = 22;
   const x = (index: number) => left + index * ((width - left - right) / Math.max(1, points.length - 1));
   const y = (value: number) => top + (100 - value) * ((height - top - bottom) / 100);
   const paths = (key: 'recovery' | 'sleep' | 'strain') => {
