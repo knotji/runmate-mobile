@@ -21,13 +21,28 @@ export type BodyWeightTrendLog = {
   bodyFatPercent: number | null;
 };
 
+export type BodyWeightTrend = {
+  points: BodyWeightTrendPoint[];
+  insight: BodyWeightTrendInsight;
+  logs: BodyWeightTrendLog[];
+  hasEnoughData: boolean;
+  latestWeightKg: number | null;
+  changeKg: number | null;
+};
+
 const TREND_THRESHOLD_KG = 0.5;
+
+export function bodyWeightTrendHistoryOptions(): { limit: number } {
+  // Body records are small, but the default history cap also transfers every
+  // other historical weigh-in. This comfortably covers frequent 30-day syncs.
+  return { limit: 120 };
+}
 
 export function buildBodyWeightTrend(
   items: LocalHistoryItem[],
   days: 7 | 30,
   todayDate: string,
-): { points: BodyWeightTrendPoint[]; insight: BodyWeightTrendInsight; logs: BodyWeightTrendLog[]; hasEnoughData: boolean } {
+): BodyWeightTrend {
   const startDate = shiftDate(todayDate, -(days - 1));
   const logs = items
     .filter((item) => item.type === 'body')
@@ -51,8 +66,19 @@ export function buildBodyWeightTrend(
 
   const latest = logs[0] ?? null;
   const hasEnoughData = logs.length >= 2;
+  const scored = points.filter((point): point is BodyWeightTrendPoint & { weightKg: number } => point.weightKg != null);
+  const changeKg = scored.length >= 2
+    ? Math.round((scored[scored.length - 1].weightKg - scored[0].weightKg) * 10) / 10
+    : null;
 
-  return { points, insight: buildInsight(points, latest), logs, hasEnoughData };
+  return {
+    points,
+    insight: buildInsight(points, latest),
+    logs,
+    hasEnoughData,
+    latestWeightKg: latest?.weightKg ?? null,
+    changeKg,
+  };
 }
 
 function buildInsight(points: BodyWeightTrendPoint[], latest: BodyWeightTrendLog | null): BodyWeightTrendInsight {

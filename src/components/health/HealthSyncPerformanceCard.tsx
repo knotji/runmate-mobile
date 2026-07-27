@@ -84,6 +84,7 @@ function performancePhaseLabel(phase: PerformanceDiagnosticPhase): string {
   if (phase === 'weekly_plan') return 'Weekly Plan';
   if (phase === 'race_goal') return 'Race Goal';
   if (phase === 'weekly_summary') return 'Weekly Summary';
+  if (phase === 'body_weight_trend') return 'Body Weight Trend';
   if (phase === 'activity_archive') return 'Activity Archive';
   return 'Nutrition Summary';
 }

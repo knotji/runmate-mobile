@@ -14,7 +14,8 @@ export type PerformanceDiagnosticPhase =
   | 'sleep_window'
   | 'weekly_plan'
   | 'race_goal'
-  | 'weekly_summary';
+  | 'weekly_summary'
+  | 'body_weight_trend';
 export type PerformanceDiagnosticStatus = 'success' | 'skipped' | 'failed';
 export type PerformanceDiagnosticVariant = 'prepared' | 'mixed' | 'live' | 'cooldown';
 
@@ -122,6 +123,7 @@ export function getPerformanceDiagnosticSummaries(): PerformanceDiagnosticSummar
     'weekly_plan',
     'race_goal',
     'weekly_summary',
+    'body_weight_trend',
   ];
   return phases.flatMap((phase) => {
     const samples = entries.filter((entry) => entry.phase === phase).slice(0, SUMMARY_SAMPLE_SIZE);
@@ -138,7 +140,7 @@ export function getPerformanceDiagnosticSummaries(): PerformanceDiagnosticSummar
 function isPerformanceDiagnosticEntry(value: unknown): value is PerformanceDiagnosticEntry {
   if (!value || typeof value !== 'object') return false;
   const entry = value as Partial<PerformanceDiagnosticEntry>;
-  return ['health_sync', 'recovery_core', 'recovery_secondary', 'activity_health_sync', 'activity_records', 'activity_archive', 'activity_nutrition', 'nutrition_trends', 'recovery_trends', 'meal_detail', 'sleep_window', 'weekly_plan', 'race_goal', 'weekly_summary'].includes(entry.phase ?? '')
+  return ['health_sync', 'recovery_core', 'recovery_secondary', 'activity_health_sync', 'activity_records', 'activity_archive', 'activity_nutrition', 'nutrition_trends', 'recovery_trends', 'meal_detail', 'sleep_window', 'weekly_plan', 'race_goal', 'weekly_summary', 'body_weight_trend'].includes(entry.phase ?? '')
     && typeof entry.at === 'string'
     && typeof entry.durationMs === 'number'
     && ['success', 'skipped', 'failed'].includes(entry.status ?? '')

@@ -1,12 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
 import { arrowBackOutline, barbellOutline, informationCircleOutline, scaleOutline, trendingDownOutline, trendingUpOutline } from 'ionicons/icons';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import { todayBangkokDateKey } from '@/lib/date';
-import { buildBodyWeightTrend, type BodyWeightTrendLog, type BodyWeightTrendPoint } from '@/lib/bodyWeightTrend';
+import { bodyWeightTrendHistoryOptions, buildBodyWeightTrend, type BodyWeightTrend, type BodyWeightTrendLog, type BodyWeightTrendPoint } from '@/lib/bodyWeightTrend';
 import type { LocalHistoryItem } from '@/lib/localHistory';
-import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
+import { loadBodyWeightTrendStartupSnapshot, saveBodyWeightTrendStartupSnapshot } from '@/lib/bodyWeightTrendStartupCache';
+import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import './BodyWeightTrendPage.css';
@@ -14,15 +15,44 @@ import './BodyWeightTrendPage.css';
 const BodyWeightTrendPage: React.FC = () => {
   const history = useHistory();
   const [days, setDays] = useState<7 | 30>(30);
+  const [startupTrends] = useState(() => loadBodyWeightTrendStartupSnapshot());
   const [items, setItems] = useState<LocalHistoryItem[] | null>(null);
+  const [loading, setLoading] = useState(() => startupTrends === null);
+  const [error, setError] = useState<string | null>(null);
+  const activeLoadRef = useRef<Promise<void> | null>(null);
 
-  const { loading, error, reload: load } = useAsyncLoad(async () => {
-    const result = await loadHistoryItems(['body']);
-    if (!result.ok) throw new Error(result.error ?? 'Could Not Load Body Weight History.');
-    setItems(result.items);
-  }, 'Could Not Load Body Weight Trend.');
+  const load = useCallback(async () => {
+    if (activeLoadRef.current) return activeLoadRef.current;
+    const operation = (async () => {
+      setError(null);
+      const result = await measurePerformanceDiagnostic(
+        'body_weight_trend',
+        () => loadHistoryItems(['body'], bodyWeightTrendHistoryOptions()),
+        (value) => ({
+          status: value.ok ? 'success' : 'failed',
+          detail: value.ok ? `${value.items.length} body readings prepared` : value.error,
+        }),
+      );
+      if (result.ok) {
+        const today = todayBangkokDateKey();
+        setItems(result.items);
+        saveBodyWeightTrendStartupSnapshot({
+          sevenDay: buildBodyWeightTrend(result.items, 7, today),
+          thirtyDay: buildBodyWeightTrend(result.items, 30, today),
+        });
+      } else {
+        setError(result.error);
+      }
+      setLoading(false);
+    })().finally(() => { activeLoadRef.current = null; });
+    activeLoadRef.current = operation;
+    return operation;
+  }, []);
 
-  const trend = useMemo(() => items ? buildBodyWeightTrend(items, days, todayBangkokDateKey()) : null, [items, days]);
+  useEffect(() => { void load(); }, [load]);
+  const trend = useMemo(() => items
+    ? buildBodyWeightTrend(items, days, todayBangkokDateKey())
+    : days === 7 ? startupTrends?.sevenDay ?? null : startupTrends?.thirtyDay ?? null, [items, days, startupTrends]);
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(); event.detail.complete(); };
 
   return <IonPage>
@@ -39,13 +69,14 @@ const BodyWeightTrendPage: React.FC = () => {
           <button type="button" className={days === 30 ? 'active' : ''} aria-pressed={days === 30} onClick={() => setDays(30)}>30 Days</button>
         </div>
         {loading && <PageDataSkeleton variant="trends" label="Building Your Body Weight Trend" />}
-        {!loading && error && <PageState kind="error" title="Trend Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="body-trend-state" />}
-        {!loading && !error && trend && trend.logs.length === 0 && (
+        {!loading && error && !trend && <PageState kind="error" title="Trend Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="body-trend-state" />}
+        {!loading && trend && trend.logs.length === 0 && (
           <PageState kind="empty" icon={scaleOutline} title="No Weigh-Ins Yet" detail="Connect a smart scale through Health Connect, or log your Body Weight in Profile & Settings, to build a trend here." className="body-trend-state" />
         )}
-        {!loading && !error && trend && trend.logs.length > 0 && <>
+        {!loading && trend && trend.logs.length > 0 && <>
           <section className="body-trend-chart-card" aria-labelledby="body-trend-chart-heading">
             <div className="body-trend-section-heading"><div><p>Last {days} Days</p><h2 id="body-trend-chart-heading">Body Weight At A Glance</h2></div><Coverage points={trend.points} /></div>
+            <BodyWeightSummary trend={trend} />
             <BodyWeightChart points={trend.points} />
           </section>
 
@@ -60,6 +91,15 @@ const BodyWeightTrendPage: React.FC = () => {
     </IonContent>
   </IonPage>;
 };
+
+function BodyWeightSummary({ trend }: { trend: BodyWeightTrend }) {
+  const change = trend.changeKg == null ? '—' : `${trend.changeKg > 0 ? '+' : ''}${trend.changeKg.toFixed(1)} kg`;
+  return <div className="body-trend-summary" aria-label="Body weight summary">
+    <div><span>Latest</span><strong>{trend.latestWeightKg?.toFixed(1)} <small>kg</small></strong></div>
+    <div><span>Change</span><strong className={trend.changeKg == null ? '' : trend.changeKg > 0 ? 'change-up' : trend.changeKg < 0 ? 'change-down' : ''}>{change}</strong></div>
+    <div><span>Readings</span><strong>{trend.logs.length}</strong></div>
+  </div>;
+}
 
 function Coverage({ points }: { points: BodyWeightTrendPoint[] }) {
   const count = points.filter((point) => point.weightKg != null).length;
@@ -84,6 +124,8 @@ function BodyWeightChart({ points }: { points: BodyWeightTrendPoint[] }) {
   if (current) segments.push(current);
   const labels = points.length <= 7 ? [0, Math.floor(points.length / 2), points.length - 1] : [0, 9, 19, points.length - 1];
   const gridValues = [scaleMin, (scaleMin + scaleMax) / 2, scaleMax];
+  let latestIndex = -1;
+  points.forEach((point, index) => { if (point.weightKg != null) latestIndex = index; });
 
   return <div className="body-trend-chart-wrap">
     <svg className="body-trend-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Body weight trend chart">
@@ -93,7 +135,9 @@ function BodyWeightChart({ points }: { points: BodyWeightTrendPoint[] }) {
       </g>)}
       {segments.map((path, index) => <path key={index} d={path} className="body-trend-line" />)}
       {points.map((point, index) => point.weightKg == null ? null : (
-        <circle key={point.date} cx={x(index)} cy={y(point.weightKg)} r={3} className="body-trend-dot" />
+        <circle key={point.date} cx={x(index)} cy={y(point.weightKg)} r={index === latestIndex ? 4 : 3} className={index === latestIndex ? 'body-trend-dot latest' : 'body-trend-dot'}>
+          <title>{formatChartDate(point.date)}: {point.weightKg.toFixed(1)} kg</title>
+        </circle>
       ))}
       {labels.map((index) => <text key={index} x={x(index)} y={height - 4} textAnchor={index === 0 ? 'start' : index === points.length - 1 ? 'end' : 'middle'}>{formatChartDate(points[index]?.date)}</text>)}
     </svg>

@@ -20,6 +20,8 @@ describe('buildBodyWeightTrend', () => {
     const result = buildBodyWeightTrend([], 7, TODAY);
     expect(result.insight.direction).toBe('no_data');
     expect(result.hasEnoughData).toBe(false);
+    expect(result.latestWeightKg).toBeNull();
+    expect(result.changeKg).toBeNull();
     expect(result.points).toHaveLength(7);
     expect(result.points.every((point) => point.weightKg === null)).toBe(true);
   });
@@ -37,12 +39,15 @@ describe('buildBodyWeightTrend', () => {
     const result = buildBodyWeightTrend(items, 7, TODAY);
     expect(result.insight.direction).toBe('down');
     expect(result.hasEnoughData).toBe(true);
+    expect(result.latestWeightKg).toBe(70);
+    expect(result.changeKg).toBe(-2);
   });
 
   it('detects an upward trend', () => {
     const items = [bodyItem('2026-07-18', 68), bodyItem(TODAY, 70)];
     const result = buildBodyWeightTrend(items, 7, TODAY);
     expect(result.insight.direction).toBe('up');
+    expect(result.changeKg).toBe(2);
   });
 
   it('treats small fluctuations as steady', () => {
