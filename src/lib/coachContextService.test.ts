@@ -31,6 +31,32 @@ describe('coachContextService', () => {
     expect(loadHistoryItems).toHaveBeenCalledTimes(1);
   });
 
+  it('bounds the full AI Coach context to the recent lookback window', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-21T05:00:00.000Z'));
+
+    await buildCoachContextFromSupabase();
+
+    expect(loadHistoryItems).toHaveBeenCalledWith(
+      ['sleep', 'workout', 'body', 'meal', 'pain', 'strength', 'health_check', 'sick'],
+      {
+        limit: 700,
+        createdAfter: new Date(Date.now() - RECOVERY_CONTEXT_LOOKBACK_DAYS * 86_400_000).toISOString(),
+      },
+    );
+    vi.useRealTimers();
+  });
+
+  it('reuses a freshly prepared Recovery page context for AI Coach', async () => {
+    const recovery = await buildRecoveryPageContextFromSupabase();
+    vi.clearAllMocks();
+
+    const coach = await buildCoachContextFromSupabase();
+
+    expect(coach).toBe(recovery);
+    expect(loadHistoryItems).not.toHaveBeenCalled();
+  });
+
   it('loads fresh data after invalidation', async () => {
     await buildCoachContextFromSupabase();
     invalidateCoachContextCache();

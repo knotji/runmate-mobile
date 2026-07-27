@@ -48,6 +48,10 @@ export function buildCoachContextFromSupabase(options: { force?: boolean } = {})
   if (!options.force && cachedCoachContext && now - cachedCoachContext.loadedAt < COACH_CONTEXT_CACHE_MS) {
     return Promise.resolve(cachedCoachContext.value);
   }
+  if (!options.force && cachedRecoveryPageContext && now - cachedRecoveryPageContext.loadedAt < COACH_CONTEXT_CACHE_MS) {
+    cachedCoachContext = { value: cachedRecoveryPageContext.value, loadedAt: now };
+    return Promise.resolve(cachedRecoveryPageContext.value);
+  }
   if (activeCoachContextLoad) {
     return options.force
       ? activeCoachContextLoad.then(() => buildCoachContextFromSupabase({ force: true }))
@@ -169,7 +173,10 @@ export function buildRecoveryPageContextFromSupabase(options: { force?: boolean 
 async function loadCoachContextFromSupabase(): Promise<CoachContext> {
   try {
     const [historyResult, profileResult, raceResult, completedRaceResult] = await Promise.all([
-      loadHistoryItems(['sleep', 'workout', 'body', 'meal', 'pain', 'strength', 'health_check', 'sick']),
+      loadHistoryItems(
+        ['sleep', 'workout', 'body', 'meal', 'pain', 'strength', 'health_check', 'sick'],
+        recoveryHistoryOptions(RECOVERY_SECONDARY_ROW_LIMIT),
+      ),
       loadProfileFromSupabase(),
       loadActiveRaceGoalAndPlan(),
       loadRaceResults(5),

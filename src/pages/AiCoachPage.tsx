@@ -9,8 +9,9 @@ import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { AI_COACH_TOPICS, askAiCoach, askAiCoachChat, type AiCoachAnswer, type AiCoachTopic } from '@/lib/aiCoach';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
-import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
 import { hapticImpact } from '@/lib/haptics';
+import { loadRecoveryContextStartupSnapshot, saveRecoveryContextStartupSnapshot } from '@/lib/recoveryStartupCache';
+import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import './AiCoachPage.css';
 
 type ChatMessage = {
@@ -27,16 +28,40 @@ type ChatMessage = {
 const AiCoachPage: React.FC = () => {
   const history = useHistory();
   const context = useCoachContextStore((state) => state.context);
+  const [startupContext] = useState(() => loadRecoveryContextStartupSnapshot());
+  const displayContext = context ?? startupContext;
+  const [loadingContext, setLoadingContext] = useState(() => displayContext === null);
+  const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputQuery, setInputQuery] = useState('');
   const [showContextDrawer, setShowContextDrawer] = useState(false);
   const [isNearBottom, setIsNearBottom] = useState(true);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const activeContextLoadRef = useRef<Promise<void> | null>(null);
 
-  const { loading: loadingContext, error, setError, reload: loadContext } = useAsyncLoad(async () => {
-    await buildCoachContextFromSupabase();
-  }, 'Your RunMate data could not be loaded.');
+  const loadContext = useCallback(async () => {
+    if (activeContextLoadRef.current) return activeContextLoadRef.current;
+    const operation = (async () => {
+      setError(null);
+      try {
+        const next = await measurePerformanceDiagnostic(
+          'ai_coach_context',
+          () => buildCoachContextFromSupabase(),
+          () => ({ detail: 'Recovery, training, nutrition, and race context prepared' }),
+        );
+        saveRecoveryContextStartupSnapshot(next);
+      } catch (failure) {
+        setError(message(failure, 'Your RunMate data could not be loaded.'));
+      } finally {
+        setLoadingContext(false);
+      }
+    })().finally(() => { activeContextLoadRef.current = null; });
+    activeContextLoadRef.current = operation;
+    return operation;
+  }, []);
+
+  useEffect(() => { void loadContext(); }, [loadContext]);
 
   const scrollToBottom = useCallback(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -63,7 +88,7 @@ const AiCoachPage: React.FC = () => {
   }, [messages, asking, isNearBottom]);
 
   const askTopic = async (topicId: AiCoachTopic, force = false) => {
-    if (!context || asking) return;
+    if (!displayContext || asking) return;
     void hapticImpact();
     const topicInfo = AI_COACH_TOPICS.find((t) => t.id === topicId);
     const questionText = topicInfo?.title ?? 'Ask Coach';
@@ -80,7 +105,11 @@ const AiCoachPage: React.FC = () => {
     setAsking(true); setError(null);
 
     try {
-      const answer = await askAiCoach(topicId, context, undefined, { force });
+      const answer = await measurePerformanceDiagnostic(
+        'ai_coach_answer',
+        () => askAiCoach(topicId, displayContext, undefined, { force }),
+        () => ({ detail: force ? 'Topic answer refreshed' : 'Topic answer prepared' }),
+      );
       const assistantMsg: ChatMessage = {
         id: `msg-${Date.now()}-coach`,
         sender: 'assistant',
@@ -98,7 +127,7 @@ const AiCoachPage: React.FC = () => {
 
   const submitCustomQuery = async () => {
     const trimmed = inputQuery.trim();
-    if (!trimmed || !context || asking) return;
+    if (!trimmed || !displayContext || asking) return;
     setInputQuery('');
     
     const userMsg: ChatMessage = {
@@ -111,7 +140,11 @@ const AiCoachPage: React.FC = () => {
     setAsking(true); setError(null);
 
     try {
-      const answer = await askAiCoachChat(trimmed, context);
+      const answer = await measurePerformanceDiagnostic(
+        'ai_coach_answer',
+        () => askAiCoachChat(trimmed, displayContext),
+        () => ({ detail: 'Custom question answered' }),
+      );
       const assistantMsg: ChatMessage = {
         id: `msg-${Date.now()}-coach`,
         sender: 'assistant',
@@ -135,22 +168,22 @@ const AiCoachPage: React.FC = () => {
     <IonContent fullscreen className="ai-coach-content">
       <main className="ai-coach-shell">
         {loadingContext && <PageDataSkeleton variant="coach" label="Preparing Your Coaching Context" />}
-        {!loadingContext && !context && <PageState kind="error" title="Coach Context Is Unavailable" detail={error ?? undefined} actionLabel="Try Again" onAction={() => void loadContext()} className="ai-coach-state" />}
+        {!loadingContext && !displayContext && <PageState kind="error" title="Coach Context Is Unavailable" detail={error ?? undefined} actionLabel="Try Again" onAction={() => void loadContext()} className="ai-coach-state" />}
 
-        {!loadingContext && context && <>
+        {!loadingContext && displayContext && <>
           {/* Collapsible Based On Context Drawer */}
           <section className="ai-coach-context-drawer">
-            <button type="button" className="ai-coach-drawer-toggle" onClick={() => setShowContextDrawer(!showContextDrawer)}>
-              <span className="ai-coach-drawer-title"><IonIcon icon={sparklesOutline} /><strong>Based On Your Data</strong><small>Recovery: {context.recoverySystem.overallScore}%, Strain: {context.recoverySystem.strain.score}/21</small></span>
+            <button type="button" className="ai-coach-drawer-toggle" aria-expanded={showContextDrawer} onClick={() => setShowContextDrawer(!showContextDrawer)}>
+              <span className="ai-coach-drawer-title"><IonIcon icon={sparklesOutline} /><strong>Based On Your Data</strong><small>Recovery: {displayContext.recoverySystem.overallScore}%, Strain: {displayContext.recoverySystem.strain.score}/21</small></span>
               <IonIcon icon={showContextDrawer ? chevronUpOutline : chevronDownOutline} />
             </button>
             {showContextDrawer && <div className="ai-coach-drawer-content">
               <div className="ai-coach-context-grid">
-                <div><span>Recovery Score</span><strong>{context.recoverySystem.overallScore}% ({context.recoverySystem.overallLabel})</strong></div>
-                <div><span>Strain Score</span><strong>{context.recoverySystem.strain.score} / 21</strong></div>
-                <div><span>Sleep Performance</span><strong>{context.recoverySystem.sleepPerformance.score}% ({context.recoverySystem.sleepPerformance.label})</strong></div>
-                <div><span>Logged Meals Today</span><strong>{context.nutritionToday?.mealCount ?? 0} Meals ({context.nutritionToday?.caloriesKcal ?? 0} kcal)</strong></div>
-                {context.activeRaceGoal && <div><span>Active Race Goal</span><strong>{context.raceName} ({context.daysUntilRace} days away)</strong></div>}
+                <div><span>Recovery Score</span><strong>{displayContext.recoverySystem.overallScore}% ({displayContext.recoverySystem.overallLabel})</strong></div>
+                <div><span>Strain Score</span><strong>{displayContext.recoverySystem.strain.score} / 21</strong></div>
+                <div><span>Sleep Performance</span><strong>{displayContext.recoverySystem.sleepPerformance.score}% ({displayContext.recoverySystem.sleepPerformance.label})</strong></div>
+                <div><span>Logged Meals Today</span><strong>{displayContext.nutritionToday?.mealCount ?? 0} Meals ({displayContext.nutritionToday?.caloriesKcal ?? 0} kcal)</strong></div>
+                {displayContext.activeRaceGoal && <div><span>Active Race Goal</span><strong>{displayContext.raceName} ({displayContext.daysUntilRace} days away)</strong></div>}
               </div>
             </div>}
           </section>
@@ -163,8 +196,9 @@ const AiCoachPage: React.FC = () => {
               <p>Choose a suggestion below or type any question to receive personal recovery and training guidance.</p>
               
               <div className="ai-coach-prompt-grid">
-                {AI_COACH_TOPICS.map((topic) => (
+                {AI_COACH_TOPICS.map((topic, index) => (
                   <button key={topic.id} type="button" className="ai-coach-prompt-card" onClick={() => void askTopic(topic.id)} disabled={asking}>
+                    {index === 0 && <small>Recommended</small>}
                     <strong>{topic.title}</strong>
                     <span>{topic.summary}</span>
                   </button>

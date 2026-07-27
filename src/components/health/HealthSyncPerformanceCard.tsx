@@ -88,6 +88,8 @@ function performancePhaseLabel(phase: PerformanceDiagnosticPhase): string {
   if (phase === 'profile_settings') return 'Profile Settings';
   if (phase === 'privacy_export') return 'Privacy Export';
   if (phase === 'account_delete') return 'Account Delete';
+  if (phase === 'ai_coach_context') return 'AI Coach Context';
+  if (phase === 'ai_coach_answer') return 'AI Coach Answer';
   if (phase === 'activity_archive') return 'Activity Archive';
   return 'Nutrition Summary';
 }
