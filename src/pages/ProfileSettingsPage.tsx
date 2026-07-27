@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonAlert, IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
 import { arrowBackOutline, barbellOutline, checkmarkCircleOutline, globeOutline, heartOutline, moonOutline, scaleOutline } from 'ionicons/icons';
@@ -13,46 +13,71 @@ import { loadDefaultWakeTime, saveDefaultWakeTime } from '@/lib/sleepWindowStora
 import { formatTimeInput, parseTimeInput } from '@/lib/sleepWindow';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
+import { loadProfileSettingsStartupSnapshot, saveProfileSettingsStartupSnapshot } from '@/lib/profileSettingsStartupCache';
+import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import './ProfileSettingsPage.css';
 
 const emptyDraft: ProfileSettingsDraft = { maxHr: '', weightKg: '', weeklyTrainingDays: '', preferredLongRunDay: '', preferredRunTime: '', defaultWakeTime: '' };
 
 const ProfileSettingsPage: React.FC = () => {
   const history = useHistory();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [draft, setDraft] = useState(emptyDraft);
-  const [savedDraft, setSavedDraft] = useState(emptyDraft);
-  const [loading, setLoading] = useState(true);
+  const [startupSnapshot] = useState(() => loadProfileSettingsStartupSnapshot());
+  const startupDraft = startupSnapshot
+    ? { ...profileToSettingsDraft(startupSnapshot.profile), defaultWakeTime: startupSnapshot.defaultWakeTime == null ? '' : formatTimeInput(startupSnapshot.defaultWakeTime) }
+    : emptyDraft;
+  const [profile, setProfile] = useState<UserProfile | null>(() => startupSnapshot?.profile ?? null);
+  const [draft, setDraft] = useState(startupDraft);
+  const [savedDraft, setSavedDraft] = useState(startupDraft);
+  const [loading, setLoading] = useState(() => startupSnapshot === null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-  const [observedHr, setObservedHr] = useState<ObservedHeartRate | null>(null);
-  const [restingHrBaseline, setRestingHrBaseline] = useState<number | null>(null);
+  const [observedHr, setObservedHr] = useState<ObservedHeartRate | null>(() => startupSnapshot?.observedHr ?? null);
+  const [restingHrBaseline, setRestingHrBaseline] = useState<number | null>(() => startupSnapshot?.restingHrBaseline ?? null);
   const [discardOpen, setDiscardOpen] = useState(false);
+  const hasUserEditedRef = useRef(false);
 
   const load = useCallback(async () => {
     setError(null);
-    const [result, historyResult, sleepResult, defaultWake] = await Promise.all([
-      loadProfileFromSupabase(),
-      loadHistoryItems(['workout', 'strength']),
-      loadHistoryItems(['sleep'], { limit: 14 }),
-      loadDefaultWakeTime(),
-    ]);
-    if (historyResult.ok) setObservedHr(findHighestObservedHeartRate(historyResult.items));
-    if (sleepResult.ok) setRestingHrBaseline(restingHeartRateBaseline(sleepResult.items.map(recentRestingHr)));
+    const [result, historyResult, defaultWake] = await measurePerformanceDiagnostic(
+      'profile_settings',
+      () => Promise.all([
+        loadProfileFromSupabase(),
+        loadHistoryItems(['workout', 'strength', 'sleep'], { limit: 120 }),
+        loadDefaultWakeTime(),
+      ]),
+      (value) => ({
+        status: value[0].ok ? 'success' : 'failed',
+        detail: value[1].ok ? `${value[1].items.length} profile support records prepared` : value[1].error,
+      }),
+    );
+    const nextObservedHr = historyResult.ok ? findHighestObservedHeartRate(historyResult.items) : startupSnapshot?.observedHr ?? null;
+    const nextRestingHr = historyResult.ok ? restingHeartRateBaseline(historyResult.items.map(recentRestingHr)) : startupSnapshot?.restingHrBaseline ?? null;
+    if (historyResult.ok) {
+      setObservedHr(nextObservedHr);
+      setRestingHrBaseline(nextRestingHr);
+    }
     if (!result.ok) setError(('message' in result && result.message) || 'Could Not Load Your Profile.');
     else {
       const next = result.profile ?? { ...defaultProfile, timezone: 'Asia/Bangkok' };
       setProfile(next);
       const nextDraft = { ...profileToSettingsDraft(next), defaultWakeTime: defaultWake == null ? '' : formatTimeInput(defaultWake) };
-      setDraft(nextDraft);
-      setSavedDraft(nextDraft);
+      if (!hasUserEditedRef.current) {
+        setDraft(nextDraft);
+        setSavedDraft(nextDraft);
+      }
+      saveProfileSettingsStartupSnapshot({
+        profile: next,
+        observedHr: nextObservedHr,
+        restingHrBaseline: nextRestingHr,
+        defaultWakeTime: defaultWake,
+      });
     }
     setLoading(false);
-  }, []);
+  }, [startupSnapshot]);
   useEffect(() => { void load(); }, [load]);
 
-  const update = (key: keyof ProfileSettingsDraft, value: string) => { setDraft((current) => ({ ...current, [key]: value })); setSaved(false); setError(null); };
+  const update = (key: keyof ProfileSettingsDraft, value: string) => { hasUserEditedRef.current = true; setDraft((current) => ({ ...current, [key]: value })); setSaved(false); setError(null); };
   const save = async () => {
     if (!profile || saving) return;
     const validation = validateProfileSettings(draft);
@@ -66,6 +91,13 @@ const ProfileSettingsPage: React.FC = () => {
       if (!wakeResult.ok) throw new Error(wakeResult.error);
       const nextDraft = { ...profileToSettingsDraft(next), defaultWakeTime: draft.defaultWakeTime };
       setProfile(next); setDraft(nextDraft); setSavedDraft(nextDraft); setSaved(true);
+      hasUserEditedRef.current = false;
+      saveProfileSettingsStartupSnapshot({
+        profile: next,
+        observedHr,
+        restingHrBaseline,
+        defaultWakeTime: wakeMinutes,
+      });
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Could Not Save Your Profile.');
     } finally { setSaving(false); }
@@ -103,18 +135,24 @@ const ProfileSettingsPage: React.FC = () => {
         </section>
         <section className="profile-settings-card">
           <header><IonIcon icon={heartOutline} /><div><p>Recovery</p><h2>My HR Zones</h2></div></header>
-          {zoneBoundaries ? <>
-            <ul className="profile-hr-zone-list">
-              {zoneBoundaries.map((boundary) => (
-                <li key={boundary.zone} className={`profile-hr-zone profile-hr-zone-${boundary.zone}`}>
-                  <span className="profile-hr-zone-index">Zone {boundary.zone}</span>
-                  <span className="profile-hr-zone-label">{boundary.label}</span>
-                  <span className="profile-hr-zone-range">{formatZoneRange(boundary)} <small>bpm</small></span>
-                </li>
-              ))}
-            </ul>
-            <em className="profile-hr-zone-note">From Max Heart Rate ({maxHrNumber} bpm) and your recent Resting HR baseline ({restingHrBaseline} bpm), using the Heart Rate Reserve method.</em>
-          </> : (
+          {zoneBoundaries ? <details className="profile-hr-zone-disclosure">
+            <summary>
+              <div><strong>6 Personalized Zones</strong><span>HRR method · Resting {restingHrBaseline} bpm</span></div>
+              <span className="profile-hr-zone-spectrum" aria-hidden="true">{zoneBoundaries.map((boundary) => <i key={boundary.zone} className={`zone-${boundary.zone}`} />)}</span>
+            </summary>
+            <div className="profile-hr-zone-detail">
+              <ul className="profile-hr-zone-list">
+                {zoneBoundaries.map((boundary) => (
+                  <li key={boundary.zone} className={`profile-hr-zone profile-hr-zone-${boundary.zone}`}>
+                    <span className="profile-hr-zone-index">Zone {boundary.zone}</span>
+                    <span className="profile-hr-zone-label">{boundary.label}</span>
+                    <span className="profile-hr-zone-range">{formatZoneRange(boundary)} <small>bpm</small></span>
+                  </li>
+                ))}
+              </ul>
+              <em className="profile-hr-zone-note">From Max Heart Rate ({maxHrNumber} bpm) and your recent Resting HR baseline ({restingHrBaseline} bpm), using the Heart Rate Reserve method.</em>
+            </div>
+          </details> : (
             <p className="profile-hr-zone-empty">
               {!draft.maxHr
                 ? 'Add your Max Heart Rate above to see your personal HR Zones.'

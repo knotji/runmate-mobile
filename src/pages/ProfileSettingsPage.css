@@ -10,6 +10,19 @@
 .profile-source-badge { display: inline-flex; align-items: center; min-height: 18px; margin-left: 4px; padding: 0 6px; border-radius: 6px; color: #287da6; background: #e8f5fa; font-size: 9px; font-weight: 800; line-height: 1; white-space: nowrap; vertical-align: middle; }
 @media (max-width:370px) { .profile-settings-shell { padding-inline: 16px; }.profile-settings-grid { grid-template-columns: 1fr; }.profile-settings-grid em { min-height: 0; } }
 .profile-hr-zone-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.profile-hr-zone-disclosure { overflow: hidden; border: 1px solid #e0eaf1; border-radius: 14px; background: #f9fbfd; }
+.profile-hr-zone-disclosure summary { min-height: 58px; display: grid; grid-template-columns: minmax(0,1fr) auto 18px; align-items: center; gap: 10px; padding: 9px 11px; cursor: pointer; list-style: none; }
+.profile-hr-zone-disclosure summary::-webkit-details-marker { display: none; }
+.profile-hr-zone-disclosure summary > div { min-width: 0; display: grid; gap: 3px; }
+.profile-hr-zone-disclosure summary strong { color: #24455f; font-size: 11px; }
+.profile-hr-zone-disclosure summary > div > span { overflow: hidden; color: #7890a2; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.profile-hr-zone-disclosure summary::after { content: '+'; color: #2479a7; font-size: 18px; font-weight: 650; text-align: center; }
+.profile-hr-zone-disclosure[open] summary::after { content: '\2212'; }
+.profile-hr-zone-disclosure[open] summary { border-bottom: 1px solid #e5edf3; background: #fff; }
+.profile-hr-zone-spectrum { display: grid; grid-template-columns: repeat(6,10px); gap: 3px; }
+.profile-hr-zone-spectrum i { width: 10px; height: 10px; border-radius: 50%; background: #dde5ea; }
+.profile-hr-zone-spectrum .zone-0 { background: #cdd5da; }.profile-hr-zone-spectrum .zone-1 { background: #abd9d0; }.profile-hr-zone-spectrum .zone-2 { background: #bddcaf; }.profile-hr-zone-spectrum .zone-3 { background: #eed69b; }.profile-hr-zone-spectrum .zone-4 { background: #edb7a5; }.profile-hr-zone-spectrum .zone-5 { background: #e8a9ae; }
+.profile-hr-zone-detail { padding: 10px; background: #fff; }
 .profile-hr-zone { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 8px 11px; border-radius: 11px; background: #f4f9fc; }
 .profile-hr-zone-index { color: #6f8496; font-size: 9px; font-weight: 800; letter-spacing: .03em; }
 .profile-hr-zone-label { min-width: 0; overflow: hidden; color: #1b3a56; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
@@ -23,3 +36,5 @@
 .profile-hr-zone-5 { background: #fbe4e6; }
 .profile-hr-zone-note { display: block; margin: 12px 0 0; padding-top: 11px; border-top: 1px solid #e5edf3; color: #6f8496; font-size: 9px; line-height: 1.4; }
 .profile-hr-zone-empty { margin: 0; color: #6f8496; font-size: 11px; line-height: 1.5; }
+.profile-hr-zone-disclosure summary:focus-visible { outline: 3px solid rgba(42,137,184,.18); outline-offset: -3px; }
+@media (max-width:390px) { .profile-hr-zone-spectrum { grid-template-columns: repeat(6,8px); }.profile-hr-zone-spectrum i { width: 8px; height: 8px; } }

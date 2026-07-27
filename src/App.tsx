@@ -26,6 +26,7 @@ import { clearNutritionTrendsStartupSnapshot } from '@/lib/nutritionTrendsStartu
 import { clearRecoveryTrendsStartupSnapshot } from '@/lib/recoveryTrendsStartupCache';
 import { clearMealDetailCache } from '@/lib/mealDetailCache';
 import { clearBodyWeightTrendStartupSnapshot } from '@/lib/bodyWeightTrendStartupCache';
+import { clearProfileSettingsStartupSnapshot } from '@/lib/profileSettingsStartupCache';
 import { useHistory } from 'react-router-dom';
 
 import '@ionic/react/css/core.css';
@@ -112,6 +113,7 @@ const App: React.FC = () => {
         clearRecoveryTrendsStartupSnapshot();
         clearMealDetailCache();
         clearBodyWeightTrendStartupSnapshot();
+        clearProfileSettingsStartupSnapshot();
       }
       setSession(nextSession);
       setCheckingSession(false);
