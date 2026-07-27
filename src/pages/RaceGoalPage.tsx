@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   IonButton,
@@ -44,11 +44,13 @@ import './RaceGoalPage.css';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
+import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 
 const RaceGoalPage: React.FC = () => {
   const history = useHistory();
   const goal = useRacePlanStore((state) => state.goal);
   const plan = useRacePlanStore((state) => state.plan);
+  const raceStoreUpdatedAt = useRacePlanStore((state) => state.lastUpdatedAt);
   const [raceResults, setRaceResults] = useState<RaceResult[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
@@ -59,19 +61,30 @@ const RaceGoalPage: React.FC = () => {
   const [selectedWorkout, setSelectedWorkout] = useState<WeekWorkout | null>(null);
   const [adherence, setAdherence] = useState<TrainingAdherence | null>(null);
   const [adherenceOpen, setAdherenceOpen] = useState(false);
+  const hasPreparedRace = raceStoreUpdatedAt != null;
+
+  const loadRaceHistory = useCallback(async () => {
+    setHistoryError(null);
+    const completed = await loadRaceResults(20);
+    if (completed.ok) setRaceResults(completed.results);
+    else setHistoryError(completed.error);
+  }, []);
 
   const { loading, error, setError, reload: load } = useAsyncLoad(async () => {
-    setHistoryError(null);
-    const [result, completed, workoutHistory] = await Promise.all([loadActiveRaceGoalAndPlan(), loadRaceResults(20), loadHistoryItems(['workout', 'strength'])]);
+    const [result, workoutHistory] = await measurePerformanceDiagnostic(
+      'race_goal',
+      () => Promise.all([loadActiveRaceGoalAndPlan(), loadHistoryItems(['workout', 'strength'])]),
+      () => ({ detail: 'Active race, plan, and adherence prepared' }),
+    );
     if (result.ok) {
       const summary = result.goal ? buildMobileRaceSummary(result.goal, result.plan, todayBangkokDateKey()) : null;
       setAdherence(summary && workoutHistory.ok ? buildTrainingAdherence(summary.workouts, dedupeWorkoutItems(workoutHistory.items), todayBangkokDateKey()) : null);
     } else {
       setError(result.error);
     }
-    if (completed.ok) setRaceResults(completed.results);
-    else setHistoryError(completed.error);
   }, 'Could Not Load Your Race Goal.');
+
+  useEffect(() => { void loadRaceHistory(); }, [loadRaceHistory]);
 
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => {
     await load();
@@ -114,9 +127,9 @@ const RaceGoalPage: React.FC = () => {
           <IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" />
         </IonRefresher>
         <main className="race-shell">
-          {loading && <PageDataSkeleton variant="race" label="Loading Race Goal" />}
-          {!loading && error && <PageState kind="error" title="Race Goal Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="race-state race-error" />}
-          {!loading && !error && !goal && (
+          {loading && !hasPreparedRace && <PageDataSkeleton variant="race" label="Loading Race Goal" />}
+          {!hasPreparedRace && error && <PageState kind="error" title="Race Goal Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="race-state race-error" />}
+          {!loading && (!error || hasPreparedRace) && !goal && (
             <section className="race-empty">
               <div><IonIcon icon={flagOutline} /></div>
               <p>Race Planning</p>
@@ -125,7 +138,7 @@ const RaceGoalPage: React.FC = () => {
               <IonButton onClick={() => setEditorOpen(true)}>Create Race Goal</IonButton>
             </section>
           )}
-          {!loading && !error && goal && summary && (
+          {goal && summary && (
             <>
               <section className="race-hero">
                 <div className="race-hero-topline"><span>ACTIVE RACE</span><strong>{summary.daysRemaining === 0 ? 'Race Day' : `${summary.daysRemaining} Days`}</strong></div>
@@ -141,7 +154,7 @@ const RaceGoalPage: React.FC = () => {
 
               {plan ? (
                 <section className="race-section">
-                  <header className="race-section-heading"><div><p>PLAN PROGRESS</p><h2>Your Training Build</h2></div><span>{progress}%</span></header>
+                  <header className="race-section-heading"><div><p>PLAN PROGRESS</p><h2>Your Training Build</h2></div><span><small>{summary.phase ?? 'Current Phase'}</small>{progress}%</span></header>
                   <div className="race-progress"><i style={{ width: `${progress}%` }} /></div>
                   <div className="race-progress-facts">
                     <RaceMetric label="Current Week" value={summary.currentWeek && summary.totalWeeks ? `${summary.currentWeek} Of ${summary.totalWeeks}` : '—'} />
@@ -207,13 +220,13 @@ const RaceGoalPage: React.FC = () => {
               )}
             </>
           )}
-          {!loading && !error && (raceResults.length > 0 || historyError) && (
+          {(raceResults.length > 0 || historyError) && (
             <section className={`race-history${historyOpen ? ' race-history-open' : ''}`}>
               <button type="button" className="race-history-toggle" aria-expanded={historyOpen} onClick={() => setHistoryOpen((open) => !open)}>
                 <div><p>RACE HISTORY</p><h2>Completed Races</h2></div>
                 <span>{raceResults.length} {raceResults.length === 1 ? 'Race' : 'Races'}<IonIcon icon={chevronDownOutline} /></span>
               </button>
-              {historyOpen && historyError && <div className="race-history-error"><span>{historyError}</span><button type="button" onClick={() => void load()}>Try Again</button></div>}
+              {historyOpen && historyError && <div className="race-history-error"><span>{historyError}</span><button type="button" onClick={() => void loadRaceHistory()}>Try Again</button></div>}
               {historyOpen && !historyError && (
                 <div className="race-history-list">
                   {raceResults.map((result) => (

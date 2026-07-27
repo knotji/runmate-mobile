@@ -82,6 +82,7 @@ function performancePhaseLabel(phase: PerformanceDiagnosticPhase): string {
   if (phase === 'meal_detail') return 'Meal Detail';
   if (phase === 'sleep_window') return 'Sleep Window';
   if (phase === 'weekly_plan') return 'Weekly Plan';
+  if (phase === 'race_goal') return 'Race Goal';
   if (phase === 'activity_archive') return 'Activity Archive';
   return 'Nutrition Summary';
 }
