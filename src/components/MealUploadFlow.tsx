@@ -7,6 +7,7 @@ import { createHistoryItem, saveHistoryItems } from '@/lib/cloudHistory';
 import { dateKeyToRecordedAt, todayBangkokDateKey } from '@/lib/date';
 import type { MealAnalysis } from '@/types/logs';
 import UploadDateField from './UploadDateField';
+import { cacheMealDetailItem } from '@/lib/mealDetailCache';
 
 const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
 const nutritionKeys = ['caloriesKcal', 'proteinG', 'carbsG', 'fatG'] as const;
@@ -56,7 +57,7 @@ const MealUploadFlow: React.FC = () => {
     item.dateKey = mealDate; item.recordedAt = dateKeyToRecordedAt(mealDate);
     item.source = { provider: 'generic_image', importType: 'image', importedAt: new Date().toISOString() };
     const result = await saveHistoryItems([item]);
-    if (result.ok) { reset(); history.push(`/activity/meal/${encodeURIComponent(item.id)}`); }
+    if (result.ok) { cacheMealDetailItem(item); reset(); history.push(`/activity/meal/${encodeURIComponent(item.id)}`); }
     else { setError(result.error ?? 'Could Not Save This Meal'); setSaving(false); }
   };
 

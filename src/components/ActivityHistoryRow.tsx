@@ -4,6 +4,7 @@ import { chevronForwardOutline, trashOutline } from 'ionicons/icons';
 import { getHistoryItemDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { activitySourceLabel, describeHistoryItem } from '@/lib/activityHistoryPresentation';
+import { cacheMealDetailItem } from '@/lib/mealDetailCache';
 
 export function ActivityHistoryRow({ item, deleting, onDelete }: { item: LocalHistoryItem; deleting: boolean; onDelete: () => void }) {
   const history = useHistory();
@@ -23,7 +24,7 @@ export function ActivityHistoryRow({ item, deleting, onDelete }: { item: LocalHi
     {detailPath && <IonIcon className="history-row-chevron" icon={chevronForwardOutline} />}
   </>;
   return <div className="history-row-shell">
-    {detailPath ? <button type="button" className="history-row history-row-button" disabled={deleting} onClick={() => history.push(detailPath)}>{content}</button> : <article className="history-row">{content}</article>}
+    {detailPath ? <button type="button" className="history-row history-row-button" disabled={deleting} onClick={() => { if (item.type === 'meal') cacheMealDetailItem(item); history.push(detailPath); }}>{content}</button> : <article className="history-row">{content}</article>}
     <button type="button" className="history-row-delete" disabled={deleting} onClick={onDelete} aria-label={`Delete ${presentation.title}`}>{deleting ? <IonSpinner name="crescent" /> : <IonIcon icon={trashOutline} />}</button>
   </div>;
 }

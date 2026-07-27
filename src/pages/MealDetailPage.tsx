@@ -3,15 +3,34 @@ import { useHistory, useParams } from 'react-router-dom';
 import { IonButton, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar } from '@ionic/react';
 import { arrowBackOutline, fastFoodOutline } from 'ionicons/icons';
 import { DetailMetrics, DetailNotes, DetailState } from '@/components/RecordDetailSections';
-import { loadHistoryItems } from '@/lib/cloudHistory';
+import { loadHistoryItemById } from '@/lib/cloudHistory';
 import { buildMealDetail } from '@/lib/activityDetails';
 import type { LocalHistoryItem } from '@/lib/localHistory';
+import { cacheMealDetailItem, loadCachedMealDetailItem } from '@/lib/mealDetailCache';
+import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import './RecordDetailPage.css';
 
 const MealDetailPage: React.FC = () => {
-  const history = useHistory(); const { id } = useParams<{ id: string }>();
-  const [item, setItem] = useState<LocalHistoryItem | null>(null); const [error, setError] = useState<string | null>(null);
-  const load = useCallback(async () => { const result = await loadHistoryItems(['meal']); if (!result.ok) setError(result.error); else setItem(result.items.find((record) => record.id === decodeURIComponent(id)) ?? null); if (result.ok && !result.items.some((record) => record.id === decodeURIComponent(id))) setError('This meal record could not be found.'); }, [id]);
+  const history = useHistory(); const { id } = useParams<{ id: string }>(); const decodedId = decodeURIComponent(id);
+  const [item, setItem] = useState<LocalHistoryItem | null>(() => loadCachedMealDetailItem(decodedId)); const [error, setError] = useState<string | null>(null);
+  const load = useCallback(async () => {
+    setError(null);
+    const result = await measurePerformanceDiagnostic(
+      'meal_detail',
+      () => loadHistoryItemById(decodedId),
+      (value) => ({ status: value.ok ? 'success' : 'failed', detail: value.ok ? 'Single meal record prepared' : value.error }),
+    );
+    if (!result.ok) {
+      if (!loadCachedMealDetailItem(decodedId)) setError(result.error);
+      return;
+    }
+    if (result.item.type !== 'meal') {
+      setError('This meal record could not be found.');
+      return;
+    }
+    cacheMealDetailItem(result.item);
+    setItem(result.item);
+  }, [decodedId]);
   useEffect(() => { void load(); }, [load]); const detail = item ? buildMealDetail(item) : null;
   const mealNotes = detail ? [
     ...detail.guidance,
