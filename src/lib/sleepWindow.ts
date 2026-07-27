@@ -1,4 +1,8 @@
 const STORAGE_PREFIX = 'runmate:sleep-window-wake:';
+export const SLEEP_CYCLE_OPTIONS = [4, 5, 6] as const;
+export type SleepCycleCount = typeof SLEEP_CYCLE_OPTIONS[number];
+const ESTIMATED_CYCLE_MINUTES = 90;
+const SLEEP_ONSET_MINUTES = 20;
 
 export function normalizeDayMinutes(value: number): number {
   return ((value % 1440) + 1440) % 1440;
@@ -44,6 +48,30 @@ export function sleepWindowForWake(wakeMinutes: number, sleepNeedMinutes: number
     estimatedCyclesLow: Math.max(1, Math.floor(sleepNeedMinutes / 100)),
     estimatedCyclesHigh: Math.max(1, Math.ceil(sleepNeedMinutes / 80)),
   };
+}
+
+export function recommendedSleepCycleCount(sleepNeedMinutes: number): SleepCycleCount {
+  const count = Math.ceil(sleepNeedMinutes / ESTIMATED_CYCLE_MINUTES);
+  return Math.min(6, Math.max(4, count)) as SleepCycleCount;
+}
+
+export function sleepCyclePlanForWake(
+  wakeMinutes: number,
+  cycleCount: SleepCycleCount,
+  sleepNeedMinutes: number,
+) {
+  const sleepMinutes = cycleCount * ESTIMATED_CYCLE_MINUTES;
+  const differenceMinutes = sleepMinutes - sleepNeedMinutes;
+  const asleepMinutes = normalizeDayMinutes(wakeMinutes - sleepMinutes);
+  return {
+    cycleCount,
+    wakeMinutes,
+    asleepMinutes,
+    inBedMinutes: normalizeDayMinutes(asleepMinutes - SLEEP_ONSET_MINUTES),
+    sleepMinutes,
+    differenceMinutes,
+    adequacy: differenceMinutes >= 0 ? 'meets' : differenceMinutes >= -30 ? 'close' : 'short',
+  } as const;
 }
 
 export function tonightDateKey(): string {

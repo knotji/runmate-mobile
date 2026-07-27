@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bedtimeReminderMinutes, formatClockMinutes, parseClockMinutes, sleepWindowForWake } from './sleepWindow';
+import { bedtimeReminderMinutes, formatClockMinutes, parseClockMinutes, recommendedSleepCycleCount, sleepCyclePlanForWake, sleepWindowForWake } from './sleepWindow';
 
 describe('sleep window', () => {
   it('builds bedtime guidance backwards from wake time and sleep need', () => {
@@ -21,5 +21,19 @@ describe('sleep window', () => {
     const window = sleepWindowForWake(390, 420);
     expect(formatClockMinutes(window.idealInBedMinutes)).toBe('11:10 PM');
     expect(formatClockMinutes(bedtimeReminderMinutes(window.idealInBedMinutes))).toBe('10:10 PM');
+  });
+
+  it('recommends the first selectable cycle count that covers Sleep Need', () => {
+    expect(recommendedSleepCycleCount(420)).toBe(5);
+    expect(recommendedSleepCycleCount(540)).toBe(6);
+  });
+
+  it('builds an estimated cycle plan and compares it with Sleep Need', () => {
+    const plan = sleepCyclePlanForWake(360, 5, 420);
+    expect(formatClockMinutes(plan.inBedMinutes)).toBe('10:10 PM');
+    expect(formatClockMinutes(plan.asleepMinutes)).toBe('10:30 PM');
+    expect(plan.sleepMinutes).toBe(450);
+    expect(plan.differenceMinutes).toBe(30);
+    expect(plan.adequacy).toBe('meets');
   });
 });

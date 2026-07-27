@@ -80,6 +80,7 @@ function performancePhaseLabel(phase: PerformanceDiagnosticPhase): string {
   if (phase === 'nutrition_trends') return 'Nutrition Trends';
   if (phase === 'recovery_trends') return 'Recovery Trends';
   if (phase === 'meal_detail') return 'Meal Detail';
+  if (phase === 'sleep_window') return 'Sleep Window';
   if (phase === 'activity_archive') return 'Activity Archive';
   return 'Nutrition Summary';
 }

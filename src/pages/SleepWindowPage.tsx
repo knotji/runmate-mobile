@@ -7,11 +7,18 @@ import { useCoachContextStore } from '@/lib/context/coachContextStore';
 import {
   formatClockMinutes,
   formatTimeInput,
+  loadTonightWakeOverride,
   parseClockMinutes,
   parseTimeInput,
+  recommendedSleepCycleCount,
+  SLEEP_CYCLE_OPTIONS,
+  sleepCyclePlanForWake,
   sleepWindowForWake,
+  type SleepCycleCount,
 } from '@/lib/sleepWindow';
 import { deleteTonightWakePlan, loadDefaultWakeTime, loadTonightWakePlan, saveTonightWakePlan } from '@/lib/sleepWindowStorage';
+import { loadRecoveryContextStartupSnapshot } from '@/lib/recoveryStartupCache';
+import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import './SleepWindowPage.css';
@@ -19,31 +26,46 @@ import './SleepWindowPage.css';
 const SleepWindowPage: React.FC = () => {
   const history = useHistory();
   const context = useCoachContextStore((state) => state.context);
-  const [loading, setLoading] = useState(true);
-  const [wakeOverride, setWakeOverride] = useState<number | null>(null);
+  const [startupContext] = useState(() => loadRecoveryContextStartupSnapshot());
+  const visibleContext = context ?? startupContext;
+  const [loading, setLoading] = useState(() => visibleContext == null);
+  const [wakeOverride, setWakeOverride] = useState<number | null>(() => {
+    try { return loadTonightWakeOverride(); } catch { return null; }
+  });
   const [savedWake, setSavedWake] = useState<number | null>(null);
   const [defaultWake, setDefaultWake] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [selectedCycles, setSelectedCycles] = useState<SleepCycleCount | null>(null);
   const load = useCallback(async () => {
     try {
       setLoadError(null);
-      const [, storedWake, storedDefaultWake] = await Promise.all([buildCoachContextFromSupabase(), loadTonightWakePlan(), loadDefaultWakeTime()]);
+      const [, storedWake, storedDefaultWake] = await measurePerformanceDiagnostic(
+        'sleep_window',
+        () => Promise.all([buildCoachContextFromSupabase(), loadTonightWakePlan(), loadDefaultWakeTime()]),
+        () => ({ detail: 'Recovery context and wake plan prepared' }),
+      );
       setWakeOverride(storedWake.minutes);
       setSavedWake(storedWake.synced ? storedWake.minutes : null);
       setDefaultWake(storedDefaultWake);
     }
-    catch (error) { setLoadError(error instanceof Error ? error.message : 'Could Not Build Your Sleep Window.'); }
+    catch (error) {
+      if (!visibleContext) setLoadError(error instanceof Error ? error.message : 'Could Not Build Your Sleep Window.');
+    }
     finally { setLoading(false); }
-  }, []);
-  useIonViewWillEnter(() => { setLoading(true); void load(); });
+  }, [visibleContext]);
+  useIonViewWillEnter(() => { if (!visibleContext) setLoading(true); void load(); });
 
-  const sleep = context?.recoverySystem?.sleepPerformance;
+  const sleep = visibleContext?.recoverySystem?.sleepPerformance;
   const derivedWake = parseClockMinutes(sleep?.targetWakeTime ?? null);
   const profileWake = defaultWake ?? derivedWake;
   const wakeMinutes = wakeOverride ?? profileWake;
   const window = wakeMinutes != null && sleep ? sleepWindowForWake(wakeMinutes, sleep.sleepNeedMinutes) : null;
+  const cycleCount = sleep ? selectedCycles ?? recommendedSleepCycleCount(sleep.sleepNeedMinutes) : null;
+  const cyclePlan = wakeMinutes != null && sleep && cycleCount
+    ? sleepCyclePlanForWake(wakeMinutes, cycleCount, sleep.sleepNeedMinutes)
+    : null;
 
   const changeWake = (value: string) => {
     const minutes = parseTimeInput(value);
@@ -102,9 +124,29 @@ const SleepWindowPage: React.FC = () => {
             </button>
             <p className="tonight-only-note">{savedWake === wakeMinutes ? 'Saved to your account for tonight only.' : 'This change applies to tonight only.'}</p>
           </section>
+          {cyclePlan && <section className="sleep-cycle-planner" aria-labelledby="cycle-planner-title">
+            <div className="cycle-planner-heading">
+              <div><p>Cycle Planner</p><h2 id="cycle-planner-title">Choose Your Sleep Cycles</h2></div>
+              <span className={`cycle-status ${cyclePlan.adequacy}`}>{cycleAdequacyLabel(cyclePlan.differenceMinutes)}</span>
+            </div>
+            <div className="cycle-options" role="group" aria-label="Estimated sleep cycles">
+              {SLEEP_CYCLE_OPTIONS.map((count) => {
+                const minutes = count * 90;
+                return <button type="button" key={count} className={cycleCount === count ? 'selected' : ''} aria-pressed={cycleCount === count} onClick={() => setSelectedCycles(count)}>
+                  <strong>{count}</strong><span>{formatDuration(minutes)}</span>
+                </button>;
+              })}
+            </div>
+            <div className="cycle-plan-result">
+              <div><span>In Bed</span><strong>{formatClockMinutes(cyclePlan.inBedMinutes)}</strong></div>
+              <i aria-hidden="true">→</i>
+              <div><span>Wake</span><strong>{formatClockMinutes(cyclePlan.wakeMinutes)}</strong></div>
+            </div>
+            <p>Includes about 20 minutes to fall asleep. A 90-minute cycle is an estimate; your Sleep Need remains the main target.</p>
+          </section>}
           <section className="sleep-window-summary">
             <div><span>Sleep Need</span><strong>{Math.floor(sleep.sleepNeedMinutes / 60)}h {sleep.sleepNeedMinutes % 60}m</strong></div>
-            <div><span>Estimated Cycles</span><strong>{window.estimatedCyclesLow}–{window.estimatedCyclesHigh}</strong></div>
+            <div><span>Suggested Plan</span><strong>{recommendedSleepCycleCount(sleep.sleepNeedMinutes)} cycles</strong></div>
             <p>Sleep cycles vary throughout the night. The window prioritizes your total Sleep Need rather than forcing fixed 90-minute blocks.</p>
           </section>
           <details className="sleep-cycle-details">
@@ -127,3 +169,14 @@ const SleepWindowPage: React.FC = () => {
 };
 
 export default SleepWindowPage;
+
+function formatDuration(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return remainder ? `${hours}h ${remainder}m` : `${hours}h`;
+}
+
+function cycleAdequacyLabel(differenceMinutes: number): string {
+  if (differenceMinutes >= 0) return differenceMinutes === 0 ? 'Meets Sleep Need' : `${formatDuration(differenceMinutes)} extra`;
+  return Math.abs(differenceMinutes) <= 30 ? `${formatDuration(Math.abs(differenceMinutes))} close` : `${formatDuration(Math.abs(differenceMinutes))} short`;
+}

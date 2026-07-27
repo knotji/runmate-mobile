@@ -12,6 +12,20 @@
 .sleep-window-hero h2 { margin: 4px 0 6px; font-size: clamp(20px, 5.8vw, 23px); line-height: 1.18; letter-spacing: -.02em; }
 .sleep-window-hero span { color: #e4f6fa; font-size: 10px; }
 .sleep-window-card, .sleep-window-summary { margin-top: 14px; padding: 16px; border: 1px solid #d7e5f1; border-radius: 18px; background: #fff; }
+.sleep-cycle-planner { margin-top: 14px; padding: 16px; border: 1px solid #cfe5e8; border-radius: 18px; background: linear-gradient(145deg,#fff,#f2fbfa); }
+.cycle-planner-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.cycle-planner-heading p { margin: 0 0 5px; color: #278b83; font-size: 9px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+.cycle-planner-heading h2 { margin: 0; font-size: 15px; }
+.cycle-status { flex: none; padding: 5px 8px; border-radius: 999px; color: #287260; background: #e5f5ef; font-size: 9px; font-weight: 800; }
+.cycle-status.close { color: #8b671d; background: #fff4d9; }.cycle-status.short { color: #a04d57; background: #fae9eb; }
+.cycle-options { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; margin-top: 14px; }
+.cycle-options button { display: grid; gap: 2px; min-height: 54px; padding: 7px; border: 1px solid #d6e5eb; border-radius: 12px; color: #60798e; background: rgba(255,255,255,.75); }
+.cycle-options button strong { font-size: 17px; }.cycle-options button span { font-size: 9px; font-weight: 700; }
+.cycle-options button.selected { border-color: #2a9b9a; color: #176d72; background: #e5f7f5; box-shadow: 0 0 0 1px rgba(42,155,154,.12); }
+.cycle-plan-result { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; margin-top: 11px; padding: 11px 12px; border-radius: 12px; background: #fff; }
+.cycle-plan-result div { display: grid; gap: 3px; }.cycle-plan-result div:last-child { text-align: right; }
+.cycle-plan-result span { color: #72879a; font-size: 9px; }.cycle-plan-result strong { color: #1b405d; font-size: 13px; }.cycle-plan-result i { color: #57a9ad; font-style: normal; }
+.sleep-cycle-planner > p { margin: 10px 1px 0; color: #71869a; font-size: 9px; line-height: 1.45; }
 .sleep-window-card-heading { display: flex; align-items: center; gap: 11px; }
 .sleep-window-card-heading > ion-icon { width: 19px; height: 19px; padding: 8px; border-radius: 11px; color: #277db6; background: #e5f3fd; }
 .sleep-window-card-heading h2 { margin: 0; font-size: 15px; line-height: 1.25; }
@@ -52,6 +66,7 @@
 .sleep-window-picker input:focus-visible,
 .profile-wake-button:focus-visible,
 .save-tonight-button:focus-visible,
+.cycle-options button:focus-visible,
 .sleep-cycle-details summary:focus-visible { outline: 3px solid rgba(42,145,199,.24); outline-offset: 2px; }
 @media (max-width: 390px) {
   .sleep-window-shell { padding-inline: 16px; }
