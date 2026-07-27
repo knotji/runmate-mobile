@@ -86,6 +86,8 @@ function performancePhaseLabel(phase: PerformanceDiagnosticPhase): string {
   if (phase === 'weekly_summary') return 'Weekly Summary';
   if (phase === 'body_weight_trend') return 'Body Weight Trend';
   if (phase === 'profile_settings') return 'Profile Settings';
+  if (phase === 'privacy_export') return 'Privacy Export';
+  if (phase === 'account_delete') return 'Account Delete';
   if (phase === 'activity_archive') return 'Activity Archive';
   return 'Nutrition Summary';
 }

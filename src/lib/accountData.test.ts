@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { accountDataExportFileName, buildAccountDataExport, deleteMyAccount } from '@/lib/accountData';
+import { loadProfileFromSupabase } from '@/lib/profileStorage';
 
 vi.mock('@/lib/cloudHistory', () => ({
   loadHistoryItems: vi.fn(async () => ({ ok: true, items: [{ id: 'sleep-1', type: 'sleep' }] })),
@@ -33,6 +34,14 @@ describe('buildAccountDataExport', () => {
     expect(result.data.profile).toEqual({ maxHr: 190 });
     expect(result.data.raceGoal).toEqual({ raceName: 'Half Marathon' });
     expect(typeof result.data.exportedAt).toBe('string');
+  });
+
+  it('does not create a partial export when a source cannot be loaded', async () => {
+    vi.mocked(loadProfileFromSupabase).mockResolvedValueOnce({ ok: false, reason: 'load-failed', message: 'Profile unavailable' });
+
+    const result = await buildAccountDataExport();
+
+    expect(result).toEqual({ ok: false, error: 'Profile unavailable' });
   });
 });
 

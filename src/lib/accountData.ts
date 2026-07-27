@@ -21,16 +21,19 @@ export async function buildAccountDataExport(): Promise<{ ok: true; data: Accoun
     loadRaceResults(200),
   ]);
   if (!history.ok) return { ok: false, error: history.error };
+  if (!profile.ok) return { ok: false, error: ('message' in profile && profile.message) || 'Could Not Load Profile Data For Export.' };
+  if (!race.ok) return { ok: false, error: race.error };
+  if (!raceResults.ok) return { ok: false, error: raceResults.error };
 
   return {
     ok: true,
     data: {
       exportedAt: new Date().toISOString(),
-      profile: profile.ok ? profile.profile ?? null : null,
+      profile: profile.profile ?? null,
       historyItems: history.items,
-      raceGoal: race.ok ? race.goal : null,
-      racePlan: race.ok ? race.plan : null,
-      raceResults: raceResults.ok ? raceResults.results : null,
+      raceGoal: race.goal,
+      racePlan: race.plan,
+      raceResults: raceResults.results,
     },
   };
 }

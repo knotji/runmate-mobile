@@ -7,6 +7,7 @@ import { IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolb
 import { arrowBackOutline, cloudDownloadOutline, documentTextOutline, lockClosedOutline, trashOutline } from 'ionicons/icons';
 import { accountDataExportFileName, buildAccountDataExport, deleteMyAccount } from '@/lib/accountData';
 import { supabase } from '@/lib/supabaseClient';
+import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import './PrivacyDataPage.css';
 
 const DELETE_CONFIRMATION_WORD = 'DELETE';
@@ -14,7 +15,7 @@ const DELETE_CONFIRMATION_WORD = 'DELETE';
 const PrivacyDataPage: React.FC = () => {
   const history = useHistory();
   const [exporting, setExporting] = useState(false);
-  const [exportMessage, setExportMessage] = useState<string | null>(null);
+  const [exportStatus, setExportStatus] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleteConfirmationInput, setDeleteConfirmationInput] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -22,11 +23,18 @@ const PrivacyDataPage: React.FC = () => {
 
   const exportData = async () => {
     setExporting(true);
-    setExportMessage(null);
+    setExportStatus(null);
     try {
-      const result = await buildAccountDataExport();
+      const result = await measurePerformanceDiagnostic(
+        'privacy_export',
+        () => buildAccountDataExport(),
+        (value) => ({
+          status: value.ok ? 'success' : 'failed',
+          detail: value.ok ? `${Array.isArray(value.data.historyItems) ? value.data.historyItems.length : 0} history records exported` : value.error,
+        }),
+      );
       if (!result.ok) {
-        setExportMessage(result.error);
+        setExportStatus({ kind: 'error', text: result.error });
         return;
       }
       const json = JSON.stringify(result.data, null, 2);
@@ -38,7 +46,7 @@ const PrivacyDataPage: React.FC = () => {
         // hand it to the native share sheet instead.
         const written = await Filesystem.writeFile({ path: fileName, data: json, directory: Directory.Cache, encoding: Encoding.UTF8 });
         await Share.share({ title: 'RunMate Data Export', url: written.uri });
-        setExportMessage('Export ready. Choose where to save it.');
+        setExportStatus({ kind: 'success', text: 'Export ready. Choose where to save it.' });
         return;
       }
 
@@ -48,9 +56,9 @@ const PrivacyDataPage: React.FC = () => {
       link.download = fileName;
       link.click();
       URL.revokeObjectURL(url);
-      setExportMessage('Data export downloaded.');
+      setExportStatus({ kind: 'success', text: 'Data export downloaded.' });
     } catch (failure) {
-      setExportMessage(failure instanceof Error ? failure.message : 'Could Not Export Your Data.');
+      setExportStatus({ kind: 'error', text: failure instanceof Error ? failure.message : 'Could Not Export Your Data.' });
     } finally {
       setExporting(false);
     }
@@ -60,7 +68,11 @@ const PrivacyDataPage: React.FC = () => {
     if (deleteConfirmationInput.trim().toUpperCase() !== DELETE_CONFIRMATION_WORD) return;
     setDeleting(true);
     setDeleteError(null);
-    const result = await deleteMyAccount();
+    const result = await measurePerformanceDiagnostic(
+      'account_delete',
+      () => deleteMyAccount(),
+      (value) => ({ status: value.ok ? 'success' : 'failed', detail: value.ok ? 'Account deletion confirmed' : value.error }),
+    );
     if (!result.ok) {
       setDeleteError(result.error);
       setDeleting(false);
@@ -88,26 +100,32 @@ const PrivacyDataPage: React.FC = () => {
             <span>What RunMate collects, how it is used, and how to export or delete it.</span>
           </header>
 
-          <section className="privacy-data-card">
-            <header><IonIcon icon={documentTextOutline} /><div><p>Collected</p><h2>What We Collect</h2></div></header>
-            <ul className="privacy-data-list">
-              <li><strong>Health Connect</strong><span>Sleep, Workout, and available vitals (Resting HR, HRV, Respiratory Rate) shared by Samsung Health.</span></li>
-              <li><strong>Uploaded Photos</strong><span>Meal, workout, and sleep screenshots you choose to upload, analyzed once to extract structured data.</span></li>
-              <li><strong>Profile</strong><span>Max Heart Rate, body weight, and training preferences you enter yourself.</span></li>
-              <li><strong>Race Goals</strong><span>Race date, distance, target time, and generated training plans.</span></li>
-            </ul>
+          <section className="privacy-data-card privacy-data-info">
+            <details>
+              <summary><IonIcon icon={documentTextOutline} /><div><p>Collected</p><h2>What We Collect</h2></div><span className="privacy-data-summary-badge">4 Categories</span></summary>
+              <div className="privacy-data-info-body">
+                <ul className="privacy-data-list">
+                  <li><strong>Health Connect</strong><span>Sleep, Workout, and available vitals (Resting HR, HRV, Respiratory Rate) shared by Samsung Health.</span></li>
+                  <li><strong>Uploaded Photos</strong><span>Meal, workout, and sleep screenshots you choose to upload, analyzed once to extract structured data.</span></li>
+                  <li><strong>Profile</strong><span>Max Heart Rate, body weight, and training preferences you enter yourself.</span></li>
+                  <li><strong>Race Goals</strong><span>Race date, distance, target time, and generated training plans.</span></li>
+                </ul>
+              </div>
+            </details>
           </section>
 
-          <section className="privacy-data-card">
-            <header><IonIcon icon={lockClosedOutline} /><div><p>Storage</p><h2>How It Is Used And Stored</h2></div></header>
-            <p className="privacy-data-paragraph">
+          <section className="privacy-data-card privacy-data-info">
+            <details>
+              <summary><IonIcon icon={lockClosedOutline} /><div><p>Storage</p><h2>How It Is Used And Stored</h2></div><span className="privacy-data-summary-badge">Private Account</span></summary>
+              <div className="privacy-data-info-body"><p className="privacy-data-paragraph">
               RunMate uses this data to calculate Recovery, Sleep, and Strain scores and to power AI Coach guidance. Everything is
               stored in your own RunMate account (Supabase) and is never sold or shared with third parties.
             </p>
             <p className="privacy-data-paragraph">
               An uploaded photo is sent once to Google Gemini to extract the visible numbers, then discarded — RunMate keeps only
               the extracted data (distance, duration, calories, and so on), never the original image, its raw text, or a copy of it.
-            </p>
+            </p></div>
+            </details>
           </section>
 
           <section className="privacy-data-card">
@@ -117,7 +135,7 @@ const PrivacyDataPage: React.FC = () => {
               {exporting ? <IonSpinner name="crescent" /> : <IonIcon icon={cloudDownloadOutline} />}
               {exporting ? 'Preparing Export…' : 'Export My Data'}
             </button>
-            {exportMessage && <p className="privacy-data-export-message" role="status">{exportMessage}</p>}
+            {exportStatus && <p className={`privacy-data-export-message is-${exportStatus.kind}`} role={exportStatus.kind === 'error' ? 'alert' : 'status'}>{exportStatus.text}</p>}
           </section>
 
           <section className="privacy-data-card privacy-data-danger">
