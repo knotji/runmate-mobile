@@ -41,7 +41,7 @@ export function TodayTrainingPlanCard({ context }: { context: CoachContext }) {
         {planned && status === 'pending' && (
           <>
             {metrics.length > 0 && <p className="plan-metrics-line">{metrics.join(' · ')}</p>}
-            {recommendation && <div className="adaptive-guidance">
+            {recommendation && <div className={`adaptive-guidance adaptive-guidance-${recommendation.action}`}>
               <p><strong>{recommendation.headline}</strong>{recommendation.summary}</p>
               {recommendation.action !== 'keep' && <div className="adaptive-review-box">
                 <p className="adaptive-original-plan">Original Plan: {planned.workoutType}</p>

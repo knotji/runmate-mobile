@@ -81,3 +81,16 @@
 .adaptive-action { color: #2a766d; background: #eaf5f1; }
 .adaptive-guidance { margin-top: 7px; padding: 13px 14px; border-radius: 16px; background: #f3f7f7; }
 .plan-support-details { border-top-color: #e4eaeb; }
+
+/* Compact first viewport */
+.plan-card {
+  gap: 10px;
+  margin-bottom: 23px;
+  padding: 16px 18px 10px;
+}
+.plan-card-main { gap: 5px; }
+.plan-card > .plan-card-main > strong { font-size: 20px; }
+.adaptive-guidance { margin-top: 4px; padding: 10px 12px; }
+.adaptive-guidance-keep { padding: 9px 12px; }
+.adaptive-guidance-keep ul { display: none; }
+.plan-support-details summary { min-height: 39px; padding-top: 6px; }
