@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
+import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonSpinner, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
 import { arrowBackOutline, barbellOutline, bedOutline, calendarClearOutline, checkmarkCircleOutline, chevronBackOutline, chevronForwardOutline, fastFoodOutline, fitnessOutline, pulseOutline, timeOutline } from 'ionicons/icons';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
@@ -20,6 +20,7 @@ import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import { daysBetween, endOfMonth, shiftDate, shiftMonths, startOfMonth, weekdayIndex } from '@/lib/date';
 import { buildPeriodAdherence, type RecapPeriod } from '@/lib/weeklyRecapHighlights';
 import type { RacePlan } from '@/types/race';
+import { loadWeeklySummaryHistorySnapshot, saveWeeklySummaryHistorySnapshot } from '@/lib/weeklySummaryStartupCache';
 import './WeeklySummaryPage.css';
 
 type CalendarRange = { start: string; end: string };
@@ -29,26 +30,43 @@ const WeeklySummaryPage: React.FC = () => {
   const context = useCoachContextStore((state) => state.context);
   const [startupContext] = useState(() => loadRecoveryContextStartupSnapshot());
   const visibleContext = context ?? startupContext;
+  const [startupHistory] = useState(() => loadWeeklySummaryHistorySnapshot());
   const [period, setPeriod] = useState<RecapPeriod>('week');
   const [offset, setOffset] = useState(0);
-  const [historyItems, setHistoryItems] = useState<LocalHistoryItem[]>([]);
-  const [historyReady, setHistoryReady] = useState(false);
+  const [historyItems, setHistoryItems] = useState<LocalHistoryItem[]>(startupHistory ?? []);
+  const [historyReady, setHistoryReady] = useState(startupHistory !== null);
+  const [periodChanging, setPeriodChanging] = useState(false);
+  const periodMounted = useRef(false);
 
   const { loading, error, reload: load } = useAsyncLoad(async (forceSync) => {
     if (forceSync) await syncTodayHealth(true);
+    const contextPromise = forceSync || !visibleContext
+      ? buildCoachContextFromSupabase()
+      : Promise.resolve(visibleContext);
     const [, result] = await measurePerformanceDiagnostic(
       'weekly_summary',
       () => Promise.all([
-        buildCoachContextFromSupabase(),
+        contextPromise,
         loadHistoryItems(['workout', 'strength', 'sleep', 'meal']),
       ]),
-      () => ({ detail: 'Calendar summary context and history prepared' }),
+      () => ({ variant: startupHistory ? 'prepared' : 'live', detail: startupHistory ? 'Cached summary shown while history refreshed' : 'Calendar summary history prepared' }),
     );
     if (!result.ok) throw new Error(result.error);
     const workouts = dedupeWorkoutItems(result.items.filter((item) => item.type === 'workout' || item.type === 'strength'));
-    setHistoryItems([...workouts, ...result.items.filter((item) => item.type === 'sleep' || item.type === 'meal')]);
+    const nextItems = [...workouts, ...result.items.filter((item) => item.type === 'sleep' || item.type === 'meal')];
+    setHistoryItems(nextItems);
+    saveWeeklySummaryHistorySnapshot(nextItems);
     setHistoryReady(true);
   }, 'Could Not Load Your Training Summary.');
+
+  useEffect(() => {
+    if (!periodMounted.current) {
+      periodMounted.current = true;
+      return;
+    }
+    const timer = window.setTimeout(() => setPeriodChanging(false), 220);
+    return () => window.clearTimeout(timer);
+  }, [offset, period]);
 
   const range = useMemo(
     () => visibleContext ? calendarPeriodRange(period, offset, visibleContext.todayDate) : null,
@@ -79,8 +97,15 @@ const WeeklySummaryPage: React.FC = () => {
     event.detail.complete();
   };
   const selectPeriod = (next: RecapPeriod) => {
+    if (next === period) return;
+    setPeriodChanging(true);
     setPeriod(next);
     setOffset(0);
+  };
+  const movePeriod = (nextOffset: number) => {
+    if (nextOffset === offset) return;
+    setPeriodChanging(true);
+    setOffset(nextOffset);
   };
 
   return <IonPage>
@@ -98,10 +123,13 @@ const WeeklySummaryPage: React.FC = () => {
           <button type="button" className={period === 'month' ? 'active' : ''} aria-pressed={period === 'month'} onClick={() => selectPeriod('month')}>Month</button>
         </div>
         <nav className="weekly-period-nav" aria-label={`Choose ${period}`}>
-          <button type="button" aria-label={`Previous ${period}`} onClick={() => setOffset((value) => value + 1)}><IonIcon icon={chevronBackOutline} /></button>
+          <button type="button" aria-label={`Previous ${period}`} disabled={periodChanging} onClick={() => movePeriod(offset + 1)}><IonIcon icon={chevronBackOutline} /></button>
           <span><IonIcon icon={calendarClearOutline} />{range ? formatPeriodRange(range.start, range.end) : '—'}</span>
-          <button type="button" aria-label={`Next ${period}`} disabled={offset === 0} onClick={() => setOffset((value) => Math.max(0, value - 1))}><IonIcon icon={chevronForwardOutline} /></button>
+          <button type="button" aria-label={`Next ${period}`} disabled={offset === 0 || periodChanging} onClick={() => movePeriod(Math.max(0, offset - 1))}><IonIcon icon={chevronForwardOutline} /></button>
         </nav>
+        <div className={`weekly-period-loading${periodChanging ? ' visible' : ''}`} role="status" aria-live="polite">
+          {periodChanging && <><IonSpinner name="crescent" /><span>Updating {period === 'week' ? 'Week' : 'Month'}</span></>}
+        </div>
 
         {offset === 0 && <button type="button" className="weekly-recap-link" onClick={() => history.push('/weekly-recap')}>
           <span><small>{period === 'week' ? 'Weekly' : 'Monthly'} Story</small><strong>View Your Recap</strong></span><IonIcon icon={chevronForwardOutline} />
