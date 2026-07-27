@@ -9,17 +9,24 @@
 .weekly-plan-heading > span { display: block; margin-top: 8px; color: #6d8398; font-size: 11px; line-height: 1.5; }
 .weekly-plan-state { min-height: 320px; display: grid; place-content: center; justify-items: center; gap: 12px; color: #6d8398; font-size: 11px; text-align: center; }
 .weekly-plan-state button { min-height: 44px; padding: 0 18px; border: 1px solid #a9cee1; border-radius: 12px; color: #2379a7; background: #fff; font: inherit; font-weight: 800; }
+.weekly-plan-overview { display: grid; grid-template-columns: repeat(3,1fr); margin-bottom: 12px; overflow: hidden; border: 1px solid #d7e6ef; border-radius: 16px; background: rgba(255,255,255,.9); box-shadow: 0 9px 24px rgba(39,74,105,.05); }
+.weekly-plan-overview div { display: grid; gap: 3px; padding: 12px 8px; text-align: center; }
+.weekly-plan-overview div + div { border-left: 1px solid #e5edf3; }
+.weekly-plan-overview strong { color: #1d4964; font-size: 15px; }
+.weekly-plan-overview span { color: #7890a2; font-size: 8.5px; line-height: 1.25; }
 .weekly-plan-list { display: grid; gap: 8px; }
 .weekly-plan-row { display: grid; grid-template-columns: 48px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 13px 14px; border: 1px solid #d9e6f0; border-radius: 16px; background: #fff; }
-.weekly-plan-row.is-today { border-color: #a9cee1; background: #f2fafd; box-shadow: 0 8px 20px rgba(34,73,105,.06); }
+.weekly-plan-row.is-today { position: relative; border-color: #72bdd2; background: linear-gradient(135deg,#f2fbfd,#fff); box-shadow: 0 9px 22px rgba(34,103,125,.08); }
+.weekly-plan-row.is-today::before { content: ''; position: absolute; top: 12px; bottom: 12px; left: 0; width: 3px; border-radius: 0 4px 4px 0; background: #31a5aa; }
 .weekly-plan-row.status-rest { background: #f7f9fb; }
 .weekly-plan-row.status-missed { border-color: #f0d6d9; }
 .weekly-plan-date { display: grid; justify-items: center; gap: 2px; text-align: center; }
 .weekly-plan-date strong { color: #193753; font-size: 12px; font-weight: 800; }
-.weekly-plan-date span { color: #8497a9; font-size: 9px; }
+.weekly-plan-date span { color: #8497a9; font-size: 9px; white-space: nowrap; }
+.weekly-plan-row.is-today .weekly-plan-date strong, .weekly-plan-row.is-today .weekly-plan-date span { color: #247f8c; }
 .weekly-plan-detail { min-width: 0; display: grid; gap: 2px; }
 .weekly-plan-type { margin: 0; overflow: hidden; color: #193753; font-size: 13px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-.weekly-plan-description { overflow: hidden; color: #6d8398; font-size: 10px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.weekly-plan-description { display: -webkit-box; overflow: hidden; color: #6d8398; font-size: 10px; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .weekly-plan-meta { color: #8497a9; font-size: 9.5px; }
 .weekly-plan-badge { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 4px; padding: 6px 9px; border-radius: 999px; font-size: 9px; font-weight: 800; white-space: nowrap; }
 .weekly-plan-badge ion-icon { font-size: 12px; }

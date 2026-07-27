@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
 import { arrowBackOutline, calendarOutline, checkmarkCircleOutline, closeCircleOutline, moonOutline, timeOutline } from 'ionicons/icons';
@@ -9,18 +9,27 @@ import { translatePlanFieldToEnglish } from '@/lib/todayTrainingPlan';
 import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
+import { loadRecoveryContextStartupSnapshot } from '@/lib/recoveryStartupCache';
+import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import './WeeklyPlanCalendarPage.css';
 
 const WeeklyPlanCalendarPage: React.FC = () => {
   const history = useHistory();
   const context = useCoachContextStore((state) => state.context);
+  const [startupContext] = useState(() => loadRecoveryContextStartupSnapshot());
+  const visibleContext = context ?? startupContext;
 
   const { loading, error, reload: load } = useAsyncLoad(async () => {
-    await buildCoachContextFromSupabase();
+    await measurePerformanceDiagnostic(
+      'weekly_plan',
+      () => buildCoachContextFromSupabase(),
+      () => ({ detail: 'Weekly plan context prepared' }),
+    );
   }, 'Could Not Load Your Weekly Plan.');
 
-  const days = useMemo(() => context ? buildWeeklyPlanCalendar(context) : null, [context]);
+  const days = useMemo(() => visibleContext ? buildWeeklyPlanCalendar(visibleContext) : null, [visibleContext]);
   const hasPlan = days?.some((day) => day.planned) ?? false;
+  const overview = useMemo(() => days ? buildWeekOverview(days) : null, [days]);
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(); event.detail.complete(); };
 
   return <IonPage>
@@ -32,15 +41,22 @@ const WeeklyPlanCalendarPage: React.FC = () => {
       <IonRefresher slot="fixed" onIonRefresh={refresh}><IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" /></IonRefresher>
       <main className="weekly-plan-shell">
         <header className="weekly-plan-heading"><p>This Week</p><h1>Your Full Week At A Glance</h1><span>Every planned session this week, with what actually happened.</span></header>
-        {loading && <PageDataSkeleton variant="race" label="Building Your Weekly Plan" />}
-        {!loading && error && <PageState kind="error" title="Weekly Plan Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="weekly-plan-state" />}
-        {!loading && !error && days && !hasPlan && (
+        {loading && !visibleContext && <PageDataSkeleton variant="race" label="Building Your Weekly Plan" />}
+        {!visibleContext && error && <PageState kind="error" title="Weekly Plan Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="weekly-plan-state" />}
+        {days && !hasPlan && (
           <PageState kind="empty" title="No Active Race Plan" detail="Set a Race Goal to generate a weekly training plan." actionLabel="Set A Race Goal" onAction={() => history.push('/race-goal')} className="weekly-plan-state" />
         )}
-        {!loading && !error && days && hasPlan && (
+        {days && hasPlan && (
+          <>
+          {overview && <section className="weekly-plan-overview" aria-label="Weekly plan overview">
+            <div><strong>{overview.trainingDays}</strong><span>Training Days</span></div>
+            <div><strong>{overview.distanceKm} km</strong><span>Planned Distance</span></div>
+            <div><strong>{overview.done}</strong><span>Completed</span></div>
+          </section>}
           <section className="weekly-plan-list" aria-label="This week's planned sessions">
             {days.map((day) => <CalendarRow key={day.date} day={day} />)}
           </section>
+          </>
         )}
       </main>
     </IonContent>
@@ -53,7 +69,7 @@ function CalendarRow({ day }: { day: WeeklyCalendarDay }) {
   return <article className={`weekly-plan-row status-${day.status}${day.isToday ? ' is-today' : ''}`}>
     <div className="weekly-plan-date">
       <strong>{day.weekdayLabel}</strong>
-      <span>{formatDayNumber(day.date)}</span>
+      <span>{day.isToday ? `Today · ${formatDayNumber(day.date)}` : formatDayNumber(day.date)}</span>
     </div>
     <div className="weekly-plan-detail">
       <p className="weekly-plan-type">{planned?.workoutType ?? 'No Plan'}</p>
@@ -80,3 +96,14 @@ function formatDayNumber(date: string): string {
 }
 
 export default WeeklyPlanCalendarPage;
+
+function buildWeekOverview(days: WeeklyCalendarDay[]) {
+  return days.reduce((summary, day) => {
+    if (day.planned && day.status !== 'rest') {
+      summary.trainingDays += 1;
+      summary.distanceKm += day.planned.distanceKm ?? 0;
+    }
+    if (day.status === 'completed' || day.status === 'today_completed') summary.done += 1;
+    return summary;
+  }, { trainingDays: 0, distanceKm: 0, done: 0 });
+}
