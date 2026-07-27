@@ -133,3 +133,78 @@
   .upload-meal-types { grid-template-columns: repeat(4, 1fr); }
   .workout-review-card { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Quieter, denser upload entry while preserving 44px mobile touch targets. */
+.upload-content {
+  --background: radial-gradient(circle at 50% -12%, #eaf6fd 0, #f4f8fc 36%, #f7f9fc 78%);
+}
+
+.upload-header ion-toolbar {
+  --background: rgba(248,251,255,.9);
+  backdrop-filter: blur(18px);
+}
+
+.upload-shell { padding-top: 22px; }
+.upload-intro { margin-bottom: 20px; }
+.upload-section { margin-bottom: 20px; }
+.upload-type-switch {
+  gap: 4px;
+  margin-bottom: 20px;
+  padding: 3px;
+  background: rgba(255,255,255,.94);
+  box-shadow: 0 8px 22px rgba(34,73,105,.04);
+}
+.upload-picker { min-height: 106px; border-radius: 19px; }
+.upload-note { margin-top: 12px; }
+.upload-note textarea { min-height: 62px; }
+.upload-primary { box-shadow: 0 10px 22px rgba(38,126,184,.14); }
+.upload-primary:disabled { box-shadow: none; }
+
+.upload-flow-skeleton {
+  display: grid;
+  gap: 9px;
+  padding-top: 2px;
+  animation: upload-skeleton-pulse 1.6s ease-in-out infinite;
+}
+.upload-flow-skeleton > span,
+.upload-flow-skeleton-card span,
+.upload-flow-skeleton-picker span,
+.upload-flow-skeleton-picker strong {
+  display: block;
+  border-radius: 999px;
+  background: #e5eef4;
+}
+.upload-flow-skeleton-kicker { width: 72px; height: 8px; }
+.upload-flow-skeleton-title { width: 48%; height: 24px; }
+.upload-flow-skeleton-copy { width: 78%; height: 10px; }
+.upload-flow-skeleton-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-top: 13px;
+  padding: 14px;
+  border: 1px solid #dce7ef;
+  border-radius: 19px;
+  background: rgba(255,255,255,.82);
+}
+.upload-flow-skeleton-card span { height: 44px; }
+.upload-flow-skeleton-card span:first-child { grid-column: 1 / -1; }
+.upload-flow-skeleton-picker {
+  min-height: 106px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 9px;
+  margin-top: 6px;
+  border: 1px dashed #c7d9e4;
+  border-radius: 19px;
+  background: rgba(255,255,255,.76);
+}
+.upload-flow-skeleton-picker span { width: 24px; height: 24px; border-radius: 8px; }
+.upload-flow-skeleton-picker strong { width: 126px; height: 10px; }
+@keyframes upload-skeleton-pulse {
+  50% { opacity: .58; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .upload-flow-skeleton { animation: none; }
+}

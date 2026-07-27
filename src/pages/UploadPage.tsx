@@ -1,11 +1,17 @@
-import { useState, type ReactNode } from 'react';
+import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from '@ionic/react';
-import MealUploadFlow from '@/components/MealUploadFlow';
-import SleepUploadFlow from '@/components/SleepUploadFlow';
-import WorkoutUploadFlow from '@/components/WorkoutUploadFlow';
 import './UploadPage.css';
 
 type UploadType = 'meal' | 'workout' | 'sleep';
+
+const flowLoaders = {
+  sleep: () => import('@/components/SleepUploadFlow'),
+  workout: () => import('@/components/WorkoutUploadFlow'),
+  meal: () => import('@/components/MealUploadFlow'),
+};
+const SleepUploadFlow = lazy(flowLoaders.sleep);
+const WorkoutUploadFlow = lazy(flowLoaders.workout);
+const MealUploadFlow = lazy(flowLoaders.meal);
 
 const UploadPage: React.FC = () => {
   const [uploadType, setUploadType] = useState<UploadType | null>(null);
@@ -16,15 +22,28 @@ const UploadPage: React.FC = () => {
       <TypeButton type="workout" selected={uploadType} onSelect={setUploadType}>Workout</TypeButton>
       <TypeButton type="meal" selected={uploadType} onSelect={setUploadType}>Meal</TypeButton>
     </nav>
-    {uploadType === 'sleep' && <SleepUploadFlow />}
-    {uploadType === 'workout' && <WorkoutUploadFlow />}
-    {uploadType === 'meal' && <MealUploadFlow />}
+    <Suspense fallback={<UploadFlowSkeleton />}>
+      {uploadType === 'sleep' && <SleepUploadFlow />}
+      {uploadType === 'workout' && <WorkoutUploadFlow />}
+      {uploadType === 'meal' && <MealUploadFlow />}
+    </Suspense>
   </main></IonContent></IonPage>;
 };
 
 function TypeButton({ type, selected, onSelect, children }: { type: UploadType; selected: UploadType | null; onSelect: (type: UploadType) => void; children: ReactNode }) {
   const active = selected === type;
-  return <button type="button" aria-pressed={active} className={active ? 'is-active' : ''} onClick={() => onSelect(type)}>{children}</button>;
+  const prepare = () => { void flowLoaders[type](); };
+  return <button type="button" aria-pressed={active} className={active ? 'is-active' : ''} onPointerEnter={prepare} onFocus={prepare} onClick={() => onSelect(type)}>{children}</button>;
+}
+
+function UploadFlowSkeleton() {
+  return <div className="upload-flow-skeleton" role="status" aria-label="Preparing Upload Form">
+    <span className="upload-flow-skeleton-kicker" />
+    <span className="upload-flow-skeleton-title" />
+    <span className="upload-flow-skeleton-copy" />
+    <div className="upload-flow-skeleton-card"><span /><span /><span /></div>
+    <div className="upload-flow-skeleton-picker"><span /><strong /></div>
+  </div>;
 }
 
 export default UploadPage;
