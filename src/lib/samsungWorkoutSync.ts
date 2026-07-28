@@ -52,9 +52,20 @@ async function runSync(lookbackDays: number | 'today'): Promise<SamsungWorkoutSy
     const preparedWorkouts = prepared?.workouts?.workouts.filter((workout) => getBangkokDateKey(workout.startDate) === today) ?? [];
     const usePrepared = preparedWorkouts.length > 0;
     dataSource = usePrepared ? 'prepared' : 'live';
-    const allWorkouts = usePrepared
-      ? preparedWorkouts
-      : await queryAllHealthConnectWorkouts({ startDate, endDate, ascending: true });
+    let allWorkouts: Workout[];
+    if (usePrepared) {
+      try {
+        const liveWorkouts = await queryAllHealthConnectWorkouts({ startDate, endDate, ascending: true });
+        allWorkouts = mergeHealthConnectWorkouts(preparedWorkouts, liveWorkouts);
+        dataSource = 'live';
+      } catch (error) {
+        console.warn('[workout-sync] Live workout reconciliation failed, using prepared snapshot', error);
+        allWorkouts = preparedWorkouts;
+        dataSource = 'prepared';
+      }
+    } else {
+      allWorkouts = await queryAllHealthConnectWorkouts({ startDate, endDate, ascending: true });
+    }
     const workouts = selectImportableHealthConnectWorkouts(allWorkouts).filter((workout) =>
       (!todayOnly || getBangkokDateKey(workout.startDate) === today)
       && Date.parse(workout.endDate) <= Date.now() - CLOSED_WORKOUT_GRACE_MS,
@@ -128,6 +139,15 @@ export async function queryAllHealthConnectWorkouts(options: Omit<QueryWorkoutsO
     unique.set(key, workout);
   }
   return [...unique.values()].sort((a, b) => options.ascending ? Date.parse(a.startDate) - Date.parse(b.startDate) : Date.parse(b.startDate) - Date.parse(a.startDate));
+}
+
+export function mergeHealthConnectWorkouts(prepared: Workout[], live: Workout[]): Workout[] {
+  const unique = new Map<string, Workout>();
+  for (const workout of [...prepared, ...live]) {
+    const key = workout.platformId?.trim() || `${workout.sourceId}|${workout.workoutType}|${workout.startDate}|${workout.endDate}`;
+    unique.set(key, workout);
+  }
+  return [...unique.values()].sort((a, b) => Date.parse(a.startDate) - Date.parse(b.startDate));
 }
 
 async function readWorkoutHeartRate(workout: Workout): Promise<HealthSample[]> {

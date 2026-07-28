@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Health } from '@capgo/capacitor-health';
 import type { HealthSample, Workout } from '@capgo/capacitor-health';
-import { mapSamsungWorkout, preserveWorkoutHeartRate, queryAllHealthConnectWorkouts, selectImportableHealthConnectWorkouts, workoutHeartRateCoverage } from './samsungWorkoutSync';
+import { mapSamsungWorkout, mergeHealthConnectWorkouts, preserveWorkoutHeartRate, queryAllHealthConnectWorkouts, selectImportableHealthConnectWorkouts, workoutHeartRateCoverage } from './samsungWorkoutSync';
 
 vi.mock('@capgo/capacitor-health', () => ({ Health: { queryWorkouts: vi.fn() } }));
 
@@ -66,6 +66,27 @@ describe('Samsung Health workout importer', () => {
     expect(query).toHaveBeenCalledTimes(2);
     expect(query.mock.calls[1][0].anchor).toBe('next-page');
     expect(result.map((workout) => workout.platformId)).toEqual(['latest', 'old']);
+  });
+
+  it('merges a newer live workout into an existing prepared snapshot', () => {
+    const prepared: Workout = {
+      workoutType: 'running',
+      duration: 2935,
+      startDate: '2026-07-27T22:29:53.126Z',
+      endDate: '2026-07-27T23:18:48.268Z',
+      sourceId: 'com.sec.android.app.shealth',
+      platformId: 'morning-run',
+    };
+    const latest: Workout = {
+      workoutType: 'other',
+      duration: 2779,
+      startDate: '2026-07-28T01:33:49.769Z',
+      endDate: '2026-07-28T02:20:09.654Z',
+      sourceId: 'com.sec.android.app.shealth',
+      platformId: 'latest-strength',
+    };
+    expect(mergeHealthConnectWorkouts([prepared], [prepared, latest]).map((workout) => workout.platformId))
+      .toEqual(['morning-run', 'latest-strength']);
   });
 
   it('recognizes whether prepared heart rate covers enough of a workout for HR zones', () => {
