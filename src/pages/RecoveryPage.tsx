@@ -216,7 +216,7 @@ const RecoveryPage: React.FC = () => {
         <IonToolbar>
           <IonTitle>Recovery</IonTitle>
           <IonButtons slot="end">
-            <IonButton disabled={!context} onClick={() => setShowShareModal(true)} className="recovery-share-btn" aria-label="Share Story">
+            <IonButton disabled={!visibleContext} onClick={() => setShowShareModal(true)} className="recovery-share-btn" aria-label="Share Story">
               <IonIcon icon={shareSocialOutline} />
             </IonButton>
           </IonButtons>

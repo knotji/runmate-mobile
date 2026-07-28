@@ -42,9 +42,9 @@ const ActivityPage: React.FC = () => {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [archiveLoading, setArchiveLoading] = useState(false);
   const [archiveError, setArchiveError] = useState<string | null>(null);
-  const [dateLoading, setDateLoading] = useState(false);
   const [loading, setLoading] = useState(() => startupItems === null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<LocalHistoryItem | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -71,6 +71,7 @@ const ActivityPage: React.FC = () => {
         (historyResult) => ({ detail: historyResult.ok ? `${historyResult.items.length} recent records prepared` : 'Activity query failed' }),
       );
       if (result.ok) {
+        setRefreshError(null);
         setItems((current) => {
           const next = mergeActivityHistoryItems(current, result.items);
           saveActivityStartupSnapshot(next);
@@ -79,6 +80,7 @@ const ActivityPage: React.FC = () => {
         loadedRef.current = true;
         startupCacheUsedRef.current = false;
       }
+      else if (loadedRef.current) setRefreshError(result.error);
       else setError(result.error);
       setLoading(false);
     })().finally(() => { recentLoadingRef.current = null; });
@@ -163,14 +165,21 @@ const ActivityPage: React.FC = () => {
   });
 
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => {
-    await measurePerformanceDiagnostic(
-      'activity_health_sync',
-      () => syncTodayHealth(true),
-      (syncResult) => describeTodayHealthSyncPerformance(syncResult, 'Activity refresh'),
-    );
-    cloudDataDirtyRef.current = false;
-    await loadRecent();
-    event.detail.complete();
+    setRefreshError(null);
+    try {
+      await measurePerformanceDiagnostic(
+        'activity_health_sync',
+        () => syncTodayHealth(true),
+        (syncResult) => describeTodayHealthSyncPerformance(syncResult, 'Activity refresh'),
+      );
+      cloudDataDirtyRef.current = false;
+      await loadRecent();
+    } catch (refreshFailure) {
+      console.error('[activity] refresh failed', refreshFailure);
+      setRefreshError('Unable to refresh Activity right now. Your saved records are still available.');
+    } finally {
+      event.detail.complete();
+    }
   };
 
   const groupedItems = useMemo(() => {
@@ -203,12 +212,8 @@ const ActivityPage: React.FC = () => {
   const selectedDateIndex = sortedDates.indexOf(selectedDate);
 
   const moveToDate = (date: string | undefined) => {
-    if (!date || date === selectedDate || dateLoading) return;
-    setDateLoading(true);
-    window.setTimeout(() => {
-      setSelectedDate(date);
-      setDateLoading(false);
-    }, 200);
+    if (!date || date === selectedDate) return;
+    setSelectedDate(date);
   };
 
   const confirmDelete = async () => {
@@ -247,13 +252,13 @@ const ActivityPage: React.FC = () => {
           </header>
 
           <nav className={`activity-date-navigator${selectedDate !== todayDate ? ' has-current' : ''}`} aria-label="Choose Activity Date">
-            <button type="button" className="activity-date-arrow" aria-label="Previous Activity Date" disabled={dateLoading || selectedDateIndex <= 0} onClick={() => moveToDate(sortedDates[selectedDateIndex - 1])}><IonIcon icon={chevronBackOutline} /></button>
-            <button type="button" className="activity-date-button" disabled={dateLoading} onClick={() => { setCalendarOpen(true); void loadArchive(); }}>
-              {dateLoading ? <IonSpinner name="crescent" /> : <IonIcon icon={calendarClearOutline} />}
-              <span><small>{dateLoading ? 'Loading Date' : 'Selected Date'}</small><strong>{dateLoading ? 'Updating…' : selectedDate === todayDate ? `Today, ${formatMonthDay(selectedDate)}` : formatSelectedDate(selectedDate)}</strong></span>
+            <button type="button" className="activity-date-arrow" aria-label="Previous Activity Date" disabled={selectedDateIndex <= 0} onClick={() => moveToDate(sortedDates[selectedDateIndex - 1])}><IonIcon icon={chevronBackOutline} /></button>
+            <button type="button" className="activity-date-button" onClick={() => { setCalendarOpen(true); void loadArchive(); }}>
+              <IonIcon icon={calendarClearOutline} />
+              <span><small>Selected Date</small><strong>{selectedDate === todayDate ? `Today, ${formatMonthDay(selectedDate)}` : formatSelectedDate(selectedDate)}</strong></span>
             </button>
-            <button type="button" className="activity-date-arrow" aria-label="Next Activity Date" disabled={dateLoading || selectedDateIndex < 0 || selectedDateIndex >= sortedDates.length - 1} onClick={() => moveToDate(sortedDates[selectedDateIndex + 1])}><IonIcon icon={chevronForwardOutline} /></button>
-            {selectedDate !== todayDate && <button type="button" className="activity-inline-current" disabled={dateLoading} onClick={() => moveToDate(todayDate)}>Current</button>}
+            <button type="button" className="activity-date-arrow" aria-label="Next Activity Date" disabled={selectedDateIndex < 0 || selectedDateIndex >= sortedDates.length - 1} onClick={() => moveToDate(sortedDates[selectedDateIndex + 1])}><IonIcon icon={chevronForwardOutline} /></button>
+            {selectedDate !== todayDate && <button type="button" className="activity-inline-current" onClick={() => moveToDate(todayDate)}>Current</button>}
           </nav>
 
           {!loading && !error && nutritionSummary && (
@@ -277,6 +282,7 @@ const ActivityPage: React.FC = () => {
 
           {loading && <PageDataSkeleton variant="activity" label="Loading Your Activity" />}
           {!loading && error && <PageState kind="error" title="Activity Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void loadRecent()} className="history-state history-error" />}
+          {refreshError && <div className="history-delete-error" role="status"><span>{refreshError}</span><button type="button" onClick={() => setRefreshError(null)}>Dismiss</button></div>}
           {!loading && !error && groupedItems.length === 0 && (
             <PageState kind="empty" icon={fitnessOutline} title="No Activity On This Date" detail="Choose another date to review previous activity." className="history-empty" />
           )}
