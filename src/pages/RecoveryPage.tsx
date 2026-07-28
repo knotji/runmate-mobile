@@ -24,7 +24,7 @@ import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
 import { TodayTrainingPlanCard } from '@/components/TodayTrainingPlanCard';
 import { PageState } from '@/components/PageState';
 import { RecoveryDials, RecoveryLoadingDials, RecoveryPlan, RecoverySecondaryError, RecoverySecondaryLoading } from '@/components/health/RecoveryDialsView';
-import { loadTonightWakeOverride } from '@/lib/sleepWindow';
+import { loadTonightSleepCycleOverride, loadTonightWakeOverride, type SleepCycleCount } from '@/lib/sleepWindow';
 import { loadDefaultWakeTime, loadTonightWakePlan } from '@/lib/sleepWindowStorage';
 import { describeTodayHealthSyncPerformance, syncTodayHealth } from '@/lib/healthSyncService';
 import { refreshNotifications } from '@/lib/notificationService';
@@ -49,6 +49,7 @@ const RecoveryPage: React.FC = () => {
   const [secondaryLoading, setSecondaryLoading] = useState(() => startupContext === null);
   const [secondaryError, setSecondaryError] = useState<string | null>(null);
   const [wakeOverrideMinutes, setWakeOverrideMinutes] = useState<number | null>(() => loadTonightWakeOverride());
+  const [sleepCycleOverride, setSleepCycleOverride] = useState<SleepCycleCount | null>(() => loadTonightSleepCycleOverride());
   const loadedRef = useRef(false);
   const loadedDateRef = useRef<string | null>(null);
   const visibleRef = useRef(false);
@@ -101,7 +102,12 @@ const RecoveryPage: React.FC = () => {
   }, [loadRecoveryCore, loadSecondaryRecovery]);
 
   useEffect(() => {
-    return useHealthSyncStore.subscribe((state, previous) => {
+    const syncSleepPlan = () => {
+      setWakeOverrideMinutes(loadTonightWakeOverride());
+      setSleepCycleOverride(loadTonightSleepCycleOverride());
+    };
+    window.addEventListener('runmate:sleep-window-updated', syncSleepPlan);
+    const unsubscribe = useHealthSyncStore.subscribe((state, previous) => {
       if (state.lastSyncedAt !== previous.lastSyncedAt && visibleRef.current) {
         if (ownedHealthSyncRef.current) return;
         const detail = state.lastSyncDetail as { changed?: unknown } | null;
@@ -109,6 +115,10 @@ const RecoveryPage: React.FC = () => {
         void loadRecovery(false, true);
       }
     });
+    return () => {
+      window.removeEventListener('runmate:sleep-window-updated', syncSleepPlan);
+      unsubscribe();
+    };
   }, [loadRecovery]);
 
   const loadInitialRecovery = useCallback(async (forceContext = false) => {
@@ -163,6 +173,7 @@ const RecoveryPage: React.FC = () => {
   useIonViewWillEnter(() => {
     visibleRef.current = true;
     setWakeOverrideMinutes(loadTonightWakeOverride());
+    setSleepCycleOverride(loadTonightSleepCycleOverride());
     void Promise.all([loadTonightWakePlan(), loadDefaultWakeTime()]).then(([plan, defaultWake]) => setWakeOverrideMinutes(plan.minutes ?? defaultWake));
     const today = getBangkokDateKey(Date.now());
     const needsFreshDay = loadedDateRef.current !== null && loadedDateRef.current !== today;
@@ -234,7 +245,7 @@ const RecoveryPage: React.FC = () => {
               <RecoveryDials recovery={visibleRecovery} onRecoveryClick={() => history.push('/recovery-trends')} onSleepClick={() => history.push('/sleep')} />
               {secondaryLoading && !visibleContext ? <RecoverySecondaryLoading /> : secondaryError && !visibleContext ? <RecoverySecondaryError message={secondaryError} onRetry={() => void loadSecondaryRecovery(true)} /> : !visibleContext ? <RecoverySecondaryLoading /> : <>
                 <TodayTrainingPlanCard context={visibleContext} />
-                <RecoveryPlan recovery={visibleRecovery} wakeOverrideMinutes={wakeOverrideMinutes} onOpen={() => history.push('/sleep-window')} />
+                <RecoveryPlan recovery={visibleRecovery} wakeOverrideMinutes={wakeOverrideMinutes} sleepCycleOverride={sleepCycleOverride} onOpen={() => history.push('/sleep-window')} />
               </>}
             </>
           )}

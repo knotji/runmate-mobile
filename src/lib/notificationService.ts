@@ -4,7 +4,7 @@ import type { CoachContext } from '@/lib/buildCoachContext';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { getTodayPlannedWorkout, getTodayTrainingPlanStatus } from '@/lib/todayTrainingPlan';
 import { loadDefaultWakeTime, loadTonightWakePlan } from '@/lib/sleepWindowStorage';
-import { bedtimeReminderMinutes, parseClockMinutes, sleepWindowForWake } from '@/lib/sleepWindow';
+import { bedtimeReminderMinutes, loadTonightSleepCycleOverride, parseClockMinutes, sleepCyclePlanForWake, sleepWindowForWake } from '@/lib/sleepWindow';
 import { isMeaningfulRecoveryChange, isRestWorkout, loadNotificationPreferences, preferredTrainingMinutes } from '@/lib/notificationPreferences';
 
 const IDS = { bedtime: 41001, workout: 41002, missingSleep: 41003, recovery: 41004 };
@@ -138,9 +138,12 @@ async function scheduleBedtime(ctx: CoachContext): Promise<boolean> {
   const wake = tonight.minutes ?? profileWake ?? derivedWake;
   if (wake == null) return false;
   const window = sleepWindowForWake(wake, sleep.sleepNeedMinutes);
-  const reminderMinutes = bedtimeReminderMinutes(window.idealInBedMinutes);
+  const cycleOverride = loadTonightSleepCycleOverride();
+  const cyclePlan = cycleOverride == null ? null : sleepCyclePlanForWake(wake, cycleOverride, sleep.sleepNeedMinutes);
+  const inBedMinutes = cyclePlan?.inBedMinutes ?? window.idealInBedMinutes;
+  const reminderMinutes = bedtimeReminderMinutes(inBedMinutes);
   const at = nextLocalClock(reminderMinutes);
-  await schedule(IDS.bedtime, 'Start Winding Down For Sleep', `Your in-bed target is ${clockLabel(window.idealInBedMinutes)}. You have 1 hour to get ready for ${durationLabel(sleep.sleepNeedMinutes)} of sleep.`, at, '/sleep-window');
+  await schedule(IDS.bedtime, 'Start Winding Down For Sleep', `Your in-bed target is ${clockLabel(inBedMinutes)}. You have 1 hour to get ready for ${cyclePlan ? `${cyclePlan.cycleCount} estimated sleep cycles` : `${durationLabel(sleep.sleepNeedMinutes)} of sleep`}.`, at, '/sleep-window');
   return true;
 }
 

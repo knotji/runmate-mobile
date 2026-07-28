@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bedtimeReminderMinutes, formatClockMinutes, parseClockMinutes, recommendedSleepCycleCount, sleepCyclePlanForWake, sleepWindowForWake } from './sleepWindow';
+import { bedtimeReminderMinutes, clearTonightSleepCycleOverride, formatClockMinutes, loadTonightSleepCycleOverride, parseClockMinutes, recommendedSleepCycleCount, saveTonightSleepCycleOverride, sleepCyclePlanForWake, sleepWindowForWake, tonightDateKey } from './sleepWindow';
 
 describe('sleep window', () => {
   it('builds bedtime guidance backwards from wake time and sleep need', () => {
@@ -35,5 +35,13 @@ describe('sleep window', () => {
     expect(plan.sleepMinutes).toBe(450);
     expect(plan.differenceMinutes).toBe(30);
     expect(plan.adequacy).toBe('meets');
+  });
+
+  it('stores an applied cycle plan for tonight only', () => {
+    saveTonightSleepCycleOverride(5);
+    expect(loadTonightSleepCycleOverride()).toBe(5);
+    expect(localStorage.getItem(`runmate:sleep-window-cycle:${tonightDateKey()}`)).toBe('5');
+    clearTonightSleepCycleOverride();
+    expect(loadTonightSleepCycleOverride()).toBeNull();
   });
 });

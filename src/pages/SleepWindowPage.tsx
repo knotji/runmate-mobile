@@ -1,16 +1,20 @@
 import { useCallback, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonButton, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar, useIonViewWillEnter } from '@ionic/react';
-import { arrowBackOutline, checkmarkCircleOutline, moonOutline, refreshOutline, timeOutline } from 'ionicons/icons';
+import { arrowBackOutline, cafeOutline, checkmarkCircleOutline, moonOutline, refreshOutline, timeOutline, walkOutline } from 'ionicons/icons';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
 import {
+  bedtimeReminderMinutes,
+  clearTonightSleepCycleOverride,
   formatClockMinutes,
   formatTimeInput,
+  loadTonightSleepCycleOverride,
   loadTonightWakeOverride,
   parseClockMinutes,
   parseTimeInput,
   recommendedSleepCycleCount,
+  saveTonightSleepCycleOverride,
   SLEEP_CYCLE_OPTIONS,
   sleepCyclePlanForWake,
   sleepWindowForWake,
@@ -37,7 +41,8 @@ const SleepWindowPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [selectedCycles, setSelectedCycles] = useState<SleepCycleCount | null>(null);
+  const [appliedCycles, setAppliedCycles] = useState<SleepCycleCount | null>(() => loadTonightSleepCycleOverride());
+  const [selectedCycles, setSelectedCycles] = useState<SleepCycleCount | null>(() => loadTonightSleepCycleOverride());
   const load = useCallback(async () => {
     try {
       setLoadError(null);
@@ -66,6 +71,12 @@ const SleepWindowPage: React.FC = () => {
   const cyclePlan = wakeMinutes != null && sleep && cycleCount
     ? sleepCyclePlanForWake(wakeMinutes, cycleCount, sleep.sleepNeedMinutes)
     : null;
+  const appliedCyclePlan = wakeMinutes != null && sleep && appliedCycles
+    ? sleepCyclePlanForWake(wakeMinutes, appliedCycles, sleep.sleepNeedMinutes)
+    : null;
+  const primaryInBedMinutes = appliedCyclePlan?.inBedMinutes ?? window?.idealInBedMinutes ?? null;
+  const windDownMinutes = primaryInBedMinutes == null ? null : bedtimeReminderMinutes(primaryInBedMinutes);
+  const caffeineAction = new Date().getHours() >= 14 ? 'Skip Any More Caffeine Today' : 'Finish Caffeine By 2:00 PM';
 
   const changeWake = (value: string) => {
     const minutes = parseTimeInput(value);
@@ -95,6 +106,18 @@ const SleepWindowPage: React.FC = () => {
     setSavedWake(null);
   };
 
+  const applyCyclePlan = () => {
+    if (!cyclePlan || cyclePlan.adequacy === 'short') return;
+    saveTonightSleepCycleOverride(cyclePlan.cycleCount);
+    setAppliedCycles(cyclePlan.cycleCount);
+  };
+
+  const useSleepNeedPlan = () => {
+    clearTonightSleepCycleOverride();
+    setAppliedCycles(null);
+    setSelectedCycles(recommendedSleepCycleCount(sleep?.sleepNeedMinutes ?? 420));
+  };
+
   return (
     <IonPage>
       <IonHeader translucent className="sleep-window-header"><IonToolbar>
@@ -105,12 +128,14 @@ const SleepWindowPage: React.FC = () => {
         {loading && <PageDataSkeleton variant="sleep" label="Preparing Your Sleep Window" />}
         {!loading && loadError && <PageState kind="error" title="Sleep Window Is Unavailable" detail={loadError} actionLabel="Try Again" onAction={() => { setLoading(true); void load(); }} className="sleep-window-state" />}
         {!loading && !loadError && window && sleep && <>
-          <header className="sleep-window-intro"><p>Tonight</p><h1>Plan Around Your Wake Time</h1><span>Your Sleep Need sets the target. Sleep cycles are shown only as an estimate.</span></header>
+          <header className="sleep-window-intro"><p>Sleep Coach</p><h1>Your Plan For Tonight</h1><span>One clear bedtime based on your wake time and current Sleep Need.</span></header>
           <section className="sleep-window-hero">
             <IonIcon icon={moonOutline} />
-            <p>Recommended Sleep Window</p>
-            <h2>{formatClockMinutes(window.windowStartMinutes)}–{formatClockMinutes(window.windowEndMinutes)}</h2>
-            <span>Aim To Be Asleep By {formatClockMinutes(window.asleepMinutes)}</span>
+            <p>{appliedCyclePlan ? `${appliedCyclePlan.cycleCount}-Cycle Plan` : 'Tonight’s Target'}</p>
+            <h2>In Bed By {formatClockMinutes(primaryInBedMinutes ?? window.idealInBedMinutes)}</h2>
+            <span>{appliedCyclePlan
+              ? `${formatDuration(appliedCyclePlan.sleepMinutes)} estimated sleep · Wake ${formatClockMinutes(window.wakeMinutes)}`
+              : `Window ${formatClockMinutes(window.windowStartMinutes)}–${formatClockMinutes(window.windowEndMinutes)} · Asleep by ${formatClockMinutes(window.asleepMinutes)}`}</span>
           </section>
           <section className="sleep-window-card">
             <div className="sleep-window-card-heading"><IonIcon icon={timeOutline} /><div><p>Tomorrow</p><h2>Choose Your Wake Time</h2></div></div>
@@ -143,6 +168,18 @@ const SleepWindowPage: React.FC = () => {
               <div><span>Wake</span><strong>{formatClockMinutes(cyclePlan.wakeMinutes)}</strong></div>
             </div>
             <p>Includes about 20 minutes to fall asleep. A 90-minute cycle is an estimate; your Sleep Need remains the main target.</p>
+            <button type="button" className={`use-cycle-plan-button ${appliedCycles === cycleCount ? 'applied' : ''}`} disabled={cyclePlan.adequacy === 'short' || appliedCycles === cycleCount} onClick={applyCyclePlan}>
+              {cyclePlan.adequacy === 'short' ? 'Below Your Sleep Need' : appliedCycles === cycleCount ? 'Using This Plan' : 'Use This Plan'}
+            </button>
+            {appliedCycles != null && <button type="button" className="use-sleep-need-button" onClick={useSleepNeedPlan}>Return To Sleep Need Plan</button>}
+          </section>}
+          {windDownMinutes != null && <section className="sleep-coach-actions" aria-labelledby="sleep-coach-actions-title">
+            <div className="sleep-coach-actions-heading"><p>Tonight’s Coaching</p><h2 id="sleep-coach-actions-title">Three Simple Actions</h2></div>
+            <ol>
+              <li><IonIcon icon={cafeOutline} /><div><strong>{caffeineAction}</strong><span>Give your body time to wind down naturally.</span></div></li>
+              <li><IonIcon icon={moonOutline} /><div><strong>Start Winding Down At {formatClockMinutes(windDownMinutes)}</strong><span>Dim lights and switch to a quieter routine.</span></div></li>
+              <li><IonIcon icon={walkOutline} /><div><strong>Keep Wake Time At {formatClockMinutes(window.wakeMinutes)}</strong><span>A consistent wake time supports tomorrow’s sleep rhythm.</span></div></li>
+            </ol>
           </section>}
           <section className="sleep-window-summary">
             <div><span>Sleep Need</span><strong>{Math.floor(sleep.sleepNeedMinutes / 60)}h {sleep.sleepNeedMinutes % 60}m</strong></div>

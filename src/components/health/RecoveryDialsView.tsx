@@ -2,7 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { IonCard, IonCardContent, IonIcon } from '@ionic/react';
 import { chevronForwardOutline, moonOutline, sunnyOutline } from 'ionicons/icons';
 import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
-import { formatClockMinutes, parseClockMinutes, sleepWindowForWake } from '@/lib/sleepWindow';
+import { formatClockMinutes, parseClockMinutes, sleepCyclePlanForWake, sleepWindowForWake, type SleepCycleCount } from '@/lib/sleepWindow';
 
 export function RecoveryLoadingDials({ stage }: { stage: 'syncing' | 'calculating' }) {
   const status = stage === 'syncing'
@@ -131,13 +131,15 @@ export function TrainingGuidance({ recovery }: { recovery: RunMateRecoverySystem
   );
 }
 
-export function RecoveryPlan({ recovery, wakeOverrideMinutes, onOpen }: { recovery: RunMateRecoverySystem; wakeOverrideMinutes: number | null; onOpen: () => void }) {
+export function RecoveryPlan({ recovery, wakeOverrideMinutes, sleepCycleOverride, onOpen }: { recovery: RunMateRecoverySystem; wakeOverrideMinutes: number | null; sleepCycleOverride: SleepCycleCount | null; onOpen: () => void }) {
   const sleep = recovery.sleepPerformance;
   const sleepNeedHours = Math.floor(sleep.sleepNeedMinutes / 60);
   const sleepNeedMinutes = sleep.sleepNeedMinutes % 60;
   const profileWakeMinutes = parseClockMinutes(sleep.targetWakeTime);
   const wakeMinutes = wakeOverrideMinutes ?? profileWakeMinutes;
   const window = wakeMinutes == null ? null : sleepWindowForWake(wakeMinutes, sleep.sleepNeedMinutes);
+  const cyclePlan = wakeMinutes == null || sleepCycleOverride == null ? null : sleepCyclePlanForWake(wakeMinutes, sleepCycleOverride, sleep.sleepNeedMinutes);
+  const inBedMinutes = cyclePlan?.inBedMinutes ?? window?.idealInBedMinutes ?? null;
   const recoveryAvailable = recovery.scoreState === 'scored' || recovery.scoreState === 'calibrating';
   const { tomorrowHeadline, tomorrowSummary } = !recoveryAvailable
     ? { tomorrowHeadline: 'Focus On Tonight', tomorrowSummary: 'Recovery isn’t scored yet — hitting your Sleep Need tonight is the best lever you have for tomorrow.' }
@@ -153,10 +155,10 @@ export function RecoveryPlan({ recovery, wakeOverrideMinutes, onOpen }: { recove
         <IonIcon icon={moonOutline} />
         <div className="sleep-schedule">
           <span>Tonight</span>
-          <h3>{window ? `In Bed By ${formatClockMinutes(window.idealInBedMinutes)}` : `Sleep ${sleepNeedHours}h ${sleepNeedMinutes}m`}</h3>
+          <h3>{inBedMinutes != null ? `In Bed By ${formatClockMinutes(inBedMinutes)}` : `Sleep ${sleepNeedHours}h ${sleepNeedMinutes}m`}</h3>
           {window ? (
             <div className="sleep-schedule-details">
-              <p className="sleep-times"><span>Window</span><strong>{formatClockMinutes(window.windowStartMinutes)}–{formatClockMinutes(window.windowEndMinutes)}</strong><i aria-hidden="true" /><span>Wake</span><strong>{formatClockMinutes(window.wakeMinutes)}</strong></p>
+              <p className="sleep-times"><span>{cyclePlan ? 'Cycle Plan' : 'Window'}</span><strong>{cyclePlan ? `${cyclePlan.cycleCount} cycles` : `${formatClockMinutes(window.windowStartMinutes)}–${formatClockMinutes(window.windowEndMinutes)}`}</strong><i aria-hidden="true" /><span>Wake</span><strong>{formatClockMinutes(window.wakeMinutes)}</strong></p>
               <p className="sleep-need-badge">Sleep Need <strong>{sleepNeedHours}h {sleepNeedMinutes}m</strong></p>
             </div>
           ) : <p className="sleep-schedule-fallback">Set a consistent wake time to unlock a personalized bedtime.</p>}

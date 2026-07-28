@@ -26,6 +26,19 @@
 .cycle-plan-result div { display: grid; gap: 3px; }.cycle-plan-result div:last-child { text-align: right; }
 .cycle-plan-result span { color: #72879a; font-size: 9px; }.cycle-plan-result strong { color: #1b405d; font-size: 13px; }.cycle-plan-result i { color: #57a9ad; font-style: normal; }
 .sleep-cycle-planner > p { margin: 10px 1px 0; color: #71869a; font-size: 9px; line-height: 1.45; }
+.use-cycle-plan-button { width: 100%; min-height: 44px; margin-top: 11px; border: 0; border-radius: 12px; color: #fff; background: #258f92; font-size: 11px; font-weight: 800; }
+.use-cycle-plan-button.applied { color: #28715f; background: #e1f3ed; }
+.use-cycle-plan-button:disabled { opacity: .7; }
+.use-sleep-need-button { width: 100%; min-height: 44px; border: 0; color: #31758a; background: transparent; font-size: 10px; font-weight: 750; }
+.sleep-coach-actions { margin-top: 14px; padding: 16px; border: 1px solid #d7e5f1; border-radius: 18px; background: #fff; }
+.sleep-coach-actions-heading p { margin: 0 0 5px; color: #278b83; font-size: 9px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+.sleep-coach-actions-heading h2 { margin: 0; color: #193c57; font-size: 15px; }
+.sleep-coach-actions ol { display: grid; gap: 0; margin: 12px 0 0; padding: 0; list-style: none; }
+.sleep-coach-actions li { display: grid; grid-template-columns: 34px minmax(0,1fr); align-items: center; gap: 11px; padding: 11px 0; border-top: 1px solid #edf2f5; }
+.sleep-coach-actions li ion-icon { width: 17px; height: 17px; padding: 8px; border-radius: 11px; color: #247ca4; background: #e9f5fa; }
+.sleep-coach-actions li div { display: grid; gap: 3px; }
+.sleep-coach-actions li strong { color: #24435d; font-size: 11px; line-height: 1.35; }
+.sleep-coach-actions li span { color: #71869a; font-size: 9px; line-height: 1.45; }
 .sleep-window-card-heading { display: flex; align-items: center; gap: 11px; }
 .sleep-window-card-heading > ion-icon { width: 19px; height: 19px; padding: 8px; border-radius: 11px; color: #277db6; background: #e5f3fd; }
 .sleep-window-card-heading h2 { margin: 0; font-size: 15px; line-height: 1.25; }
@@ -67,6 +80,8 @@
 .profile-wake-button:focus-visible,
 .save-tonight-button:focus-visible,
 .cycle-options button:focus-visible,
+.use-cycle-plan-button:focus-visible,
+.use-sleep-need-button:focus-visible,
 .sleep-cycle-details summary:focus-visible { outline: 3px solid rgba(42,145,199,.24); outline-offset: 2px; }
 @media (max-width: 390px) {
   .sleep-window-shell { padding-inline: 16px; }

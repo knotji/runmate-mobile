@@ -1,4 +1,5 @@
 const STORAGE_PREFIX = 'runmate:sleep-window-wake:';
+const CYCLE_STORAGE_PREFIX = 'runmate:sleep-window-cycle:';
 export const SLEEP_CYCLE_OPTIONS = [4, 5, 6] as const;
 export type SleepCycleCount = typeof SLEEP_CYCLE_OPTIONS[number];
 const ESTIMATED_CYCLE_MINUTES = 90;
@@ -89,4 +90,19 @@ export function saveTonightWakeOverride(minutes: number): void {
 
 export function clearTonightWakeOverride(): void {
   window.localStorage.removeItem(`${STORAGE_PREFIX}${tonightDateKey()}`);
+}
+
+export function loadTonightSleepCycleOverride(): SleepCycleCount | null {
+  const stored = Number(window.localStorage.getItem(`${CYCLE_STORAGE_PREFIX}${tonightDateKey()}`));
+  return SLEEP_CYCLE_OPTIONS.includes(stored as SleepCycleCount) ? stored as SleepCycleCount : null;
+}
+
+export function saveTonightSleepCycleOverride(count: SleepCycleCount): void {
+  window.localStorage.setItem(`${CYCLE_STORAGE_PREFIX}${tonightDateKey()}`, String(count));
+  window.dispatchEvent(new Event('runmate:sleep-window-updated'));
+}
+
+export function clearTonightSleepCycleOverride(): void {
+  window.localStorage.removeItem(`${CYCLE_STORAGE_PREFIX}${tonightDateKey()}`);
+  window.dispatchEvent(new Event('runmate:sleep-window-updated'));
 }
