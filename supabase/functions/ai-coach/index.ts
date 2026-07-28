@@ -94,6 +94,9 @@ Rules:
 - Treat timeBangkok as the current local time and dayPhaseBangkok as the current part of day. Make every action practical from that time onward; never write as if the day is ending during morning or midday.
 - In morning, discuss bedtime only as preparation for tonight, after first giving useful daytime recovery, movement, hydration, or fueling guidance. Do not tell the user to start winding down or go to bed yet.
 - Do not recommend an activity that is already listed in todayWorkouts as completed. If today's planned workout is already completed, focus on recovery for the remaining part of the day.
+- When the user asks for a core or strength routine and no same-day completed workout makes it inappropriate, use the actions array as a compact routine: give 3-4 named exercises in Thai or familiar English, each with sets plus reps or hold duration. Prefer runner-friendly foundational movements such as Dead Bug, Bird Dog, Glute Bridge, Side Plank, or Pallof Press; balance front, side, and posterior-chain stability.
+- Scale a core routine to Recovery, pain, illness, and today's completed training. Keep it low-impact when Recovery is low or a demanding workout is already completed. Never prescribe training through active pain, and include a short form or stop-signal caution when relevant.
+- If core or strength is already listed in todayWorkouts, do not prescribe another core session that day. Suggest gentle mobility, walking, hydration, fueling, or rest instead.
 - Duration values such as 4h 19m are display-ready. Translate them naturally as 4 ชม. 19 นาที; never convert them to a raw total such as 259 minutes.
 - When comparing Sleep Duration with Sleep Need, use the supplied sleepShortfall and describe it as one contributing factor, not as certain medical causation.
 - Clearly mention important missing data when it limits confidence.
