@@ -23,7 +23,7 @@ import { getHistoryItemDateKey, todayBangkokDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { describeTodayHealthSyncPerformance, syncTodayHealth } from '@/lib/healthSyncService';
 import { buildDailyNutritionSummary } from '@/lib/activityNutritionSummary';
-import { activityRecentHistoryOptions, mergeActivityHistoryItems, prepareActivityHistoryItems, sortHistoryItemsByEventTimeDesc, uploadedActivityDateFromEvent } from '@/lib/activityHistoryLoad';
+import { activityHistoryItemsMatch, activityRecentHistoryOptions, mergeActivityHistoryItems, prepareActivityHistoryItems, sortHistoryItemsByEventTimeDesc, uploadedActivityDateFromEvent } from '@/lib/activityHistoryLoad';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { ActivityHistoryRow } from '@/components/ActivityHistoryRow';
@@ -74,6 +74,7 @@ const ActivityPage: React.FC = () => {
         setRefreshError(null);
         setItems((current) => {
           const next = mergeActivityHistoryItems(current, result.items);
+          if (activityHistoryItemsMatch(current, next)) return current;
           saveActivityStartupSnapshot(next);
           return next;
         });

@@ -22,6 +22,15 @@ export function mergeActivityHistoryItems(current: LocalHistoryItem[], incoming:
   return prepareActivityHistoryItems([...byId.values()]);
 }
 
+export function activityHistoryItemsMatch(left: LocalHistoryItem[], right: LocalHistoryItem[]): boolean {
+  if (left.length !== right.length) return false;
+  const rightById = new Map(right.map((item) => [item.id, item]));
+  return left.every((item) => {
+    const match = rightById.get(item.id);
+    return match !== undefined && JSON.stringify(item) === JSON.stringify(match);
+  });
+}
+
 /** Newest activity first, using each item's actual event time rather than upload order. */
 export function sortHistoryItemsByEventTimeDesc(items: LocalHistoryItem[]): LocalHistoryItem[] {
   return [...items].sort((a, b) => eventTimeMs(b) - eventTimeMs(a));

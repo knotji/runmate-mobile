@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { LocalHistoryItem } from '@/lib/localHistory';
-import { activityRecentHistoryOptions, mergeActivityHistoryItems, sortHistoryItemsByEventTimeDesc, uploadedActivityDateFromEvent } from './activityHistoryLoad';
+import { activityHistoryItemsMatch, activityRecentHistoryOptions, mergeActivityHistoryItems, sortHistoryItemsByEventTimeDesc, uploadedActivityDateFromEvent } from './activityHistoryLoad';
 
 function item(id: string, type: LocalHistoryItem['type'], marker: string): LocalHistoryItem {
   return { id, type, createdAt: '2026-07-20T00:00:00.000Z', dateKey: '2026-07-20', data: { marker } };
@@ -23,6 +23,15 @@ describe('Activity History Loading', () => {
 
     expect(merged.map((entry) => entry.id).sort()).toEqual(['new', 'old', 'same']);
     expect(merged.find((entry) => entry.id === 'same')?.data).toEqual({ marker: 'after' });
+  });
+
+  it('detects unchanged records regardless of their array order', () => {
+    const first = item('first', 'meal', 'same');
+    const second = item('second', 'workout', 'same');
+
+    expect(activityHistoryItemsMatch([first, second], [second, first])).toBe(true);
+    expect(activityHistoryItemsMatch([first, second], [second, item('first', 'meal', 'changed')])).toBe(false);
+    expect(activityHistoryItemsMatch([first], [first, second])).toBe(false);
   });
 
   it('selects the saved date only for a reviewed image upload', () => {

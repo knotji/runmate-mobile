@@ -62,6 +62,7 @@ Severity meanings:
 
 ### IA-05 — Activity / First Cached Load Performs A Silent Follow-Up Records Query
 
+- **Status:** Resolved in source on 2026-07-28; device verification pending.
 - **Evidence:** Static code finding; user impact requires device verification.
 - **Observed behavior:** Same-day cached records render immediately. After the 1.2-second background health check, Activity reloads recent cloud history once when `startupCacheUsedRef` is still true, even if Health Connect reports no changes.
 - **Severity:** Low.
@@ -71,6 +72,7 @@ Severity meanings:
 
 ### IA-06 — Recovery / Secondary Retry Target Is Below The App Touch Standard
 
+- **Status:** Resolved in source on 2026-07-28; device verification pending.
 - **Evidence:** Static CSS finding.
 - **Observed behavior:** The secondary Recovery retry button uses a 36 px minimum height.
 - **Severity:** Low.
