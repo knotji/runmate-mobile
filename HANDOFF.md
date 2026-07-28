@@ -1198,3 +1198,49 @@ The Background Style control was redesigned twice in quick succession based on l
 - Notification schedule updates (granting permission, changing a preference, Refresh Schedule) now call `refreshNotifications(context, true)` to force an immediate reschedule rather than relying on the existing dedupe path, which could otherwise delay a schedule update.
 
 Verification for this slice: unit tests (211+ passing, including new coverage for `mergeAdjacentSleepSamples`, stage-duration rounding, and Activity event-time sorting), `tsc --noEmit` clean, `npm run build` passed. Debug APK built and distributed via Firebase App Distribution across this slice's iterations.
+
+## Training History, AI Coach, And Workout Sync Follow-Up (2026-07-28)
+
+### Calendar-aligned training history
+
+- Weekly Summary is now Training Summary with explicit Week and Month calendar periods rather than a rolling seven-day-only view. Previous/next navigation and the Week/Month selector update their selected state immediately.
+- Summary recomputation uses a real React transition. Existing results remain visible with a subtle updating state while the requested period is calculated; there is no artificial fixed delay.
+- Share-highlight preparation is deferred until Share is opened so it does not add Recovery/share computation to every period navigation.
+- The old `View Your Recap` entry point was removed from Training Summary. Sharing remains available directly from the summary.
+
+### Current Activity and Meal presentation
+
+- Activity records use individual cards with clearer title hierarchy, two-line support for long Meal names, source badges separated from factual details, sport-specific icons, and distinct open/delete touch targets.
+- Meal Detail's food list presents each food name as the primary value and its quantity/portion as a compact secondary chip. Narrow screens stack the portion below the name rather than truncating the record.
+- Weekly Plan omits `0 km` and `N/A` from Rest days because those values are not meaningful workout metrics.
+
+### AI Coach time and core guidance
+
+- AI Coach compact context now preserves both `timeBangkok` and `dayPhaseBangkok` (`morning`, `midday`, `evening`, or `night`). The prior Edge Function accidentally discarded the local-time field before prompting Gemini.
+- Coach actions must be practical from the current Bangkok time onward. Morning answers may discuss sleep only as preparation for tonight; they must not tell the user to wind down or go to bed. A workout already present in `todayWorkouts` must not be prescribed again.
+- When the user explicitly asks for a Core or Strength routine and current Recovery/safety context permits it, Coach uses the actions list for three or four named exercises with sets and reps or hold duration. It favors runner-friendly stability work such as Dead Bug, Bird Dog, Glute Bridge, Side Plank, and Pallof Press.
+- Active Pain/Sick state remains a hard safety priority. If Core/Strength is already completed that day, Coach should recommend recovery, mobility, walking, hydration, fueling, or rest instead of another Core session.
+- The `ai-coach` Supabase Edge Function was deployed after both prompt changes; the currently installed app consumes the updated server behavior without requiring a separate client migration.
+
+### Stress terminology
+
+- Health Connect does not expose Samsung Health's proprietary Stress Score as a standard readable record, and `@capgo/capacitor-health` has no `stress` data type.
+- RunMate already estimates physiological recovery load indirectly. Recovery compares the latest HRV, Resting HR, and Respiratory Rate with personal baselines and combines the available signals with Sleep Performance; Workout Strain remains a separate load axis.
+- Do not label this result as Samsung Stress. If surfaced independently later, use wording such as `Physiological Load` or `Body Stress Estimate` and mark it as a RunMate estimate.
+- `sleep stress from continuous sensor data` in missing-data copy means no direct continuous sensor Stress record is available; it does not mean HRV/RHR/Respiratory Rate are ignored.
+
+### Newly completed Samsung workout reconciliation
+
+- A real Health Connect query on 2026-07-28 confirmed that Samsung Health exported both a Run session and a later `workoutType: other` session with valid `platformId`, timestamps, duration, calories, and `sourceId: com.sec.android.app.shealth`.
+- The missing Activity record was caused inside RunMate. A prepared background snapshot is considered fresh for up to 90 minutes; the foreground workout sync previously treated any current-date Workout in that snapshot as the complete source and skipped a live query. A workout completed after the snapshot could therefore be missed until the snapshot expired.
+- Today's foreground workout sync now queries Health Connect live even when a prepared snapshot exists, merges prepared and live sessions by `platformId` (with source/type/timestamp fallback), and sorts the combined result chronologically. The prepared snapshot remains a fallback if the live workout query fails and remains useful for Heart Rate coverage reconciliation.
+- `workoutType: other` is intentionally importable and maps to RunMate's generic `other` workout kind. It is not filtered merely because Samsung does not expose a more specific Health Connect type.
+- Regression coverage includes a prepared morning Run plus a later live `other` workout and verifies both records survive without duplicating the shared prepared/live session.
+
+Verification for the latest workout-sync release:
+
+- `npm.cmd run test.unit -- --run`: 73 files and 331 tests passed.
+- `npm.cmd run lint`: passed.
+- `npm.cmd run build`: passed.
+- Signed APK `1.0.0 (1169)` was distributed through Firebase App Distribution.
+- Latest relevant commits: `6ffb753` (time-aware Coach), `2bf8cad` (adaptive Core routines), and `37fc3ea` (prepared plus live Workout reconciliation).
