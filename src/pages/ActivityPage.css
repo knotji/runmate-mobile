@@ -109,22 +109,83 @@
 }
 .history-row-shell {
   overflow: hidden;
-  grid-template-columns: minmax(0,1fr) 38px;
-  border: 1px solid #e0e9ee;
-  border-radius: 17px;
+  grid-template-columns: minmax(0,1fr) 42px;
+  border: 1px solid #dbe7ed;
+  border-radius: 19px;
   background: rgba(255,255,255,.94);
-  box-shadow: 0 8px 20px rgba(42,68,82,.045);
+  box-shadow: 0 9px 22px rgba(42,68,82,.05);
 }
-.history-row-shell:last-child { border-bottom: 1px solid #e0e9ee; }
+.history-row-shell:last-child { border-bottom: 1px solid #dbe7ed; }
 .history-row {
-  min-height: 68px;
-  padding: 10px 5px 10px 12px;
+  min-height: 78px;
+  grid-template-columns: 44px minmax(0,1fr);
+  gap: 12px;
+  padding: 12px 7px 12px 12px;
 }
+.history-row-button { grid-template-columns:44px minmax(0,1fr) 16px; }
 .history-row-button:active { background: #f4f8f8; }
+.history-icon {
+  width:44px;
+  height:44px;
+  border-radius:15px;
+}
+.history-copy { gap:3px; }
+.history-copy-eyebrow {
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:7px;
+}
+.history-copy-eyebrow > span {
+  color:#6c8396;
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+.history-copy-eyebrow > small {
+  min-width:0;
+  overflow:hidden;
+  padding:3px 6px;
+  border-radius:999px;
+  color:#668095;
+  background:#edf4f7;
+  font-size:8px;
+  font-weight:750;
+  line-height:1.2;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.history-copy h3 {
+  display:-webkit-box;
+  overflow:hidden;
+  color:#1d3b55;
+  font-size:13px;
+  font-weight:750;
+  line-height:1.3;
+  white-space:normal;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+}
+.history-copy > p {
+  overflow:hidden;
+  margin:0;
+  color:#7a8fa1;
+  font-size:9px;
+  line-height:1.35;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.history-row-chevron {
+  width:16px;
+  height:16px;
+  color:#86a5b5;
+}
 .history-row-delete {
-  min-width: 38px;
-  color: #9caab1;
-  background: #fbfcfc;
+  min-width: 42px;
+  border-left:1px solid #eff3f5;
+  color: #a0afb6;
+  background: linear-gradient(90deg,#fff,#fbfcfc);
 }
 .history-row-delete:active {
   color: #a75e69;

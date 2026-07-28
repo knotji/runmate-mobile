@@ -20,7 +20,11 @@ export function ActivityHistoryRow({ item, deleting, onDelete }: { item: LocalHi
           : null;
   const content = <>
     <div className={`history-icon history-icon-${presentation.tone}`}><IonIcon icon={presentation.icon} /></div>
-    <div className="history-copy"><span>{presentation.label}</span><h3>{presentation.title}</h3><div className="history-row-meta"><p>{presentation.detail}</p>{item.source?.provider && <small>{activitySourceLabel(item)}</small>}</div></div>
+    <div className="history-copy">
+      <div className="history-copy-eyebrow"><span>{presentation.label}</span>{item.source?.provider && <small>{activitySourceLabel(item)}</small>}</div>
+      <h3>{presentation.title}</h3>
+      <p>{presentation.detail}</p>
+    </div>
     {detailPath && <IonIcon className="history-row-chevron" icon={chevronForwardOutline} />}
   </>;
   return <div className="history-row-shell">
