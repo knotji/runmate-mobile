@@ -66,6 +66,9 @@ function PerformanceTimingRow({ summary, formatDiagnosticDuration }: { summary: 
       <div>
         <strong>{formatDiagnosticDuration(summary.latest.durationMs)}</strong>
         <span>{summary.sampleCount > 1 ? `${formatDiagnosticDuration(summary.averageMs)} avg` : 'First sample'}</span>
+        {summary.budgetMs !== null && (
+          <small>{summary.budgetStatus === 'within' ? 'Within' : 'Over'} {formatDiagnosticDuration(summary.budgetMs)} budget</small>
+        )}
       </div>
     </div>
   );

@@ -19,16 +19,16 @@ export function ActivityHistoryRow({ item, deleting, onDelete }: { item: LocalHi
           ? `/activity/health/${encodeURIComponent(item.id)}`
           : null;
   const content = <>
-    <div className={`history-icon history-icon-${presentation.tone}`}><IonIcon icon={presentation.icon} /></div>
+    <div className={`history-icon history-icon-${presentation.tone}`} aria-hidden="true"><IonIcon icon={presentation.icon} /></div>
     <div className="history-copy">
       <div className="history-copy-eyebrow"><span>{presentation.label}</span>{item.source?.provider && <small>{activitySourceLabel(item)}</small>}</div>
       <h3>{presentation.title}</h3>
       <p>{presentation.detail}</p>
     </div>
-    {detailPath && <IonIcon className="history-row-chevron" icon={chevronForwardOutline} />}
+    {detailPath && <IonIcon className="history-row-chevron" icon={chevronForwardOutline} aria-hidden="true" />}
   </>;
   return <div className="history-row-shell">
-    {detailPath ? <button type="button" className="history-row history-row-button" disabled={deleting} onClick={() => { if (item.type === 'meal') cacheMealDetailItem(item); history.push(detailPath); }}>{content}</button> : <article className="history-row">{content}</article>}
-    <button type="button" className="history-row-delete" disabled={deleting} onClick={onDelete} aria-label={`Delete ${presentation.title}`}>{deleting ? <IonSpinner name="crescent" /> : <IonIcon icon={trashOutline} />}</button>
+    {detailPath ? <button type="button" className="history-row history-row-button" aria-label={`Open ${presentation.title} details`} disabled={deleting} onClick={() => { if (item.type === 'meal') cacheMealDetailItem(item); history.push(detailPath); }}>{content}</button> : <article className="history-row">{content}</article>}
+    <button type="button" className="history-row-delete" disabled={deleting} aria-busy={deleting} onClick={onDelete} aria-label={deleting ? `Deleting ${presentation.title}` : `Delete ${presentation.title}`}>{deleting ? <IonSpinner name="crescent" aria-hidden="true" /> : <IonIcon icon={trashOutline} aria-hidden="true" />}</button>
   </div>;
 }

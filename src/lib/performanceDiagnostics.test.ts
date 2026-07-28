@@ -4,6 +4,7 @@ import {
   getPerformanceDiagnosticSummaries,
   getHealthSyncPerformanceComparison,
   measurePerformanceDiagnostic,
+  performanceBudgetMs,
   recordPerformanceDiagnostic,
 } from './performanceDiagnostics';
 
@@ -16,6 +17,18 @@ describe('Performance Diagnostics', () => {
     const summary = getPerformanceDiagnosticSummaries()[0];
     expect(summary).toMatchObject({ phase: 'recovery_core', averageMs: 460, sampleCount: 5 });
     expect(summary.latest.durationMs).toBe(900);
+    expect(summary).toMatchObject({ budgetMs: 2500, budgetStatus: 'within' });
+  });
+
+  it('flags a rolling average that exceeds its phase budget', () => {
+    [2600, 2800, 3000].forEach((duration) => recordPerformanceDiagnostic('activity_records', duration));
+
+    expect(getPerformanceDiagnosticSummaries()[0]).toMatchObject({
+      averageMs: 2800,
+      budgetMs: 2500,
+      budgetStatus: 'over',
+    });
+    expect(performanceBudgetMs('ai_coach_answer')).toBeNull();
   });
 
   it('records failed operations without swallowing the error', async () => {

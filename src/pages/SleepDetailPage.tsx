@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
-import { IonButton, IonContent, IonDatetime, IonHeader, IonIcon, IonModal, IonPage, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
+import { IonButton, IonContent, IonDatetime, IonHeader, IonIcon, IonModal, IonPage, IonTitle, IonToolbar } from '@ionic/react';
 import { arrowBackOutline, calendarClearOutline, checkmarkCircleOutline, chevronBackOutline, chevronForwardOutline, warningOutline } from 'ionicons/icons';
 import { buildCoachContextFromSupabase, buildRecoveryCoreContextFromSupabase } from '@/lib/coachContextService';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
@@ -25,11 +25,9 @@ const SleepDetailPage: React.FC = () => {
   const [startupContext] = useState(() => loadRecoveryContextStartupSnapshot());
   const [selectedDate, setSelectedDate] = useState<string | null>(initialDate);
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const [nightLoading, setNightLoading] = useState(false);
   useEffect(() => {
     setSelectedDate(initialDate);
     setCalendarOpen(false);
-    setNightLoading(false);
   }, [initialDate]);
   const { loading, error, reload: load } = useAsyncLoad(async (force = false) => {
     let nextContext = await buildRecoveryCoreContextFromSupabase({ force });
@@ -63,12 +61,8 @@ const SleepDetailPage: React.FC = () => {
     : 'Historical';
 
   const moveToNight = (date: string | undefined) => {
-    if (!date || date === selectedNight?.date || nightLoading) return;
-    setNightLoading(true);
-    window.setTimeout(() => {
-      setSelectedDate(date);
-      setNightLoading(false);
-    }, 240);
+    if (!date || date === selectedNight?.date) return;
+    setSelectedDate(date);
   };
 
   return (
@@ -93,21 +87,21 @@ const SleepDetailPage: React.FC = () => {
                     type="button"
                     className="sleep-date-arrow"
                     aria-label="Previous night"
-                    disabled={nightLoading || selectedNightIndex < 0 || selectedNightIndex >= availableNights.length - 1}
+                    disabled={selectedNightIndex < 0 || selectedNightIndex >= availableNights.length - 1}
                     onClick={() => moveToNight(availableNights[selectedNightIndex + 1]?.date)}
                   ><IonIcon icon={chevronBackOutline} /></button>
-                  <button type="button" className="sleep-date-button" disabled={nightLoading} onClick={() => setCalendarOpen(true)}>
-                    {nightLoading ? <IonSpinner name="crescent" /> : <IonIcon icon={calendarClearOutline} />}
-                    <span><small>{nightLoading ? 'Loading Night' : 'Selected Night'}</small><strong>{nightLoading ? 'Updating…' : formatDisplayDate(selectedNight.date)}</strong></span>
+                  <button type="button" className="sleep-date-button" aria-label={`Choose sleep night. Selected ${formatDisplayDate(selectedNight.date)}`} onClick={() => setCalendarOpen(true)}>
+                    <IonIcon icon={calendarClearOutline} />
+                    <span><small>Selected Night</small><strong>{formatDisplayDate(selectedNight.date)}</strong></span>
                   </button>
                   <button
                     type="button"
                     className="sleep-date-arrow"
                     aria-label="Next night"
-                    disabled={nightLoading || selectedNightIndex <= 0}
+                    disabled={selectedNightIndex <= 0}
                     onClick={() => moveToNight(availableNights[selectedNightIndex - 1]?.date)}
                   ><IonIcon icon={chevronForwardOutline} /></button>
-                  {!isLatestNight && <button type="button" className="sleep-inline-current" disabled={nightLoading} onClick={() => moveToNight(latestDate ?? undefined)}>Current</button>}
+                  {!isLatestNight && <button type="button" className="sleep-inline-current" onClick={() => moveToNight(latestDate ?? undefined)}>Current</button>}
                 </nav>
               )}
 

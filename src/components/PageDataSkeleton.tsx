@@ -26,7 +26,7 @@ const layouts: Record<PageDataSkeletonVariant, readonly SkeletonBlock[]> = {
 
 export function PageDataSkeleton({ variant, label }: PageDataSkeletonProps) {
   if (variant === 'recovery') {
-    return <section className="page-data-skeleton page-data-skeleton-recovery" role="status" aria-live="polite" aria-label={label}>
+    return <section className="page-data-skeleton page-data-skeleton-recovery" role="status" aria-live="polite" aria-busy="true" aria-label={label}>
       <p className="page-data-skeleton-status recovery-skeleton-status"><span aria-hidden="true" />{label}</p>
       <div className="page-data-skeleton-block recovery-skeleton-hero" aria-hidden="true">
         <div className="recovery-skeleton-readiness">
@@ -61,7 +61,7 @@ export function PageDataSkeleton({ variant, label }: PageDataSkeletonProps) {
     </section>;
   }
 
-  return <section className={`page-data-skeleton page-data-skeleton-${variant}`} role="status" aria-live="polite" aria-label={label}>
+  return <section className={`page-data-skeleton page-data-skeleton-${variant}`} role="status" aria-live="polite" aria-busy="true" aria-label={label}>
     <p className="page-data-skeleton-status"><span aria-hidden="true" />{label}</p>
     {layouts[variant].map((block, blockIndex) => <div className={`page-data-skeleton-block${block.accent ? ' is-accent' : ''}`} key={`${variant}-${blockIndex}`} aria-hidden="true">
       <i className="page-data-skeleton-kicker" />

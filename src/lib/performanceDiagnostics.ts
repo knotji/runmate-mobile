@@ -38,6 +38,8 @@ export type PerformanceDiagnosticSummary = {
   latest: PerformanceDiagnosticEntry;
   averageMs: number;
   sampleCount: number;
+  budgetMs: number | null;
+  budgetStatus: 'within' | 'over' | 'not_applicable';
 };
 
 export type HealthSyncPerformanceComparison = {
@@ -48,6 +50,25 @@ export type HealthSyncPerformanceComparison = {
 
 const MAX_STORED_ENTRIES = 30;
 const SUMMARY_SAMPLE_SIZE = 5;
+const PERFORMANCE_BUDGETS_MS: Partial<Record<PerformanceDiagnosticPhase, number>> = {
+  health_sync: 2500,
+  recovery_core: 2500,
+  recovery_secondary: 4000,
+  activity_health_sync: 2500,
+  activity_records: 2500,
+  activity_archive: 4000,
+  activity_nutrition: 100,
+  nutrition_trends: 2500,
+  recovery_trends: 2500,
+  meal_detail: 1500,
+  sleep_window: 1500,
+  weekly_plan: 2500,
+  race_goal: 2500,
+  weekly_summary: 2500,
+  body_weight_trend: 2500,
+  profile_settings: 2500,
+  ai_coach_context: 2500,
+};
 
 export async function measurePerformanceDiagnostic<T>(
   phase: PerformanceDiagnosticPhase,
@@ -138,13 +159,21 @@ export function getPerformanceDiagnosticSummaries(): PerformanceDiagnosticSummar
   return phases.flatMap((phase) => {
     const samples = entries.filter((entry) => entry.phase === phase).slice(0, SUMMARY_SAMPLE_SIZE);
     if (!samples.length) return [];
+    const budgetMs = performanceBudgetMs(phase);
+    const averageMs = Math.round(samples.reduce((total, sample) => total + sample.durationMs, 0) / samples.length);
     return [{
       phase,
       latest: samples[0],
-      averageMs: Math.round(samples.reduce((total, sample) => total + sample.durationMs, 0) / samples.length),
+      averageMs,
       sampleCount: samples.length,
+      budgetMs,
+      budgetStatus: budgetMs === null ? 'not_applicable' : averageMs <= budgetMs ? 'within' : 'over',
     }];
   });
+}
+
+export function performanceBudgetMs(phase: PerformanceDiagnosticPhase): number | null {
+  return PERFORMANCE_BUDGETS_MS[phase] ?? null;
 }
 
 function isPerformanceDiagnosticEntry(value: unknown): value is PerformanceDiagnosticEntry {

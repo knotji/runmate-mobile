@@ -6,6 +6,7 @@ describe('PageDataSkeleton', () => {
   it('renders an accessible structured loading state without an Ionic spinner', () => {
     const { container } = render(<PageDataSkeleton variant="summary" label="Building Your Summary" />);
     expect(screen.getByRole('status', { name: 'Building Your Summary' })).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Building Your Summary' })).toHaveAttribute('aria-busy', 'true');
     expect(container.querySelectorAll('.page-data-skeleton-block')).toHaveLength(4);
     expect(container.querySelector('ion-spinner')).not.toBeInTheDocument();
   });

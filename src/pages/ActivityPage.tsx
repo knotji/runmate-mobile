@@ -254,7 +254,7 @@ const ActivityPage: React.FC = () => {
 
           <nav className={`activity-date-navigator${selectedDate !== todayDate ? ' has-current' : ''}`} aria-label="Choose Activity Date">
             <button type="button" className="activity-date-arrow" aria-label="Previous Activity Date" disabled={selectedDateIndex <= 0} onClick={() => moveToDate(sortedDates[selectedDateIndex - 1])}><IonIcon icon={chevronBackOutline} /></button>
-            <button type="button" className="activity-date-button" onClick={() => { setCalendarOpen(true); void loadArchive(); }}>
+            <button type="button" className="activity-date-button" aria-label={`Choose Activity Date. Selected ${selectedDate}`} onClick={() => { setCalendarOpen(true); void loadArchive(); }}>
               <IonIcon icon={calendarClearOutline} />
               <span><small>Selected Date</small><strong>{selectedDate === todayDate ? `Today, ${formatMonthDay(selectedDate)}` : formatSelectedDate(selectedDate)}</strong></span>
             </button>
@@ -287,7 +287,7 @@ const ActivityPage: React.FC = () => {
           {!loading && !error && groupedItems.length === 0 && (
             <PageState kind="empty" icon={fitnessOutline} title="No Activity On This Date" detail="Choose another date to review previous activity." className="history-empty" />
           )}
-          {deleteError && <div className="history-delete-error"><span>{deleteError}</span><button type="button" onClick={() => setDeleteError(null)}>Dismiss</button></div>}
+          {deleteError && <div className="history-delete-error" role="alert"><span>{deleteError}</span><button type="button" onClick={() => setDeleteError(null)}>Dismiss</button></div>}
           {!loading && !error && groupedItems.map(([date, dateItems]) => (
             <section className="history-day" key={date}>
               <header>
