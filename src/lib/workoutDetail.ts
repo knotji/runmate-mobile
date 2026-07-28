@@ -1,6 +1,7 @@
 import { getHistoryItemDateKey } from '@/lib/date';
 import { calculateHeartRateZones, type HeartRatePoint } from '@/lib/hrZones';
 import type { LocalHistoryItem } from '@/lib/localHistory';
+import { workoutDurationMinutes, workoutDurationText } from '@/lib/workoutDuration';
 
 export function buildWorkoutDetail(item: LocalHistoryItem, physiology?: { maxHr?: number | null; restingHr?: number | null }) {
   const data = record(item.data);
@@ -11,20 +12,20 @@ export function buildWorkoutDetail(item: LocalHistoryItem, physiology?: { maxHr?
   const title = isStrength ? string(extracted.workoutName) ?? string(data.routineName) ?? 'Strength Training' : isSwim ? (extracted.swimKind === 'open_water' ? 'Open Water Swim' : 'Pool Swim') : titleCase(string(extracted.workoutKind) ?? 'Workout');
   const metrics = isStrength
     ? compactValues([
-      ['Duration', string(extracted.duration) ?? unit(data.durationMin, 'min')], ['Average HR', unit(extracted.avgHR, 'bpm')],
+      ['Duration', workoutDurationText(extracted, data)], ['Average HR', unit(extracted.avgHR, 'bpm')],
       ['Max HR', unit(extracted.maxHR, 'bpm')], ['Calories', unit(extracted.calories, 'kcal')],
       ['Intensity', titleCase(string(extracted.intensity) ?? string(data.intensity) ?? '')],
       ['Exercises', Array.isArray(extracted.exercises) ? `${extracted.exercises.length}` : Array.isArray(data.exercises) ? `${data.exercises.length}` : null],
     ])
     : isSwim
     ? compactValues([
-      ['Distance', unit(extracted.distanceM, 'm')], ['Duration', string(extracted.duration)], ['Average Pace', string(extracted.avgPace)],
+      ['Distance', unit(extracted.distanceM, 'm')], ['Duration', workoutDurationText(extracted, data)], ['Average Pace', string(extracted.avgPace)],
       ['Average Speed', unit(extracted.avgSpeedKmh, 'km/h')], ['Average HR', unit(extracted.avgHR, 'bpm')], ['Max HR', unit(extracted.maxHR, 'bpm')],
       ['Calories', unit(extracted.calories, 'kcal')], ['Pool Length', unit(extracted.poolLengthM, 'm')], ['Lengths', number(extracted.totalLengths)],
       ['Total Strokes', number(extracted.totalStrokes)], ['Average SWOLF', number(extracted.avgSwolf)], ['Best SWOLF', number(extracted.bestSwolf)],
     ])
     : compactValues([
-      ['Distance', unit(extracted.distanceKm, 'km')], ['Duration', string(extracted.duration)], ['Average Pace', string(extracted.avgPace)], ['Max Pace', string(extracted.maxPace)],
+      ['Distance', unit(extracted.distanceKm, 'km')], ['Duration', workoutDurationText(extracted, data)], ['Average Pace', string(extracted.avgPace)], ['Max Pace', string(extracted.maxPace)],
       ['Average Speed', unit(extracted.avgSpeedKmh, 'km/h')], ['Max Speed', unit(extracted.maxSpeedKmh, 'km/h')],
       ['Average HR', unit(extracted.avgHR, 'bpm')], ['Max HR', unit(extracted.maxHR, 'bpm')], ['Calories', unit(extracted.calories, 'kcal')], ['Steps', number(extracted.steps)],
       ['Cadence', unit(extracted.cadence, 'spm')], ['Elevation', unit(extracted.elevationGain, 'm')], ['VO₂ Max', number(extracted.vo2Max)],
@@ -67,7 +68,7 @@ export function buildWorkoutDetail(item: LocalHistoryItem, physiology?: { maxHr?
       ['Recovery', synthRecovery], ['Nutrition', string(coach.nutritionAfterWorkout)], ['Next Workout', string(coach.nextWorkoutSuggestion)],
     ]);
   const workoutStart = string(data.workoutStartTime) ?? string(extracted.workoutStartTime) ?? string(extracted.startDate) ?? string(data.startDate) ?? (item.createdAt ? `${item.createdAt}` : null);
-  const durationMin = numeric(extracted.durationMinutes) ?? numeric(extracted.durationMin) ?? numeric(data.durationMin) ?? 30;
+  const durationMin = workoutDurationMinutes(extracted, data) ?? 30;
   const workoutEnd = string(data.workoutEndTime) ?? string(extracted.workoutEndTime) ?? string(extracted.endDate) ?? string(data.endDate) ?? (workoutStart ? new Date(Date.parse(workoutStart) + durationMin * 60000).toISOString() : null);
 
   const rawHrSamples = Array.isArray(data.heartRateSamples) ? data.heartRateSamples

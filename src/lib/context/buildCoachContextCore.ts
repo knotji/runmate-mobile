@@ -16,6 +16,7 @@ import type { SickLog, SickRiskLevel, SickSymptom, SickSeverity } from "@/types/
 import { reconciliationSourceLabel } from "@/lib/reconciliationPolicy";
 import { calculateRunMateSleepScore } from "@/lib/runMateSleepScore";
 import { formatSleepMinutesShortThai, formatSleepMinutesThai } from "@/lib/sleepDuration";
+import { workoutDurationMinutes, workoutDurationText } from "@/lib/workoutDuration";
 
 import type {
   CoachContext,
@@ -146,7 +147,9 @@ export function buildCoachContextFromData(input: {
     const ext = d?.extracted;
     if (!ext) continue;
 
-    const durationMin = parseDurationToMin(ext.duration);
+    const workoutData = d as unknown as Record<string, unknown>;
+    const workoutExtracted = ext as unknown as Record<string, unknown>;
+    const durationMin = workoutDurationMinutes(workoutExtracted, workoutData);
     const distanceKm = toFiniteNumber(ext.distanceKm);
     const avgHR = toFiniteNumber(ext.avgHR);
     const calories = toFiniteNumber(ext.calories);
@@ -157,7 +160,7 @@ export function buildCoachContextFromData(input: {
         label: englishWorkoutLabel(ext.workoutName, ext.workoutKind),
         distanceKm,
         durationMin,
-        durationText: typeof ext.duration === "string" && ext.duration.trim() ? ext.duration : null,
+        durationText: workoutDurationText(workoutExtracted, workoutData),
         avgHR,
         pace: ext.avgPace ?? null,
         calories,

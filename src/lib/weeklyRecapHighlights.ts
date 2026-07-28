@@ -1,9 +1,10 @@
 import { daysBetween, getHistoryItemDateKey, shiftDate, weekdayIndex } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
-import { buildTrainingAdherenceHistory, durationMinutes, normalizedActualKind, number, type TrainingAdherence } from '@/lib/trainingAdherence';
+import { buildTrainingAdherenceHistory, normalizedActualKind, number, type TrainingAdherence } from '@/lib/trainingAdherence';
 import type { RacePlan } from '@/types/race';
 import type { RecoveryTrendInsight, RecoveryTrendPoint } from '@/lib/recoveryTrends';
+import { workoutDurationMinutes } from '@/lib/workoutDuration';
 
 export type RecapPeriod = 'week' | 'month';
 
@@ -40,7 +41,7 @@ export function buildPeriodTrainingSummary(items: LocalHistoryItem[], periodStar
     else otherSessions += 1;
 
     distanceKm += number(extracted.distanceKm) ?? 0;
-    const minutes = durationMinutes(extracted.duration) ?? 0;
+    const minutes = workoutDurationMinutes(extracted, data ?? {}) ?? 0;
     activeMinutes += minutes;
     if (minutes > 0) activeDates.add(getHistoryItemDateKey(item));
   }

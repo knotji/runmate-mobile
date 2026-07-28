@@ -18,6 +18,17 @@ describe('workout detail presentation', () => {
     expect(detail.source).toBe('Garmin Connect');
   });
 
+  it('shows the same Health Connect active duration when display duration is absent', () => {
+    const item: LocalHistoryItem = {
+      id: 'health-workout-1', type: 'workout', createdAt: '2026-07-18T08:00:00.000Z',
+      data: { extracted: { workoutKind: 'outdoor_run', distanceKm: 7.4, activeDurationSeconds: 2779, avgHR: 149 } },
+    };
+
+    const detail = buildWorkoutDetail(item);
+
+    expect(detail.metrics).toContainEqual({ label: 'Duration', value: '46:19' });
+  });
+
   it('maps strength exercises from a strength log', () => {
     const item: LocalHistoryItem = {
       id: 'strength-1', type: 'strength', createdAt: '2026-07-17T08:00:00.000Z',

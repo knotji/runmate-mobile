@@ -1,6 +1,7 @@
 import { barbellOutline, bicycleOutline, bodyOutline, fastFoodOutline, fitnessOutline, heartOutline, moonOutline, walkOutline, waterOutline } from 'ionicons/icons';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import type { MergedWorkoutItem } from '@/lib/workoutDedupe';
+import { workoutDurationText } from '@/lib/workoutDuration';
 
 export function describeHistoryItem(item: LocalHistoryItem): { label: string; title: string; detail: string; icon: string; tone: string } {
   const data = asRecord(item.data); const extracted = asRecord(data.extracted);
@@ -8,7 +9,7 @@ export function describeHistoryItem(item: LocalHistoryItem): { label: string; ti
   if (item.type === 'workout' || item.type === 'strength') {
     const rawKind = (text(extracted.workoutKind) ?? (item.type === 'strength' ? 'strength_training' : 'workout')).toLowerCase();
     const kind = titleFromKey(rawKind);
-    const details = [numberUnit(extracted.distanceKm, 'km'), text(extracted.duration), numberUnit(extracted.avgHR, 'bpm')].filter(Boolean).join(' · ');
+    const details = [numberUnit(extracted.distanceKm, 'km'), workoutDurationText(extracted, data), numberUnit(extracted.avgHR, 'bpm')].filter(Boolean).join(' · ');
     let icon = fitnessOutline;
     if (item.type === 'strength' || rawKind.includes('strength') || rawKind.includes('weight')) icon = barbellOutline;
     else if (rawKind.includes('cycle') || rawKind.includes('bike') || rawKind.includes('biking')) icon = bicycleOutline;
