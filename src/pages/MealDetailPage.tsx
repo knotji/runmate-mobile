@@ -40,7 +40,7 @@ const MealDetailPage: React.FC = () => {
     {!detail && !error && <DetailState text="Loading Meal…" spinner />}{error && <DetailState text={error} />}
     {detail && <><section className="record-hero record-hero-meal"><IonIcon icon={fastFoodOutline} /><div><p>Nutrition</p><h1>{detail.title}</h1><span>{detail.date}</span></div></section>
       <NutritionOverview metrics={detail.metrics} />
-      {detail.foods.length > 0 && <section className="record-section record-foods-section"><header><p>Foods</p><h2>What Was Logged</h2><span>{detail.foods.length} {detail.foods.length === 1 ? 'Item' : 'Items'}</span></header><ol className="record-food-list">{detail.foods.map((food, index) => <li key={`${food.name}-${index}`}><span>{index + 1}</span><div><strong>{food.name}</strong><small>{formatFoodDetail(food)}</small></div></li>)}</ol></section>}
+      {detail.foods.length > 0 && <section className="record-section record-foods-section"><header><div><p>Foods</p><h2>What Was Logged</h2></div><span>{detail.foods.length} {detail.foods.length === 1 ? 'Item' : 'Items'}</span></header><ol className="record-food-list">{detail.foods.map((food, index) => <li key={`${food.name}-${index}`}><span className="record-food-index">{index + 1}</span><div className="record-food-copy"><strong>{food.name}</strong><small>{formatFoodDetail(food)}</small></div></li>)}</ol></section>}
       {mealNotes.length > 0 && <DetailNotes title="Guidance And Notes" notes={mealNotes} collapsible />}</>}
   </main></IonContent></IonPage>;
 };

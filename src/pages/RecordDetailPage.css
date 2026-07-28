@@ -17,6 +17,84 @@
 .meal-detail-shell .record-food-list li { padding-block:11px; }
 .meal-detail-shell .record-notes-disclosure summary { min-height:66px; padding-block:12px; }
 
+/* Meal foods: clearer reading order with a quieter, premium list treatment. */
+.record-foods-section > header {
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:14px;
+}
+.record-foods-section > header h2 { display:block; }
+.record-foods-section > header > span {
+  flex:none;
+  margin:0 0 2px;
+  padding:5px 9px;
+  border-radius:999px;
+  color:#287a68;
+  background:#e9f7f2;
+  font-size:9px;
+  font-weight:800;
+}
+.meal-detail-shell .record-food-list {
+  display:grid;
+  gap:0;
+  padding:7px;
+  border-color:#d8e6ed;
+  border-radius:21px;
+  box-shadow:0 10px 24px rgba(42,78,105,.04);
+}
+.meal-detail-shell .record-food-list li {
+  min-height:58px;
+  grid-template-columns:32px minmax(0,1fr);
+  gap:12px;
+  padding:10px 11px;
+  border-bottom:0;
+  border-radius:15px;
+}
+.meal-detail-shell .record-food-list li + li { border-top:1px solid #edf2f5; }
+.meal-detail-shell .record-food-index {
+  width:32px;
+  height:32px;
+  border-radius:50%;
+  color:#20816a;
+  background:#e6f7f1;
+  font-size:10px;
+}
+.meal-detail-shell .record-food-copy {
+  display:flex;
+  min-width:0;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.meal-detail-shell .record-food-copy strong {
+  min-width:0;
+  font-size:12px;
+  line-height:1.35;
+  white-space:normal;
+}
+.meal-detail-shell .record-food-copy small {
+  flex:none;
+  max-width:42%;
+  padding:5px 8px;
+  border-radius:999px;
+  color:#60798c;
+  background:#f2f6f8;
+  font-size:9px;
+  font-weight:700;
+  line-height:1.2;
+  text-align:right;
+}
+@media(max-width:360px) {
+  .meal-detail-shell .record-food-copy {
+    align-items:flex-start;
+    flex-direction:column;
+    gap:5px;
+  }
+  .meal-detail-shell .record-food-copy small { max-width:100%; }
+}
+
 .meal-nutrition-card {
   overflow:hidden;
   border:1px solid #d7e6ed;
