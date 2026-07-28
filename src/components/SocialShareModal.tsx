@@ -29,7 +29,7 @@ import {
 } from '@/lib/workoutShareMetrics';
 import './SocialShareModal.css';
 
-export type ShareTheme = 'cyber-dark' | 'sunrise-fresh' | 'minimal-glass' | 'transparent-overlay' | 'ultra-minimal' | 'compact-row' | 'compact-row-overlay' | 'calendar-dots';
+export type ShareTheme = 'cyber-dark' | 'sunrise-fresh' | 'minimal-glass' | 'transparent-overlay' | 'ultra-minimal' | 'compact-row' | 'compact-row-overlay' | 'calendar-dots' | 'month-overlay';
 export type { SportType } from '@/lib/workoutShareMetrics';
 
 export interface WorkoutShareData {
@@ -79,7 +79,7 @@ function isHorizontalTheme(theme: ShareTheme): boolean {
 }
 
 function isTransparentTheme(theme: ShareTheme): boolean {
-  return theme === 'transparent-overlay' || theme === 'compact-row-overlay' || theme === 'calendar-dots';
+  return theme === 'transparent-overlay' || theme === 'compact-row-overlay' || theme === 'calendar-dots' || theme === 'month-overlay';
 }
 
 function getStoryDimensions(theme: ShareTheme): { width: number; height: number } {
@@ -115,11 +115,17 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
       { theme: 'minimal-glass', label: 'Light' },
     ]
     : mode === 'weekly'
-      ? [
-        { theme: 'cyber-dark', label: 'Dark' },
-        { theme: 'minimal-glass', label: 'Light' },
-        { theme: 'calendar-dots', label: 'Calendar' },
-      ]
+      ? weeklyData?.period === 'month'
+        ? [
+          { theme: 'month-overlay', label: 'Month Overlay' },
+          { theme: 'cyber-dark', label: 'Dark' },
+          { theme: 'minimal-glass', label: 'Light' },
+        ]
+        : [
+          { theme: 'cyber-dark', label: 'Dark' },
+          { theme: 'minimal-glass', label: 'Light' },
+          { theme: 'calendar-dots', label: 'Calendar' },
+        ]
       : [
         { theme: 'cyber-dark', label: 'Dark' },
         { theme: 'minimal-glass', label: 'Light' },
@@ -189,7 +195,9 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
         selectedMetrics: selectedWorkoutMetrics,
       });
     } else if (mode === 'weekly' && weeklyData) {
-      if (selectedTheme === 'calendar-dots') {
+      if (selectedTheme === 'month-overlay') {
+        drawMonthRecapOverlay(ctx, palette, { width, height, ...weeklyData });
+      } else if (selectedTheme === 'calendar-dots') {
         drawWeeklyRecapCalendar(ctx, palette, { width, height, ...weeklyData });
       } else {
         drawWeeklyRecapStory(ctx, palette, { width, height, ...weeklyData });
@@ -239,11 +247,15 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
-    setSelectedTheme(mode === 'workout' ? 'transparent-overlay' : 'minimal-glass');
+    setSelectedTheme(mode === 'workout'
+      ? 'transparent-overlay'
+      : mode === 'weekly' && weeklyData?.period === 'month'
+        ? 'month-overlay'
+        : 'minimal-glass');
     if (mode === 'workout') {
       setSelectedWorkoutMetrics(availableWorkoutMetrics.slice(0, 3).map((metric) => metric.key));
     }
-  }, [availableWorkoutMetrics, isOpen, mode]);
+  }, [availableWorkoutMetrics, isOpen, mode, weeklyData?.period]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -777,6 +789,82 @@ function drawWeeklyRecapStory(
   drawMetricRow(ctx, palette, bottomMetrics, centerX, 1340);
 
   drawFooter(ctx, palette, centerX);
+}
+
+/** Compact transparent month overlay designed to sit over a user's own Story photo or video. */
+function drawMonthRecapOverlay(
+  ctx: CanvasRenderingContext2D,
+  palette: CanvasPalette,
+  data: WeeklyRecapHighlights & { width: number; height: number },
+) {
+  const centerX = data.width / 2;
+  const plateX = 62;
+  const plateY = 390;
+  const plateWidth = data.width - plateX * 2;
+  const plateHeight = 720;
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, .42)';
+  ctx.shadowBlur = 28;
+  ctx.shadowOffsetY = 8;
+  ctx.fillStyle = 'rgba(7, 24, 35, .72)';
+  ctx.beginPath();
+  ctx.roundRect(plateX, plateY, plateWidth, plateHeight, 42);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.textAlign = 'left';
+  ctx.fillStyle = palette.accent;
+  ctx.font = `700 22px ${STORY_FONT}`;
+  ctx.fillText('RUNMATE · MONTH IN MOTION', plateX + 48, plateY + 70);
+
+  ctx.fillStyle = palette.text;
+  ctx.font = `700 54px ${STORY_FONT}`;
+  ctx.fillText(data.periodTitle.toUpperCase(), plateX + 48, plateY + 145);
+  ctx.fillStyle = palette.muted;
+  ctx.font = `500 24px ${STORY_FONT}`;
+  ctx.fillText(data.dateRangeLabel, plateX + 48, plateY + 188);
+
+  ctx.strokeStyle = 'rgba(255, 255, 255, .18)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(plateX + 48, plateY + 230);
+  ctx.lineTo(plateX + plateWidth - 48, plateY + 230);
+  ctx.stroke();
+
+  const heroValue = data.distanceKm > 0 ? data.distanceKm.toFixed(1) : formatSleep(data.activeMinutes);
+  const heroUnit = data.distanceKm > 0 ? 'KM RUNNING' : 'ACTIVE TIME';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = palette.text;
+  ctx.font = `700 130px ${STORY_FONT}`;
+  ctx.fillText(heroValue, centerX, plateY + 410);
+  ctx.fillStyle = palette.accent;
+  ctx.font = `700 23px ${STORY_FONT}`;
+  ctx.fillText(heroUnit, centerX, plateY + 455);
+
+  const metrics: StoryMetric[] = [
+    { label: 'SESSIONS', value: String(data.sessions) },
+    { label: 'ACTIVE TIME', value: formatSleep(data.activeMinutes) },
+    { label: 'ACTIVE DAYS', value: String(data.activeDateKeys.length) },
+  ];
+  drawMetricRow(ctx, palette, metrics, centerX, plateY + 555);
+
+  const caption = data.topTrainingMixLabel
+    ? `${data.topTrainingMixLabel} led the month`
+    : 'Built one day at a time';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = palette.muted;
+  ctx.font = `500 22px ${STORY_FONT}`;
+  ctx.fillText(caption, centerX, plateY + 680);
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, .72)';
+  ctx.shadowBlur = 12;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = palette.text;
+  ctx.font = `700 24px ${STORY_FONT}`;
+  ctx.fillText('RUNMATE', centerX, data.height - 120);
+  ctx.restore();
 }
 
 /** Calendar grid: one dot per day of the period, filled solid for days with a workout, hollow otherwise. */
