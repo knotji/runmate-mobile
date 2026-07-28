@@ -852,19 +852,22 @@ function drawMonthRecapOverlay(
   const caption = data.topTrainingMixLabel
     ? `${data.topTrainingMixLabel} led the month`
     : 'Built one day at a time';
-  ctx.textAlign = 'center';
+  ctx.strokeStyle = 'rgba(255, 255, 255, .14)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(plateX + 48, plateY + 625);
+  ctx.lineTo(plateX + plateWidth - 48, plateY + 625);
+  ctx.stroke();
+
+  ctx.textAlign = 'left';
   ctx.fillStyle = palette.muted;
   ctx.font = `500 22px ${STORY_FONT}`;
-  ctx.fillText(caption, centerX, plateY + 680);
+  ctx.fillText(caption, plateX + 48, plateY + 680);
 
-  ctx.save();
-  ctx.shadowColor = 'rgba(0, 0, 0, .72)';
-  ctx.shadowBlur = 12;
-  ctx.textAlign = 'center';
+  ctx.textAlign = 'right';
   ctx.fillStyle = palette.text;
-  ctx.font = `700 24px ${STORY_FONT}`;
-  ctx.fillText('RUNMATE', centerX, data.height - 120);
-  ctx.restore();
+  ctx.font = `700 22px ${STORY_FONT}`;
+  ctx.fillText('RUNMATE', plateX + plateWidth - 48, plateY + 680);
 }
 
 /** Calendar grid: one dot per day of the period, filled solid for days with a workout, hollow otherwise. */
