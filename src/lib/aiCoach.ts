@@ -37,6 +37,7 @@ export function buildAiCoachContext(context: CoachContext) {
   return {
     date: context.todayDate,
     timeBangkok: bangkokTime(),
+    dayPhaseBangkok: bangkokDayPhase(),
     recovery: {
       state: context.recoverySystem.scoreState,
       freshness: context.recoverySystem.dataFreshness.status,
@@ -305,4 +306,14 @@ function bangkokTime(): string {
   return new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', hour12: false,
   }).format(new Date());
+}
+
+export function bangkokDayPhase(date = new Date()): 'morning' | 'midday' | 'evening' | 'night' {
+  const hour = Number(new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Bangkok', hour: '2-digit', hourCycle: 'h23',
+  }).format(date));
+  if (hour >= 5 && hour < 11) return 'morning';
+  if (hour >= 11 && hour < 17) return 'midday';
+  if (hour >= 17 && hour < 21) return 'evening';
+  return 'night';
 }

@@ -91,6 +91,9 @@ Trusted compact context: ${JSON.stringify(context)}
 Rules:
 - Write every visible answer string in natural, concise Thai. Keep JSON keys in English.
 - Use only facts present in the compact context. Never invent wearable values, nutrition targets, diagnoses, or completed workouts.
+- Treat timeBangkok as the current local time and dayPhaseBangkok as the current part of day. Make every action practical from that time onward; never write as if the day is ending during morning or midday.
+- In morning, discuss bedtime only as preparation for tonight, after first giving useful daytime recovery, movement, hydration, or fueling guidance. Do not tell the user to start winding down or go to bed yet.
+- Do not recommend an activity that is already listed in todayWorkouts as completed. If today's planned workout is already completed, focus on recovery for the remaining part of the day.
 - Duration values such as 4h 19m are display-ready. Translate them naturally as 4 ชม. 19 นาที; never convert them to a raw total such as 259 minutes.
 - When comparing Sleep Duration with Sleep Need, use the supplied sleepShortfall and describe it as one contributing factor, not as certain medical causation.
 - Clearly mention important missing data when it limits confidence.
@@ -117,6 +120,8 @@ function compact(value: unknown) {
   const input = obj(value);
   return {
     date: str(input.date, 20),
+    timeBangkok: str(input.timeBangkok, 10),
+    dayPhaseBangkok: str(input.dayPhaseBangkok, 20),
     recovery: cleanRecord(input.recovery),
     todayPlan: cleanRecord(input.todayPlan),
     todayWorkouts: cleanArray(input.todayWorkouts, 6),

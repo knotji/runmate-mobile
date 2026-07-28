@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { askAiCoach, buildAiCoachContext, clearAiCoachAnswerCache } from '@/lib/aiCoach';
+import { askAiCoach, bangkokDayPhase, buildAiCoachContext, clearAiCoachAnswerCache } from '@/lib/aiCoach';
 import type { CoachContext } from '@/lib/buildCoachContext';
 
 const invoke = vi.fn();
@@ -53,6 +53,8 @@ describe('buildAiCoachContext', () => {
     const serialized = JSON.stringify(result);
 
     expect(result.recovery.score).toBe(72);
+    expect(result.timeBangkok).toMatch(/^\d{2}:\d{2}$/);
+    expect(['morning', 'midday', 'evening', 'night']).toContain(result.dayPhaseBangkok);
     expect(result.recovery.sleepDuration).toBe('6h 30m');
     expect(result.recovery.sleepNeed).toBe('7h');
     expect(result.recovery.sleepShortfall).toBe('30m');
@@ -62,6 +64,13 @@ describe('buildAiCoachContext', () => {
     expect(serialized).not.toContain('private@example.com');
     expect(serialized).not.toContain('secretNote');
     expect(serialized).not.toContain('profile');
+  });
+
+  it('classifies the current Bangkok part of day for time-aware guidance', () => {
+    expect(bangkokDayPhase(new Date('2026-07-28T00:54:00Z'))).toBe('morning');
+    expect(bangkokDayPhase(new Date('2026-07-28T06:00:00Z'))).toBe('midday');
+    expect(bangkokDayPhase(new Date('2026-07-28T12:00:00Z'))).toBe('evening');
+    expect(bangkokDayPhase(new Date('2026-07-28T16:00:00Z'))).toBe('night');
   });
 });
 
