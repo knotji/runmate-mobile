@@ -53,6 +53,7 @@ Severity meanings:
 
 ### IA-04 — Bottom Tabs / First Visit Can Replace The Whole Page With A Generic Route Skeleton
 
+- **Status:** Resolved in source on 2026-07-28; device verification pending.
 - **Evidence:** Static code finding; perceived severity requires device verification.
 - **Observed behavior:** All four tab pages are lazy-loaded. A first visit uses a full route loading screen rather than preserving the tab shell with a local content placeholder.
 - **Severity:** Medium.
