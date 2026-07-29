@@ -16,7 +16,7 @@ function plan(weeklyPlan: WeekWorkout[], overrides: Partial<RacePlan> = {}): Rac
 }
 
 describe('mergeRefreshedRacePlan', () => {
-  it('keeps elapsed schedule identity while enriching matching Tempo details', () => {
+  it('keeps the whole current-week schedule identity while enriching matching details', () => {
     const previous = plan([
       workout('Sunday', 'Easy Run', 5),
       workout('Monday', 'Recovery', 4),
@@ -42,7 +42,7 @@ describe('mergeRefreshedRacePlan', () => {
       description: '2 km warm-up, 4 km tempo, 1 km cool-down',
       targetPace: '5:20–5:30/km',
     });
-    expect(result.weeklyPlan?.[4]).toMatchObject({ workoutType: 'Intervals', distanceKm: 9 });
+    expect(result.weeklyPlan?.[4]).toMatchObject({ workoutType: 'Easy Run', distanceKm: 5 });
   });
 
   it('preserves completed historical weeks and replaces future weeks', () => {
@@ -96,7 +96,7 @@ describe('reconcileRacePlanSnapshots', () => {
     expect(result?.planStartDate).toBe('2026-07-26');
     expect(result?.weeklyPlan?.slice(0, 4).map(({ workoutType }) => workoutType))
       .toEqual(['Long Run', 'Rest', 'Intervals', 'Recovery']);
-    expect(result?.weeklyPlan?.[4].workoutType).toBe('Long Run');
+    expect(result?.weeklyPlan?.[4].workoutType).toBe('Easy Run');
   });
 
   it('falls back to the oldest snapshot when all snapshots were created today', () => {

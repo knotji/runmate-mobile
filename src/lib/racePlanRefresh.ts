@@ -3,9 +3,10 @@ import { getBangkokDateKey } from '@/lib/date';
 
 /**
  * Refreshes guidance without rewriting the schedule users already followed.
- * Elapsed sessions keep their day, workout type, and planned distance so
- * adherence remains stable; matching generated sessions may enrich coaching
- * details such as pace, HR, purpose, and description.
+ * The current week's sessions keep their day, workout type, and planned
+ * distance so adherence and the schedule the runner committed to remain
+ * stable. Matching generated sessions may enrich coaching details such as
+ * pace, HR, purpose, and description. Later weeks may be regenerated.
  */
 export function mergeRefreshedRacePlan(previous: RacePlan, generated: RacePlan, today: string): RacePlan {
   const currentWeek = currentPlanWeek(previous.planStartDate, today);
@@ -13,8 +14,8 @@ export function mergeRefreshedRacePlan(previous: RacePlan, generated: RacePlan, 
     ...generated,
     planStartDate: previous.planStartDate ?? generated.planStartDate ?? today,
     createdAt: previous.createdAt ?? generated.createdAt ?? null,
-    weeklyPlan: mergeCurrentWeek(previous.weeklyPlan ?? [], generated.weeklyPlan ?? [], today),
-    weeks: mergeTrainingWeeks(previous.weeks ?? [], generated.weeks ?? [], currentWeek, today),
+    weeklyPlan: mergeCurrentWeek(previous.weeklyPlan ?? [], generated.weeklyPlan ?? []),
+    weeks: mergeTrainingWeeks(previous.weeks ?? [], generated.weeks ?? [], currentWeek),
   };
 }
 
@@ -34,7 +35,7 @@ export function reconcileRacePlanSnapshots(plansNewestFirst: RacePlan[], today: 
   return baseline === latest ? latest : mergeRefreshedRacePlan(baseline, latest, today);
 }
 
-function mergeTrainingWeeks(previous: TrainingWeek[], generated: TrainingWeek[], currentWeek: number | null, today: string): TrainingWeek[] {
+function mergeTrainingWeeks(previous: TrainingWeek[], generated: TrainingWeek[], currentWeek: number | null): TrainingWeek[] {
   if (currentWeek === null) return generated;
   const oldByNumber = new Map(previous.map((week) => [week.weekNumber, week]));
   const newByNumber = new Map(generated.map((week) => [week.weekNumber, week]));
@@ -49,13 +50,12 @@ function mergeTrainingWeeks(previous: TrainingWeek[], generated: TrainingWeek[],
     if (!newWeek) return [oldWeek];
     return [{
       ...newWeek,
-      workouts: mergeCurrentWeek(oldWeek.workouts, newWeek.workouts, today),
+      workouts: mergeCurrentWeek(oldWeek.workouts, newWeek.workouts),
     }];
   });
 }
 
-function mergeCurrentWeek(previous: WeekWorkout[], generated: WeekWorkout[], today: string): WeekWorkout[] {
-  const todayWeekday = weekdayIndex(today);
+function mergeCurrentWeek(previous: WeekWorkout[], generated: WeekWorkout[]): WeekWorkout[] {
   const generatedByDay = new Map(generated.map((workout) => [weekdayIndex(workout.day), workout]));
   const previousByDay = new Map(previous.map((workout) => [weekdayIndex(workout.day), workout]));
   const days = [...new Set([...previousByDay.keys(), ...generatedByDay.keys()])].sort((a, b) => a - b);
@@ -63,7 +63,6 @@ function mergeCurrentWeek(previous: WeekWorkout[], generated: WeekWorkout[], tod
   return days.flatMap((day) => {
     const oldWorkout = previousByDay.get(day);
     const newWorkout = generatedByDay.get(day);
-    if (day > todayWeekday) return newWorkout ? [newWorkout] : oldWorkout ? [oldWorkout] : [];
     if (!oldWorkout) return newWorkout ? [newWorkout] : [];
     if (!newWorkout || workoutKind(oldWorkout.workoutType) !== workoutKind(newWorkout.workoutType)) return [oldWorkout];
     return [{
