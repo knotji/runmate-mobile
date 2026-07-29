@@ -100,9 +100,13 @@ describe('reconcileRacePlanSnapshots', () => {
   });
 
   it('does not mistake legitimate same-timeline revisions for the reset boundary', () => {
+    const initial = plan([workout('Monday', 'Tempo Run', 6)], {
+      planStartDate: '2026-07-01',
+      createdAt: '2026-07-01T09:00:00.000Z',
+    });
     const oldest = plan([workout('Monday', 'Recovery', 4)], {
-      planStartDate: '2026-07-20',
-      createdAt: '2026-07-20T01:00:00.000Z',
+      planStartDate: '2026-07-19',
+      createdAt: '2026-07-19T02:00:00.000Z',
     });
     const followed = plan([workout('Monday', 'Rest', 0)], {
       planStartDate: '2026-07-26',
@@ -113,7 +117,7 @@ describe('reconcileRacePlanSnapshots', () => {
       createdAt: '2026-07-29T02:00:00.000Z',
     });
 
-    const result = reconcileRacePlanSnapshots([brokenLatest, followed, oldest], '2026-07-30');
+    const result = reconcileRacePlanSnapshots([brokenLatest, followed, oldest, initial], '2026-07-30');
 
     expect(result?.weeklyPlan?.[0].workoutType).toBe('Rest');
   });

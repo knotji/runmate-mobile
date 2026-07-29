@@ -20,7 +20,7 @@ export function mergeRefreshedRacePlan(previous: RacePlan, generated: RacePlan, 
 }
 
 /**
- * Rebuilds the visible plan from the snapshot immediately before the first
+ * Rebuilds the visible plan from the snapshot immediately before the latest
  * buggy timeline reset. The old refresh flow changed planStartDate to the date
  * the refresh was saved; that transition is a durable boundary in snapshot
  * history and identifies the plan the runner was following without guessing.
@@ -44,7 +44,6 @@ export function reconcileRacePlanSnapshots(plansNewestFirst: RacePlan[], today: 
       && candidateStart === candidateSavedDate
     ) {
       baseline = previous;
-      break;
     }
   }
   return baseline === latest ? latest : mergeRefreshedRacePlan(baseline, latest, today);
