@@ -61,7 +61,7 @@ describe('mergeRefreshedRacePlan', () => {
 });
 
 describe('reconcileRacePlanSnapshots', () => {
-  it('uses the latest pre-refresh schedule after several same-day broken refresh snapshots', () => {
+  it('keeps the original timeline after broken refresh snapshots and a date rollover', () => {
     const original = plan([
       workout('Sun', 'Easy Run', 5),
       workout('Mon', 'Recovery', 0),
@@ -91,7 +91,7 @@ describe('reconcileRacePlanSnapshots', () => {
       workout('Thu', 'Long Run', 10),
     ], { planStartDate: '2026-07-29', createdAt: '2026-07-29T02:00:00.000Z' });
 
-    const result = reconcileRacePlanSnapshots([brokenLatest, brokenFirst, followed, original], '2026-07-29');
+    const result = reconcileRacePlanSnapshots([brokenLatest, brokenFirst, followed, original], '2026-07-30');
 
     expect(result?.planStartDate).toBe('2026-07-26');
     expect(result?.weeklyPlan?.slice(0, 4).map(({ workoutType }) => workoutType))
@@ -99,11 +99,15 @@ describe('reconcileRacePlanSnapshots', () => {
     expect(result?.weeklyPlan?.[4].workoutType).toBe('Easy Run');
   });
 
-  it('falls back to the oldest snapshot when all snapshots were created today', () => {
-    const oldest = plan([workout('Monday', 'Rest', 0)], { createdAt: '2026-07-29T01:00:00.000Z' });
-    const latest = plan([workout('Monday', 'Easy Run', 5)], { createdAt: '2026-07-29T02:00:00.000Z' });
+  it('uses the newest snapshot within the original plan timeline', () => {
+    const oldest = plan([workout('Monday', 'Recovery', 4)], { createdAt: '2026-07-27T01:00:00.000Z' });
+    const followed = plan([workout('Monday', 'Rest', 0)], { createdAt: '2026-07-28T01:00:00.000Z' });
+    const brokenLatest = plan([workout('Monday', 'Easy Run', 5)], {
+      planStartDate: '2026-07-29',
+      createdAt: '2026-07-29T02:00:00.000Z',
+    });
 
-    const result = reconcileRacePlanSnapshots([latest, oldest], '2026-07-29');
+    const result = reconcileRacePlanSnapshots([brokenLatest, followed, oldest], '2026-07-30');
 
     expect(result?.weeklyPlan?.[0].workoutType).toBe('Rest');
   });

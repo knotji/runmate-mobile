@@ -1,5 +1,4 @@
 import type { RacePlan, TrainingWeek, WeekWorkout } from '@/types/race';
-import { getBangkokDateKey } from '@/lib/date';
 
 /**
  * Refreshes guidance without rewriting the schedule users already followed.
@@ -20,18 +19,21 @@ export function mergeRefreshedRacePlan(previous: RacePlan, generated: RacePlan, 
 }
 
 /**
- * Rebuilds the visible plan from the last schedule saved before today and the
- * newest refresh. This restores the plan the user was actually following
- * immediately before a same-day series of broken refreshes. If every snapshot
- * was created today, the oldest available snapshot is the safest fallback.
+ * Rebuilds the visible plan from the newest snapshot that still belongs to the
+ * original plan timeline and the newest refresh. Older buggy refreshes changed
+ * planStartDate to their refresh date, so the earliest planStartDate identifies
+ * the stable lineage without changing when the calendar rolls to tomorrow.
  */
 export function reconcileRacePlanSnapshots(plansNewestFirst: RacePlan[], today: string): RacePlan | null {
   const latest = plansNewestFirst[0];
   if (!latest) return null;
-  const baseline = plansNewestFirst.find((plan) => {
-    const savedDate = plan.createdAt ? getBangkokDateKey(plan.createdAt) : null;
-    return savedDate ? savedDate < today : false;
-  }) ?? plansNewestFirst[plansNewestFirst.length - 1];
+  const originalStartDate = plansNewestFirst
+    .map((plan) => plan.planStartDate?.slice(0, 10))
+    .filter((date): date is string => Boolean(date))
+    .sort()[0];
+  const baseline = plansNewestFirst.find(
+    (plan) => plan.planStartDate?.slice(0, 10) === originalStartDate,
+  ) ?? plansNewestFirst[plansNewestFirst.length - 1];
   return baseline === latest ? latest : mergeRefreshedRacePlan(baseline, latest, today);
 }
 
