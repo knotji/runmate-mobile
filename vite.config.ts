@@ -1,8 +1,13 @@
 /// <reference types="vitest" />
 
 import path from 'node:path'
+import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+
+const packageVersion = (JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }).version
+const commitCount = Number(execFileSync('git', ['rev-list', '--count', 'HEAD'], { encoding: 'utf8' }).trim())
 
 // https://vitejs.dev/config/
 // No @vitejs/plugin-legacy: this app only ships as an Android Capacitor build
@@ -10,6 +15,11 @@ import { defineConfig } from 'vite'
 // deploy, so the legacy ES5 fallback bundle + polyfills + feature-detection
 // loader that plugin adds is pure dead weight on every app open.
 export default defineConfig({
+  define: {
+    __RUNMATE_VERSION__: JSON.stringify(packageVersion),
+    __RUNMATE_BUILD_CODE__: JSON.stringify(String(1000 + commitCount)),
+    __RUNMATE_BUILD_DATE__: JSON.stringify(new Date().toISOString()),
+  },
   plugins: [
     react(),
   ],

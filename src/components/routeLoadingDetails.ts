@@ -14,6 +14,7 @@ const routeDetails: Record<string, RouteLoadingDetails> = {
   '/profile-settings': { title: 'Profile & Settings', variant: 'profile' },
   '/notifications': { title: 'Notifications', variant: 'notifications' },
   '/health-connect': { title: 'Health Connect', variant: 'health' },
+  '/about': { title: 'About RunMate', variant: 'profile' },
   '/sleep': { title: 'Sleep Details', variant: 'detail' },
   '/sleep-window': { title: 'Sleep Window', variant: 'sleep' },
   '/recovery-trends': { title: 'Recovery Trends', variant: 'trends' },
