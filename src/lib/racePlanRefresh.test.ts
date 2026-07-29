@@ -61,34 +61,50 @@ describe('mergeRefreshedRacePlan', () => {
 });
 
 describe('reconcileRacePlanSnapshots', () => {
-  it('uses the original schedule after several broken refresh snapshots', () => {
+  it('uses the latest pre-refresh schedule after several same-day broken refresh snapshots', () => {
     const original = plan([
       workout('Sun', 'Easy Run', 5),
       workout('Mon', 'Recovery', 0),
       workout('Tue', 'Tempo Run', 7),
       workout('Wed', 'Recovery', 0),
       workout('Thu', 'Easy Run', 6),
-    ]);
+    ], { createdAt: '2026-07-20T08:00:00.000Z' });
+    const followed = plan([
+      workout('Sun', 'Long Run', 10),
+      workout('Mon', 'Rest', 0),
+      workout('Tue', 'Intervals', 7),
+      workout('Wed', 'Recovery', 4),
+      workout('Thu', 'Easy Run', 6),
+    ], { createdAt: '2026-07-28T08:00:00.000Z' });
     const brokenFirst = plan([
       workout('Sun', 'Rest', 0),
       workout('Mon', 'Intervals', 8),
       workout('Tue', 'Rest', 0),
       workout('Wed', 'Easy Run', 6),
       workout('Thu', 'Tempo Run', 8),
-    ], { planStartDate: '2026-07-29' });
+    ], { planStartDate: '2026-07-29', createdAt: '2026-07-29T01:00:00.000Z' });
     const brokenLatest = plan([
       workout('Sun', 'Long Run', 12),
       workout('Mon', 'Rest', 0),
       workout('Tue', 'Easy Run', 6),
       workout('Wed', 'Intervals', 8),
       workout('Thu', 'Long Run', 10),
-    ], { planStartDate: '2026-07-29' });
+    ], { planStartDate: '2026-07-29', createdAt: '2026-07-29T02:00:00.000Z' });
 
-    const result = reconcileRacePlanSnapshots([brokenLatest, brokenFirst, original], '2026-07-29');
+    const result = reconcileRacePlanSnapshots([brokenLatest, brokenFirst, followed, original], '2026-07-29');
 
     expect(result?.planStartDate).toBe('2026-07-26');
     expect(result?.weeklyPlan?.slice(0, 4).map(({ workoutType }) => workoutType))
-      .toEqual(['Easy Run', 'Recovery', 'Tempo Run', 'Recovery']);
+      .toEqual(['Long Run', 'Rest', 'Intervals', 'Recovery']);
     expect(result?.weeklyPlan?.[4].workoutType).toBe('Long Run');
+  });
+
+  it('falls back to the oldest snapshot when all snapshots were created today', () => {
+    const oldest = plan([workout('Monday', 'Rest', 0)], { createdAt: '2026-07-29T01:00:00.000Z' });
+    const latest = plan([workout('Monday', 'Easy Run', 5)], { createdAt: '2026-07-29T02:00:00.000Z' });
+
+    const result = reconcileRacePlanSnapshots([latest, oldest], '2026-07-29');
+
+    expect(result?.weeklyPlan?.[0].workoutType).toBe('Rest');
   });
 });
