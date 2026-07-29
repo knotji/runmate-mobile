@@ -8,7 +8,7 @@ import {
 import type { RaceGoal, RacePlan } from "@/types/race";
 import { todayBangkokDateKey } from "@/lib/date";
 import { useRacePlanStore } from "@/lib/race/racePlanStore";
-import { mergeRefreshedRacePlan } from "@/lib/racePlanRefresh";
+import { reconcileRacePlanSnapshots } from "@/lib/racePlanRefresh";
 
 type RaceGoalRow = {
   id: string;
@@ -82,7 +82,7 @@ export async function loadActiveRaceGoalAndPlan(): Promise<
     .eq("user_id", session.userId)
     .eq("race_goal_id", goal.id)
     .order("created_at", { ascending: false })
-    .limit(2);
+    .limit(1000);
 
   if (planError) {
     logSupabaseSyncError({ table: "training_plans", operation: "select", userId: session.userId, error: planError });
@@ -91,11 +91,10 @@ export async function loadActiveRaceGoalAndPlan(): Promise<
   const rows = (planRows ?? []) as TrainingPlanRow[];
   logSupabaseSyncSuccess({ table: "training_plans", operation: "select", userId: session.userId, count: rows.length });
 
-  const latestPlan = planRowToPlan(rows[0] ?? null);
-  const previousPlan = planRowToPlan(rows[1] ?? null);
-  const plan = latestPlan && previousPlan
-    ? mergeRefreshedRacePlan(previousPlan, latestPlan, todayBangkokDateKey())
-    : latestPlan;
+  const plan = reconcileRacePlanSnapshots(
+    rows.map(planRowToPlan).filter((candidate): candidate is RacePlan => candidate !== null),
+    todayBangkokDateKey(),
+  );
   if (requestId === latestRacePlanRequestId) useRacePlanStore.getState().setRacePlan(goal, plan);
   return { ok: true, goal, plan };
 }

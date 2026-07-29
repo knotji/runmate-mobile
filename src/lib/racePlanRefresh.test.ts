@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeRefreshedRacePlan } from './racePlanRefresh';
+import { mergeRefreshedRacePlan, reconcileRacePlanSnapshots } from './racePlanRefresh';
 import type { RacePlan, WeekWorkout } from '@/types/race';
 
 const workout = (day: string, workoutType: string, distanceKm: number | null, description = ''): WeekWorkout => ({
@@ -57,5 +57,38 @@ describe('mergeRefreshedRacePlan', () => {
 
     expect(result.weeks.find((week) => week.weekNumber === 1)).toEqual(oldWeek);
     expect(result.weeks.find((week) => week.weekNumber === 3)).toEqual(generatedFuture);
+  });
+});
+
+describe('reconcileRacePlanSnapshots', () => {
+  it('uses the original schedule after several broken refresh snapshots', () => {
+    const original = plan([
+      workout('Sun', 'Easy Run', 5),
+      workout('Mon', 'Recovery', 0),
+      workout('Tue', 'Tempo Run', 7),
+      workout('Wed', 'Recovery', 0),
+      workout('Thu', 'Easy Run', 6),
+    ]);
+    const brokenFirst = plan([
+      workout('Sun', 'Rest', 0),
+      workout('Mon', 'Intervals', 8),
+      workout('Tue', 'Rest', 0),
+      workout('Wed', 'Easy Run', 6),
+      workout('Thu', 'Tempo Run', 8),
+    ], { planStartDate: '2026-07-29' });
+    const brokenLatest = plan([
+      workout('Sun', 'Long Run', 12),
+      workout('Mon', 'Rest', 0),
+      workout('Tue', 'Easy Run', 6),
+      workout('Wed', 'Intervals', 8),
+      workout('Thu', 'Long Run', 10),
+    ], { planStartDate: '2026-07-29' });
+
+    const result = reconcileRacePlanSnapshots([brokenLatest, brokenFirst, original], '2026-07-29');
+
+    expect(result?.planStartDate).toBe('2026-07-26');
+    expect(result?.weeklyPlan?.slice(0, 4).map(({ workoutType }) => workoutType))
+      .toEqual(['Easy Run', 'Recovery', 'Tempo Run', 'Recovery']);
+    expect(result?.weeklyPlan?.[4].workoutType).toBe('Long Run');
   });
 });

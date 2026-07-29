@@ -17,6 +17,18 @@ export function mergeRefreshedRacePlan(previous: RacePlan, generated: RacePlan, 
   };
 }
 
+/**
+ * Rebuilds the visible plan from the first saved schedule and the newest
+ * refresh. Refreshes are append-only, so using the oldest snapshot protects
+ * adherence even when the user refreshed more than once before upgrading.
+ */
+export function reconcileRacePlanSnapshots(plansNewestFirst: RacePlan[], today: string): RacePlan | null {
+  const latest = plansNewestFirst[0];
+  if (!latest) return null;
+  const original = plansNewestFirst[plansNewestFirst.length - 1];
+  return original === latest ? latest : mergeRefreshedRacePlan(original, latest, today);
+}
+
 function mergeTrainingWeeks(previous: TrainingWeek[], generated: TrainingWeek[], currentWeek: number | null, today: string): TrainingWeek[] {
   if (currentWeek === null) return generated;
   const oldByNumber = new Map(previous.map((week) => [week.weekNumber, week]));
