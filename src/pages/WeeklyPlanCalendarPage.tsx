@@ -11,18 +11,30 @@ import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { loadRecoveryContextStartupSnapshot } from '@/lib/recoveryStartupCache';
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
+import { loadActiveRaceGoalAndPlan } from '@/lib/raceStorage';
+import { useRacePlanStore } from '@/lib/race/racePlanStore';
 import './WeeklyPlanCalendarPage.css';
 
 const WeeklyPlanCalendarPage: React.FC = () => {
   const history = useHistory();
   const context = useCoachContextStore((state) => state.context);
+  const raceGoal = useRacePlanStore((state) => state.goal);
+  const racePlan = useRacePlanStore((state) => state.plan);
+  const raceStoreUpdatedAt = useRacePlanStore((state) => state.lastUpdatedAt);
   const [startupContext] = useState(() => loadRecoveryContextStartupSnapshot());
-  const visibleContext = context ?? startupContext;
+  const visibleContext = useMemo(() => {
+    const base = context ?? startupContext;
+    if (!base || !raceStoreUpdatedAt) return null;
+    return { ...base, raceGoal, racePlan };
+  }, [context, raceGoal, racePlan, raceStoreUpdatedAt, startupContext]);
 
   const { loading, error, reload: load } = useAsyncLoad(async () => {
     await measurePerformanceDiagnostic(
       'weekly_plan',
-      () => buildCoachContextFromSupabase(),
+      () => Promise.all([
+        buildCoachContextFromSupabase(),
+        loadActiveRaceGoalAndPlan(),
+      ]),
       () => ({ detail: 'Weekly plan context prepared' }),
     );
   }, 'Could Not Load Your Weekly Plan.');
