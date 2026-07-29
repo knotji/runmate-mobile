@@ -22,6 +22,7 @@ import { loadRaceResults } from '@/lib/raceResults';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { useRacePlanStore } from '@/lib/race/racePlanStore';
 import { generateRacePlan } from '@/lib/racePlanGeneration';
+import { mergeRefreshedRacePlan } from '@/lib/racePlanRefresh';
 import { applyProfilePreferencesToRaceGoal } from '@/lib/raceProfilePreferences';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
@@ -101,7 +102,8 @@ const RaceGoalPage: React.FC = () => {
     try {
       const context = await buildCoachContextFromSupabase();
       const nextGoal = useLatestProfile && context.profile ? applyProfilePreferencesToRaceGoal(goal, context.profile as UserProfile) : goal;
-      const nextPlan = await generateRacePlan(nextGoal, context);
+      const generatedPlan = await generateRacePlan(nextGoal, context);
+      const nextPlan = plan ? mergeRefreshedRacePlan(plan, generatedPlan, today) : generatedPlan;
       const saved = await saveRaceGoalAndPlan(nextGoal, nextPlan);
       if (!saved.ok) throw new Error(saved.error);
       await load();

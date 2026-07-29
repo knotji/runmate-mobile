@@ -8,6 +8,7 @@ import {
 import type { RaceGoal, RacePlan } from "@/types/race";
 import { todayBangkokDateKey } from "@/lib/date";
 import { useRacePlanStore } from "@/lib/race/racePlanStore";
+import { mergeRefreshedRacePlan } from "@/lib/racePlanRefresh";
 
 type RaceGoalRow = {
   id: string;
@@ -75,22 +76,26 @@ export async function loadActiveRaceGoalAndPlan(): Promise<
 
   const goal = rowToGoal(goalRow as RaceGoalRow);
   logSupabaseSyncStart({ table: "training_plans", operation: "select", userId: session.userId });
-  const { data: planRow, error: planError } = await session.supabase
+  const { data: planRows, error: planError } = await session.supabase
     .from("training_plans")
     .select("*")
     .eq("user_id", session.userId)
     .eq("race_goal_id", goal.id)
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(2);
 
   if (planError) {
     logSupabaseSyncError({ table: "training_plans", operation: "select", userId: session.userId, error: planError });
     return { ok: false, error: friendlySupabaseError(planError) };
   }
-  logSupabaseSyncSuccess({ table: "training_plans", operation: "select", userId: session.userId, count: planRow ? 1 : 0 });
+  const rows = (planRows ?? []) as TrainingPlanRow[];
+  logSupabaseSyncSuccess({ table: "training_plans", operation: "select", userId: session.userId, count: rows.length });
 
-  const plan = planRowToPlan(planRow as TrainingPlanRow | null);
+  const latestPlan = planRowToPlan(rows[0] ?? null);
+  const previousPlan = planRowToPlan(rows[1] ?? null);
+  const plan = latestPlan && previousPlan
+    ? mergeRefreshedRacePlan(previousPlan, latestPlan, todayBangkokDateKey())
+    : latestPlan;
   if (requestId === latestRacePlanRequestId) useRacePlanStore.getState().setRacePlan(goal, plan);
   return { ok: true, goal, plan };
 }
@@ -132,7 +137,7 @@ export async function saveRaceGoalAndPlan(goal: RaceGoal, plan: RacePlan): Promi
   logSupabaseSyncSuccess({ table: "race_goals", operation: "upsert", userId: session.userId, count: 1 });
 
   const savedGoalObj = rowToGoal(savedGoal as RaceGoalRow);
-  const startDate = todayBangkokDateKey();
+  const startDate = plan.planStartDate?.slice(0, 10) || todayBangkokDateKey();
   const endDate = goal.raceDate || startDate;
   const planPayload = {
     user_id: session.userId,
