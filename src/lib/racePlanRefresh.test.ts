@@ -61,7 +61,7 @@ describe('mergeRefreshedRacePlan', () => {
 });
 
 describe('reconcileRacePlanSnapshots', () => {
-  it('keeps the original timeline after broken refresh snapshots and a date rollover', () => {
+  it('restores the snapshot immediately before a broken timeline reset', () => {
     const original = plan([
       workout('Sun', 'Easy Run', 5),
       workout('Mon', 'Recovery', 0),
@@ -99,9 +99,15 @@ describe('reconcileRacePlanSnapshots', () => {
     expect(result?.weeklyPlan?.[4].workoutType).toBe('Easy Run');
   });
 
-  it('uses the newest snapshot within the original plan timeline', () => {
-    const oldest = plan([workout('Monday', 'Recovery', 4)], { createdAt: '2026-07-27T01:00:00.000Z' });
-    const followed = plan([workout('Monday', 'Rest', 0)], { createdAt: '2026-07-28T01:00:00.000Z' });
+  it('does not mistake legitimate same-timeline revisions for the reset boundary', () => {
+    const oldest = plan([workout('Monday', 'Recovery', 4)], {
+      planStartDate: '2026-07-20',
+      createdAt: '2026-07-20T01:00:00.000Z',
+    });
+    const followed = plan([workout('Monday', 'Rest', 0)], {
+      planStartDate: '2026-07-26',
+      createdAt: '2026-07-28T01:00:00.000Z',
+    });
     const brokenLatest = plan([workout('Monday', 'Easy Run', 5)], {
       planStartDate: '2026-07-29',
       createdAt: '2026-07-29T02:00:00.000Z',

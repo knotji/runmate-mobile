@@ -1,4 +1,5 @@
 import type { RacePlan, TrainingWeek, WeekWorkout } from '@/types/race';
+import { getBangkokDateKey } from '@/lib/date';
 
 /**
  * Refreshes guidance without rewriting the schedule users already followed.
@@ -19,21 +20,33 @@ export function mergeRefreshedRacePlan(previous: RacePlan, generated: RacePlan, 
 }
 
 /**
- * Rebuilds the visible plan from the newest snapshot that still belongs to the
- * original plan timeline and the newest refresh. Older buggy refreshes changed
- * planStartDate to their refresh date, so the earliest planStartDate identifies
- * the stable lineage without changing when the calendar rolls to tomorrow.
+ * Rebuilds the visible plan from the snapshot immediately before the first
+ * buggy timeline reset. The old refresh flow changed planStartDate to the date
+ * the refresh was saved; that transition is a durable boundary in snapshot
+ * history and identifies the plan the runner was following without guessing.
  */
 export function reconcileRacePlanSnapshots(plansNewestFirst: RacePlan[], today: string): RacePlan | null {
   const latest = plansNewestFirst[0];
   if (!latest) return null;
-  const originalStartDate = plansNewestFirst
-    .map((plan) => plan.planStartDate?.slice(0, 10))
-    .filter((date): date is string => Boolean(date))
-    .sort()[0];
-  const baseline = plansNewestFirst.find(
-    (plan) => plan.planStartDate?.slice(0, 10) === originalStartDate,
-  ) ?? plansNewestFirst[plansNewestFirst.length - 1];
+  const chronological = [...plansNewestFirst].reverse();
+  let baseline = latest;
+  for (let index = 1; index < chronological.length; index += 1) {
+    const previous = chronological[index - 1];
+    const candidate = chronological[index];
+    const previousStart = previous.planStartDate?.slice(0, 10);
+    const candidateStart = candidate.planStartDate?.slice(0, 10);
+    const candidateSavedDate = candidate.createdAt ? getBangkokDateKey(candidate.createdAt) : null;
+    if (
+      previousStart
+      && candidateStart
+      && candidateSavedDate
+      && candidateStart > previousStart
+      && candidateStart === candidateSavedDate
+    ) {
+      baseline = previous;
+      break;
+    }
+  }
   return baseline === latest ? latest : mergeRefreshedRacePlan(baseline, latest, today);
 }
 
