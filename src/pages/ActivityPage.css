@@ -195,3 +195,11 @@
   width: 14px;
   height: 14px;
 }
+
+/* Shared premium rhythm and readable metadata */
+.history-intro { margin-bottom:var(--rm-space-heading); }
+.daily-nutrition-summary { margin-bottom:var(--rm-space-section);border-color:var(--rm-card-border);box-shadow:var(--rm-card-shadow-primary); }
+.history-day { margin-bottom:var(--rm-space-section); }
+.history-row-shell { border-color:var(--rm-card-border);box-shadow:var(--rm-card-shadow); }
+.history-row-button:active { background:#eef6f8; }
+.history-day>header p,.history-day>header span,.history-copy-eyebrow>span,.history-copy-eyebrow>small,.history-copy>p,.daily-nutrition-summary header p,.daily-nutrition-summary header>span,.daily-nutrition-calories span,.daily-nutrition-macros span,.daily-nutrition-summary>small { font-size:10px; }

@@ -15,6 +15,14 @@
   --rm-border-subtle: #d9e6f0;
   --rm-card-bg-gradient: linear-gradient(145deg, #155f79 0%, #1c839b 52%, #239db0 100%);
   --rm-touch-target-min: 44px;
+  --rm-space-section: 24px;
+  --rm-space-card: 16px;
+  --rm-space-heading: 18px;
+  --rm-font-meta: 10px;
+  --rm-font-body: 12px;
+  --rm-card-border: rgba(196, 216, 233, .72);
+  --rm-card-shadow: 0 10px 26px rgba(42, 72, 101, .05);
+  --rm-card-shadow-primary: 0 14px 34px rgba(42, 72, 101, .07);
 }
 
 .main-tab-bar {
@@ -28,6 +36,70 @@
 .main-tab-bar ion-icon { width: 20px; height: 20px; }
 
 * { box-sizing: border-box; }
+
+button, summary, [role="button"] { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+:where(
+  .more-menu-button,
+  .history-row-button,
+  .sleep-window-link,
+  .nutrition-coach-button,
+  .pain-range button,
+  .body-trend-range button,
+  .nutrition-range button,
+  .activity-date-arrow,
+  .activity-date-button,
+  .sleep-date-arrow,
+  .sleep-date-button
+) {
+  transition: transform .14s ease, background-color .14s ease, box-shadow .14s ease;
+  transform-origin: center;
+}
+
+:where(
+  .more-menu-button,
+  .history-row-button,
+  .sleep-window-link,
+  .nutrition-coach-button,
+  .pain-range button,
+  .body-trend-range button,
+  .nutrition-range button,
+  .activity-date-arrow,
+  .activity-date-button,
+  .sleep-date-arrow,
+  .sleep-date-button
+):active:not(:disabled) {
+  transform: scale(.985);
+}
+
+/* Keep compact labels readable on a real phone and under Android font scaling. */
+:where(
+  .more-shell,
+  .history-shell,
+  .recovery-shell,
+  .pain-trends-shell,
+  .body-trend-shell,
+  .nutrition-trends-shell,
+  .sleep-detail-shell,
+  .about-shell
+) small {
+  font-size: var(--rm-font-meta) !important;
+}
+
+:where(
+  .pain-trends-heading,
+  .body-trend-heading,
+  .nutrition-trends-heading,
+  .about-heading
+) > p,
+:where(.pain-section-heading,.body-trend-section-heading,.nutrition-card-heading,.about-card header) > p {
+  font-size: var(--rm-font-meta) !important;
+  letter-spacing: .075em !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(button, summary, [role="button"]) { scroll-behavior:auto!important;transition:none!important;animation:none!important; }
+}
 
 /* Keep every page title centered to the viewport, independent of Back/Close actions. */
 ion-header ion-toolbar > ion-title {

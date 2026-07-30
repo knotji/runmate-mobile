@@ -6,6 +6,7 @@ import UploadPage from '@/pages/UploadPage';
 
 vi.mock('@/components/SleepUploadFlow', () => ({ default: () => <div>Sleep Upload Flow</div> }));
 vi.mock('@/components/WorkoutUploadFlow', () => ({ default: () => <div>Workout Upload Flow</div> }));
+vi.mock('@/components/MealUploadFlow', () => ({ default: () => <div>Meal Upload Flow</div> }));
 
 describe('UploadPage', () => {
   it('starts without selecting an upload type', async () => {
@@ -19,5 +20,13 @@ describe('UploadPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Workout' }));
     expect(await screen.findByText('Workout Upload Flow')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Workout' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('opens a requested flow directly from a contextual CTA', async () => {
+    render(<MemoryRouter initialEntries={['/tabs/upload?type=meal']}><UploadPage /></MemoryRouter>);
+
+    expect(await screen.findByText('Meal Upload Flow')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Meal' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByText('What Would You Like To Upload?')).not.toBeInTheDocument();
   });
 });

@@ -46,3 +46,10 @@
 .nutrition-trends-note { margin:14px 4px 0; color:#899aa8; font-size:9px; line-height:1.5; text-align:center; }
 .nutrition-trends-state { min-height:320px; }
 @media(max-width:390px){.nutrition-trends-shell{padding-inline:16px}.nutrition-overview-card,.nutrition-average-card,.nutrition-chart-card,.nutrition-compare-card{padding:15px}.nutrition-overview-metrics>div{padding-inline:8px}}
+
+/* Shared premium rhythm */
+.nutrition-trends-heading { margin-bottom:var(--rm-space-heading); }
+.nutrition-overview-card,.nutrition-average-card,.nutrition-chart-card,.nutrition-compare-card { margin-top:var(--rm-space-card);border-color:var(--rm-card-border);box-shadow:none; }
+.nutrition-overview-card { box-shadow:var(--rm-card-shadow-primary); }
+.nutrition-insight-card,.nutrition-coach-button { margin-top:var(--rm-space-card); }
+.nutrition-card-heading>span:not(.nutrition-heading-icon),.nutrition-overview-metrics span,.nutrition-overview-card>small,.nutrition-compare-card>small,.nutrition-average-grid span,.nutrition-average-grid strong small,.nutrition-mini-chart header span,.nutrition-chart-dates,.nutrition-comparison-grid header span,.nutrition-comparison-grid p span,.nutrition-coach-button small,.nutrition-trends-note { font-size:10px; }

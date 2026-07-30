@@ -11,6 +11,7 @@ type Props = {
   onRetry?: () => void;
   variant?: 'inline' | 'panel';
   className?: string;
+  quietWhenFresh?: boolean;
 };
 
 export function DataFreshnessStatus({
@@ -21,7 +22,9 @@ export function DataFreshnessStatus({
   onRetry,
   variant = 'inline',
   className = '',
+  quietWhenFresh = false,
 }: Props) {
+  if (quietWhenFresh && status === 'fresh') return null;
   const needsRetry = status === 'stale' || status === 'fallback';
   const icon = status === 'refreshing' ? syncOutline : needsRetry ? warningOutline : checkmarkCircleOutline;
   return (

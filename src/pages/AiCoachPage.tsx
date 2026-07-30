@@ -201,6 +201,7 @@ const AiCoachPage: React.FC = () => {
                 note={contextDataStatus === 'stale' || contextDataStatus === 'fallback' ? 'Training-load changes are paused.' : undefined}
                 onRetry={() => void loadContext()}
                 variant="panel"
+                quietWhenFresh
               />
               <div className="ai-coach-context-grid">
                 <div><span>Recovery Score</span><strong>{displayContext.recoverySystem.overallScore}% ({displayContext.recoverySystem.overallLabel})</strong></div>

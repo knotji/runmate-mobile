@@ -130,3 +130,10 @@
 .sleep-data-freshness-stale i,
 .sleep-data-freshness-fallback i { background: #d4a247; }
 @keyframes sleep-freshness-pulse { 50% { opacity: .3; transform: scale(.72); } }
+
+/* Shared premium rhythm */
+.freshness-card,.sleep-detail-section,.sleep-detail-disclosure { border-color:var(--rm-card-border); }
+.freshness-card { box-shadow:var(--rm-card-shadow-primary); }
+.sleep-detail-section,.sleep-detail-disclosure { box-shadow:none; }
+.sleep-detail-section { margin-top:var(--rm-space-card); }
+.sleep-score-factor-copy span,.sleep-score-factor-value span,.sleep-score-method-note,.sleep-reliability-list span { font-size:10px; }

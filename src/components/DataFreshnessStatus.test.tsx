@@ -12,4 +12,9 @@ describe('DataFreshnessStatus', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Saved Data: retry refresh' }));
     expect(retry).toHaveBeenCalledOnce();
   });
+
+  it('can keep a healthy state visually quiet', () => {
+    const { container } = render(<DataFreshnessStatus status="fresh" detail="Updated just now" quietWhenFresh />);
+    expect(container).toBeEmptyDOMElement();
+  });
 });

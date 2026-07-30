@@ -8,6 +8,8 @@
 .app-page-state > div { display: grid; gap: 5px; }
 .app-page-state h2 { margin: 0; font-size: 17px; line-height: 1.3; font-weight: 600; }
 .app-page-state p { margin: 0; color: #6e8298; font-size: 13px; line-height: 1.55; }
-.app-page-state button { min-height: 38px; padding: 0 18px; border: 1px solid #9bcbe3; border-radius: 999px; background: #f4fbff; color: #1477a7; font: inherit; font-size: 12px; font-weight: 700; }
+.app-page-state button { min-height: 44px; padding: 0 18px; border: 1px solid #9bcbe3; border-radius: 999px; background: #f4fbff; color: #1477a7; font: inherit; font-size: 12px; font-weight: 700; transition:transform .14s ease,background-color .14s ease; }
+.app-page-state button:active { transform:scale(.975);background:#e8f6fc; }
+.app-page-state button:focus-visible { outline:3px solid rgba(42,145,199,.28);outline-offset:2px; }
 .app-page-state-error > ion-icon { color: #c94b61; }
 .app-page-state-empty > ion-icon { color: #6f91aa; }

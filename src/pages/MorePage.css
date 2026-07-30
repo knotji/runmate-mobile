@@ -96,3 +96,9 @@
   .more-menu-row { grid-template-columns: 36px minmax(0, 1fr) auto; padding-inline: 12px; }
   .more-menu-icon { width: 36px; height: 36px; }
 }
+
+/* Shared premium rhythm */
+.more-heading { margin-bottom:var(--rm-space-heading); }
+.more-groups { gap:var(--rm-space-section); }
+.more-menu { border-color:var(--rm-card-border);box-shadow:var(--rm-card-shadow); }
+.more-menu-button:active { background:#eef6fa; }

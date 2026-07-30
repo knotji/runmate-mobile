@@ -473,6 +473,12 @@
   .support-track { grid-auto-columns: 100%; }
 }
 
+/* Shared premium rhythm */
+.recovery-dials { margin-bottom:var(--rm-space-card); }
+.loop-section { margin-top:var(--rm-space-section); }
+.loop-card.primary-loop { border-color:var(--rm-card-border);box-shadow:var(--rm-card-shadow-primary); }
+.section-heading { margin-bottom:12px; }
+
 .recovery-data-status {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;

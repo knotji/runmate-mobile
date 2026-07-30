@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState, type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from '@ionic/react';
 import './UploadPage.css';
 
@@ -14,7 +15,8 @@ const WorkoutUploadFlow = lazy(flowLoaders.workout);
 const MealUploadFlow = lazy(flowLoaders.meal);
 
 const UploadPage: React.FC = () => {
-  const [uploadType, setUploadType] = useState<UploadType | null>(null);
+  const location = useLocation();
+  const [uploadType, setUploadType] = useState<UploadType | null>(() => requestedUploadType(location.search));
   return <IonPage><IonHeader translucent className="upload-header"><IonToolbar><IonTitle>Upload</IonTitle></IonToolbar></IonHeader><IonContent fullscreen className="upload-content"><main className="upload-shell">
     {uploadType === null && <header className="upload-intro upload-chooser-intro"><p>Add Data</p><h1>What Would You Like To Upload?</h1><span>Choose a record type to begin. RunMate will not select one automatically.</span></header>}
     <nav className="upload-type-switch" aria-label="Upload Type">
@@ -29,6 +31,11 @@ const UploadPage: React.FC = () => {
     </Suspense>
   </main></IonContent></IonPage>;
 };
+
+function requestedUploadType(search: string): UploadType | null {
+  const requested = new URLSearchParams(search).get('type');
+  return requested === 'sleep' || requested === 'workout' || requested === 'meal' ? requested : null;
+}
 
 function TypeButton({ type, selected, onSelect, children }: { type: UploadType; selected: UploadType | null; onSelect: (type: UploadType) => void; children: ReactNode }) {
   const active = selected === type;

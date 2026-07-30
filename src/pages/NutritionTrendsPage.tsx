@@ -75,7 +75,7 @@ const NutritionTrendsPage: React.FC = () => {
         {trend && loading && <DataFreshnessStatus status="refreshing" detail="Refreshing nutrition records…" />}
         {trend && !loading && error && <DataFreshnessStatus status="fallback" label="Saved Data" detail="Refresh unavailable · Showing your last loaded nutrition trend" onRetry={() => void load()} variant="panel" />}
         {!loading && error && !trend && <PageState kind="error" title="Nutrition Trends Are Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="nutrition-trends-state" />}
-        {trend && trend.loggedDays === 0 && <PageState kind="empty" icon={restaurantOutline} title="No Meals In This Range" detail="RunMate loaded this range successfully, but no meals were logged. Add a meal to start building nutrition trends." className="nutrition-trends-state" />}
+        {trend && trend.loggedDays === 0 && <PageState kind="empty" icon={restaurantOutline} title="No Meals In This Range" detail="RunMate loaded this range successfully, but no meals were logged. Add a meal to start building nutrition trends." actionLabel="Log A Meal" onAction={() => history.push('/tabs/upload?type=meal')} className="nutrition-trends-state" />}
         {trend && trend.loggedDays > 0 && <TrendContent trend={trend} onAskCoach={() => history.push('/ai-coach')} />}
       </main>
     </IonContent>

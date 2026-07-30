@@ -74,7 +74,7 @@ const PainTrendsPage: React.FC = () => {
         {trend && loading && <DataFreshnessStatus status="refreshing" detail="Refreshing pain and injury reports…" />}
         {trend && !loading && error && <DataFreshnessStatus status="fallback" label="Saved Data" detail="Refresh unavailable · Showing your last loaded pain trend" onRetry={() => void load()} variant="panel" />}
         {!loading && error && !trend && <PageState kind="error" title="Trend Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="pain-trends-state" />}
-        {trend && trend.logs.length === 0 && <PageState kind="empty" icon={checkmarkCircleOutline} title="No Pain Reports In This Range" detail="RunMate loaded this range successfully and found no pain or injury reports." className="pain-trends-state" />}
+        {trend && trend.logs.length === 0 && <PageState kind="empty" icon={checkmarkCircleOutline} title="No Pain Reports In This Range" detail="RunMate loaded this range successfully and found no pain or injury reports." actionLabel="Review Activity" onAction={() => history.push('/tabs/activity')} className="pain-trends-state" />}
         {trend && trend.logs.length > 0 && <>
           <section className="pain-chart-card" aria-labelledby="pain-chart-heading">
             <div className="pain-section-heading"><div><p>Last {days} Days</p><h2 id="pain-chart-heading">Pain Level At A Glance</h2></div><Coverage points={trend.points} /></div>

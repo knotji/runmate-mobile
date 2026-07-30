@@ -109,7 +109,7 @@ const SleepDetailPage: React.FC = () => {
           />}
           {visibleContext && recovery && diagnostics && (
             <>
-              <DataFreshnessStatus status={dataStatus} detail={dataStatusCopy.detail} onRetry={() => void load(true)} />
+              <DataFreshnessStatus status={dataStatus} detail={dataStatusCopy.detail} onRetry={() => void load(true)} quietWhenFresh />
               {selectedNight && (
                 <nav className={`sleep-date-navigator${!isLatestNight ? ' has-current' : ''}`} aria-label="Choose sleep night">
                   <button
@@ -145,6 +145,16 @@ const SleepDetailPage: React.FC = () => {
                 <span className="freshness-badge">{displayedStatusBadge}</span>
               </section>
 
+              {!selectedNight && <PageState
+                kind="empty"
+                title="No Sleep Session Found"
+                detail="RunMate loaded your account successfully, but no sleep session is available for this date. Check Health Connect sleep access, then refresh."
+                actionLabel="Review Health Access"
+                onAction={() => history.push('/health-connect')}
+                className="sleep-detail-loading"
+              />}
+
+              {selectedNight && <>
               <section className="sleep-detail-section">
                 <header><p>{isLatestNight ? 'Latest Night' : 'Historical Night'}</p><h2>Sleep Summary</h2></header>
                 <div className="sleep-metric-grid">
@@ -187,6 +197,7 @@ const SleepDetailPage: React.FC = () => {
                   <div className="validation-list">{diagnostics.warnings.map((warning) => <p key={warning}>{warning}</p>)}</div>
                 </section>
               )}
+              </>}
 
             </>
           )}
