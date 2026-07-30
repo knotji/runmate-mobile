@@ -10,8 +10,10 @@ import { AI_COACH_TOPICS, askAiCoach, askAiCoachChat, type AiCoachAnswer, type A
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
 import { hapticImpact } from '@/lib/haptics';
-import { loadRecoveryContextStartupSnapshot, saveRecoveryContextStartupSnapshot } from '@/lib/recoveryStartupCache';
+import { loadRecoveryContextStartupEntry, saveRecoveryContextStartupSnapshot } from '@/lib/recoveryStartupCache';
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
+import { recoveryDataStatusCopy, resolveRecoveryDataStatus } from '@/lib/recoveryDataFreshness';
+import { guardCoachContextFreshness } from '@/lib/aiCoachFreshness';
 import './AiCoachPage.css';
 
 type ChatMessage = {
@@ -28,8 +30,11 @@ type ChatMessage = {
 const AiCoachPage: React.FC = () => {
   const history = useHistory();
   const context = useCoachContextStore((state) => state.context);
-  const [startupContext] = useState(() => loadRecoveryContextStartupSnapshot());
+  const [startupEntry] = useState(() => loadRecoveryContextStartupEntry());
+  const startupContext = startupEntry?.context ?? null;
   const displayContext = context ?? startupContext;
+  const [contextSavedAt, setContextSavedAt] = useState<string | null>(() => startupEntry?.savedAt ?? null);
+  const [contextRefreshFailed, setContextRefreshFailed] = useState(false);
   const [loadingContext, setLoadingContext] = useState(() => displayContext === null);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
@@ -50,8 +55,12 @@ const AiCoachPage: React.FC = () => {
           () => buildCoachContextFromSupabase(),
           () => ({ detail: 'Recovery, training, nutrition, and race context prepared' }),
         );
-        saveRecoveryContextStartupSnapshot(next);
+        const savedAt = new Date().toISOString();
+        saveRecoveryContextStartupSnapshot(next, savedAt);
+        setContextSavedAt(savedAt);
+        setContextRefreshFailed(false);
       } catch (failure) {
+        setContextRefreshFailed(true);
         setError(message(failure, 'Your RunMate data could not be loaded.'));
       } finally {
         setLoadingContext(false);
@@ -62,6 +71,13 @@ const AiCoachPage: React.FC = () => {
   }, []);
 
   useEffect(() => { void loadContext(); }, [loadContext]);
+  const contextDataStatus = resolveRecoveryDataStatus({
+    savedAt: contextSavedAt,
+    refreshing: loadingContext && Boolean(displayContext),
+    refreshFailed: contextRefreshFailed,
+  });
+  const contextStatusCopy = recoveryDataStatusCopy(contextDataStatus, contextSavedAt);
+  const requestContext = displayContext ? guardCoachContextFreshness(displayContext, contextDataStatus) : null;
 
   const scrollToBottom = useCallback(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -88,7 +104,7 @@ const AiCoachPage: React.FC = () => {
   }, [messages, asking, isNearBottom]);
 
   const askTopic = async (topicId: AiCoachTopic, force = false) => {
-    if (!displayContext || asking) return;
+    if (!requestContext || asking) return;
     void hapticImpact();
     const topicInfo = AI_COACH_TOPICS.find((t) => t.id === topicId);
     const questionText = topicInfo?.title ?? 'Ask Coach';
@@ -107,7 +123,7 @@ const AiCoachPage: React.FC = () => {
     try {
       const answer = await measurePerformanceDiagnostic(
         'ai_coach_answer',
-        () => askAiCoach(topicId, displayContext, undefined, { force }),
+        () => askAiCoach(topicId, requestContext, undefined, { force }),
         () => ({ detail: force ? 'Topic answer refreshed' : 'Topic answer prepared' }),
       );
       const assistantMsg: ChatMessage = {
@@ -127,7 +143,7 @@ const AiCoachPage: React.FC = () => {
 
   const submitCustomQuery = async () => {
     const trimmed = inputQuery.trim();
-    if (!trimmed || !displayContext || asking) return;
+    if (!trimmed || !requestContext || asking) return;
     setInputQuery('');
     
     const userMsg: ChatMessage = {
@@ -142,7 +158,7 @@ const AiCoachPage: React.FC = () => {
     try {
       const answer = await measurePerformanceDiagnostic(
         'ai_coach_answer',
-        () => askAiCoachChat(trimmed, displayContext),
+        () => askAiCoachChat(trimmed, requestContext),
         () => ({ detail: 'Custom question answered' }),
       );
       const assistantMsg: ChatMessage = {
@@ -178,6 +194,11 @@ const AiCoachPage: React.FC = () => {
               <IonIcon icon={showContextDrawer ? chevronUpOutline : chevronDownOutline} />
             </button>
             {showContextDrawer && <div className="ai-coach-drawer-content">
+              <div className={`ai-coach-data-freshness ai-coach-data-freshness-${contextDataStatus}`}>
+                <IonIcon icon={contextDataStatus === 'stale' || contextDataStatus === 'fallback' ? warningOutline : checkmarkCircleOutline} />
+                <span>{contextStatusCopy.detail}{contextDataStatus === 'stale' || contextDataStatus === 'fallback' ? ' · Training-load changes are paused.' : ''}</span>
+                {(contextDataStatus === 'stale' || contextDataStatus === 'fallback') && <button type="button" onClick={() => void loadContext()}>Retry</button>}
+              </div>
               <div className="ai-coach-context-grid">
                 <div><span>Recovery Score</span><strong>{displayContext.recoverySystem.overallScore}% ({displayContext.recoverySystem.overallLabel})</strong></div>
                 <div><span>Strain Score</span><strong>{displayContext.recoverySystem.strain.score} / 21</strong></div>

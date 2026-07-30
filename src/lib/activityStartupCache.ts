@@ -4,7 +4,7 @@ import type { LocalHistoryItem } from './localHistory';
 const ACTIVITY_STARTUP_CACHE_KEY = 'runmate:activity-startup:v1';
 const MAX_CACHED_TODAY_ITEMS = 80;
 
-type ActivityStartupSnapshot = {
+export type ActivityStartupSnapshot = {
   dateKey: string;
   savedAt: string;
   items: LocalHistoryItem[];
@@ -30,18 +30,27 @@ export function loadActivityStartupSnapshot(
   now: Date | string | number = Date.now(),
   storage: ActivityStartupStorage | null = browserStorage(),
 ): LocalHistoryItem[] | null {
+  return loadActivityStartupEntry(now, storage)?.items ?? null;
+}
+
+export function loadActivityStartupEntry(
+  now: Date | string | number = Date.now(),
+  storage: ActivityStartupStorage | null = browserStorage(),
+): ActivityStartupSnapshot | null {
   if (!storage) return null;
   try {
     const raw = storage.getItem(ACTIVITY_STARTUP_CACHE_KEY);
     if (!raw) return null;
     const snapshot = JSON.parse(raw) as Partial<ActivityStartupSnapshot>;
     if (snapshot.dateKey !== getBangkokDateKey(now)
+      || typeof snapshot.savedAt !== 'string'
+      || !Number.isFinite(Date.parse(snapshot.savedAt))
       || !Array.isArray(snapshot.items)
       || !snapshot.items.every(isHistoryItem)) {
       storage.removeItem(ACTIVITY_STARTUP_CACHE_KEY);
       return null;
     }
-    return snapshot.items;
+    return snapshot as ActivityStartupSnapshot;
   } catch {
     storage.removeItem(ACTIVITY_STARTUP_CACHE_KEY);
     return null;

@@ -11,8 +11,9 @@ import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { RecordReliability, SleepHeartRate, SleepScoreBreakdown, SleepStages } from '@/components/health/SleepDetailSections';
 import { formatDisplayDate, formatEfficiency, formatOptionalMinutes, formatScore, toSleepScoreNight } from '@/lib/sleepDetailFormatting';
 import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
-import { loadRecoveryContextStartupSnapshot, saveRecoveryContextStartupSnapshot } from '@/lib/recoveryStartupCache';
+import { loadRecoveryContextStartupEntry, saveRecoveryContextStartupSnapshot } from '@/lib/recoveryStartupCache';
 import { requiresFullSleepHistory } from '@/lib/sleepDetailLoad';
+import { recoveryDataStatusCopy, resolveRecoveryDataStatus } from '@/lib/recoveryDataFreshness';
 import './SleepDetailPage.css';
 
 const SleepDetailPage: React.FC = () => {
@@ -22,7 +23,10 @@ const SleepDetailPage: React.FC = () => {
   const initialDate = routeParams.get('date');
   const backPath = routeParams.get('from') === 'activity' ? '/tabs/activity' : '/tabs/recovery';
   const context = useCoachContextStore((state) => state.context);
-  const [startupContext] = useState(() => loadRecoveryContextStartupSnapshot());
+  const [startupEntry] = useState(() => loadRecoveryContextStartupEntry());
+  const startupContext = startupEntry?.context ?? null;
+  const [lastSuccessfulAt, setLastSuccessfulAt] = useState<string | null>(() => startupEntry?.savedAt ?? null);
+  const [refreshFailed, setRefreshFailed] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(initialDate);
   const [calendarOpen, setCalendarOpen] = useState(false);
   useEffect(() => {
@@ -30,10 +34,18 @@ const SleepDetailPage: React.FC = () => {
     setCalendarOpen(false);
   }, [initialDate]);
   const { loading, error, reload: load } = useAsyncLoad(async (force = false) => {
-    let nextContext = await buildRecoveryCoreContextFromSupabase({ force });
-    if (requiresFullSleepHistory(nextContext, initialDate)) {
-      nextContext = await buildCoachContextFromSupabase({ force });
-      saveRecoveryContextStartupSnapshot(nextContext);
+    try {
+      let nextContext = await buildRecoveryCoreContextFromSupabase({ force });
+      if (requiresFullSleepHistory(nextContext, initialDate)) {
+        nextContext = await buildCoachContextFromSupabase({ force });
+      }
+      const savedAt = new Date().toISOString();
+      saveRecoveryContextStartupSnapshot(nextContext, savedAt);
+      setLastSuccessfulAt(savedAt);
+      setRefreshFailed(false);
+    } catch (failure) {
+      setRefreshFailed(true);
+      throw failure;
     }
   }, 'Unable to load sleep details.');
 
@@ -59,6 +71,12 @@ const SleepDetailPage: React.FC = () => {
   const displayedStatusBadge = isLatestNight
     ? (recovery?.dataFreshness.status === 'today' ? 'Current' : recovery?.dataFreshness.status)
     : 'Historical';
+  const dataStatus = resolveRecoveryDataStatus({
+    savedAt: lastSuccessfulAt,
+    refreshing: loading && Boolean(visibleContext),
+    refreshFailed,
+  });
+  const dataStatusCopy = recoveryDataStatusCopy(dataStatus, lastSuccessfulAt);
 
   const moveToNight = (date: string | undefined) => {
     if (!date || date === selectedNight?.date) return;
@@ -81,6 +99,11 @@ const SleepDetailPage: React.FC = () => {
           {!loading && error && !visibleContext && <PageState kind="error" title="Sleep Details Are Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="sleep-detail-loading" />}
           {visibleContext && recovery && diagnostics && (
             <>
+              <div className={`sleep-data-freshness sleep-data-freshness-${dataStatus}`} role="status">
+                <i />
+                <span>{dataStatusCopy.detail}</span>
+                {(dataStatus === 'stale' || dataStatus === 'fallback') && <button type="button" onClick={() => void load(true)}>Retry</button>}
+              </div>
               {selectedNight && (
                 <nav className={`sleep-date-navigator${!isLatestNight ? ' has-current' : ''}`} aria-label="Choose sleep night">
                   <button

@@ -1,6 +1,13 @@
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
-import { getPerformanceDiagnosticSummaries } from '@/lib/performanceDiagnostics';
+import { getPerformanceDiagnostics, getPerformanceDiagnosticSummaries } from '@/lib/performanceDiagnostics';
+import { getSamsungSleepLastSyncedAt } from '@/lib/samsungSleepSync';
+import { getSamsungWorkoutLastSyncedAt } from '@/lib/samsungWorkoutSync';
+import { getPersistedTodaySyncAt } from '@/lib/healthSyncService';
+import { loadRecoveryContextStartupEntry, loadRecoveryStartupEntry } from '@/lib/recoveryStartupCache';
+import { loadActivityStartupEntry } from '@/lib/activityStartupCache';
+import { resolveRecoveryDataStatus } from '@/lib/recoveryDataFreshness';
+import { useRacePlanStore } from '@/lib/race/racePlanStore';
 
 export type RunMateBuildInfo = {
   version: string;
@@ -30,6 +37,15 @@ export function buildSupportDiagnostics(info: RunMateBuildInfo): string {
     budgetStatus: summary.budgetStatus,
     status: summary.latest.status,
   }));
+  const recoveryCache = loadRecoveryStartupEntry();
+  const contextCache = loadRecoveryContextStartupEntry();
+  const activityCache = loadActivityStartupEntry();
+  const activePlan = useRacePlanStore.getState().plan;
+  const latestFailures = getPerformanceDiagnostics()
+    .filter((entry) => entry.status === 'failed')
+    .slice(0, 5)
+    .map((entry) => ({ phase: entry.phase, at: entry.at }));
+  const todaySyncAt = getPersistedTodaySyncAt();
   return JSON.stringify({
     app: 'RunMate',
     version: info.version,
@@ -38,6 +54,30 @@ export function buildSupportDiagnostics(info: RunMateBuildInfo): string {
     capturedAt: new Date().toISOString(),
     platform: Capacitor.getPlatform(),
     online: typeof navigator === 'undefined' ? null : navigator.onLine,
+    healthSync: {
+      todayCompletedAt: todaySyncAt > 0 ? new Date(todaySyncAt).toISOString() : null,
+      samsungSleepAt: getSamsungSleepLastSyncedAt(),
+      samsungWorkoutAt: getSamsungWorkoutLastSyncedAt(),
+    },
+    cache: {
+      recovery: cacheMetadata(recoveryCache?.savedAt ?? null),
+      coachContext: cacheMetadata(contextCache?.savedAt ?? null),
+      activity: cacheMetadata(activityCache?.savedAt ?? null),
+    },
+    racePlan: activePlan ? {
+      version: activePlan.planVersion ?? null,
+      status: activePlan.planStatus ?? 'legacy',
+      updatedAt: activePlan.updatedAt ?? activePlan.createdAt ?? null,
+    } : null,
+    latestFailures,
     performance,
   }, null, 2);
+}
+
+function cacheMetadata(savedAt: string | null) {
+  return {
+    available: Boolean(savedAt),
+    savedAt,
+    freshness: resolveRecoveryDataStatus({ savedAt, refreshing: false, refreshFailed: false }),
+  };
 }

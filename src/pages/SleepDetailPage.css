@@ -113,3 +113,20 @@
 .sleep-detail-disclosure summary:focus-visible,
 .sleep-date-navigator button:focus-visible { outline: 3px solid rgba(42,145,199,.24); outline-offset: 2px; }
 @media (max-width: 390px) { .sleep-detail-shell { padding-inline: 16px; }.sleep-date-navigator.has-current { grid-template-columns: 44px minmax(0,1fr) 44px; gap: 6px; }.sleep-date-navigator.has-current .sleep-inline-current { grid-column: 2; justify-self: center; min-width: 74px; }.freshness-card { gap: 12px; padding: 15px 16px; }.sleep-detail-metric { min-height: 104px; padding: 14px; }.coverage-row { grid-template-columns: 22px 1fr auto; padding-inline: 12px; }.coverage-copy small { display: none; }.sleep-score-factor { padding-inline: 11px; } }
+.sleep-data-freshness {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: -4px 2px 12px;
+  color: #71869a;
+  font-size: 9px;
+}
+.sleep-data-freshness i { width: 6px; height: 6px; flex: 0 0 auto; border-radius: 50%; background: #48aa94; }
+.sleep-data-freshness span { min-width: 0; flex: 1; }
+.sleep-data-freshness button { min-width: 44px; min-height: 36px; padding: 0 10px; border: 1px solid #c9dfea; border-radius: 10px; color: #217fa9; background: #fff; font: inherit; font-size: 9px; font-weight: 800; }
+.sleep-data-freshness-refreshing i { background: #4c9fc3; animation: sleep-freshness-pulse 1.25s ease-in-out infinite; }
+.sleep-data-freshness-stale,
+.sleep-data-freshness-fallback { color: #946526; }
+.sleep-data-freshness-stale i,
+.sleep-data-freshness-fallback i { background: #d4a247; }
+@keyframes sleep-freshness-pulse { 50% { opacity: .3; transform: scale(.72); } }

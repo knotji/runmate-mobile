@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { LocalHistoryItem } from './localHistory';
 import {
   clearActivityStartupSnapshot,
+  loadActivityStartupEntry,
   loadActivityStartupSnapshot,
   saveActivityStartupSnapshot,
 } from './activityStartupCache';
@@ -30,5 +31,10 @@ describe('Activity startup cache', () => {
     saveActivityStartupSnapshot([item('today', '2026-07-27')], '2026-07-27T05:00:00.000Z');
     clearActivityStartupSnapshot();
     expect(loadActivityStartupSnapshot('2026-07-27T05:00:00.000Z')).toBeNull();
+  });
+
+  it('exposes cache time without exposing it as an activity record', () => {
+    saveActivityStartupSnapshot([item('today', '2026-07-27')], '2026-07-27T05:00:00.000Z');
+    expect(loadActivityStartupEntry('2026-07-27T06:00:00.000Z')?.savedAt).toBe('2026-07-27T05:00:00.000Z');
   });
 });

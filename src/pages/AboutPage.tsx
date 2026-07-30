@@ -59,7 +59,7 @@ const AboutPage: React.FC = () => {
 
         <section className="about-card about-support" aria-labelledby="support-heading">
           <header><p>Support</p><h2 id="support-heading">Copy Diagnostics</h2></header>
-          <span>Copies app version, platform, and page timings. It does not include sleep, workout, meal, profile, or account data.</span>
+          <span>Copies app version, sync times, cache status, active plan version, and page timings. It does not include sleep, workout, meal, profile, or account data.</span>
           <button type="button" onClick={() => void copyDiagnostics()}>
             <IonIcon icon={copyState === 'copied' ? checkmarkCircleOutline : copyOutline} aria-hidden="true" />
             {copyState === 'copied' ? 'Diagnostics Copied' : 'Copy Diagnostics'}

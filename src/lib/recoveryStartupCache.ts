@@ -11,7 +11,7 @@ export type RecoveryStartupSnapshot = {
   recovery: RunMateRecoverySystem;
 };
 
-type RecoveryContextStartupSnapshot = {
+export type RecoveryContextStartupSnapshot = {
   dateKey: string;
   savedAt: string;
   context: CoachContext;
@@ -97,16 +97,28 @@ export function loadRecoveryContextStartupSnapshot(
   now: Date | string | number = Date.now(),
   storage: RecoveryStartupStorage | null = browserStorage(),
 ): CoachContext | null {
+  return loadRecoveryContextStartupEntry(now, storage)?.context ?? null;
+}
+
+export function loadRecoveryContextStartupEntry(
+  now: Date | string | number = Date.now(),
+  storage: RecoveryStartupStorage | null = browserStorage(),
+): RecoveryContextStartupSnapshot | null {
   if (!storage) return null;
   try {
     const raw = storage.getItem(RECOVERY_CONTEXT_STARTUP_CACHE_KEY);
     if (!raw) return null;
     const snapshot = JSON.parse(raw) as Partial<RecoveryContextStartupSnapshot>;
-    if (snapshot.dateKey !== getBangkokDateKey(now) || !isCoachContext(snapshot.context)) {
+    if (
+      snapshot.dateKey !== getBangkokDateKey(now)
+      || typeof snapshot.savedAt !== 'string'
+      || !Number.isFinite(Date.parse(snapshot.savedAt))
+      || !isCoachContext(snapshot.context)
+    ) {
       storage.removeItem(RECOVERY_CONTEXT_STARTUP_CACHE_KEY);
       return null;
     }
-    return snapshot.context;
+    return snapshot as RecoveryContextStartupSnapshot;
   } catch {
     storage.removeItem(RECOVERY_CONTEXT_STARTUP_CACHE_KEY);
     return null;

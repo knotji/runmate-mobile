@@ -4,6 +4,7 @@ import type { CoachContext } from './buildCoachContext';
 import {
   clearRecoveryStartupSnapshot,
   loadRecoveryContextStartupSnapshot,
+  loadRecoveryContextStartupEntry,
   loadRecoveryStartupEntry,
   loadRecoveryStartupSnapshot,
   saveRecoveryContextStartupSnapshot,
@@ -68,5 +69,16 @@ describe('Recovery startup cache', () => {
 
     expect(loadRecoveryContextStartupSnapshot('2026-07-22T12:00:00.000Z')).toEqual(context);
     expect(loadRecoveryContextStartupSnapshot('2026-07-22T18:00:00.000Z')).toBeNull();
+  });
+
+  it('exposes full-context saved time for downstream freshness guards', () => {
+    const context = {
+      todayDate: '2026-07-22',
+      recoverySystem: recovery,
+      recoveryLoop: {},
+    } as CoachContext;
+    saveRecoveryContextStartupSnapshot(context, '2026-07-22T01:00:00.000Z');
+
+    expect(loadRecoveryContextStartupEntry('2026-07-22T12:00:00.000Z')?.savedAt).toBe('2026-07-22T01:00:00.000Z');
   });
 });

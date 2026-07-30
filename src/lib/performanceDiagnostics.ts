@@ -11,6 +11,7 @@ export type PerformanceDiagnosticPhase =
   | 'nutrition_trends'
   | 'recovery_trends'
   | 'meal_detail'
+  | 'workout_detail'
   | 'sleep_window'
   | 'weekly_plan'
   | 'race_goal'
@@ -61,6 +62,7 @@ const PERFORMANCE_BUDGETS_MS: Partial<Record<PerformanceDiagnosticPhase, number>
   nutrition_trends: 2500,
   recovery_trends: 2500,
   meal_detail: 1500,
+  workout_detail: 1200,
   sleep_window: 1500,
   weekly_plan: 2500,
   race_goal: 2500,
@@ -145,6 +147,7 @@ export function getPerformanceDiagnosticSummaries(): PerformanceDiagnosticSummar
     'nutrition_trends',
     'recovery_trends',
     'meal_detail',
+    'workout_detail',
     'sleep_window',
     'weekly_plan',
     'race_goal',
@@ -179,7 +182,7 @@ export function performanceBudgetMs(phase: PerformanceDiagnosticPhase): number |
 function isPerformanceDiagnosticEntry(value: unknown): value is PerformanceDiagnosticEntry {
   if (!value || typeof value !== 'object') return false;
   const entry = value as Partial<PerformanceDiagnosticEntry>;
-  return ['health_sync', 'recovery_core', 'recovery_secondary', 'activity_health_sync', 'activity_records', 'activity_archive', 'activity_nutrition', 'nutrition_trends', 'recovery_trends', 'meal_detail', 'sleep_window', 'weekly_plan', 'race_goal', 'weekly_summary', 'body_weight_trend', 'profile_settings', 'privacy_export', 'account_delete', 'ai_coach_context', 'ai_coach_answer'].includes(entry.phase ?? '')
+  return ['health_sync', 'recovery_core', 'recovery_secondary', 'activity_health_sync', 'activity_records', 'activity_archive', 'activity_nutrition', 'nutrition_trends', 'recovery_trends', 'meal_detail', 'workout_detail', 'sleep_window', 'weekly_plan', 'race_goal', 'weekly_summary', 'body_weight_trend', 'profile_settings', 'privacy_export', 'account_delete', 'ai_coach_context', 'ai_coach_answer'].includes(entry.phase ?? '')
     && typeof entry.at === 'string'
     && typeof entry.durationMs === 'number'
     && ['success', 'skipped', 'failed'].includes(entry.status ?? '')

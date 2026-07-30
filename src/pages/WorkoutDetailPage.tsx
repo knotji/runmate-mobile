@@ -3,49 +3,54 @@ import { useHistory, useParams } from 'react-router-dom';
 import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar } from '@ionic/react';
 import { arrowBackOutline, barbellOutline, bicycleOutline, fitnessOutline, shareSocialOutline, walkOutline, waterOutline } from 'ionicons/icons';
 import { SocialShareModal, type WorkoutShareData } from '@/components/SocialShareModal';
-import { loadHistoryItems } from '@/lib/cloudHistory';
+import { loadHistoryItemById, loadHistoryItems } from '@/lib/cloudHistory';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { buildWorkoutDetail } from '@/lib/workoutDetail';
 import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
 import { loadProfileFromSupabase } from '@/lib/profileStorage';
 import { useUserProfileStore } from '@/lib/profile/userProfileStore';
-import { restingHeartRateBaseline } from '@/lib/hrZones';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
+import { loadActivityStartupSnapshot } from '@/lib/activityStartupCache';
+import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import './WorkoutDetailPage.css';
 
 const WorkoutDetailPage: React.FC = () => {
   const history = useHistory();
   const { id } = useParams<{ id: string }>();
-  const [item, setItem] = useState<LocalHistoryItem | null>(null);
-  const [loading, setLoading] = useState(true);
+  const requestedId = decodeURIComponent(id);
+  const [startupItem] = useState(() => findCachedWorkout(requestedId));
+  const [item, setItem] = useState<LocalHistoryItem | null>(startupItem);
+  const [loading, setLoading] = useState(() => startupItem === null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const profile = useUserProfileStore((state) => state.profile);
   const [restingHr, setRestingHr] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
+    setRefreshError(null);
     try {
-      const [result, profileResult] = await Promise.all([loadHistoryItems(['workout', 'strength', 'sleep']), loadProfileFromSupabase()]);
-      if (!result.ok) setError(result.error);
-      else {
-        const sleepRestingHr = result.items
-          .filter((record) => record.type === 'sleep')
-          .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
-          .slice(0, 14)
-          .map((record) => numberValue(objectValue(objectValue(record.data).extracted).restingHR));
-        setRestingHr(restingHeartRateBaseline(sleepRestingHr) ?? (profileResult.ok ? profileResult.profile?.normalRestingHr ?? null : null));
-        const requestedId = decodeURIComponent(id);
-        const match = dedupeWorkoutItems(result.items.filter((record) => record.type === 'workout' || record.type === 'strength')).find((record) => record.id === requestedId || record.sourceRecordIds?.includes(requestedId));
-        if (match) setItem(match);
-        else setError('This workout record could not be found.');
-      }
+      const [match, profileResult] = await Promise.all([
+        measurePerformanceDiagnostic('workout_detail', () => loadRequestedWorkout(requestedId), (value) => ({
+          status: value ? 'success' : 'failed',
+          variant: startupItem ? 'prepared' : 'live',
+          detail: value ? 'Requested workout prepared' : 'Requested workout not found',
+        })),
+        loadProfileFromSupabase(),
+      ]);
+      if (profileResult.ok) setRestingHr(profileResult.profile?.normalRestingHr ?? null);
+      if (match) setItem(match);
+      else if (startupItem) setRefreshError('Could not refresh this workout. Showing the saved Activity copy.');
+      else setError('This workout record could not be found.');
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : 'Could Not Load This Workout.');
+      const message = failure instanceof Error ? failure.message : 'Could Not Load This Workout.';
+      if (startupItem) setRefreshError(message);
+      else setError(message);
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [requestedId, startupItem]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -102,9 +107,10 @@ const WorkoutDetailPage: React.FC = () => {
       <IonContent fullscreen className="workout-detail-content">
         <main className="workout-detail-shell">
           {loading && <PageDataSkeleton variant="detail" label="Loading Workout Details" />}
-          {!loading && error && <PageState kind="error" title="Workout Is Unavailable" detail={error} actionLabel="Back To Activity" onAction={() => history.push('/tabs/activity')} className="workout-detail-state" />}
+          {!loading && error && !detail && <PageState kind="error" title="Workout Is Unavailable" detail={error} actionLabel="Back To Activity" onAction={() => history.push('/tabs/activity')} className="workout-detail-state" />}
           {detail && (
             <>
+              {refreshError && <div className="workout-detail-refresh-note" role="status"><span>{refreshError}</span><button type="button" onClick={() => void load()}>Retry</button></div>}
               <section className={`workout-hero workout-hero-${detail.tone}`}>
                 <div className="workout-hero-icon"><IonIcon icon={getHeroIcon()} /></div>
                 <div><p>{detail.isStrength ? 'Strength Training' : 'Workout'}</p><h1>{detail.title}</h1><span>{detail.date}</span></div>
@@ -195,6 +201,25 @@ const WorkoutDetailPage: React.FC = () => {
 };
 
 export default WorkoutDetailPage;
+
+function findCachedWorkout(requestedId: string): LocalHistoryItem | null {
+  const cached = loadActivityStartupSnapshot() ?? [];
+  return dedupeWorkoutItems(cached.filter(isWorkoutItem))
+    .find((record) => record.id === requestedId || record.sourceRecordIds?.includes(requestedId)) ?? null;
+}
+
+async function loadRequestedWorkout(requestedId: string): Promise<LocalHistoryItem | null> {
+  const direct = await loadHistoryItemById(requestedId);
+  if (direct.ok && isWorkoutItem(direct.item)) return direct.item;
+  const recent = await loadHistoryItems(['workout', 'strength'], { limit: 200 });
+  if (!recent.ok) throw new Error(recent.error);
+  return dedupeWorkoutItems(recent.items.filter(isWorkoutItem))
+    .find((record) => record.id === requestedId || record.sourceRecordIds?.includes(requestedId)) ?? null;
+}
+
+function isWorkoutItem(item: LocalHistoryItem): boolean {
+  return item.type === 'workout' || item.type === 'strength';
+}
 
 function objectValue(value: unknown): Record<string, unknown> { return typeof value === 'object' && value !== null ? value as Record<string, unknown> : {}; }
 function numberValue(value: unknown): number | null { return typeof value === 'number' && Number.isFinite(value) ? value : null; }

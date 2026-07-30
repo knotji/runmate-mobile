@@ -70,3 +70,17 @@
 .workout-zone-note strong { color: #58758b; font-size: 9px; letter-spacing: .06em; text-transform: uppercase; }
 .workout-zone-note span { color: #7d8f9f; }
 @media (max-width:390px) { .workout-detail-shell { padding-top: 20px; }.workout-load-summary > div { padding-inline: 14px; } }
+.workout-detail-refresh-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -4px 0 12px;
+  padding: 9px 11px;
+  border-radius: 12px;
+  color: #8c632d;
+  background: #fff5e5;
+  font-size: 10px;
+  line-height: 1.45;
+}
+.workout-detail-refresh-note span { min-width: 0; flex: 1; }
+.workout-detail-refresh-note button { min-width: 44px; min-height: 36px; border: 1px solid #dfc69d; border-radius: 9px; color: #936426; background: #fff; font: inherit; font-size: 9px; font-weight: 800; }
