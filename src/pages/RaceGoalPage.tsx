@@ -48,6 +48,7 @@ import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
+import { hapticImpact, hapticNotification } from '@/lib/haptics';
 
 const RaceGoalPage: React.FC = () => {
   const history = useHistory();
@@ -126,6 +127,7 @@ const RaceGoalPage: React.FC = () => {
 
   const refreshPlan = async (useLatestProfile: boolean) => {
     if (!goal || refreshingPlan) return;
+    void hapticImpact();
     setRefreshingPlan(true); setRefreshError(null);
     try {
       const context = await buildCoachContextFromSupabase();
@@ -153,6 +155,7 @@ const RaceGoalPage: React.FC = () => {
       if (!saved.ok) throw new Error(saved.error);
       setPlanPreview(null);
       await load();
+      void hapticNotification();
     } catch (applyFailure) {
       setRefreshError(applyFailure instanceof Error ? applyFailure.message : 'Could Not Apply This Plan.');
     } finally {
@@ -172,6 +175,7 @@ const RaceGoalPage: React.FC = () => {
   const previewPlanRestore = (version: RacePlanVersion) => {
     if (!goal || !plan || applyingPlan) return;
     setPlanHistoryOpen(false);
+    void hapticImpact();
     setPlanPreview({
       goal,
       plan: version.plan,

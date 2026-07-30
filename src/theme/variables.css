@@ -101,6 +101,80 @@ button, summary, [role="button"] { -webkit-tap-highlight-color: transparent; tou
   :where(button, summary, [role="button"]) { scroll-behavior:auto!important;transition:none!important;animation:none!important; }
 }
 
+/* Native viewport and keyboard-safe foundations. */
+html,
+body,
+#root,
+ion-app {
+  min-height: 100%;
+  min-height: 100dvh;
+}
+
+ion-content::part(scroll) {
+  overscroll-behavior-y: contain;
+  scroll-padding-bottom: calc(24px + env(safe-area-inset-bottom));
+}
+
+.main-tab-bar {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.network-status-toast {
+  --max-width: min(360px, calc(100vw - 24px));
+  --start: 12px;
+  --end: 12px;
+  transform: translateY(calc(-56px - env(safe-area-inset-bottom)));
+}
+
+.network-status-toast::part(message) {
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+/* Keep route/data swaps calm without delaying interaction. */
+ion-page main > :not(.page-data-skeleton) {
+  animation: rm-content-arrive 160ms ease-out both;
+}
+
+@keyframes rm-content-arrive {
+  from { opacity: .72; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Readability floor for dense supporting copy on real Android screens. */
+.weekly-share-link small,
+.weekly-adherence-week > button small,
+.weekly-adherence-details span,
+.weekly-adherence-details em,
+.weekly-load-chart.period-month .weekly-load-day strong,
+.weekly-load-chart.period-month .weekly-load-day span,
+.workout-zone > span,
+.workout-zone > div small,
+.workout-zone > b small {
+  font-size: 10px;
+}
+
+button,
+[role='button'],
+ion-button,
+ion-tab-button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+[role='button']:focus-visible,
+a:focus-visible {
+  outline: 2px solid #268fbd;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ion-page main > :not(.page-data-skeleton) {
+    animation: none;
+  }
+}
+
 /* Keep every page title centered to the viewport, independent of Back/Close actions. */
 ion-header ion-toolbar > ion-title {
   position: absolute;

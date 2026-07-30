@@ -25,6 +25,8 @@ const tabPageLoaders = [
 const MainTabs: React.FC = () => {
   useEffect(() => {
     const prefetchInactiveTabs = () => {
+      const connection = Reflect.get(navigator, 'connection') as { effectiveType?: string; saveData?: boolean } | undefined;
+      if (connection?.saveData || connection?.effectiveType === 'slow-2g' || connection?.effectiveType === '2g') return;
       const activePath = window.location.pathname;
       const loaders = tabPageLoaders
         .filter(({ path }) => path !== activePath)
@@ -35,10 +37,10 @@ const MainTabs: React.FC = () => {
     const requestIdle = Reflect.get(window, 'requestIdleCallback') as typeof window.requestIdleCallback | undefined;
     const cancelIdle = Reflect.get(window, 'cancelIdleCallback') as typeof window.cancelIdleCallback | undefined;
     if (typeof requestIdle === 'function' && typeof cancelIdle === 'function') {
-      const idleId = requestIdle(prefetchInactiveTabs, { timeout: 2500 });
+      const idleId = requestIdle(prefetchInactiveTabs, { timeout: 4000 });
       return () => cancelIdle(idleId);
     }
-    const timerId = window.setTimeout(prefetchInactiveTabs, 1500);
+    const timerId = window.setTimeout(prefetchInactiveTabs, 3500);
     return () => window.clearTimeout(timerId);
   }, []);
 

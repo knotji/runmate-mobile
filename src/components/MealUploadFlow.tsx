@@ -8,6 +8,7 @@ import { dateKeyToRecordedAt, todayBangkokDateKey } from '@/lib/date';
 import type { MealAnalysis } from '@/types/logs';
 import UploadDateField from './UploadDateField';
 import { cacheMealDetailItem } from '@/lib/mealDetailCache';
+import { hapticNotification, hapticSelection } from '@/lib/haptics';
 
 const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
 const nutritionKeys = ['caloriesKcal', 'proteinG', 'carbsG', 'fatG'] as const;
@@ -57,7 +58,7 @@ const MealUploadFlow: React.FC = () => {
     item.dateKey = mealDate; item.recordedAt = dateKeyToRecordedAt(mealDate);
     item.source = { provider: 'generic_image', importType: 'image', importedAt: new Date().toISOString() };
     const result = await saveHistoryItems([item]);
-    if (result.ok) { cacheMealDetailItem(item); reset(); history.push(`/activity/meal/${encodeURIComponent(item.id)}`); }
+    if (result.ok) { void hapticNotification(); cacheMealDetailItem(item); reset(); history.push(`/activity/meal/${encodeURIComponent(item.id)}`); }
     else { setError(result.error ?? 'Could Not Save This Meal'); setSaving(false); }
   };
 
@@ -67,7 +68,7 @@ const MealUploadFlow: React.FC = () => {
     <section className="upload-section">
       <div className="upload-section-title"><IonIcon icon={fastFoodOutline} /><div><p>Meal Details</p><h2>When Was This Meal?</h2></div></div>
       <UploadDateField label="Meal Date" value={mealDate} max={todayBangkokDateKey()} onChange={setMealDate} className="upload-date-field" />
-      <div className="upload-meal-types">{mealTypes.map((type) => <button type="button" className={type === mealType ? 'is-active' : ''} key={type} onClick={() => setMealType(type)}>{title(type)}</button>)}</div>
+      <div className="upload-meal-types">{mealTypes.map((type) => <button type="button" className={type === mealType ? 'is-active' : ''} key={type} aria-pressed={type === mealType} onClick={() => { setMealType(type); void hapticSelection(); }}>{title(type)}</button>)}</div>
     </section>
     <section className="upload-section">
       <div className="upload-section-title"><IonIcon icon={cameraOutline} /><div><p>Meal Photos</p><h2>Add Photos</h2><span>{images.length}/4 selected</span></div></div>

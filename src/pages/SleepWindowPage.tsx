@@ -23,6 +23,7 @@ import {
 import { deleteTonightWakePlan, loadDefaultWakeTime, loadTonightWakePlan, saveTonightWakePlan } from '@/lib/sleepWindowStorage';
 import { loadRecoveryContextStartupSnapshot } from '@/lib/recoveryStartupCache';
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
+import { hapticImpact, hapticNotification, hapticSelection } from '@/lib/haptics';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import './SleepWindowPage.css';
@@ -94,6 +95,7 @@ const SleepWindowPage: React.FC = () => {
     if (!result.ok) { setSaveError(result.error); return; }
     setWakeOverride(wakeMinutes);
     setSavedWake(wakeMinutes);
+    void hapticNotification();
   };
 
   const restoreProfileWake = async () => {
@@ -104,18 +106,21 @@ const SleepWindowPage: React.FC = () => {
     if (!result.ok) { setSaveError(result.error); return; }
     setWakeOverride(null);
     setSavedWake(null);
+    void hapticImpact();
   };
 
   const applyCyclePlan = () => {
     if (!cyclePlan || cyclePlan.adequacy === 'short') return;
     saveTonightSleepCycleOverride(cyclePlan.cycleCount);
     setAppliedCycles(cyclePlan.cycleCount);
+    void hapticNotification();
   };
 
   const useSleepNeedPlan = () => {
     clearTonightSleepCycleOverride();
     setAppliedCycles(null);
     setSelectedCycles(recommendedSleepCycleCount(sleep?.sleepNeedMinutes ?? 420));
+    void hapticImpact();
   };
 
   return (
@@ -157,7 +162,7 @@ const SleepWindowPage: React.FC = () => {
             <div className="cycle-options" role="group" aria-label="Estimated sleep cycles">
               {SLEEP_CYCLE_OPTIONS.map((count) => {
                 const minutes = count * 90;
-                return <button type="button" key={count} className={cycleCount === count ? 'selected' : ''} aria-pressed={cycleCount === count} onClick={() => setSelectedCycles(count)}>
+                return <button type="button" key={count} className={cycleCount === count ? 'selected' : ''} aria-pressed={cycleCount === count} onClick={() => { setSelectedCycles(count); void hapticSelection(); }}>
                   <strong>{count}</strong><span>{formatDuration(minutes)}</span>
                 </button>;
               })}

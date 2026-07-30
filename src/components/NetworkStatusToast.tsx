@@ -4,14 +4,16 @@ import { cloudOfflineOutline, wifiOutline } from 'ionicons/icons';
 
 export const NetworkStatusToast: React.FC = () => {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
+  const [showToast, setShowToast] = useState(!navigator.onLine);
+  const [toastMessage, setToastMessage] = useState(
+    navigator.onLine ? '' : 'Offline · Showing the latest data saved on this device.',
+  );
   const [toastIcon, setToastIcon] = useState(cloudOfflineOutline);
 
   useEffect(() => {
     const handleOffline = () => {
       setIsOffline(true);
-      setToastMessage('You are offline. Showing cached RunMate data.');
+      setToastMessage('Offline · Showing the latest data saved on this device.');
       setToastIcon(cloudOfflineOutline);
       setShowToast(true);
     };
@@ -19,7 +21,7 @@ export const NetworkStatusToast: React.FC = () => {
     const handleOnline = () => {
       setIsOffline((wasOffline) => {
         if (wasOffline) {
-          setToastMessage('Back online. Connection restored.');
+          setToastMessage('Back online · New data can sync again.');
           setToastIcon(wifiOutline);
           setShowToast(true);
         }
@@ -41,11 +43,12 @@ export const NetworkStatusToast: React.FC = () => {
       isOpen={showToast}
       onDidDismiss={() => setShowToast(false)}
       message={toastMessage}
-      duration={3500}
+      duration={isOffline ? 0 : 2800}
       icon={toastIcon}
       position="bottom"
       color={isOffline ? 'warning' : 'success'}
       className="network-status-toast"
+      aria-live={isOffline ? 'assertive' : 'polite'}
     />
   );
 };
