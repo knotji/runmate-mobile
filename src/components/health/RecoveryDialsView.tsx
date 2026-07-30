@@ -39,11 +39,13 @@ export function RecoveryDials({
   onRecoveryClick,
   onSleepClick,
   freshness,
+  onFreshnessClick,
 }: {
   recovery: RunMateRecoverySystem;
   onRecoveryClick: () => void;
   onSleepClick: () => void;
-  freshness?: { status: 'fresh' | 'refreshing'; detail: string };
+  freshness?: { status: 'fresh' | 'refreshing' | 'stale'; detail: string };
+  onFreshnessClick?: () => void;
 }) {
   const recoveryAvailable = recovery.scoreState === 'scored' || recovery.scoreState === 'calibrating';
   const waitingMessage = recoveryAvailable
@@ -60,7 +62,9 @@ export function RecoveryDials({
             <div className="recovery-hero-copy">
               <div className="recovery-hero-meta">
                 <span>Daily readiness</span>
-                {freshness && <small className={`recovery-inline-freshness recovery-inline-freshness-${freshness.status}`}><i />{freshness.detail}</small>}
+                {freshness && freshness.status === 'stale' && onFreshnessClick
+                  ? <button type="button" className="recovery-inline-freshness recovery-inline-freshness-stale" onClick={onFreshnessClick} aria-label={`${freshness.detail}. Refresh Recovery data`}><i />{freshness.detail}</button>
+                  : freshness && <small className={`recovery-inline-freshness recovery-inline-freshness-${freshness.status}`}><i />{freshness.detail}</small>}
               </div>
               <strong>{recoveryAvailable ? recovery.overallLabel : 'Not ready yet'}</strong>
               <p>{recoveryAvailable ? recovery.overallDisplayStatus.note ?? 'Your latest signals are ready for today.' : waitingMessage}</p>

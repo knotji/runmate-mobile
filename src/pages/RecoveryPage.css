@@ -549,7 +549,25 @@
   font-weight: 650;
   white-space: nowrap;
 }
+button.recovery-inline-freshness {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  background: transparent;
+  font: inherit;
+  font-size: 8px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+button.recovery-inline-freshness:focus-visible {
+  border-radius: 5px;
+  outline: 2px solid #2a89b8;
+  outline-offset: 3px;
+}
 .recovery-inline-freshness i {
+  flex: 0 0 auto;
   width: 5px;
   height: 5px;
   border-radius: 50%;
@@ -559,6 +577,8 @@
   background: #4c9fc3;
   animation: recovery-freshness-pulse 1.25s ease-in-out infinite;
 }
+.recovery-inline-freshness-stale { color: #936523; }
+.recovery-inline-freshness-stale i { background: #d5a348; }
 @keyframes recovery-freshness-pulse {
   50% { opacity: .3; transform: scale(.72); }
 }

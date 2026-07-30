@@ -283,7 +283,7 @@ const RecoveryPage: React.FC = () => {
           {!loading && error && !visibleRecovery && <PageState kind="error" title="Recovery Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void retryRecovery()} className="state-panel error-panel" />}
           {visibleRecovery && (
             <>
-              {(dataStatus === 'stale' || dataStatus === 'fallback') && <div className={`recovery-data-status recovery-data-status-${dataStatus}`} role="status" aria-live="polite">
+              {dataStatus === 'fallback' && <div className="recovery-data-status recovery-data-status-fallback" role="status" aria-live="polite">
                 <span>{dataStatusCopy.label}</span>
                 <small>{dataStatusCopy.detail}</small>
                 <button type="button" onClick={() => void retryRecovery()}>Retry</button>
@@ -292,7 +292,8 @@ const RecoveryPage: React.FC = () => {
                 recovery={visibleRecovery}
                 onRecoveryClick={() => history.push('/recovery-trends')}
                 onSleepClick={() => history.push('/sleep')}
-                freshness={dataStatus === 'fresh' || dataStatus === 'refreshing' ? { status: dataStatus, detail: dataStatusCopy.detail } : undefined}
+                freshness={dataStatus !== 'fallback' ? { status: dataStatus, detail: dataStatusCopy.detail } : undefined}
+                onFreshnessClick={() => void retryRecovery()}
               />
               {secondaryLoading && !visibleContext ? <RecoverySecondaryLoading /> : secondaryError && !visibleContext ? <RecoverySecondaryError message={secondaryError} onRetry={() => void loadSecondaryRecovery(true)} /> : !visibleContext ? <RecoverySecondaryLoading /> : <>
                 <TodayTrainingPlanCard context={visibleContext} />

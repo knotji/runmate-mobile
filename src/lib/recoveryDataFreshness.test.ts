@@ -20,12 +20,21 @@ describe('Recovery data freshness', () => {
     })).toBe('fallback');
   });
 
-  it('marks successful snapshots stale after fifteen minutes', () => {
+  it('keeps successful snapshots fresh for thirty minutes', () => {
     expect(resolveRecoveryDataStatus({
       savedAt: '2026-07-30T00:00:00.000Z',
       refreshing: false,
       refreshFailed: false,
       now: '2026-07-30T00:16:00.000Z',
+    })).toBe('fresh');
+  });
+
+  it('marks successful snapshots stale after thirty minutes', () => {
+    expect(resolveRecoveryDataStatus({
+      savedAt: '2026-07-30T00:00:00.000Z',
+      refreshing: false,
+      refreshFailed: false,
+      now: '2026-07-30T00:31:00.000Z',
     })).toBe('stale');
   });
 

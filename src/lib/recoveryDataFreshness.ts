@@ -1,6 +1,6 @@
 export type RecoveryDataStatus = 'fresh' | 'refreshing' | 'stale' | 'fallback';
 
-const RECOVERY_FRESH_MS = 15 * 60 * 1000;
+const RECOVERY_FRESH_MS = 30 * 60 * 1000;
 
 export function resolveRecoveryDataStatus(input: {
   savedAt: string | null;
