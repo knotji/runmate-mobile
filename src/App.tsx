@@ -11,7 +11,6 @@ import { completeNativeGoogleSignIn } from '@/lib/googleAuth';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { refreshNotifications } from '@/lib/notificationService';
 import { invalidateCoachContextCache } from '@/lib/coachContextService';
-import { clearAiCoachAnswerCache } from '@/lib/aiCoach';
 import { reportCrash } from '@/lib/crashReporting';
 import { syncTodayHealth } from '@/lib/healthSyncService';
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
@@ -20,14 +19,7 @@ import { RouteLoadingScreen } from '@/components/RouteLoadingScreen';
 import { NetworkStatusToast } from '@/components/NetworkStatusToast';
 import { loadMorePage } from '@/lib/morePageLoaders';
 import { navigateToAppRoute, notificationRouteFromUrl, onAppNavigate } from '@/lib/nativeNavigation';
-import { clearRecoveryStartupSnapshot } from '@/lib/recoveryStartupCache';
-import { clearActivityStartupSnapshot } from '@/lib/activityStartupCache';
-import { clearNutritionTrendsStartupSnapshot } from '@/lib/nutritionTrendsStartupCache';
-import { clearRecoveryTrendsStartupSnapshot } from '@/lib/recoveryTrendsStartupCache';
-import { clearMealDetailCache } from '@/lib/mealDetailCache';
-import { clearBodyWeightTrendStartupSnapshot } from '@/lib/bodyWeightTrendStartupCache';
-import { clearProfileSettingsStartupSnapshot } from '@/lib/profileSettingsStartupCache';
-import { clearPainTrendsStartupSnapshot } from '@/lib/painTrendsStartupCache';
+import { clearRunMateCachedData } from '@/lib/appCache';
 import { useHistory } from 'react-router-dom';
 
 import '@ionic/react/css/core.css';
@@ -106,17 +98,10 @@ const App: React.FC = () => {
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      invalidateCoachContextCache();
-      clearAiCoachAnswerCache();
       if (_event === 'SIGNED_OUT') {
-        clearRecoveryStartupSnapshot();
-        clearActivityStartupSnapshot();
-        clearNutritionTrendsStartupSnapshot();
-        clearRecoveryTrendsStartupSnapshot();
-        clearMealDetailCache();
-        clearBodyWeightTrendStartupSnapshot();
-        clearProfileSettingsStartupSnapshot();
-        clearPainTrendsStartupSnapshot();
+        clearRunMateCachedData();
+      } else {
+        invalidateCoachContextCache();
       }
       setSession(nextSession);
       setCheckingSession(false);

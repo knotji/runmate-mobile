@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar } from '@ionic/react';
-import { arrowBackOutline, checkmarkCircleOutline, copyOutline, informationCircleOutline } from 'ionicons/icons';
+import { arrowBackOutline, checkmarkCircleOutline, copyOutline, informationCircleOutline, refreshOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { buildSupportDiagnostics, getRunMateBuildInfo, type RunMateBuildInfo } from '@/lib/aboutDiagnostics';
 import { copyToClipboard } from '@/lib/clipboard';
+import { clearRunMateCachedData } from '@/lib/appCache';
 import './AboutPage.css';
 
 const releaseNotes = [
@@ -21,6 +22,7 @@ const AboutPage: React.FC = () => {
     builtAt: __RUNMATE_BUILD_DATE__,
   });
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
+  const [cacheCleared, setCacheCleared] = useState(false);
 
   useEffect(() => { void getRunMateBuildInfo().then(setInfo); }, []);
 
@@ -32,6 +34,12 @@ const AboutPage: React.FC = () => {
     } catch {
       setCopyState('error');
     }
+  };
+
+  const clearCachedData = () => {
+    clearRunMateCachedData();
+    setCacheCleared(true);
+    window.setTimeout(() => setCacheCleared(false), 2400);
   };
 
   return <IonPage>
@@ -66,6 +74,16 @@ const AboutPage: React.FC = () => {
           </button>
           {copyState === 'copied' && <p className="about-copy-status" role="status">Ready to paste into a bug report.</p>}
           {copyState === 'error' && <p className="about-copy-error" role="alert">Could not access the clipboard. Please try again.</p>}
+        </section>
+
+        <section className="about-card about-cache" aria-labelledby="cache-heading">
+          <header><p>Troubleshooting</p><h2 id="cache-heading">Refresh Local Cache</h2></header>
+          <span>Clears temporary startup snapshots and AI answers on this device. Your Supabase health records, plans, meals, and profile stay untouched.</span>
+          <button type="button" onClick={clearCachedData}>
+            <IonIcon icon={cacheCleared ? checkmarkCircleOutline : refreshOutline} aria-hidden="true" />
+            {cacheCleared ? 'Cached Data Cleared' : 'Clear Cached Data'}
+          </button>
+          {cacheCleared && <p className="about-copy-status" role="status">RunMate will load fresh data the next time each page opens.</p>}
         </section>
       </main>
     </IonContent>
