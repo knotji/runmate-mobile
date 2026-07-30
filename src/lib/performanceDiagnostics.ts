@@ -17,6 +17,7 @@ export type PerformanceDiagnosticPhase =
   | 'race_goal'
   | 'weekly_summary'
   | 'body_weight_trend'
+  | 'pain_trends'
   | 'profile_settings'
   | 'privacy_export'
   | 'account_delete'
@@ -68,6 +69,7 @@ const PERFORMANCE_BUDGETS_MS: Partial<Record<PerformanceDiagnosticPhase, number>
   race_goal: 2500,
   weekly_summary: 2500,
   body_weight_trend: 2500,
+  pain_trends: 2500,
   profile_settings: 2500,
   ai_coach_context: 2500,
 };
@@ -153,6 +155,7 @@ export function getPerformanceDiagnosticSummaries(): PerformanceDiagnosticSummar
     'race_goal',
     'weekly_summary',
     'body_weight_trend',
+    'pain_trends',
     'profile_settings',
     'privacy_export',
     'account_delete',
@@ -182,7 +185,7 @@ export function performanceBudgetMs(phase: PerformanceDiagnosticPhase): number |
 function isPerformanceDiagnosticEntry(value: unknown): value is PerformanceDiagnosticEntry {
   if (!value || typeof value !== 'object') return false;
   const entry = value as Partial<PerformanceDiagnosticEntry>;
-  return ['health_sync', 'recovery_core', 'recovery_secondary', 'activity_health_sync', 'activity_records', 'activity_archive', 'activity_nutrition', 'nutrition_trends', 'recovery_trends', 'meal_detail', 'workout_detail', 'sleep_window', 'weekly_plan', 'race_goal', 'weekly_summary', 'body_weight_trend', 'profile_settings', 'privacy_export', 'account_delete', 'ai_coach_context', 'ai_coach_answer'].includes(entry.phase ?? '')
+  return ['health_sync', 'recovery_core', 'recovery_secondary', 'activity_health_sync', 'activity_records', 'activity_archive', 'activity_nutrition', 'nutrition_trends', 'recovery_trends', 'meal_detail', 'workout_detail', 'sleep_window', 'weekly_plan', 'race_goal', 'weekly_summary', 'body_weight_trend', 'pain_trends', 'profile_settings', 'privacy_export', 'account_delete', 'ai_coach_context', 'ai_coach_answer'].includes(entry.phase ?? '')
     && typeof entry.at === 'string'
     && typeof entry.durationMs === 'number'
     && ['success', 'skipped', 'failed'].includes(entry.status ?? '')

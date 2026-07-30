@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
 import { alertCircleOutline, arrowBackOutline, checkmarkCircleOutline, informationCircleOutline, trendingDownOutline, trendingUpOutline } from 'ionicons/icons';
@@ -6,7 +6,8 @@ import { loadHistoryItems } from '@/lib/cloudHistory';
 import { todayBangkokDateKey } from '@/lib/date';
 import { buildPainTrend, type PainTrendLog, type PainTrendPoint } from '@/lib/painTrends';
 import type { LocalHistoryItem } from '@/lib/localHistory';
-import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
+import { loadPainTrendsStartupSnapshot, savePainTrendsStartupSnapshot } from '@/lib/painTrendsStartupCache';
+import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import './PainTrendsPage.css';
@@ -14,15 +15,44 @@ import './PainTrendsPage.css';
 const PainTrendsPage: React.FC = () => {
   const history = useHistory();
   const [days, setDays] = useState<7 | 30>(7);
+  const [startupTrends] = useState(() => loadPainTrendsStartupSnapshot());
   const [items, setItems] = useState<LocalHistoryItem[] | null>(null);
+  const [loading, setLoading] = useState(() => startupTrends === null);
+  const [error, setError] = useState<string | null>(null);
+  const activeLoadRef = useRef<Promise<void> | null>(null);
 
-  const { loading, error, reload: load } = useAsyncLoad(async () => {
-    const result = await loadHistoryItems(['pain']);
-    if (!result.ok) throw new Error(result.error ?? 'Could Not Load Pain History.');
-    setItems(result.items);
-  }, 'Could Not Load Pain Trends.');
+  const load = useCallback(async () => {
+    if (activeLoadRef.current) return activeLoadRef.current;
+    const operation = (async () => {
+      setError(null);
+      const result = await measurePerformanceDiagnostic(
+        'pain_trends',
+        () => loadHistoryItems(['pain']),
+        (value) => ({
+          status: value.ok ? 'success' : 'failed',
+          detail: value.ok ? `${value.items.length} pain reports prepared` : value.error,
+        }),
+      );
+      if (result.ok) {
+        const today = todayBangkokDateKey();
+        setItems(result.items);
+        savePainTrendsStartupSnapshot({
+          sevenDay: buildPainTrend(result.items, 7, today),
+          thirtyDay: buildPainTrend(result.items, 30, today),
+        });
+      } else {
+        setError(result.error);
+      }
+      setLoading(false);
+    })().finally(() => { activeLoadRef.current = null; });
+    activeLoadRef.current = operation;
+    return operation;
+  }, []);
 
-  const trend = useMemo(() => items ? buildPainTrend(items, days, todayBangkokDateKey()) : null, [items, days]);
+  useEffect(() => { void load(); }, [load]);
+  const trend = useMemo(() => items
+    ? buildPainTrend(items, days, todayBangkokDateKey())
+    : days === 7 ? startupTrends?.sevenDay ?? null : startupTrends?.thirtyDay ?? null, [items, days, startupTrends]);
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(); event.detail.complete(); };
 
   return <IonPage>
@@ -39,7 +69,7 @@ const PainTrendsPage: React.FC = () => {
           <button type="button" className={days === 30 ? 'active' : ''} aria-pressed={days === 30} onClick={() => setDays(30)}>30 Days</button>
         </div>
         {loading && <PageDataSkeleton variant="trends" label="Building Your Pain Trend" />}
-        {!loading && error && <PageState kind="error" title="Trend Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="pain-trends-state" />}
+        {!loading && error && !trend && <PageState kind="error" title="Trend Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="pain-trends-state" />}
         {!loading && trend && <>
           <section className="pain-chart-card" aria-labelledby="pain-chart-heading">
             <div className="pain-section-heading"><div><p>Last {days} Days</p><h2 id="pain-chart-heading">Pain Level At A Glance</h2></div><Coverage points={trend.points} /></div>
