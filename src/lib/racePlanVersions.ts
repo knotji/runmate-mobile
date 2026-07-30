@@ -29,7 +29,7 @@ export function prepareActivePlanVersion(
   options: { restoredFromPlanId?: string | null } = {},
 ): RacePlan {
   const active = versions.find((version) => version.status === 'active') ?? versions[0] ?? null;
-  const nextVersion = Math.max(0, ...versions.map((version) => version.version)) + 1;
+  const nextVersion = Math.max(0, ...versions.map((version) => version.plan.planVersion ?? 0)) + 1;
   return {
     ...plan,
     storageId: null,
@@ -37,6 +37,18 @@ export function prepareActivePlanVersion(
     planStatus: 'active',
     supersedesPlanId: active?.id ?? plan.storageId ?? null,
     restoredFromPlanId: options.restoredFromPlanId ?? null,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export function prepareLegacyActivePlanVersion(plan: RacePlan): RacePlan {
+  return {
+    ...plan,
+    storageId: null,
+    planVersion: 1,
+    planStatus: 'active',
+    supersedesPlanId: plan.storageId ?? null,
+    restoredFromPlanId: null,
     updatedAt: new Date().toISOString(),
   };
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   IonButton,
@@ -24,7 +24,7 @@ import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { useRacePlanStore } from '@/lib/race/racePlanStore';
 import { generateRacePlan } from '@/lib/racePlanGeneration';
 import { mergeRefreshedRacePlan } from '@/lib/racePlanRefresh';
-import { buildRacePlanDiff, prepareActivePlanVersion, type RacePlanChange } from '@/lib/racePlanVersions';
+import { buildRacePlanDiff, prepareActivePlanVersion, prepareLegacyActivePlanVersion, type RacePlanChange } from '@/lib/racePlanVersions';
 import { applyProfilePreferencesToRaceGoal } from '@/lib/raceProfilePreferences';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
@@ -61,7 +61,13 @@ const RaceGoalPage: React.FC = () => {
   const [refreshConfirmOpen, setRefreshConfirmOpen] = useState(false);
   const [refreshingPlan, setRefreshingPlan] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
-  const [planPreview, setPlanPreview] = useState<{ goal: RaceGoal; plan: RacePlan; changes: RacePlanChange[] } | null>(null);
+  const [planPreview, setPlanPreview] = useState<{
+    goal: RaceGoal;
+    plan: RacePlan;
+    changes: RacePlanChange[];
+    mode: 'refresh' | 'restore';
+    restoredFromPlanId?: string;
+  } | null>(null);
   const [applyingPlan, setApplyingPlan] = useState(false);
   const [planHistoryOpen, setPlanHistoryOpen] = useState(false);
   const [planVersions, setPlanVersions] = useState<RacePlanVersion[]>([]);
@@ -69,6 +75,7 @@ const RaceGoalPage: React.FC = () => {
   const [selectedWorkout, setSelectedWorkout] = useState<WeekWorkout | null>(null);
   const [adherence, setAdherence] = useState<TrainingAdherence | null>(null);
   const [adherenceOpen, setAdherenceOpen] = useState(false);
+  const legacyMigrationRef = useRef(false);
   const hasPreparedRace = raceStoreUpdatedAt != null;
 
   const loadRaceHistory = useCallback(async () => {
@@ -85,7 +92,21 @@ const RaceGoalPage: React.FC = () => {
       () => ({ detail: 'Active race, plan, and adherence prepared' }),
     );
     if (result.ok) {
-      const summary = result.goal ? buildMobileRaceSummary(result.goal, result.plan, todayBangkokDateKey()) : null;
+      let activeGoal = result.goal;
+      let activePlan = result.plan;
+      if (activeGoal && activePlan && activePlan.planStatus !== 'active' && !legacyMigrationRef.current) {
+        legacyMigrationRef.current = true;
+        const migrated = await saveRaceGoalAndPlan(activeGoal, prepareLegacyActivePlanVersion(activePlan));
+        if (migrated.ok) {
+          activeGoal = migrated.goal;
+          activePlan = migrated.plan;
+          useRacePlanStore.getState().setRacePlan(activeGoal, activePlan);
+        } else {
+          legacyMigrationRef.current = false;
+          setRefreshError(`Plan history setup is pending: ${migrated.error}`);
+        }
+      }
+      const summary = activeGoal ? buildMobileRaceSummary(activeGoal, activePlan, todayBangkokDateKey()) : null;
       setAdherence(summary && workoutHistory.ok ? buildTrainingAdherence(summary.workouts, dedupeWorkoutItems(workoutHistory.items), todayBangkokDateKey()) : null);
     } else {
       setError(result.error);
@@ -111,7 +132,7 @@ const RaceGoalPage: React.FC = () => {
       const nextGoal = useLatestProfile && context.profile ? applyProfilePreferencesToRaceGoal(goal, context.profile as UserProfile) : goal;
       const generatedPlan = await generateRacePlan(nextGoal, context);
       const nextPlan = plan ? mergeRefreshedRacePlan(plan, generatedPlan, today) : generatedPlan;
-      setPlanPreview({ goal: nextGoal, plan: nextPlan, changes: plan ? buildRacePlanDiff(plan, nextPlan) : [] });
+      setPlanPreview({ goal: nextGoal, plan: nextPlan, changes: plan ? buildRacePlanDiff(plan, nextPlan) : [], mode: 'refresh' });
     } catch (refreshFailure) {
       setRefreshError(refreshFailure instanceof Error ? refreshFailure.message : 'Could Not Refresh This Plan. Please Try Again.');
     } finally {
@@ -125,7 +146,9 @@ const RaceGoalPage: React.FC = () => {
     try {
       const versionsResult = await loadRacePlanVersions(planPreview.goal.id);
       if (!versionsResult.ok) throw new Error(versionsResult.error);
-      const versionedPlan = prepareActivePlanVersion(planPreview.plan, versionsResult.versions);
+      const versionedPlan = prepareActivePlanVersion(planPreview.plan, versionsResult.versions, {
+        restoredFromPlanId: planPreview.restoredFromPlanId ?? null,
+      });
       const saved = await saveRaceGoalAndPlan(planPreview.goal, versionedPlan);
       if (!saved.ok) throw new Error(saved.error);
       setPlanPreview(null);
@@ -146,20 +169,16 @@ const RaceGoalPage: React.FC = () => {
     setPlanHistoryLoading(false);
   };
 
-  const restorePlanVersion = async (version: RacePlanVersion) => {
-    if (!goal || applyingPlan) return;
-    setApplyingPlan(true); setRefreshError(null);
-    try {
-      const restored = prepareActivePlanVersion(version.plan, planVersions, { restoredFromPlanId: version.id });
-      const saved = await saveRaceGoalAndPlan(goal, restored);
-      if (!saved.ok) throw new Error(saved.error);
-      setPlanHistoryOpen(false);
-      await load();
-    } catch (restoreFailure) {
-      setRefreshError(restoreFailure instanceof Error ? restoreFailure.message : 'Could Not Restore This Plan Version.');
-    } finally {
-      setApplyingPlan(false);
-    }
+  const previewPlanRestore = (version: RacePlanVersion) => {
+    if (!goal || !plan || applyingPlan) return;
+    setPlanHistoryOpen(false);
+    setPlanPreview({
+      goal,
+      plan: version.plan,
+      changes: buildRacePlanDiff(plan, version.plan),
+      mode: 'restore',
+      restoredFromPlanId: version.id,
+    });
   };
 
   return (
@@ -302,8 +321,8 @@ const RaceGoalPage: React.FC = () => {
       <WorkoutPlanDetail workout={selectedWorkout} onClose={() => setSelectedWorkout(null)} />
       <IonModal isOpen={Boolean(planPreview)} onDidDismiss={() => !applyingPlan && setPlanPreview(null)} className="race-version-modal">
         <div className="race-version-sheet">
-          <header><div><p>PLAN PREVIEW</p><h2>Review Changes Before Applying</h2></div><button type="button" disabled={applyingPlan} onClick={() => setPlanPreview(null)}>Close</button></header>
-          <p className="race-version-help">Your current plan remains active until you apply this version.</p>
+          <header><div><p>{planPreview?.mode === 'restore' ? 'RESTORE PREVIEW' : 'PLAN PREVIEW'}</p><h2>Review Changes Before Applying</h2></div><button type="button" disabled={applyingPlan} onClick={() => setPlanPreview(null)}>Close</button></header>
+          <p className="race-version-help">{planPreview?.mode === 'restore' ? 'Compare this saved plan with your current schedule. Restoring creates a new version and keeps both originals.' : 'Your current plan remains active until you apply this version.'}</p>
           {refreshError && <div className="race-refresh-error" role="alert">{refreshError}</div>}
           <div className="race-plan-diff">
             {planPreview?.changes.map((change) => <article key={change.day} className={`change-${change.kind}`}>
@@ -312,7 +331,7 @@ const RaceGoalPage: React.FC = () => {
               <small>{change.kind === 'unchanged' ? 'Schedule preserved; coaching details may be updated.' : 'Schedule change'}</small>
             </article>)}
           </div>
-          <footer><button type="button" disabled={applyingPlan} onClick={() => setPlanPreview(null)}>Keep Current Plan</button><button type="button" disabled={applyingPlan} onClick={() => void applyPlanPreview()}>{applyingPlan ? 'Applying…' : 'Apply New Version'}</button></footer>
+          <footer><button type="button" disabled={applyingPlan} onClick={() => setPlanPreview(null)}>Keep Current Plan</button><button type="button" disabled={applyingPlan} onClick={() => void applyPlanPreview()}>{applyingPlan ? 'Applying…' : planPreview?.mode === 'restore' ? 'Restore As New Version' : 'Apply New Version'}</button></footer>
         </div>
       </IonModal>
       <IonModal isOpen={planHistoryOpen} onDidDismiss={() => setPlanHistoryOpen(false)} className="race-version-modal">
@@ -323,10 +342,10 @@ const RaceGoalPage: React.FC = () => {
           {planHistoryLoading ? <div className="race-version-loading"><IonSpinner name="crescent" />Loading Versions…</div> : (
             <div className="race-version-list">
               {planVersions.map((version) => <article key={version.id}>
-                <div><strong>Version {version.version}</strong><span>{version.status === 'active' ? 'Active' : version.status === 'legacy' ? 'Previous' : version.status}</span></div>
+                <div><strong>{version.status === 'legacy' ? 'Imported Plan' : `Version ${version.version}`}</strong><span>{version.status === 'active' ? 'Active' : version.status === 'legacy' ? 'Previous' : version.status}</span></div>
                 <p>{formatVersionWeek(version.plan.weeklyPlan ?? [])}</p>
                 <small>{formatPlanUpdated(version.createdAt)}</small>
-                <button type="button" disabled={applyingPlan || version.status === 'active'} onClick={() => void restorePlanVersion(version)}>{version.status === 'active' ? 'Current Plan' : 'Restore This Version'}</button>
+                <button type="button" disabled={applyingPlan || version.status === 'active'} onClick={() => previewPlanRestore(version)}>{version.status === 'active' ? 'Current Plan' : 'Compare And Restore'}</button>
               </article>)}
             </div>
           )}
