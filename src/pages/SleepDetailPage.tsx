@@ -8,12 +8,14 @@ import { buildSleepDiagnostics } from '@/lib/sleepDiagnostics';
 import { calculateRunMateSleepScore } from '@/lib/runMateSleepScore';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
+import { DataFreshnessStatus } from '@/components/DataFreshnessStatus';
 import { RecordReliability, SleepHeartRate, SleepScoreBreakdown, SleepStages } from '@/components/health/SleepDetailSections';
 import { formatDisplayDate, formatEfficiency, formatOptionalMinutes, formatScore, toSleepScoreNight } from '@/lib/sleepDetailFormatting';
 import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
 import { loadRecoveryContextStartupEntry, saveRecoveryContextStartupSnapshot } from '@/lib/recoveryStartupCache';
 import { requiresFullSleepHistory } from '@/lib/sleepDetailLoad';
 import { recoveryDataStatusCopy, resolveRecoveryDataStatus } from '@/lib/recoveryDataFreshness';
+import { healthDataErrorCopy, isHealthConnectPermissionError } from '@/lib/dataLoadState';
 import './SleepDetailPage.css';
 
 const SleepDetailPage: React.FC = () => {
@@ -77,6 +79,7 @@ const SleepDetailPage: React.FC = () => {
     refreshFailed,
   });
   const dataStatusCopy = recoveryDataStatusCopy(dataStatus, lastSuccessfulAt);
+  const loadErrorCopy = healthDataErrorCopy(error, 'Sleep Details Are Unavailable');
 
   const moveToNight = (date: string | undefined) => {
     if (!date || date === selectedNight?.date) return;
@@ -96,14 +99,17 @@ const SleepDetailPage: React.FC = () => {
       <IonContent fullscreen className="sleep-detail-content">
         <main className="sleep-detail-shell">
           {loading && !visibleContext && <PageDataSkeleton variant="detail" label="Loading Sleep Details" />}
-          {!loading && error && !visibleContext && <PageState kind="error" title="Sleep Details Are Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="sleep-detail-loading" />}
+          {!loading && error && !visibleContext && <PageState
+            kind="error"
+            title={loadErrorCopy.title}
+            detail={loadErrorCopy.detail}
+            actionLabel={loadErrorCopy.actionLabel}
+            onAction={() => isHealthConnectPermissionError(error) ? history.push('/health-connect') : void load()}
+            className="sleep-detail-loading"
+          />}
           {visibleContext && recovery && diagnostics && (
             <>
-              <div className={`sleep-data-freshness sleep-data-freshness-${dataStatus}`} role="status">
-                <i />
-                <span>{dataStatusCopy.detail}</span>
-                {(dataStatus === 'stale' || dataStatus === 'fallback') && <button type="button" onClick={() => void load(true)}>Retry</button>}
-              </div>
+              <DataFreshnessStatus status={dataStatus} detail={dataStatusCopy.detail} onRetry={() => void load(true)} />
               {selectedNight && (
                 <nav className={`sleep-date-navigator${!isLatestNight ? ' has-current' : ''}`} aria-label="Choose sleep night">
                   <button

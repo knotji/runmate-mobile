@@ -10,6 +10,7 @@ import { loadBodyWeightTrendStartupSnapshot, saveBodyWeightTrendStartupSnapshot 
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
+import { DataFreshnessStatus } from '@/components/DataFreshnessStatus';
 import './BodyWeightTrendPage.css';
 
 const BodyWeightTrendPage: React.FC = () => {
@@ -24,6 +25,7 @@ const BodyWeightTrendPage: React.FC = () => {
   const load = useCallback(async () => {
     if (activeLoadRef.current) return activeLoadRef.current;
     const operation = (async () => {
+      setLoading(true);
       setError(null);
       const result = await measurePerformanceDiagnostic(
         'body_weight_trend',
@@ -68,12 +70,14 @@ const BodyWeightTrendPage: React.FC = () => {
           <button type="button" className={days === 7 ? 'active' : ''} aria-pressed={days === 7} onClick={() => setDays(7)}>7 Days</button>
           <button type="button" className={days === 30 ? 'active' : ''} aria-pressed={days === 30} onClick={() => setDays(30)}>30 Days</button>
         </div>
-        {loading && <PageDataSkeleton variant="trends" label="Building Your Body Weight Trend" />}
+        {loading && !trend && <PageDataSkeleton variant="trends" label="Building Your Body Weight Trend" />}
+        {trend && loading && <DataFreshnessStatus status="refreshing" detail="Refreshing body-weight readings…" />}
+        {trend && !loading && error && <DataFreshnessStatus status="fallback" label="Saved Data" detail="Refresh unavailable · Showing your last loaded weight trend" onRetry={() => void load()} variant="panel" />}
         {!loading && error && !trend && <PageState kind="error" title="Trend Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="body-trend-state" />}
-        {!loading && trend && trend.logs.length === 0 && (
-          <PageState kind="empty" icon={scaleOutline} title="No Weigh-Ins Yet" detail="Connect a smart scale through Health Connect, or log your Body Weight in Profile & Settings, to build a trend here." className="body-trend-state" />
+        {trend && trend.logs.length === 0 && (
+          <PageState kind="empty" icon={scaleOutline} title="No Weigh-Ins Yet" detail="RunMate loaded this range successfully, but found no weight readings. Check Health Connect access or add Body Weight in Profile & Settings." actionLabel="Check Health Connect" onAction={() => history.push('/health-connect')} className="body-trend-state" />
         )}
-        {!loading && trend && trend.logs.length > 0 && <>
+        {trend && trend.logs.length > 0 && <>
           <section className="body-trend-chart-card" aria-labelledby="body-trend-chart-heading">
             <div className="body-trend-section-heading"><div><p>Last {days} Days</p><h2 id="body-trend-chart-heading">Body Weight At A Glance</h2></div><Coverage points={trend.points} /></div>
             <BodyWeightSummary trend={trend} />
@@ -128,7 +132,9 @@ function BodyWeightChart({ points }: { points: BodyWeightTrendPoint[] }) {
   points.forEach((point, index) => { if (point.weightKg != null) latestIndex = index; });
 
   return <div className="body-trend-chart-wrap">
-    <svg className="body-trend-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Body weight trend chart">
+    <svg className="body-trend-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby="body-trend-chart-title body-trend-chart-description">
+      <title id="body-trend-chart-title">Body weight trend chart</title>
+      <desc id="body-trend-chart-description">{values.length} weight readings in this window, from {min.toFixed(1)} to {max.toFixed(1)} kilograms.</desc>
       {gridValues.map((value) => <g key={value}>
         <line x1={left} x2={width - right} y1={y(value)} y2={y(value)} className="body-trend-grid-line" />
         <text x={left - 4} y={y(value) + 3} textAnchor="end" className="body-trend-grid-label">{value.toFixed(1)}</text>

@@ -10,6 +10,7 @@ import { loadPainTrendsStartupSnapshot, savePainTrendsStartupSnapshot } from '@/
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
+import { DataFreshnessStatus } from '@/components/DataFreshnessStatus';
 import './PainTrendsPage.css';
 
 const PainTrendsPage: React.FC = () => {
@@ -24,6 +25,7 @@ const PainTrendsPage: React.FC = () => {
   const load = useCallback(async () => {
     if (activeLoadRef.current) return activeLoadRef.current;
     const operation = (async () => {
+      setLoading(true);
       setError(null);
       const result = await measurePerformanceDiagnostic(
         'pain_trends',
@@ -68,9 +70,12 @@ const PainTrendsPage: React.FC = () => {
           <button type="button" className={days === 7 ? 'active' : ''} aria-pressed={days === 7} onClick={() => setDays(7)}>7 Days</button>
           <button type="button" className={days === 30 ? 'active' : ''} aria-pressed={days === 30} onClick={() => setDays(30)}>30 Days</button>
         </div>
-        {loading && <PageDataSkeleton variant="trends" label="Building Your Pain Trend" />}
+        {loading && !trend && <PageDataSkeleton variant="trends" label="Building Your Pain Trend" />}
+        {trend && loading && <DataFreshnessStatus status="refreshing" detail="Refreshing pain and injury reports…" />}
+        {trend && !loading && error && <DataFreshnessStatus status="fallback" label="Saved Data" detail="Refresh unavailable · Showing your last loaded pain trend" onRetry={() => void load()} variant="panel" />}
         {!loading && error && !trend && <PageState kind="error" title="Trend Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="pain-trends-state" />}
-        {!loading && trend && <>
+        {trend && trend.logs.length === 0 && <PageState kind="empty" icon={checkmarkCircleOutline} title="No Pain Reports In This Range" detail="RunMate loaded this range successfully and found no pain or injury reports." className="pain-trends-state" />}
+        {trend && trend.logs.length > 0 && <>
           <section className="pain-chart-card" aria-labelledby="pain-chart-heading">
             <div className="pain-section-heading"><div><p>Last {days} Days</p><h2 id="pain-chart-heading">Pain Level At A Glance</h2></div><Coverage points={trend.points} /></div>
             <PainChart points={trend.points} />
@@ -110,11 +115,15 @@ function PainChart({ points }: { points: PainTrendPoint[] }) {
   const labels = points.length <= 7 ? [0, Math.floor(points.length / 2), points.length - 1] : [0, 9, 19, points.length - 1];
 
   return <div className="pain-chart-wrap">
-    <svg className="pain-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Pain level trend chart">
+    <svg className="pain-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby="pain-chart-title pain-chart-description">
+      <title id="pain-chart-title">Pain level trend chart</title>
+      <desc id="pain-chart-description">{points.filter((point) => point.painLevel != null).length} logged days in this window. Pain is scored from zero to ten.</desc>
       {[0, 5, 10].map((value) => <line key={value} x1={left} x2={width - right} y1={y(value)} y2={y(value)} className="pain-grid-line" />)}
       {segments.map((path, index) => <path key={index} d={path} className="pain-line" />)}
       {points.map((point, index) => point.painLevel == null ? null : (
-        <circle key={point.date} cx={x(index)} cy={y(point.painLevel)} r={3} className={`pain-dot ${point.status === 'resolved' ? 'resolved' : 'active'}`} />
+        <circle key={point.date} cx={x(index)} cy={y(point.painLevel)} r={3} className={`pain-dot ${point.status === 'resolved' ? 'resolved' : 'active'}`}>
+          <title>{formatChartDate(point.date)}: pain {point.painLevel} of 10, {point.status}</title>
+        </circle>
       ))}
       {labels.map((index) => <text key={index} x={x(index)} y={height - 4} textAnchor={index === 0 ? 'start' : index === points.length - 1 ? 'end' : 'middle'}>{formatChartDate(points[index]?.date)}</text>)}
     </svg>

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { buildSupportDiagnostics } from './aboutDiagnostics';
+import { buildSupportDiagnostics, getReleaseHealthSnapshot } from './aboutDiagnostics';
 import { recordPerformanceDiagnostic } from './performanceDiagnostics';
 import { useRacePlanStore } from './race/racePlanStore';
 
@@ -45,5 +45,16 @@ describe('About diagnostics', () => {
     expect(result.racePlan).toMatchObject({ version: 3, status: 'active' });
     expect(result.latestFailures).toEqual([{ phase: 'health_sync', at: expect.any(String) }]);
     expect(JSON.stringify(result)).not.toContain('private provider error');
+  });
+
+  it('summarizes privacy-safe release health without record values', () => {
+    window.localStorage.setItem('runmate:today-health-last-completed-at', String(Date.parse('2026-07-30T01:00:00.000Z')));
+    recordPerformanceDiagnostic('pain_trends', 640, 'success', 'private detail');
+
+    expect(getReleaseHealthSnapshot('2026-07-30T02:00:00.000Z')).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key: 'health_sync', status: 'ready', detail: 'Last completed 1h ago' }),
+      expect.objectContaining({ key: 'performance', status: 'ready', detail: 'Pain Trends · 640 ms' }),
+    ]));
+    expect(JSON.stringify(getReleaseHealthSnapshot('2026-07-30T02:00:00.000Z'))).not.toContain('private detail');
   });
 });

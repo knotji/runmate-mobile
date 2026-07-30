@@ -6,6 +6,7 @@ import { Capacitor, type PluginListenerHandle } from '@capacitor/core';
 import { Keyboard } from '@capacitor/keyboard';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
+import { DataFreshnessStatus } from '@/components/DataFreshnessStatus';
 import { AI_COACH_TOPICS, askAiCoach, askAiCoachChat, type AiCoachAnswer, type AiCoachTopic } from '@/lib/aiCoach';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
@@ -194,11 +195,13 @@ const AiCoachPage: React.FC = () => {
               <IonIcon icon={showContextDrawer ? chevronUpOutline : chevronDownOutline} />
             </button>
             {showContextDrawer && <div className="ai-coach-drawer-content">
-              <div className={`ai-coach-data-freshness ai-coach-data-freshness-${contextDataStatus}`}>
-                <IonIcon icon={contextDataStatus === 'stale' || contextDataStatus === 'fallback' ? warningOutline : checkmarkCircleOutline} />
-                <span>{contextStatusCopy.detail}{contextDataStatus === 'stale' || contextDataStatus === 'fallback' ? ' · Training-load changes are paused.' : ''}</span>
-                {(contextDataStatus === 'stale' || contextDataStatus === 'fallback') && <button type="button" onClick={() => void loadContext()}>Retry</button>}
-              </div>
+              <DataFreshnessStatus
+                status={contextDataStatus}
+                detail={contextStatusCopy.detail}
+                note={contextDataStatus === 'stale' || contextDataStatus === 'fallback' ? 'Training-load changes are paused.' : undefined}
+                onRetry={() => void loadContext()}
+                variant="panel"
+              />
               <div className="ai-coach-context-grid">
                 <div><span>Recovery Score</span><strong>{displayContext.recoverySystem.overallScore}% ({displayContext.recoverySystem.overallLabel})</strong></div>
                 <div><span>Strain Score</span><strong>{displayContext.recoverySystem.strain.score} / 21</strong></div>

@@ -4,6 +4,7 @@ import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherCont
 import { arrowBackOutline, barChartOutline, fitnessOutline, restaurantOutline, sparklesOutline, trendingUpOutline } from 'ionicons/icons';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
+import { DataFreshnessStatus } from '@/components/DataFreshnessStatus';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { buildNutritionTrend, nutritionTrendHistoryOptions, type NutritionTrend, type NutritionTrendDay } from '@/lib/nutritionTrends';
@@ -24,6 +25,7 @@ const NutritionTrendsPage: React.FC = () => {
   const load = useCallback(async () => {
     if (activeLoadRef.current) return activeLoadRef.current;
     const operation = (async () => {
+      setLoading(true);
       setError(null);
       const result = await measurePerformanceDiagnostic(
         'nutrition_trends',
@@ -69,10 +71,12 @@ const NutritionTrendsPage: React.FC = () => {
           <button type="button" className={range === 30 ? 'active' : ''} aria-pressed={range === 30} onClick={() => setRange(30)}>30 Days</button>
         </div>
 
-        {loading && <PageDataSkeleton variant="nutrition" label="Building Your Nutrition Trends" />}
+        {loading && !trend && <PageDataSkeleton variant="nutrition" label="Building Your Nutrition Trends" />}
+        {trend && loading && <DataFreshnessStatus status="refreshing" detail="Refreshing nutrition records…" />}
+        {trend && !loading && error && <DataFreshnessStatus status="fallback" label="Saved Data" detail="Refresh unavailable · Showing your last loaded nutrition trend" onRetry={() => void load()} variant="panel" />}
         {!loading && error && !trend && <PageState kind="error" title="Nutrition Trends Are Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="nutrition-trends-state" />}
-        {!loading && trend && trend.loggedDays === 0 && <PageState kind="empty" icon={restaurantOutline} title="No Meals In This Range" detail="Log a meal to start building your nutrition trends." className="nutrition-trends-state" />}
-        {!loading && trend && trend.loggedDays > 0 && <TrendContent trend={trend} onAskCoach={() => history.push('/ai-coach')} />}
+        {trend && trend.loggedDays === 0 && <PageState kind="empty" icon={restaurantOutline} title="No Meals In This Range" detail="RunMate loaded this range successfully, but no meals were logged. Add a meal to start building nutrition trends." className="nutrition-trends-state" />}
+        {trend && trend.loggedDays > 0 && <TrendContent trend={trend} onAskCoach={() => history.push('/ai-coach')} />}
       </main>
     </IonContent>
   </IonPage>;

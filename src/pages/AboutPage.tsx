@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar } from '@ionic/react';
-import { arrowBackOutline, checkmarkCircleOutline, copyOutline, informationCircleOutline, refreshOutline } from 'ionicons/icons';
+import { alertCircleOutline, arrowBackOutline, checkmarkCircleOutline, copyOutline, informationCircleOutline, refreshOutline, timeOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
-import { buildSupportDiagnostics, getRunMateBuildInfo, type RunMateBuildInfo } from '@/lib/aboutDiagnostics';
+import { buildSupportDiagnostics, getReleaseHealthSnapshot, getRunMateBuildInfo, type ReleaseHealthRow, type RunMateBuildInfo } from '@/lib/aboutDiagnostics';
 import { copyToClipboard } from '@/lib/clipboard';
 import { clearRunMateCachedData } from '@/lib/appCache';
 import './AboutPage.css';
@@ -23,8 +23,12 @@ const AboutPage: React.FC = () => {
   });
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
   const [cacheCleared, setCacheCleared] = useState(false);
+  const [releaseHealth, setReleaseHealth] = useState<ReleaseHealthRow[]>(() => getReleaseHealthSnapshot());
 
-  useEffect(() => { void getRunMateBuildInfo().then(setInfo); }, []);
+  useEffect(() => {
+    void getRunMateBuildInfo().then(setInfo);
+    setReleaseHealth(getReleaseHealthSnapshot());
+  }, []);
 
   const copyDiagnostics = async () => {
     try {
@@ -38,6 +42,7 @@ const AboutPage: React.FC = () => {
 
   const clearCachedData = () => {
     clearRunMateCachedData();
+    setReleaseHealth(getReleaseHealthSnapshot());
     setCacheCleared(true);
     window.setTimeout(() => setCacheCleared(false), 2400);
   };
@@ -63,6 +68,20 @@ const AboutPage: React.FC = () => {
         <section className="about-card" aria-labelledby="release-notes-heading">
           <header><p>Release Notes</p><h2 id="release-notes-heading">What’s New In This Build</h2></header>
           <ul>{releaseNotes.map((note) => <li key={note}><IonIcon icon={checkmarkCircleOutline} aria-hidden="true" /><span>{note}</span></li>)}</ul>
+        </section>
+
+        <section className="about-card about-health" aria-labelledby="release-health-heading">
+          <header><p>Release Health</p><h2 id="release-health-heading">Device Readiness</h2></header>
+          <span>Privacy-safe operational checks only. No health measurements or account records are shown.</span>
+          <div className="about-health-list">
+            {releaseHealth.map((row) => <div key={row.key} className={`status-${row.status}`}>
+              <IonIcon icon={row.status === 'ready' ? checkmarkCircleOutline : row.status === 'attention' ? alertCircleOutline : timeOutline} aria-hidden="true" />
+              <span><strong>{row.label}</strong><small>{row.detail}</small></span>
+            </div>)}
+          </div>
+          <button type="button" onClick={() => setReleaseHealth(getReleaseHealthSnapshot())} aria-label="Refresh release health checks">
+            <IonIcon icon={refreshOutline} aria-hidden="true" />Refresh Checks
+          </button>
         </section>
 
         <section className="about-card about-support" aria-labelledby="support-heading">

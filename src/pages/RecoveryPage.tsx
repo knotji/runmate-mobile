@@ -23,6 +23,7 @@ import { useHealthSyncStore } from '@/lib/health/healthSyncStore';
 import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
 import { TodayTrainingPlanCard } from '@/components/TodayTrainingPlanCard';
 import { PageState } from '@/components/PageState';
+import { DataFreshnessStatus } from '@/components/DataFreshnessStatus';
 import { RecoveryDials, RecoveryLoadingDials, RecoveryPlan, RecoverySecondaryError, RecoverySecondaryLoading } from '@/components/health/RecoveryDialsView';
 import { loadTonightSleepCycleOverride, loadTonightWakeOverride, type SleepCycleCount } from '@/lib/sleepWindow';
 import { loadDefaultWakeTime, loadTonightWakePlan } from '@/lib/sleepWindowStorage';
@@ -37,6 +38,7 @@ import {
   saveRecoveryStartupSnapshot,
 } from '@/lib/recoveryStartupCache';
 import { recoveryDataStatusCopy, resolveRecoveryDataStatus } from '@/lib/recoveryDataFreshness';
+import { healthDataErrorCopy, isHealthConnectPermissionError } from '@/lib/dataLoadState';
 import './RecoveryPage.css';
 
 const RecoveryPage: React.FC = () => {
@@ -261,6 +263,7 @@ const RecoveryPage: React.FC = () => {
   const visibleContext = secondaryLoading && startupContext ? startupContext : context ?? startupContext;
   const dataStatus = resolveRecoveryDataStatus({ savedAt: lastSuccessfulAt, refreshing: refreshingData, refreshFailed, now: freshnessNow });
   const dataStatusCopy = recoveryDataStatusCopy(dataStatus, lastSuccessfulAt);
+  const loadErrorCopy = healthDataErrorCopy(error, 'Recovery Is Unavailable');
 
   return (
     <IonPage>
@@ -280,14 +283,24 @@ const RecoveryPage: React.FC = () => {
         </IonRefresher>
         <main className="recovery-shell metrics-only-shell">
           {loading && !visibleRecovery && <RecoveryLoadingDials stage={loadingStage} />}
-          {!loading && error && !visibleRecovery && <PageState kind="error" title="Recovery Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void retryRecovery()} className="state-panel error-panel" />}
+          {!loading && error && !visibleRecovery && <PageState
+            kind="error"
+            title={loadErrorCopy.title}
+            detail={loadErrorCopy.detail}
+            actionLabel={loadErrorCopy.actionLabel}
+            onAction={() => isHealthConnectPermissionError(error) ? history.push('/health-connect') : void retryRecovery()}
+            className="state-panel error-panel"
+          />}
           {visibleRecovery && (
             <>
-              {dataStatus === 'fallback' && <div className="recovery-data-status recovery-data-status-fallback" role="status" aria-live="polite">
-                <span>{dataStatusCopy.label}</span>
-                <small>{dataStatusCopy.detail}</small>
-                <button type="button" onClick={() => void retryRecovery()}>Retry</button>
-              </div>}
+              {dataStatus === 'fallback' && <DataFreshnessStatus
+                status={dataStatus}
+                label={dataStatusCopy.label}
+                detail={dataStatusCopy.detail}
+                onRetry={() => void retryRecovery()}
+                variant="panel"
+                className="recovery-freshness-status"
+              />}
               <RecoveryDials
                 recovery={visibleRecovery}
                 onRecoveryClick={() => history.push('/recovery-trends')}
