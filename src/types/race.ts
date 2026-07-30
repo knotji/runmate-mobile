@@ -63,6 +63,19 @@ export type RacePlan = {
   } | null;
   createdAt?: string | null;
   updatedAt?: string | null;
+  storageId?: string | null;
+  planVersion?: number | null;
+  planStatus?: "active" | "draft" | "archived" | null;
+  supersedesPlanId?: string | null;
+  restoredFromPlanId?: string | null;
+};
+
+export type RacePlanVersion = {
+  id: string;
+  version: number;
+  status: "active" | "draft" | "archived" | "legacy";
+  createdAt: string | null;
+  plan: RacePlan;
 };
 
 export type GoalResult = "completed" | "achieved" | "missed" | "unknown";

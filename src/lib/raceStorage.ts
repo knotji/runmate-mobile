@@ -5,10 +5,11 @@ import {
   logSupabaseSyncStart,
   logSupabaseSyncSuccess,
 } from "@/lib/supabase/debug";
-import type { RaceGoal, RacePlan } from "@/types/race";
+import type { RaceGoal, RacePlan, RacePlanVersion } from "@/types/race";
 import { todayBangkokDateKey } from "@/lib/date";
 import { useRacePlanStore } from "@/lib/race/racePlanStore";
 import { reconcileRacePlanSnapshots } from "@/lib/racePlanRefresh";
+import { prepareActivePlanVersion } from "@/lib/racePlanVersions";
 
 type RaceGoalRow = {
   id: string;
@@ -91,10 +92,9 @@ export async function loadActiveRaceGoalAndPlan(): Promise<
   const rows = (planRows ?? []) as TrainingPlanRow[];
   logSupabaseSyncSuccess({ table: "training_plans", operation: "select", userId: session.userId, count: rows.length });
 
-  const plan = reconcileRacePlanSnapshots(
-    rows.map(planRowToPlan).filter((candidate): candidate is RacePlan => candidate !== null),
-    todayBangkokDateKey(),
-  );
+  const mappedPlans = rows.map(planRowToPlan).filter((candidate): candidate is RacePlan => candidate !== null);
+  const plan = mappedPlans.find((candidate) => candidate.planStatus === "active")
+    ?? reconcileRacePlanSnapshots(mappedPlans, todayBangkokDateKey());
   if (requestId === latestRacePlanRequestId) useRacePlanStore.getState().setRacePlan(goal, plan);
   return { ok: true, goal, plan };
 }
@@ -136,17 +136,21 @@ export async function saveRaceGoalAndPlan(goal: RaceGoal, plan: RacePlan): Promi
   logSupabaseSyncSuccess({ table: "race_goals", operation: "upsert", userId: session.userId, count: 1 });
 
   const savedGoalObj = rowToGoal(savedGoal as RaceGoalRow);
-  const startDate = plan.planStartDate?.slice(0, 10) || todayBangkokDateKey();
+  const versionsResult = await loadRacePlanVersions(savedGoalObj.id);
+  const versionedPlan = plan.planStatus === "active" && plan.planVersion
+    ? plan
+    : prepareActivePlanVersion(plan, versionsResult.ok ? versionsResult.versions : []);
+  const startDate = versionedPlan.planStartDate?.slice(0, 10) || todayBangkokDateKey();
   const endDate = goal.raceDate || startDate;
   const planPayload = {
     user_id: session.userId,
     race_goal_id: savedGoalObj.id,
     start_date: startDate,
     end_date: endDate,
-    total_weeks: plan.totalWeeks,
-    current_phase: plan.currentPhase,
-    plan_summary: plan.planSummary,
-    phases_json: plan,
+    total_weeks: versionedPlan.totalWeeks,
+    current_phase: versionedPlan.currentPhase,
+    plan_summary: versionedPlan.planSummary,
+    phases_json: versionedPlan,
     updated_at: new Date().toISOString(),
   };
 
@@ -161,7 +165,44 @@ export async function saveRaceGoalAndPlan(goal: RaceGoal, plan: RacePlan): Promi
   }
   logSupabaseSyncSuccess({ table: "training_plans", operation: "insert", userId: session.userId, count: 1 });
   window.dispatchEvent(new Event("runmate:cloud-data-updated"));
-  return { ok: true, goal: savedGoalObj, plan };
+  return { ok: true, goal: savedGoalObj, plan: versionedPlan };
+}
+
+export async function loadRacePlanVersions(raceGoalId: string | undefined): Promise<
+  | { ok: true; versions: RacePlanVersion[] }
+  | { ok: false; error: string }
+> {
+  if (!raceGoalId) return { ok: true, versions: [] };
+  const session = await ensureSupabaseProfileSession();
+  if (!session.ok) return { ok: false, error: sessionMessage(session) };
+  const { data, error } = await session.supabase
+    .from("training_plans")
+    .select("*")
+    .eq("user_id", session.userId)
+    .eq("race_goal_id", raceGoalId)
+    .order("created_at", { ascending: false })
+    .limit(1000);
+  if (error) return { ok: false, error: friendlySupabaseError(error) };
+  const plans = ((data ?? []) as TrainingPlanRow[])
+    .map(planRowToPlan)
+    .filter((candidate): candidate is RacePlan => candidate !== null);
+  const newestActiveId = plans.find((candidate) => candidate.planStatus === "active")?.storageId ?? null;
+  return {
+    ok: true,
+    versions: plans.map((candidate, index) => ({
+      id: candidate.storageId ?? `legacy-${index}`,
+      version: candidate.planVersion ?? plans.length - index,
+      status: candidate.planStatus === "draft"
+        ? "draft"
+        : candidate.storageId === newestActiveId
+          ? "active"
+          : candidate.planStatus === "active"
+            ? "archived"
+            : "legacy",
+      createdAt: candidate.createdAt ?? null,
+      plan: candidate,
+    })),
+  };
 }
 
 export async function markRaceGoalCompleted(goalId: string): Promise<{ ok: boolean; error?: string }> {
@@ -213,6 +254,7 @@ function planRowToPlan(row: TrainingPlanRow | null): RacePlan | null {
   if (!row?.phases_json) return null;
   return {
     ...row.phases_json,
+    storageId: row.id,
     planStartDate: row.start_date ?? row.phases_json.planStartDate ?? null,
     createdAt: row.created_at ?? row.phases_json.createdAt ?? null,
     updatedAt: row.updated_at ?? row.created_at ?? row.phases_json.updatedAt ?? null,

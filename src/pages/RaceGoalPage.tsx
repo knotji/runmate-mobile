@@ -6,6 +6,7 @@ import {
   IonContent,
   IonHeader,
   IonIcon,
+  IonModal,
   IonPage,
   IonRefresher,
   IonRefresherContent,
@@ -17,12 +18,13 @@ import {
 import { arrowBackOutline, calendarClearOutline, chevronDownOutline, chevronForwardOutline, flagOutline } from 'ionicons/icons';
 import { todayBangkokDateKey } from '@/lib/date';
 import { buildMobileRaceSummary, formatRaceWorkoutMetric, isRaceWorkoutToday } from '@/lib/mobileRaceGoal';
-import { loadActiveRaceGoalAndPlan, saveRaceGoalAndPlan } from '@/lib/raceStorage';
+import { loadActiveRaceGoalAndPlan, loadRacePlanVersions, saveRaceGoalAndPlan } from '@/lib/raceStorage';
 import { loadRaceResults } from '@/lib/raceResults';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { useRacePlanStore } from '@/lib/race/racePlanStore';
 import { generateRacePlan } from '@/lib/racePlanGeneration';
 import { mergeRefreshedRacePlan } from '@/lib/racePlanRefresh';
+import { buildRacePlanDiff, prepareActivePlanVersion, type RacePlanChange } from '@/lib/racePlanVersions';
 import { applyProfilePreferencesToRaceGoal } from '@/lib/raceProfilePreferences';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
@@ -37,7 +39,7 @@ import {
   raceResultLabel,
   shortDay,
 } from '@/lib/raceGoalFormatting';
-import type { RaceResult, WeekWorkout } from '@/types/race';
+import type { RaceGoal, RacePlan, RacePlanVersion, RaceResult, WeekWorkout } from '@/types/race';
 import type { UserProfile } from '@/types/profile';
 import RaceGoalEditor from '@/components/RaceGoalEditor';
 import { WorkoutPlanDetail } from '@/components/race/WorkoutPlanDetail';
@@ -59,6 +61,11 @@ const RaceGoalPage: React.FC = () => {
   const [refreshConfirmOpen, setRefreshConfirmOpen] = useState(false);
   const [refreshingPlan, setRefreshingPlan] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [planPreview, setPlanPreview] = useState<{ goal: RaceGoal; plan: RacePlan; changes: RacePlanChange[] } | null>(null);
+  const [applyingPlan, setApplyingPlan] = useState(false);
+  const [planHistoryOpen, setPlanHistoryOpen] = useState(false);
+  const [planVersions, setPlanVersions] = useState<RacePlanVersion[]>([]);
+  const [planHistoryLoading, setPlanHistoryLoading] = useState(false);
   const [selectedWorkout, setSelectedWorkout] = useState<WeekWorkout | null>(null);
   const [adherence, setAdherence] = useState<TrainingAdherence | null>(null);
   const [adherenceOpen, setAdherenceOpen] = useState(false);
@@ -104,13 +111,54 @@ const RaceGoalPage: React.FC = () => {
       const nextGoal = useLatestProfile && context.profile ? applyProfilePreferencesToRaceGoal(goal, context.profile as UserProfile) : goal;
       const generatedPlan = await generateRacePlan(nextGoal, context);
       const nextPlan = plan ? mergeRefreshedRacePlan(plan, generatedPlan, today) : generatedPlan;
-      const saved = await saveRaceGoalAndPlan(nextGoal, nextPlan);
-      if (!saved.ok) throw new Error(saved.error);
-      await load();
+      setPlanPreview({ goal: nextGoal, plan: nextPlan, changes: plan ? buildRacePlanDiff(plan, nextPlan) : [] });
     } catch (refreshFailure) {
       setRefreshError(refreshFailure instanceof Error ? refreshFailure.message : 'Could Not Refresh This Plan. Please Try Again.');
     } finally {
       setRefreshingPlan(false);
+    }
+  };
+
+  const applyPlanPreview = async () => {
+    if (!planPreview || applyingPlan) return;
+    setApplyingPlan(true); setRefreshError(null);
+    try {
+      const versionsResult = await loadRacePlanVersions(planPreview.goal.id);
+      if (!versionsResult.ok) throw new Error(versionsResult.error);
+      const versionedPlan = prepareActivePlanVersion(planPreview.plan, versionsResult.versions);
+      const saved = await saveRaceGoalAndPlan(planPreview.goal, versionedPlan);
+      if (!saved.ok) throw new Error(saved.error);
+      setPlanPreview(null);
+      await load();
+    } catch (applyFailure) {
+      setRefreshError(applyFailure instanceof Error ? applyFailure.message : 'Could Not Apply This Plan.');
+    } finally {
+      setApplyingPlan(false);
+    }
+  };
+
+  const openPlanHistory = async () => {
+    if (!goal?.id) return;
+    setPlanHistoryOpen(true); setPlanHistoryLoading(true); setRefreshError(null);
+    const result = await loadRacePlanVersions(goal.id);
+    if (result.ok) setPlanVersions(result.versions);
+    else setRefreshError(result.error);
+    setPlanHistoryLoading(false);
+  };
+
+  const restorePlanVersion = async (version: RacePlanVersion) => {
+    if (!goal || applyingPlan) return;
+    setApplyingPlan(true); setRefreshError(null);
+    try {
+      const restored = prepareActivePlanVersion(version.plan, planVersions, { restoredFromPlanId: version.id });
+      const saved = await saveRaceGoalAndPlan(goal, restored);
+      if (!saved.ok) throw new Error(saved.error);
+      setPlanHistoryOpen(false);
+      await load();
+    } catch (restoreFailure) {
+      setRefreshError(restoreFailure instanceof Error ? restoreFailure.message : 'Could Not Restore This Plan Version.');
+    } finally {
+      setApplyingPlan(false);
     }
   };
 
@@ -166,7 +214,10 @@ const RaceGoalPage: React.FC = () => {
                   </div>
                   <div className="race-plan-refresh">
                     <span>{formatPlanUpdated(plan.updatedAt ?? plan.createdAt)}</span>
-                    <button type="button" disabled={refreshingPlan} onClick={() => setRefreshConfirmOpen(true)}>{refreshingPlan && <IonSpinner name="crescent" />}{refreshingPlan ? 'Refreshing…' : 'Refresh Plan'}</button>
+                    <div>
+                      <button type="button" onClick={() => void openPlanHistory()}>Plan History</button>
+                      <button type="button" disabled={refreshingPlan} onClick={() => setRefreshConfirmOpen(true)}>{refreshingPlan && <IonSpinner name="crescent" />}{refreshingPlan ? 'Preparing…' : 'Refresh Plan'}</button>
+                    </div>
                   </div>
                   {refreshError && <div className="race-refresh-error" role="alert">{refreshError}</div>}
                 </section>
@@ -249,11 +300,43 @@ const RaceGoalPage: React.FC = () => {
       </IonContent>
       <RaceGoalEditor isOpen={editorOpen} goal={goal} onClose={() => setEditorOpen(false)} onSaved={() => { setEditorOpen(false); void load(); }} />
       <WorkoutPlanDetail workout={selectedWorkout} onClose={() => setSelectedWorkout(null)} />
+      <IonModal isOpen={Boolean(planPreview)} onDidDismiss={() => !applyingPlan && setPlanPreview(null)} className="race-version-modal">
+        <div className="race-version-sheet">
+          <header><div><p>PLAN PREVIEW</p><h2>Review Changes Before Applying</h2></div><button type="button" disabled={applyingPlan} onClick={() => setPlanPreview(null)}>Close</button></header>
+          <p className="race-version-help">Your current plan remains active until you apply this version.</p>
+          {refreshError && <div className="race-refresh-error" role="alert">{refreshError}</div>}
+          <div className="race-plan-diff">
+            {planPreview?.changes.map((change) => <article key={change.day} className={`change-${change.kind}`}>
+              <strong>{change.day}</strong>
+              <div><span>{change.before?.workoutType ?? 'No Session'}</span><em>→</em><span>{change.after?.workoutType ?? 'No Session'}</span></div>
+              <small>{change.kind === 'unchanged' ? 'Schedule preserved; coaching details may be updated.' : 'Schedule change'}</small>
+            </article>)}
+          </div>
+          <footer><button type="button" disabled={applyingPlan} onClick={() => setPlanPreview(null)}>Keep Current Plan</button><button type="button" disabled={applyingPlan} onClick={() => void applyPlanPreview()}>{applyingPlan ? 'Applying…' : 'Apply New Version'}</button></footer>
+        </div>
+      </IonModal>
+      <IonModal isOpen={planHistoryOpen} onDidDismiss={() => setPlanHistoryOpen(false)} className="race-version-modal">
+        <div className="race-version-sheet">
+          <header><div><p>PLAN HISTORY</p><h2>Restore A Previous Version</h2></div><button type="button" disabled={applyingPlan} onClick={() => setPlanHistoryOpen(false)}>Close</button></header>
+          <p className="race-version-help">Restoring creates a new active version. Workout records and older plans are not deleted.</p>
+          {refreshError && <div className="race-refresh-error" role="alert">{refreshError}</div>}
+          {planHistoryLoading ? <div className="race-version-loading"><IonSpinner name="crescent" />Loading Versions…</div> : (
+            <div className="race-version-list">
+              {planVersions.map((version) => <article key={version.id}>
+                <div><strong>Version {version.version}</strong><span>{version.status === 'active' ? 'Active' : version.status === 'legacy' ? 'Previous' : version.status}</span></div>
+                <p>{formatVersionWeek(version.plan.weeklyPlan ?? [])}</p>
+                <small>{formatPlanUpdated(version.createdAt)}</small>
+                <button type="button" disabled={applyingPlan || version.status === 'active'} onClick={() => void restorePlanVersion(version)}>{version.status === 'active' ? 'Current Plan' : 'Restore This Version'}</button>
+              </article>)}
+            </div>
+          )}
+        </div>
+      </IonModal>
       <IonAlert
         isOpen={refreshConfirmOpen}
         onDidDismiss={() => setRefreshConfirmOpen(false)}
         header="Refresh Training Plan?"
-        message="Choose whether to keep this goal's current weekly setup or rebuild with the latest Training Days and Long Run Day from Profile."
+        message="Choose the inputs for a preview. Your current plan will not change until you review and apply the new version."
         buttons={[
           { text: 'Cancel', role: 'cancel' },
           { text: 'Keep Current Setup', handler: () => { void refreshPlan(false); } },
@@ -266,6 +349,10 @@ const RaceGoalPage: React.FC = () => {
 
 function RaceMetric({ label, value }: { label: string; value: string }) {
   return <div className="race-metric"><span>{label}</span><strong>{value}</strong></div>;
+}
+
+function formatVersionWeek(workouts: WeekWorkout[]): string {
+  return workouts.map((workout) => `${shortDay(workout.day)} ${workout.workoutType}`).join(' · ');
 }
 
 export default RaceGoalPage;
