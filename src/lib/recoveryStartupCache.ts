@@ -5,7 +5,7 @@ import type { RunMateRecoverySystem } from './recoverySystem';
 const RECOVERY_STARTUP_CACHE_KEY = 'runmate:recovery-startup:v1';
 const RECOVERY_CONTEXT_STARTUP_CACHE_KEY = 'runmate:recovery-context-startup:v1';
 
-type RecoveryStartupSnapshot = {
+export type RecoveryStartupSnapshot = {
   dateKey: string;
   savedAt: string;
   recovery: RunMateRecoverySystem;
@@ -47,16 +47,28 @@ export function loadRecoveryStartupSnapshot(
   now: Date | string | number = Date.now(),
   storage: RecoveryStartupStorage | null = browserStorage(),
 ): RunMateRecoverySystem | null {
+  return loadRecoveryStartupEntry(now, storage)?.recovery ?? null;
+}
+
+export function loadRecoveryStartupEntry(
+  now: Date | string | number = Date.now(),
+  storage: RecoveryStartupStorage | null = browserStorage(),
+): RecoveryStartupSnapshot | null {
   if (!storage) return null;
   try {
     const raw = storage.getItem(RECOVERY_STARTUP_CACHE_KEY);
     if (!raw) return null;
     const snapshot = JSON.parse(raw) as Partial<RecoveryStartupSnapshot>;
-    if (snapshot.dateKey !== getBangkokDateKey(now) || !isRecoverySystem(snapshot.recovery)) {
+    if (
+      snapshot.dateKey !== getBangkokDateKey(now)
+      || typeof snapshot.savedAt !== 'string'
+      || !Number.isFinite(Date.parse(snapshot.savedAt))
+      || !isRecoverySystem(snapshot.recovery)
+    ) {
       storage.removeItem(RECOVERY_STARTUP_CACHE_KEY);
       return null;
     }
-    return snapshot.recovery;
+    return snapshot as RecoveryStartupSnapshot;
   } catch {
     storage.removeItem(RECOVERY_STARTUP_CACHE_KEY);
     return null;

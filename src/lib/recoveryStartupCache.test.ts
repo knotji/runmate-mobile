@@ -4,6 +4,7 @@ import type { CoachContext } from './buildCoachContext';
 import {
   clearRecoveryStartupSnapshot,
   loadRecoveryContextStartupSnapshot,
+  loadRecoveryStartupEntry,
   loadRecoveryStartupSnapshot,
   saveRecoveryContextStartupSnapshot,
   saveRecoveryStartupSnapshot,
@@ -25,6 +26,16 @@ describe('Recovery startup cache', () => {
 
     expect(loadRecoveryStartupSnapshot('2026-07-22T12:00:00.000Z')).toEqual(recovery);
     expect(loadRecoveryStartupSnapshot('2026-07-22T18:00:00.000Z')).toBeNull();
+  });
+
+  it('exposes the saved timestamp for freshness and fallback UI', () => {
+    saveRecoveryStartupSnapshot(recovery, '2026-07-22T01:00:00.000Z');
+
+    expect(loadRecoveryStartupEntry('2026-07-22T12:00:00.000Z')).toMatchObject({
+      dateKey: '2026-07-22',
+      savedAt: '2026-07-22T01:00:00.000Z',
+      recovery,
+    });
   });
 
   it('removes invalid data instead of blocking Recovery startup', () => {

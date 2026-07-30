@@ -473,6 +473,50 @@
   .support-track { grid-auto-columns: 100%; }
 }
 
+.recovery-data-status {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  margin: -8px 2px 12px;
+  color: #577187;
+}
+
+.recovery-data-status > span {
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: #267d70;
+  background: #e2f4ee;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .02em;
+}
+
+.recovery-data-status > small {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recovery-data-status > button {
+  min-width: 44px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid #c9dfea;
+  border-radius: 10px;
+  color: #217fa9;
+  background: rgba(255, 255, 255, .76);
+  font: inherit;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.recovery-data-status-refreshing > span { color: #2476a0; background: #e3f2fa; }
+.recovery-data-status-stale > span,
+.recovery-data-status-fallback > span { color: #9a6323; background: #fff2dd; }
+
 /* Quiet Performance — premium Recovery hierarchy */
 .recovery-content { --background: #f4f6f8; }
 .recovery-header ion-toolbar { --background: rgba(244,246,248,.9); --border-color: rgba(22,43,64,.07); backdrop-filter: blur(24px) saturate(1.1); }
