@@ -34,7 +34,17 @@ export function RecoverySecondaryError({ message, onRetry }: { message: string; 
   return <section className="recovery-secondary-error" role="status"><span>{message}</span><button type="button" onClick={onRetry}>Try Again</button></section>;
 }
 
-export function RecoveryDials({ recovery, onRecoveryClick, onSleepClick }: { recovery: RunMateRecoverySystem; onRecoveryClick: () => void; onSleepClick: () => void }) {
+export function RecoveryDials({
+  recovery,
+  onRecoveryClick,
+  onSleepClick,
+  freshness,
+}: {
+  recovery: RunMateRecoverySystem;
+  onRecoveryClick: () => void;
+  onSleepClick: () => void;
+  freshness?: { status: 'fresh' | 'refreshing'; detail: string };
+}) {
   const recoveryAvailable = recovery.scoreState === 'scored' || recovery.scoreState === 'calibrating';
   const waitingMessage = recoveryAvailable
     ? null
@@ -48,7 +58,10 @@ export function RecoveryDials({ recovery, onRecoveryClick, onSleepClick }: { rec
           <div className="recovery-score-stage">
             <MetricDial label="Recovery" value={recoveryAvailable ? Math.round(recovery.overallScore) : null} max={100} tone="recovery" onClick={onRecoveryClick} />
             <div className="recovery-hero-copy">
-              <span>Daily readiness</span>
+              <div className="recovery-hero-meta">
+                <span>Daily readiness</span>
+                {freshness && <small className={`recovery-inline-freshness recovery-inline-freshness-${freshness.status}`}><i />{freshness.detail}</small>}
+              </div>
               <strong>{recoveryAvailable ? recovery.overallLabel : 'Not ready yet'}</strong>
               <p>{recoveryAvailable ? recovery.overallDisplayStatus.note ?? 'Your latest signals are ready for today.' : waitingMessage}</p>
             </div>
