@@ -87,6 +87,8 @@ export type NutritionDaySummary = {
 export type MealContextSummary = {
   mealType: string;
   foods: string[];
+  /** When the meal was logged. This is not necessarily the consumption time. */
+  loggedAt?: string | null;
   caloriesKcal: number | null;
   proteinG: number | null;
   carbsG: number | null;

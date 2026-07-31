@@ -158,6 +158,7 @@ export function compactMealForCoach(item: LocalHistoryItem): MealContextSummary 
   return {
     mealType: slotLabel,
     foods,
+    loggedAt: item.createdAt || null,
     caloriesKcal: nutrition.caloriesKcal,
     proteinG: nutrition.proteinG,
     carbsG: nutrition.carbsG,

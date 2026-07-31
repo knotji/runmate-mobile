@@ -32,25 +32,50 @@ function moderateContext(): CoachContext {
     activePain: false,
     activeSick: false,
     latestSick: null,
+    sleep7d: [{
+      date: '2026-07-20',
+      durationH: '7h',
+      durationMinutes: 420,
+      score: 78,
+      readiness: null,
+      restingHR: 54,
+      hrv: 58,
+      energyScore: null,
+      sleepStartTime: null,
+      sleepEndTime: null,
+      timeInBedMinutes: 450,
+      respiratoryRate: null,
+      awakeMinutes: 30,
+      remMinutes: null,
+      lightMinutes: null,
+      deepMinutes: null,
+    }],
+    sleepHistory: [],
+    sleepBaseline30d: [],
+    mealsToday: [],
     recoverySystem: {
       overallScore: 55,
       scoreState: 'scored',
       dataFreshness: { status: 'today' },
       strain: { score: 3 },
-      sleepPerformance: { score: 80, state: 'scored' },
+      sleepPerformance: { score: 80, state: 'scored', actualSleepMinutes: 420, sleepNeedMinutes: 420 },
       fuelInsight: { status: 'ready' },
     },
   } as unknown as CoachContext;
 }
 
 describe('TodayTrainingPlanCard adaptive flow', () => {
-  it('shows the reduced workout immediately without changing the Race Plan', () => {
+  it('turns Recovery into a three-part brief without changing the Race Plan', () => {
     render(<TodayTrainingPlanCard context={moderateContext()} />);
 
+    expect(screen.getByLabelText("Today's Brief")).toBeInTheDocument();
     expect(screen.getByText('Adaptive · Reduce')).toBeInTheDocument();
-    expect(screen.getByText('5.5 km · 40 min · Easy Conversational Pace · Zone 1–2')).toBeInTheDocument();
-    expect(screen.getByText('Original Plan: Intervals')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Review Adjustment|Apply For Today/ })).not.toBeInTheDocument();
+    expect(screen.getByText('Body Readiness')).toBeInTheDocument();
+    expect(screen.getByText('Likely Limiter')).toBeInTheDocument();
+    expect(screen.getByText('One Adjustment')).toBeInTheDocument();
+    expect(screen.getByText('Reduce Today’s Load')).toBeInTheDocument();
+    expect(screen.getByText(/\d key signals?/)).toBeInTheDocument();
+    expect(screen.queryByText(/Original Plan:/)).not.toBeInTheDocument();
     expect(racePlan.weeklyPlan?.[0].distanceKm).toBe(8);
   });
 });

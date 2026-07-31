@@ -1,81 +1,82 @@
 import { useMemo } from 'react';
 import type { CoachContext } from '@/lib/buildCoachContext';
-import {
-  buildAdaptiveTrainingRecommendation,
-} from '@/lib/adaptiveTrainingPlan';
+import { buildAdaptiveTrainingRecommendation } from '@/lib/adaptiveTrainingPlan';
 import { buildSupportCards } from '@/lib/recoverySupport';
-import {
-  getTodayPlannedWorkout,
-  getTodayTrainingPlanStatus,
-  isRestDayWorkout,
-  translatePlanFieldToEnglish,
-} from '@/lib/todayTrainingPlan';
+import { getTodayPlannedWorkout, getTodayTrainingPlanStatus } from '@/lib/todayTrainingPlan';
+import { buildTodayBrief } from '@/lib/todayBrief';
 import './TodayTrainingPlanCard.css';
 
 export function TodayTrainingPlanCard({ context }: { context: CoachContext }) {
   const planned = getTodayPlannedWorkout(context);
   const status = planned ? getTodayTrainingPlanStatus(context, planned) : null;
   const recommendation = useMemo(() => buildAdaptiveTrainingRecommendation(context, planned), [context, planned]);
-  const appliedWorkout = recommendation?.suggestedWorkout ?? planned;
-  const restDay = isRestDayWorkout(appliedWorkout);
+  const brief = useMemo(
+    () => buildTodayBrief(context, { planned, recommendation, planStatus: status }),
+    [context, planned, recommendation, status],
+  );
   const supportCards = buildSupportCards(context);
-  const metrics = appliedWorkout && !restDay ? [
-    appliedWorkout.distanceKm != null ? `${appliedWorkout.distanceKm} km` : null,
-    appliedWorkout.durationMin != null ? `${appliedWorkout.durationMin} min` : null,
-    appliedWorkout.targetPace ? translatePlanFieldToEnglish(appliedWorkout.targetPace) : null,
-    appliedWorkout.targetHR ? translatePlanFieldToEnglish(appliedWorkout.targetHR) : null,
-  ].filter((metric): metric is string => typeof metric === 'string' && metric.length > 0 && !/^0 (km|min)$|^N\/A$/i.test(metric)) : [];
-  const title = planned
-    ? recommendation && recommendation.action !== 'keep' ? recommendation.suggestedWorkout.workoutType
-      : restDay && status === 'pending' ? 'Rest Day' : status === 'pending' ? planned.workoutType : context.todayPrimaryWorkout?.label ?? planned.workoutType
-    : fallbackFocus(context);
+  const supportItems = [
+    ...brief.evidence.map((item) => ({ ...item, className: 'plan-support-data' })),
+    ...supportCards.map((card) => ({ ...card, eyebrow: card.category, className: `plan-support-${card.category}` })),
+  ];
+  const keySignals = supportItems.slice(0, 3);
+  const remainingSignals = supportItems.slice(3);
+  const supportCount = supportItems.length;
 
   return (
-    <section className={`plan-card ${status === 'completed' ? 'plan-card-completed' : status === 'logged_different' ? 'plan-card-different' : ''}${recommendation && recommendation.action !== 'keep' ? ' plan-card-adapted' : ''}`} aria-label="Today's Focus">
+    <section
+      className={`plan-card ${status === 'completed' ? 'plan-card-completed' : status === 'logged_different' ? 'plan-card-different' : ''}${recommendation && recommendation.action !== 'keep' ? ' plan-card-adapted' : ''}`}
+      aria-label="Today's Brief"
+    >
       <div className="plan-card-main">
-        <div className="plan-card-eyebrow"><span>Today's Focus</span>{recommendation && status === 'pending' && <em className={`adaptive-action adaptive-action-${recommendation.action}`}>Adaptive · {recommendation.label}</em>}</div>
-        <strong>{title}</strong>
-        {!planned && <p>{fallbackSummary(context)}</p>}
-        {planned && status === 'completed' && <p>Matches today's plan: {planned.workoutType}. Nice work.</p>}
-        {planned && status === 'logged_different' && <p>Today's plan called for {planned.workoutType.toLowerCase()}, but you logged this instead.</p>}
-        {planned && status === 'pending' && (
-          <>
-            {metrics.length > 0 && <p className="plan-metrics-line">{metrics.join(' · ')}</p>}
-            {recommendation && <div className={`adaptive-guidance adaptive-guidance-${recommendation.action}`}>
-              <p><strong>{recommendation.headline}</strong>{recommendation.summary}</p>
-              {recommendation.action !== 'keep' && <div className="adaptive-review-box">
-                <p className="adaptive-original-plan">Original Plan: {planned.workoutType}</p>
-                <p className="adaptive-suggested-plan">Suggested Adjustment: {recommendation.suggestedWorkout.workoutType}</p>
-              </div>}
-              {recommendation.reasons.length > 0 && <ul>{recommendation.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>}
-            </div>}
-          </>
-        )}
+        <div className="plan-card-eyebrow">
+          <span>Today's Brief</span>
+          {recommendation && status === 'pending' && (
+            <em className={`adaptive-action adaptive-action-${recommendation.action}`}>Adaptive · {recommendation.label}</em>
+          )}
+        </div>
+        <div className="today-brief-grid">
+          {[brief.readiness, brief.limiter, brief.action].map((item, index) => (
+            <article
+              className={index === 1 ? 'today-brief-limiter' : index === 2 ? 'today-brief-action' : ''}
+              key={item.eyebrow}
+            >
+              <small>{item.eyebrow}</small>
+              <strong>{item.title}</strong>
+              <p>{item.summary}</p>
+            </article>
+          ))}
+        </div>
       </div>
-      {supportCards.length > 0 && (
+      {supportCount > 0 && (
         <details className="plan-support-details">
-          <summary>Support And Data <small>{supportCards.length}</small></summary>
+          <summary>
+            <span>Support And Data</span>
+            <small>{keySignals.length} key {keySignals.length === 1 ? 'signal' : 'signals'}</small>
+          </summary>
           <div className="plan-support-list">
-            {supportCards.map((card) => <div className={`plan-support-${card.category}`} key={card.category}><strong>{card.title}</strong><p>{card.summary}</p></div>)}
+            {keySignals.map((item) => (
+              <div className={item.className} key={`${item.eyebrow}-${item.title}`}>
+                <strong>{item.title}</strong>
+                <p>{item.summary}</p>
+              </div>
+            ))}
+            {remainingSignals.length > 0 && (
+              <details className="plan-support-more">
+                <summary>View all {supportCount} signals</summary>
+                <div>
+                  {remainingSignals.map((item) => (
+                    <div className={item.className} key={`${item.eyebrow}-${item.title}`}>
+                      <strong>{item.title}</strong>
+                      <p>{item.summary}</p>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
           </div>
         </details>
       )}
     </section>
   );
-}
-
-function fallbackFocus(context: CoachContext): string {
-  const recovery = context.recoverySystem;
-  if (recovery.scoreState === 'stale' || recovery.scoreState === 'unscorable') return 'Start With Fresh Data';
-  if (recovery.overallScore < 34) return 'Recovery First';
-  if (recovery.overallScore < 67) return 'Keep Today Controlled';
-  return 'Ready To Move';
-}
-
-function fallbackSummary(context: CoachContext): string {
-  const recovery = context.recoverySystem;
-  if (recovery.scoreState === 'stale' || recovery.scoreState === 'unscorable') return 'Recovery is not scored from a fresh sleep record yet.';
-  if (recovery.overallScore < 34) return 'Keep Strain low and prioritize recovery today.';
-  if (recovery.overallScore < 67) return 'Choose moderate effort and avoid an all-out session.';
-  return 'Your Recovery supports a normal training day.';
 }
