@@ -125,6 +125,18 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleRelease bundleRelease
 
+      - name: Verify Health Connect is read-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="android/app/build/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml"
+          test -f "$manifest"
+          if grep -q 'android.permission.health.WRITE_' "$manifest"; then
+            echo "::error::The merged release manifest contains Health Connect WRITE permissions"
+            grep 'android.permission.health.WRITE_' "$manifest"
+            exit 1
+          fi
+
       - name: Verify APK signature
         shell: bash
         run: |

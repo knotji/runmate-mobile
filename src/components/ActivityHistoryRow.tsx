@@ -1,14 +1,16 @@
 import { useHistory } from 'react-router-dom';
 import { IonIcon, IonSpinner } from '@ionic/react';
-import { chevronForwardOutline, trashOutline } from 'ionicons/icons';
+import { chevronForwardOutline, eyeOffOutline, trashOutline } from 'ionicons/icons';
 import { getHistoryItemDateKey } from '@/lib/date';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { activitySourceLabel, describeHistoryItem } from '@/lib/activityHistoryPresentation';
 import { cacheMealDetailItem } from '@/lib/mealDetailCache';
+import { isHealthConnectImportedItem } from '@/lib/localHistory';
 
 export function ActivityHistoryRow({ item, deleting, onDelete }: { item: LocalHistoryItem; deleting: boolean; onDelete: () => void }) {
   const history = useHistory();
   const presentation = describeHistoryItem(item);
+  const importedHealthRecord = isHealthConnectImportedItem(item);
   const detailPath = item.type === 'workout' || item.type === 'strength'
     ? `/activity/workout/${encodeURIComponent(item.id)}`
     : item.type === 'sleep'
@@ -29,6 +31,6 @@ export function ActivityHistoryRow({ item, deleting, onDelete }: { item: LocalHi
   </>;
   return <div className="history-row-shell">
     {detailPath ? <button type="button" className="history-row history-row-button" aria-label={`Open ${presentation.title} details`} disabled={deleting} onClick={() => { if (item.type === 'meal') cacheMealDetailItem(item); history.push(detailPath); }}>{content}</button> : <article className="history-row">{content}</article>}
-    <button type="button" className="history-row-delete" disabled={deleting} aria-busy={deleting} onClick={onDelete} aria-label={deleting ? `Deleting ${presentation.title}` : `Delete ${presentation.title}`}>{deleting ? <IonSpinner name="crescent" aria-hidden="true" /> : <IonIcon icon={trashOutline} aria-hidden="true" />}</button>
+    <button type="button" className="history-row-delete" disabled={deleting} aria-busy={deleting} onClick={onDelete} aria-label={deleting ? `${importedHealthRecord ? 'Hiding' : 'Deleting'} ${presentation.title}` : `${importedHealthRecord ? 'Hide From RunMate' : 'Delete'} ${presentation.title}`}>{deleting ? <IonSpinner name="crescent" aria-hidden="true" /> : <IonIcon icon={importedHealthRecord ? eyeOffOutline : trashOutline} aria-hidden="true" />}</button>
   </div>;
 }

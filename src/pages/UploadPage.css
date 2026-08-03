@@ -208,3 +208,16 @@
 @media (prefers-reduced-motion: reduce) {
   .upload-flow-skeleton { animation: none; }
 }
+
+.meal-input-mode { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 17px; padding: 4px; border: 1px solid #d7e5ee; border-radius: 16px; background: #eef4f7; }
+.meal-input-mode button { min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 12px; color: #60798e; background: transparent; font-size: 10px; font-weight: 800; }
+.meal-input-mode button.is-active { color: #176f84; background: #fff; box-shadow: 0 4px 12px rgba(44,83,104,.09); }
+.meal-input-mode button:focus-visible { outline: 2px solid #2a89b8; outline-offset: 2px; }
+.meal-input-mode button:disabled { cursor: wait; opacity: .62; }
+.meal-input-mode ion-icon { font-size: 16px; }
+.meal-text-input { display: grid; gap: 7px; }
+.meal-text-input > span { color: #5f7890; font-size: 9px; font-weight: 750; }
+.meal-text-input textarea { width: 100%; min-height: 112px; padding: 13px 14px; resize: vertical; border: 1px solid #d9e5ef; border-radius: 17px; outline: 0; color: #203d59; background: #fff; font: inherit; font-size: 12px; line-height: 1.55; }
+.meal-text-input textarea:focus { border-color: #65afd4; box-shadow: 0 0 0 3px rgba(54,152,200,.1); }
+.meal-text-input textarea:disabled, .upload-note textarea:disabled { cursor: wait; opacity: .7; }
+.meal-text-input small { color: #8497a9; font-size: 9px; }

@@ -53,7 +53,11 @@ export const HealthSyncStatusCard: React.FC<Props> = ({
       </section>
 
       <section className="health-connect-section" aria-labelledby="health-access-heading">
-        <div className="health-connect-section-heading"><p>Data Access</p><h2 id="health-access-heading">Permissions</h2></div>
+        <div className="health-connect-section-heading health-connect-access-heading">
+          <div><p>Data Access</p><h2 id="health-access-heading">Permissions</h2></div>
+          <span>Read-only access</span>
+        </div>
+        <p className="health-connect-read-only-note">RunMate can read shared health records but cannot edit or delete data in Samsung Health.</p>
         <div className="health-permission-list">
           <PermissionRow icon={moonOutline} title="Sleep" detail="Duration, schedule, and Sleep Stages" authorized={connection?.sleepAuthorized === true} note="Automatic Sync" />
           <PermissionRow icon={heartOutline} title="Recovery Signals" detail="HRV, Resting HR, and Respiratory Rate" authorized={connection?.recoverySignalsAuthorized === true} note="Matched To Your Sleep Window" />

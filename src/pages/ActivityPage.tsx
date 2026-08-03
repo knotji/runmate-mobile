@@ -18,9 +18,9 @@ import {
   type RefresherEventDetail,
 } from '@ionic/react';
 import { calendarClearOutline, chevronBackOutline, chevronForwardOutline, fitnessOutline } from 'ionicons/icons';
-import { deleteHistoryItem, loadHistoryItems } from '@/lib/cloudHistory';
+import { deleteHistoryItem, hideImportedHistoryItem, loadHistoryItems } from '@/lib/cloudHistory';
 import { getHistoryItemDateKey, todayBangkokDateKey } from '@/lib/date';
-import type { LocalHistoryItem } from '@/lib/localHistory';
+import { isHealthConnectImportedItem, type LocalHistoryItem } from '@/lib/localHistory';
 import { describeTodayHealthSyncPerformance, syncTodayHealth } from '@/lib/healthSyncService';
 import { buildDailyNutritionSummary } from '@/lib/activityNutritionSummary';
 import { activityHistoryItemsMatch, activityRecentHistoryOptions, mergeActivityHistoryItems, prepareActivityHistoryItems, sortHistoryItemsByEventTimeDesc, uploadedActivityDateFromEvent } from '@/lib/activityHistoryLoad';
@@ -221,7 +221,9 @@ const ActivityPage: React.FC = () => {
     if (!pendingDelete || deletingId) return;
     const target = pendingDelete;
     setPendingDelete(null); setDeletingId(target.id); setDeleteError(null);
-    const result = await deleteHistoryItem(target.id);
+    const result = isHealthConnectImportedItem(target)
+      ? await hideImportedHistoryItem(target)
+      : await deleteHistoryItem(target.id);
     if (result.ok) {
       cloudDataDirtyRef.current = false;
       setItems((current) => {
@@ -322,7 +324,15 @@ const ActivityPage: React.FC = () => {
           }}
         />
       </IonModal>
-      <IonAlert isOpen={Boolean(pendingDelete)} onDidDismiss={() => setPendingDelete(null)} header="Delete Activity?" message={pendingDelete ? `Remove ${describeHistoryItem(pendingDelete).title} from your Activity? This cannot be undone.` : ''} buttons={[{ text: 'Cancel', role: 'cancel' }, { text: 'Delete', role: 'destructive', handler: () => { void confirmDelete(); } }]} />
+      <IonAlert
+        isOpen={Boolean(pendingDelete)}
+        onDidDismiss={() => setPendingDelete(null)}
+        header={pendingDelete && isHealthConnectImportedItem(pendingDelete) ? 'Hide From RunMate?' : 'Delete RunMate Record?'}
+        message={pendingDelete ? isHealthConnectImportedItem(pendingDelete)
+          ? `Hide ${describeHistoryItem(pendingDelete).title} from RunMate and prevent it from being imported again? Samsung Health and Health Connect will not be changed.`
+          : `Permanently delete ${describeHistoryItem(pendingDelete).title} from RunMate? Samsung Health and Health Connect will not be changed.` : ''}
+        buttons={[{ text: 'Cancel', role: 'cancel' }, { text: pendingDelete && isHealthConnectImportedItem(pendingDelete) ? 'Hide' : 'Delete', role: 'destructive', handler: () => { void confirmDelete(); } }]}
+      />
     </IonPage>
   );
 };

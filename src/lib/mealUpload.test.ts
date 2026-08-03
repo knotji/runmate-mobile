@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inferBangkokMealType } from '@/lib/mealUpload';
+import { analyzeMealText, inferBangkokMealType } from '@/lib/mealUpload';
 
 describe('Bangkok meal type inference', () => {
   it.each([
@@ -10,5 +10,12 @@ describe('Bangkok meal type inference', () => {
     ['2026-07-18T21:59:00.000Z', 'snack'],     // 04:59 Bangkok
   ])('maps %s to %s', (timestamp, expected) => {
     expect(inferBangkokMealType(new Date(timestamp))).toBe(expected);
+  });
+});
+
+describe('text meal input', () => {
+  it('rejects invalid descriptions before calling the analyzer', async () => {
+    await expect(analyzeMealText('  ', 'lunch', '')).rejects.toThrow('Describe At Least One Food Or Drink');
+    await expect(analyzeMealText('x'.repeat(1001), 'lunch', '')).rejects.toThrow('Meal Description Is Too Long');
   });
 });

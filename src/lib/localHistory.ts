@@ -17,3 +17,11 @@ export type LocalHistoryItem = {
   };
   data: unknown;
 };
+
+export function isHealthConnectImportedItem(item: LocalHistoryItem): boolean {
+  return item.source?.importType === "health_connect";
+}
+
+export function isHiddenFromRunMateData(data: unknown): boolean {
+  return Boolean(data && typeof data === "object" && (data as Record<string, unknown>).hiddenFromRunMate === true);
+}

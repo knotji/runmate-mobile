@@ -26,6 +26,15 @@ try {
       & .\gradlew.bat bundleRelease
       if ($LASTEXITCODE -ne 0) { throw 'Release AAB build failed.' }
     }
+
+    $mergedManifest = Join-Path $repoRoot 'android\app\build\intermediates\merged_manifest\release\processReleaseMainManifest\AndroidManifest.xml'
+    if (-not (Test-Path -LiteralPath $mergedManifest)) { throw 'Merged release manifest was not generated.' }
+    $writePermissions = Select-String -LiteralPath $mergedManifest -Pattern 'android\.permission\.health\.WRITE_'
+    if ($writePermissions) {
+      $names = ($writePermissions | ForEach-Object { $_.Matches.Value } | Sort-Object -Unique) -join ', '
+      throw "Release APK is not Health Connect read-only. Found: $names"
+    }
+    Write-Host 'Health Connect permission check: read-only'
   } finally { Pop-Location }
 
   if ($Artifact -in @('apk', 'both')) { Write-Host 'APK: android/app/build/outputs/apk/release/app-release.apk' }

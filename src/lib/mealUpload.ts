@@ -26,6 +26,18 @@ export async function analyzeMealImages(files: File[], mealType: string, note: s
   return data.data as MealAnalysis;
 }
 
+export async function analyzeMealText(mealText: string, mealType: string, note: string): Promise<MealAnalysis> {
+  const normalizedText = mealText.trim();
+  if (normalizedText.length < 3) throw new Error('Describe At Least One Food Or Drink');
+  if (normalizedText.length > 1000) throw new Error('Meal Description Is Too Long');
+  const { data, error } = await supabase.functions.invoke('analyze-meal', {
+    body: { mealText: normalizedText, mealType, note },
+  });
+  if (error) throw new Error(readFunctionError(error.message));
+  if (!data?.data) throw new Error(data?.error ?? 'Meal Analysis Returned No Result');
+  return data.data as MealAnalysis;
+}
+
 type PrepareUploadImageOptions = { maxDimension?: number; quality?: number; tileTallImages?: boolean; maxOutputImages?: number };
 
 export async function prepareUploadImages(files: File[], options: PrepareUploadImageOptions = {}): Promise<string[]> {

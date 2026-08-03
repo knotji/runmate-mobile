@@ -17,6 +17,9 @@
 .health-connect-status p, .health-connect-sync-card p { margin: 0; color: #627d98; font-size: 11px; line-height: 1.5; }
 .health-connect-section { margin-top: 24px; }
 .health-connect-section-heading h2 { margin: 0 0 12px; color: #173451; font-size: 19px; }
+.health-connect-access-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.health-connect-access-heading > span { flex: none; margin-top: 2px; padding: 5px 8px; border-radius: 999px; color: #18745f; background: #e4f5ef; font-size: 9px; font-weight: 800; }
+.health-connect-read-only-note { margin: -4px 0 12px; color: #627d98; font-size: 10px; line-height: 1.5; }
 .health-permission-list { overflow: hidden; border: 1px solid #d4e4f0; border-radius: 18px; background: #fff; }
 .health-permission-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 14px; }
 .health-permission-row + .health-permission-row { border-top: 1px solid #e6eef5; }

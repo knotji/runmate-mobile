@@ -5,7 +5,7 @@ import {
   logSupabaseSyncStart,
   logSupabaseSyncSuccess,
 } from "@/lib/supabase/debug";
-import type { HistoryType, LocalHistoryItem } from "@/lib/localHistory";
+import { isHealthConnectImportedItem, isHiddenFromRunMateData, type HistoryType, type LocalHistoryItem } from "@/lib/localHistory";
 
 const MAX_HISTORY_ROWS = 2000;
 const NON_PERSISTED_DATA_KEYS = new Set([
@@ -66,7 +66,23 @@ export async function saveHistoryItems(items: LocalHistoryItem[]): Promise<{ ok:
     return { ok: false, error: sessionMessage(session) };
   }
 
-  const uniqueItems = dedupeHistoryItems(items);
+  let uniqueItems = dedupeHistoryItems(items);
+  const importedIds = uniqueItems.filter(isHealthConnectImportedItem).map((item) => item.id);
+  if (importedIds.length) {
+    const { data: existingRows, error: hiddenLookupError } = await session.supabase
+      .from("history_items")
+      .select("id, data")
+      .eq("user_id", session.userId)
+      .in("id", importedIds);
+    if (hiddenLookupError) return { ok: false, error: friendlySupabaseError(hiddenLookupError) };
+    const hiddenIds = new Set(
+      ((existingRows ?? []) as Array<Pick<HistoryRow, "id" | "data">>)
+        .filter((row) => isHiddenFromRunMateData(row.data))
+        .map((row) => row.id),
+    );
+    uniqueItems = uniqueItems.filter((item) => !hiddenIds.has(item.id));
+    if (!uniqueItems.length) return { ok: true };
+  }
   const rows = uniqueItems.map((item) => {
     const sanitizedData = sanitizePersistedHistoryData(item.data);
     const dataObj = typeof sanitizedData === "object" && sanitizedData !== null
@@ -136,7 +152,7 @@ export async function loadHistoryItems(types?: HistoryType[], options: HistoryLo
     return { ok: false, error: friendlySupabaseError(error) };
   }
 
-  const items = ((data ?? []) as HistoryRow[]).map((row) => {
+  const items = ((data ?? []) as HistoryRow[]).filter((row) => !isHiddenFromRunMateData(row.data)).map((row) => {
     const dataObj = row.data as Record<string, unknown> | null;
     const recordedAt = dataObj?.recordedAt as string | undefined;
     const dateKey = dataObj?.dateKey as string | undefined;
@@ -174,6 +190,33 @@ export async function deleteHistoryItem(id: string): Promise<{ ok: boolean; erro
   return { ok: true };
 }
 
+export async function hideImportedHistoryItem(item: LocalHistoryItem): Promise<{ ok: boolean; error?: string }> {
+  if (!isHealthConnectImportedItem(item)) return { ok: false, error: "Only imported health records can be hidden." };
+  const session = await ensureSupabaseProfileSession();
+  if (!session.ok) return { ok: false, error: sessionMessage(session) };
+
+  const sanitizedData = sanitizePersistedHistoryData(item.data);
+  const dataObj = typeof sanitizedData === "object" && sanitizedData !== null
+    ? { ...sanitizedData } as Record<string, unknown>
+    : {};
+  if (item.recordedAt) dataObj.recordedAt = item.recordedAt;
+  if (item.dateKey) dataObj.dateKey = item.dateKey;
+  if (item.source) dataObj.source = item.source;
+  dataObj.hiddenFromRunMate = true;
+  dataObj.hiddenFromRunMateAt = new Date().toISOString();
+
+  const { error } = await session.supabase
+    .from("history_items")
+    .update({ data: dataObj })
+    .eq("user_id", session.userId)
+    .eq("id", item.id);
+  if (error) return { ok: false, error: friendlySupabaseError(error) };
+  window.dispatchEvent(new CustomEvent<CloudHistoryUpdateDetail>("runmate:cloud-data-updated", {
+    detail: { action: "delete" },
+  }));
+  return { ok: true };
+}
+
 export async function loadHistoryItemById(id: string): Promise<{ ok: true; item: LocalHistoryItem } | { ok: false; error: string }> {
   const session = await ensureSupabaseProfileSession();
   if (!session.ok) return { ok: false, error: sessionMessage(session) };
@@ -185,7 +228,7 @@ export async function loadHistoryItemById(id: string): Promise<{ ok: true; item:
     .eq("id", id)
     .single();
 
-  if (error || !data) return { ok: false, error: error?.message ?? "ไม่พบข้อมูล" };
+  if (error || !data || isHiddenFromRunMateData((data as HistoryRow).data)) return { ok: false, error: error?.message ?? "ไม่พบข้อมูล" };
   const row = data as HistoryRow;
   const dataObj = row.data as Record<string, unknown> | null;
   const recordedAt = dataObj?.recordedAt as string | undefined;
