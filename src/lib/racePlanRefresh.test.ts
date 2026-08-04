@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeRefreshedRacePlan, reconcileRacePlanSnapshots } from './racePlanRefresh';
+import { mergeRefreshedRacePlan, mergeRefreshedRacePlanWithOptions, reconcileRacePlanSnapshots } from './racePlanRefresh';
 import type { RacePlan, WeekWorkout } from '@/types/race';
 
 const workout = (day: string, workoutType: string, distanceKm: number | null, description = ''): WeekWorkout => ({
@@ -57,6 +57,61 @@ describe('mergeRefreshedRacePlan', () => {
 
     expect(result.weeks.find((week) => week.weekNumber === 1)).toEqual(oldWeek);
     expect(result.weeks.find((week) => week.weekNumber === 3)).toEqual(generatedFuture);
+  });
+
+  it('locks past days and dynamically replaces only upcoming days', () => {
+    const previous = plan([
+      workout('Sunday', 'Long Run', 10),
+      workout('Monday', 'Rest', null),
+      workout('Tuesday', 'Intervals', 7),
+      workout('Wednesday', 'Recovery', null),
+      workout('Thursday', 'Tempo Run', 7),
+      workout('Friday', 'Easy Run', 5),
+      workout('Saturday', 'Rest', null),
+    ]);
+    const generated = plan([
+      workout('Sunday', 'Rest', null),
+      workout('Monday', 'Easy Run', 5),
+      workout('Tuesday', 'Tempo Run', 6),
+      workout('Wednesday', 'Easy Run', 4),
+      workout('Thursday', 'Rest', null),
+      workout('Friday', 'Long Run', 11),
+      workout('Saturday', 'Recovery', null),
+    ]);
+
+    const result = mergeRefreshedRacePlanWithOptions(previous, generated, '2026-07-29', {
+      dynamicUpcoming: true,
+      completedWorkoutDates: ['2026-07-28'],
+    });
+
+    expect(result.weeklyPlan?.map(({ workoutType }) => workoutType)).toEqual([
+      'Long Run', 'Rest', 'Intervals', 'Easy Run', 'Rest', 'Long Run', 'Recovery',
+    ]);
+    expect(result.planStartDate).toBe(previous.planStartDate);
+  });
+
+  it('locks today when a workout was already recorded', () => {
+    const previous = plan([workout('Wednesday', 'Recovery', null), workout('Thursday', 'Tempo Run', 7)]);
+    const generated = plan([workout('Wednesday', 'Easy Run', 5), workout('Thursday', 'Rest', null)]);
+
+    const result = mergeRefreshedRacePlanWithOptions(previous, generated, '2026-07-29', {
+      dynamicUpcoming: true,
+      completedWorkoutDates: ['2026-07-29'],
+    });
+
+    expect(result.weeklyPlan?.[0].workoutType).toBe('Recovery');
+    expect(result.weeklyPlan?.[1].workoutType).toBe('Rest');
+  });
+
+  it('applies the rolling schedule to the actual current training week, not generated week one', () => {
+    const currentWeek = { weekNumber: 3, phase: 'Build', weeklyFocus: '', targetWeeklyDistanceKm: 12, longRunDistanceKm: 7, workouts: [workout('Wednesday', 'Recovery', null), workout('Thursday', 'Tempo Run', 7)] };
+    const previous = plan(currentWeek.workouts, { planStartDate: '2026-07-12', weeks: [currentWeek] });
+    const generated = plan([workout('Wednesday', 'Easy Run', 4), workout('Thursday', 'Rest', null)]);
+
+    const result = mergeRefreshedRacePlanWithOptions(previous, generated, '2026-07-29', { dynamicUpcoming: true });
+
+    expect(result.weeks.find((week) => week.weekNumber === 3)?.workouts.map(({ workoutType }) => workoutType))
+      .toEqual(['Easy Run', 'Rest']);
   });
 });
 

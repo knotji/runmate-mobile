@@ -51,6 +51,10 @@ Recent runner context: ${JSON.stringify(compactContext(context))}
 
 Requirements:
 - Use exactly seven workouts, starting with today's weekday and continuing in calendar order.
+- Treat recentWorkouts as completed facts. Account for their actual distance and duration instead of assuming the old plan was followed.
+- Treat currentWeeklyPlan as the runner's committed schedule. Keep upcoming sessions unless recent load, Recovery, pain, or illness gives a clear reason to adjust them.
+- Do not move a missed workout into a later day automatically and do not stack hard sessions to catch up.
+- If the runner already trained today, make today's generated entry Recovery or Rest; the app will lock the completed day during reconciliation.
 - Use ${goal.trainingDaysPerWeek} training days at most; remaining days are Rest or Recovery.
 - Never increase recent weekly distance aggressively. Prefer conservative progression.
 - Include at most two hard sessions and never place hard sessions on consecutive days.
@@ -72,6 +76,9 @@ function buildFallbackPlan(goal: Goal, contextValue: unknown, today: string) {
   const totalWeeks = Math.max(1, Math.ceil(daysLeft / 7));
   const phase = daysLeft <= 7 ? 'Race Week' : daysLeft <= 21 ? 'Sharpen' : daysLeft <= 56 ? 'Build' : 'Base';
   const context = obj(contextValue); const recentKm = num(context.totalRunKm) ?? 0; const recoveryScore = num(context.recoveryScore); const activePain = context.activePain === true; const activeSick = context.activeSick === true;
+  const recentWorkouts = compactRecentWorkouts(context.recentWorkouts); const completedToday = recentWorkouts.some((day) => day.date === today);
+  const recentHeavyDay = recentWorkouts.some((day) => dateDiff(day.date, today) >= 0 && dateDiff(day.date, today) <= 1 && (day.runKm >= 8 || day.durationMin >= 60));
+  const currentWeeklyPlan = compactWeeklyPlan(context.currentWeeklyPlan);
   const safeOnly = activePain || activeSick || (recoveryScore != null && recoveryScore < 34);
   const raceKm = distanceKm(goal.raceDistance); const longest = goal.currentLongestRunKm ?? (recentKm > 0 ? recentKm * .35 : 6);
   const easyKm = roundHalf(clamp(recentKm > 0 ? recentKm / Math.max(goal.trainingDaysPerWeek, 3) : Math.min(longest, 5), 3, 8));
@@ -83,11 +90,12 @@ function buildFallbackPlan(goal: Goal, contextValue: unknown, today: string) {
   const runIndexes = new Set<number>([0, longIndex]);
   for (const candidate of [2, 4, 1, 5, 3, 6]) { if (runIndexes.size >= desired) break; runIndexes.add(candidate); }
   const weeklyPlan: Workout[] = dayNames.map((day, index) => {
-    if (!runIndexes.has(index)) return workout(day, index % 2 ? 'Rest' : 'Recovery', null, 20, null, 'Easy breathing', 'Restore before the next session.');
-    if (safeOnly) return workout(day, 'Easy Run / Walk', easyKm, null, paces.recovery, 'Conversational effort', 'Keep load low while Recovery is limited.');
-    if (index === longIndex && daysLeft > 7) return workout(day, 'Long Run', longKm, null, paces.longRun, 'Easy aerobic effort', 'Build endurance without a hard finish.');
-    if (index === 2 && phase !== 'Base' && phase !== 'Race Week') return workout(day, phase === 'Sharpen' ? 'Intervals' : 'Tempo Run', 5, null, phase === 'Sharpen' ? paces.interval : paces.tempo, 'Controlled hard effort', 'Build race-specific fitness with control.');
-    return workout(day, 'Easy Run', easyKm, null, paces.easy, 'Conversational effort', 'Build consistent aerobic volume.');
+    const committed = currentWeeklyPlan.find((entry) => entry.day.toLowerCase() === day.toLowerCase()) ?? null;
+    const candidate = committed ?? fallbackWorkout(day, index, runIndexes, safeOnly, longIndex, daysLeft, phase, easyKm, longKm, paces);
+    if (completedToday && index === 0) return workout(day, 'Recovery', null, 20, null, 'Easy breathing', 'Today\'s completed workout is already counted. Recover before adding more load.');
+    if (safeOnly && isHardWorkout(candidate.workoutType)) return workout(day, 'Easy Run / Walk', Math.min(candidate.distanceKm ?? easyKm, easyKm), null, paces.recovery, 'Conversational effort', 'Keep load low while Recovery is limited.');
+    if (recentHeavyDay && index <= 1 && isHardWorkout(candidate.workoutType)) return workout(day, 'Recovery', null, 20, null, 'Easy breathing', 'Recent training load was high, so avoid stacking another hard session.');
+    return { ...candidate, day };
   });
   return { raceCountdownText: daysLeft === 0 ? 'Race Day' : `${daysLeft} days until race`, totalWeeks, currentPhase: phase, planSummary: `A conservative ${phase.toLowerCase()} plan for ${goal.raceName}, built around ${desired} training days per week.`, phases: [{ name: phase, weekRange: `1-${totalWeeks}`, focus: phaseFocus(phase), notes: 'Adjust the plan when Recovery, pain, or illness changes.' }], weeks: [{ weekNumber: 1, phase, weeklyFocus: phaseFocus(phase), targetWeeklyDistanceKm: roundHalf(weeklyPlan.reduce((sum, item) => sum + (item.distanceKm ?? 0), 0)), longRunDistanceKm: longKm, workouts: weeklyPlan }], safetyNotes: 'Stop or reduce the session if pain increases, illness develops, or effort is unusually high.', weeksRemaining: totalWeeks, planStartDate: today, todayWorkout: weeklyPlan[0], weeklyPlan, paceGuidance: paces, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
 }
@@ -120,13 +128,18 @@ function normalizePaceGuidance(value: unknown, fallback: ReturnType<typeof build
   const input = obj(value);
   return Object.fromEntries(Object.entries(fallback).map(([key, fallbackValue]) => [key, normalizePaceText(str(input[key])) ?? fallbackValue]));
 }
-function compactContext(value: unknown) { const c = obj(value); return { recoveryScore: num(c.recoveryScore), recoveryState: str(c.recoveryState), totalRunKm: num(c.totalRunKm), longestRunKm: num(c.longestRunKm), activePain: c.activePain === true, activeSick: c.activeSick === true }; }
+function compactContext(value: unknown) { const c = obj(value); return { todayDate: str(c.todayDate), recoveryScore: num(c.recoveryScore), recoveryState: str(c.recoveryState), totalRunKm: num(c.totalRunKm), longestRunKm: num(c.longestRunKm), activePain: c.activePain === true, activeSick: c.activeSick === true, recentWorkouts: compactRecentWorkouts(c.recentWorkouts), currentWeeklyPlan: compactWeeklyPlan(c.currentWeeklyPlan) }; }
+function compactRecentWorkouts(value: unknown) { return arr(value).slice(0,7).map((entry) => { const day=obj(entry); const runs=arr(day.runs).map(obj); const walks=arr(day.walks).map(obj); const other=arr(day.other).map(obj); return { date: str(day.date)?.slice(0,10) ?? '', runKm: roundHalf(runs.reduce((sum,item)=>sum+(num(item.km)??0),0)), durationMin: Math.round([...runs,...walks,...other].reduce((sum,item)=>sum+(num(item.durationMin)??0),0)) }; }).filter((day)=>/^\d{4}-\d{2}-\d{2}$/.test(day.date)); }
+function compactWeeklyPlan(value: unknown): Workout[] { return arr(value).slice(0,7).map((entry) => { const item=obj(entry); const day=str(item.day); const workoutType=str(item.workoutType); if(!day||!workoutType)return null; return { day, workoutType, distanceKm:num(item.distanceKm), durationMin:num(item.durationMin), targetPace:normalizePaceText(str(item.targetPace)), targetHR:str(item.targetHR), description:str(item.description)??'', purpose:str(item.purpose), adjustment:str(item.adjustment) }; }).filter((item): item is Workout => item!==null); }
+function fallbackWorkout(day:string,index:number,runIndexes:Set<number>,safeOnly:boolean,longIndex:number,daysLeft:number,phase:string,easyKm:number,longKm:number,paces:ReturnType<typeof buildPaces>):Workout { if(!runIndexes.has(index))return workout(day,index%2?'Rest':'Recovery',null,20,null,'Easy breathing','Restore before the next session.'); if(safeOnly)return workout(day,'Easy Run / Walk',easyKm,null,paces.recovery,'Conversational effort','Keep load low while Recovery is limited.'); if(index===longIndex&&daysLeft>7)return workout(day,'Long Run',longKm,null,paces.longRun,'Easy aerobic effort','Build endurance without a hard finish.'); if(index===2&&phase!=='Base'&&phase!=='Race Week')return workout(day,phase==='Sharpen'?'Intervals':'Tempo Run',5,null,phase==='Sharpen'?paces.interval:paces.tempo,'Controlled hard effort','Build race-specific fitness with control.'); return workout(day,'Easy Run',easyKm,null,paces.easy,'Conversational effort','Build consistent aerobic volume.'); }
+function isHardWorkout(value:string){return /tempo|threshold|interval|speed|repeat|hill|race/i.test(value);}
 function weekdayFrom(today: string, offset: number) { const date = new Date(`${today}T12:00:00+07:00`); date.setUTCDate(date.getUTCDate()+offset); return new Intl.DateTimeFormat('en-US',{weekday:'long',timeZone:'Asia/Bangkok'}).format(date); }
 function phaseFocus(phase: string) { return phase === 'Race Week' ? 'Reduce load and arrive fresh.' : phase === 'Sharpen' ? 'Practice race-specific speed with low volume.' : phase === 'Build' ? 'Build endurance and controlled quality.' : 'Build consistent aerobic fitness.'; }
 function bangkokToday() { return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Bangkok',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }
 function dateDiff(from: string, to: string) { return Math.round((Date.parse(`${to}T12:00:00+07:00`)-Date.parse(`${from}T12:00:00+07:00`))/DAY_MS); }
 function reply(body: unknown, status=200) { return new Response(JSON.stringify(body),{status,headers:{...cors,'Content-Type':'application/json'}}); }
 function obj(v: unknown): Record<string,unknown> { return v && typeof v === 'object' ? v as Record<string,unknown> : {}; }
+function arr(v: unknown): unknown[] { return Array.isArray(v) ? v : []; }
 function str(v: unknown) { return typeof v === 'string' && v.trim() ? v.trim().slice(0,1000) : null; }
 function num(v: unknown) { const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v) : NaN; return Number.isFinite(n) ? n : null; }
 function clamp(v: number,min: number,max: number) { return Math.min(max,Math.max(min,v)); }

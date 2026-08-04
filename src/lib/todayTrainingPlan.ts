@@ -8,6 +8,10 @@ import type { RacePlan, WeekWorkout } from '@/types/race';
  */
 export function getTodayPlannedWorkout(context: CoachContext): WeekWorkout | null {
   const plan = context.racePlan as RacePlan | null;
+  return getPlannedWorkoutForDate(plan, context.todayDate);
+}
+
+export function getPlannedWorkoutForDate(plan: RacePlan | null, date: string): WeekWorkout | null {
   if (!plan) return null;
   const weeklyPlan = Array.isArray(plan.weeklyPlan) ? plan.weeklyPlan : [];
   if (!weeklyPlan.length) return plan.todayWorkout ?? null;
@@ -15,17 +19,17 @@ export function getTodayPlannedWorkout(context: CoachContext): WeekWorkout | nul
   for (const workout of weeklyPlan) {
     const raw = workout as WeekWorkout & { date?: string; dateKey?: string; dayDate?: string };
     const workoutDate = raw.date ?? raw.dateKey ?? raw.dayDate;
-    if (workoutDate?.slice(0, 10) === context.todayDate) return workout;
+    if (workoutDate?.slice(0, 10) === date) return workout;
   }
 
-  const todayWeekday = bangkokWeekdayIndex(context.todayDate);
+  const todayWeekday = bangkokWeekdayIndex(date);
   for (const workout of weeklyPlan) {
     if (normalizeWeekdayLabel(workout.day) === todayWeekday) return workout;
   }
 
   if (plan.planStartDate) {
     const startMs = Date.parse(`${plan.planStartDate}T12:00:00+07:00`);
-    const todayMs = Date.parse(`${context.todayDate}T12:00:00+07:00`);
+    const todayMs = Date.parse(`${date}T12:00:00+07:00`);
     if (!Number.isNaN(startMs) && !Number.isNaN(todayMs)) {
       const offset = Math.round((todayMs - startMs) / 86_400_000);
       if (offset >= 0 && offset < weeklyPlan.length) return weeklyPlan[offset] ?? null;

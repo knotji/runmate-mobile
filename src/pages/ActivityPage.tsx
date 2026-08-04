@@ -17,7 +17,7 @@ import {
   useIonViewWillEnter,
   type RefresherEventDetail,
 } from '@ionic/react';
-import { calendarClearOutline, chevronBackOutline, chevronForwardOutline, fitnessOutline } from 'ionicons/icons';
+import { calendarClearOutline, chevronBackOutline, chevronForwardOutline, fitnessOutline, restaurantOutline, sparklesOutline } from 'ionicons/icons';
 import { deleteHistoryItem, hideImportedHistoryItem, loadHistoryItems } from '@/lib/cloudHistory';
 import { getHistoryItemDateKey, todayBangkokDateKey } from '@/lib/date';
 import { isHealthConnectImportedItem, type LocalHistoryItem } from '@/lib/localHistory';
@@ -31,12 +31,20 @@ import { describeHistoryItem } from '@/lib/activityHistoryPresentation';
 import { measurePerformanceDiagnostic, recordPerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import { useHealthSyncStore } from '@/lib/health/healthSyncStore';
 import { loadActivityStartupSnapshot, saveActivityStartupSnapshot } from '@/lib/activityStartupCache';
+import { buildDailyFuelCoach, type DailyFuelCoach } from '@/lib/dailyFuelCoach';
+import { loadProfileFromSupabase } from '@/lib/profileStorage';
+import { useUserProfileStore } from '@/lib/profile/userProfileStore';
+import { loadActiveRaceGoalAndPlan } from '@/lib/raceStorage';
+import { useRacePlanStore } from '@/lib/race/racePlanStore';
+import { getPlannedWorkoutForDate } from '@/lib/todayTrainingPlan';
 import './ActivityPage.css';
 
 const ActivityPage: React.FC = () => {
   const history = useHistory();
   const todayDate = todayBangkokDateKey();
   const [startupItems] = useState(() => loadActivityStartupSnapshot());
+  const profile = useUserProfileStore((state) => state.profile);
+  const racePlan = useRacePlanStore((state) => state.plan);
   const [items, setItems] = useState<LocalHistoryItem[]>(() => startupItems ?? []);
   const [selectedDate, setSelectedDate] = useState(todayDate);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -46,6 +54,7 @@ const ActivityPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [fuelContextLoading, setFuelContextLoading] = useState(true);
   const [pendingDelete, setPendingDelete] = useState<LocalHistoryItem | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const loadedRef = useRef(startupItems !== null);
@@ -56,6 +65,19 @@ const ActivityPage: React.FC = () => {
   const visibleRef = useRef(false);
   const syncTimerRef = useRef<number | null>(null);
   const cloudDataDirtyRef = useRef(false);
+
+  useEffect(() => {
+    let active = true;
+    const profileState = useUserProfileStore.getState();
+    const racePlanState = useRacePlanStore.getState();
+    const contextLoads: Promise<unknown>[] = [];
+    if (!profileState.lastUpdatedAt) contextLoads.push(loadProfileFromSupabase());
+    if (!racePlanState.lastUpdatedAt) contextLoads.push(loadActiveRaceGoalAndPlan());
+    void Promise.all(contextLoads).finally(() => {
+      if (active) setFuelContextLoading(false);
+    });
+    return () => { active = false; };
+  }, []);
 
   const loadRecent = useCallback(() => {
     if (recentLoadingRef.current) return recentLoadingRef.current;
@@ -201,6 +223,12 @@ const ActivityPage: React.FC = () => {
     return { value, durationMs: performance.now() - startedAt };
   }, [items, selectedDate]);
   const nutritionSummary = nutritionMeasurement.value;
+  const fuelCoach = useMemo(() => buildDailyFuelCoach({
+    date: selectedDate,
+    items,
+    profile,
+    plannedWorkout: selectedDate === todayDate ? getPlannedWorkoutForDate(racePlan, selectedDate) : null,
+  }), [items, profile, racePlan, selectedDate, todayDate]);
   useEffect(() => {
     recordPerformanceDiagnostic(
       'activity_nutrition',
@@ -283,6 +311,8 @@ const ActivityPage: React.FC = () => {
             </section>
           )}
 
+          {!loading && !error && <DailyFuelCoachCard coach={fuelCoach} preparing={fuelContextLoading && !profile} onProfile={() => history.push('/profile-settings')} onLogMeal={() => history.push('/tabs/upload?type=meal')} onAskCoach={() => history.push('/ai-coach', { initialTopic: 'fuel' })} />}
+
           {loading && <PageDataSkeleton variant="activity" label="Loading Your Activity" />}
           {!loading && error && <PageState kind="error" title="Activity Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void loadRecent()} className="history-state history-error" />}
           {refreshError && <div className="history-delete-error" role="status"><span>{refreshError}</span><button type="button" onClick={() => setRefreshError(null)}>Dismiss</button></div>}
@@ -339,6 +369,32 @@ const ActivityPage: React.FC = () => {
 
 function NutritionMetric({ label, value }: { label: string; value: number | null }) {
   return <div><span>{label}</span><strong>{formatMetric(value)}{value !== null ? ' g' : ''}</strong></div>;
+}
+
+function DailyFuelCoachCard({ coach, preparing, onProfile, onLogMeal, onAskCoach }: { coach: DailyFuelCoach; preparing: boolean; onProfile: () => void; onLogMeal: () => void; onAskCoach: () => void }) {
+  if (preparing) return <section className="daily-fuel-card is-preparing" aria-busy="true"><IonSpinner name="crescent" /><div><p>Daily Fuel Coach</p><h2>Preparing Your Targets</h2><span>Loading your current weight and training plan.</span></div></section>;
+  return <section className="daily-fuel-card" aria-labelledby="daily-fuel-heading">
+    <header><div><p>Daily Fuel Coach</p><h2 id="daily-fuel-heading">Fuel For This Day</h2></div><span>{coach.dayLabel}</span></header>
+    {coach.status === 'needs_weight' ? <div className="daily-fuel-setup"><IonIcon icon={restaurantOutline} /><div><strong>{coach.recommendation.title}</strong><span>{coach.recommendation.detail}</span></div><button type="button" onClick={onProfile}>Review Profile</button></div> : <>
+      <div className="daily-fuel-targets">
+        <FuelTarget label="Protein" target={coach.protein!} />
+        <FuelTarget label="Carbohydrate" target={coach.carbs!} />
+      </div>
+      <div className="daily-fuel-guidance"><IonIcon icon={sparklesOutline} /><div><strong>{coach.recommendation.title}</strong><span>{coach.recommendation.detail}</span></div></div>
+      <div className="daily-fuel-footer"><span>{coach.note}</span>{coach.mealCount === 0 ? <button type="button" onClick={onLogMeal}>Log A Meal</button> : <button type="button" onClick={onAskCoach}>Ask AI Coach</button>}</div>
+    </>}
+  </section>;
+}
+
+function FuelTarget({ label, target }: { label: string; target: NonNullable<DailyFuelCoach['protein']> }) {
+  const progress = target.logged == null ? 0 : Math.min(100, target.logged / target.minimum * 100);
+  const targetText = target.minimum === target.maximum ? `${target.minimum} g` : `${target.minimum}–${target.maximum} g`;
+  return <div className="daily-fuel-target">
+    <div><span>{label}</span><small>Target {targetText}</small></div>
+    <strong>{target.logged == null ? '—' : `${formatMetric(target.logged)} g`}<small> logged</small></strong>
+    <div className="daily-fuel-progress" role="progressbar" aria-label={`${label} logged against minimum target`} aria-valuemin={0} aria-valuemax={target.minimum} aria-valuenow={target.logged ?? 0}><i style={{ width: `${progress}%` }} /></div>
+    <small>{target.logged == null ? 'Macro value unavailable' : target.remainingToMinimum ? `${target.remainingToMinimum} g to lower target` : 'Lower target reached'}</small>
+  </div>;
 }
 
 function formatSelectedDate(date: string): string { return new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(`${date}T12:00:00`)); }

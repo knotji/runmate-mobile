@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useHistory, useLocation } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
 import { arrowBackOutline, arrowDownOutline, checkmarkCircleOutline, chevronDownOutline, chevronUpOutline, helpCircleOutline, sendOutline, sparklesOutline, warningOutline } from 'ionicons/icons';
 import { Capacitor, type PluginListenerHandle } from '@capacitor/core';
@@ -30,6 +30,7 @@ type ChatMessage = {
 
 const AiCoachPage: React.FC = () => {
   const history = useHistory();
+  const location = useLocation<{ initialTopic?: AiCoachTopic }>();
   const context = useCoachContextStore((state) => state.context);
   const [startupEntry] = useState(() => loadRecoveryContextStartupEntry());
   const startupContext = startupEntry?.context ?? null;
@@ -45,6 +46,7 @@ const AiCoachPage: React.FC = () => {
   const [isNearBottom, setIsNearBottom] = useState(true);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const activeContextLoadRef = useRef<Promise<void> | null>(null);
+  const initialTopicHandledRef = useRef(false);
 
   const loadContext = useCallback(async () => {
     if (activeContextLoadRef.current) return activeContextLoadRef.current;
@@ -104,7 +106,7 @@ const AiCoachPage: React.FC = () => {
     }
   }, [messages, asking, isNearBottom]);
 
-  const askTopic = async (topicId: AiCoachTopic, force = false) => {
+  const askTopic = useCallback(async (topicId: AiCoachTopic, force = false) => {
     if (!requestContext || asking) return;
     void hapticImpact();
     const topicInfo = AI_COACH_TOPICS.find((t) => t.id === topicId);
@@ -140,7 +142,15 @@ const AiCoachPage: React.FC = () => {
     } finally {
       setAsking(false);
     }
-  };
+  }, [asking, requestContext]);
+
+  useEffect(() => {
+    const initialTopic = location.state?.initialTopic;
+    if (!initialTopic || initialTopicHandledRef.current || !requestContext || asking) return;
+    initialTopicHandledRef.current = true;
+    history.replace(location.pathname);
+    void askTopic(initialTopic);
+  }, [askTopic, asking, history, location.pathname, location.state, requestContext]);
 
   const submitCustomQuery = async () => {
     const trimmed = inputQuery.trim();

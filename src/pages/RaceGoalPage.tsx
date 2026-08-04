@@ -23,7 +23,7 @@ import { loadRaceResults } from '@/lib/raceResults';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { useRacePlanStore } from '@/lib/race/racePlanStore';
 import { generateRacePlan } from '@/lib/racePlanGeneration';
-import { mergeRefreshedRacePlan } from '@/lib/racePlanRefresh';
+import { mergeRefreshedRacePlanWithOptions } from '@/lib/racePlanRefresh';
 import { buildRacePlanDiff, prepareActivePlanVersion, prepareLegacyActivePlanVersion, type RacePlanChange } from '@/lib/racePlanVersions';
 import { applyProfilePreferencesToRaceGoal } from '@/lib/raceProfilePreferences';
 import { loadHistoryItems } from '@/lib/cloudHistory';
@@ -133,7 +133,10 @@ const RaceGoalPage: React.FC = () => {
       const context = await buildCoachContextFromSupabase();
       const nextGoal = useLatestProfile && context.profile ? applyProfilePreferencesToRaceGoal(goal, context.profile as UserProfile) : goal;
       const generatedPlan = await generateRacePlan(nextGoal, context);
-      const nextPlan = plan ? mergeRefreshedRacePlan(plan, generatedPlan, today) : generatedPlan;
+      const nextPlan = plan ? mergeRefreshedRacePlanWithOptions(plan, generatedPlan, today, {
+        dynamicUpcoming: true,
+        completedWorkoutDates: context.workouts7d.map((day) => day.date),
+      }) : generatedPlan;
       setPlanPreview({ goal: nextGoal, plan: nextPlan, changes: plan ? buildRacePlanDiff(plan, nextPlan) : [], mode: 'refresh' });
     } catch (refreshFailure) {
       setRefreshError(refreshFailure instanceof Error ? refreshFailure.message : 'Could Not Refresh This Plan. Please Try Again.');
@@ -326,13 +329,13 @@ const RaceGoalPage: React.FC = () => {
       <IonModal isOpen={Boolean(planPreview)} onDidDismiss={() => !applyingPlan && setPlanPreview(null)} className="race-version-modal">
         <div className="race-version-sheet">
           <header><div><p>{planPreview?.mode === 'restore' ? 'RESTORE PREVIEW' : 'PLAN PREVIEW'}</p><h2>Review Changes Before Applying</h2></div><button type="button" disabled={applyingPlan} onClick={() => setPlanPreview(null)}>Close</button></header>
-          <p className="race-version-help">{planPreview?.mode === 'restore' ? 'Compare this saved plan with your current schedule. Restoring creates a new version and keeps both originals.' : 'Your current plan remains active until you apply this version.'}</p>
+          <p className="race-version-help">{planPreview?.mode === 'restore' ? 'Compare this saved plan with your current schedule. Restoring creates a new version and keeps both originals.' : 'Past days and a completed workout today are locked. Only the remaining schedule can change, and your current plan stays active until you apply.'}</p>
           {refreshError && <div className="race-refresh-error" role="alert">{refreshError}</div>}
           <div className="race-plan-diff">
             {planPreview?.changes.map((change) => <article key={change.day} className={`change-${change.kind}`}>
               <strong>{change.day}</strong>
               <div><span>{change.before?.workoutType ?? 'No Session'}</span><em>→</em><span>{change.after?.workoutType ?? 'No Session'}</span></div>
-              <small>{change.kind === 'unchanged' ? 'Schedule preserved; coaching details may be updated.' : 'Schedule change'}</small>
+              <small>{change.kind === 'unchanged' ? 'Locked or unchanged' : 'Upcoming schedule change'}</small>
             </article>)}
           </div>
           <footer><button type="button" disabled={applyingPlan} onClick={() => setPlanPreview(null)}>Keep Current Plan</button><button type="button" disabled={applyingPlan} onClick={() => void applyPlanPreview()}>{applyingPlan ? 'Applying…' : planPreview?.mode === 'restore' ? 'Restore As New Version' : 'Apply New Version'}</button></footer>
