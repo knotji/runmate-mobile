@@ -1,6 +1,6 @@
 # RunMate Mobile Handoff
 
-Last updated: 2026-07-26
+Last updated: 2026-08-04
 
 Before changing layout, typography, cards, or user-facing wording, read
 [`UI_GUIDELINES.md`](./UI_GUIDELINES.md). It is the shared app-wide standard for
@@ -9,6 +9,15 @@ page hierarchy, font sizes, text case, spacing, and responsive review.
 ## Current state
 
 This repository is an Ionic React + TypeScript + Vite + Capacitor mobile client that uses the existing RunMate Supabase project. The first implemented slice is authentication plus a WHOOP-inspired Recovery dashboard.
+
+### Recent Enhancements (2026-08-04, Fitness Age + VO2 Max sync diagnostics)
+
+- **RunMate Fitness Age V1**: added `/fitness-age` under More. The deterministic, explainable estimate uses up to 90 days of VO2 Max, Sleep duration, Resting HR, HRV context, and training consistency. It remains in a `Building Your Baseline` state until Birth Date, VO2 Max, at least 10 Sleep nights, at least 4 Workout days, and at least 21 days of history are available. The result is bounded to within 10 years of chronological age and is explicitly labeled as a Beta fitness/lifestyle trend, not biological age or medical advice.
+- **Latest VO2 Max is distinct from the trend average**: Fitness Age uses the most recent workout VO2 Max as the current cardio input. The signal row separately shows source, workout date, and 90-day average. Do not replace the latest value with the average or label the average as current. A Profile VO2 Max is only a fallback when no workout VO2 Max exists.
+- **Health Connect reconciliation fix**: foreground Workout sync now attempts a live `vo2Max` read even when a prepared background snapshot exists, merges unique live/prepared samples, and falls back to the prepared snapshot only if the live read fails. VO2 Max matching is limited to the workout interval plus a 30-minute post-workout grace period so an unrelated later sample is not attached to the wrong session. Existing imported VO2 Max remains protected when a later lightweight sync omits it.
+- **Visible sync evidence**: Health Connect's Latest Sync summary reports whether VO2 Max permission is authorized, how many samples were read, and how many workouts were matched. Use this device result to distinguish missing permission, zero provider samples, and timestamp matching failures.
+- **Profile support**: Profile & Settings now accepts Birth Date and optional VO2 Max with Bangkok-calendar validation for ages 18 through 100. Manually edited values retain source provenance.
+- **Release evidence**: commit `f32ddb1`, RunMate `1.0.0 (1203)`, Firebase App Distribution release `5if677uqhh0g0`. The release pipeline passed 90 test files / 399 tests, ESLint, production web build, Capacitor Android sync, signed Gradle APK assembly, and the Health Connect read-only manifest check. Physical-device confirmation that Samsung Health exposes the latest 47.8 sample remains the next smoke test.
 
 ### Recent Enhancements (2026-07-26, Weekly/Monthly Recap)
 - **New "Your Recap" page** (`src/pages/WeeklyRecapPage.tsx`, route `/weekly-recap`, linked from `WeeklySummaryPage.tsx`'s new "View Your Recap" button): a Spotify-Wrapped-style summary of Recovery, Sleep, training adherence, and workout volume for the current or a past calendar week/month, purely a presentation layer over existing pipelines (`buildRecoveryTrend`, `buildTrainingAdherenceHistory`). New `src/lib/weeklyRecapHighlights.ts` adds `buildPeriodTrainingSummary` (session/distance/active-time stats derived directly from raw history items over an arbitrary date range, since `buildWeeklyTrainingSummary` is hardcoded to `CoachContext`'s fixed 7-day window), `buildPeriodAdherence` (re-aggregates `buildTrainingAdherenceHistory`'s per-day results over a calendar week/month instead of a fixed rolling week), and `buildWeeklyRecapHighlights` (combines everything into one flat, formatted object consumed by both the on-screen page and the share-image drawer, so they can never show different numbers).
