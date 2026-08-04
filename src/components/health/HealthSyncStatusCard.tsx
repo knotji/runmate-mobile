@@ -12,7 +12,7 @@ export type ConnectionState = {
   lastSyncedAt: string | null;
 };
 
-export type SyncSummary = HealthSyncCounts & { reconciled: number; completedAt: string };
+export type SyncSummary = HealthSyncCounts & { reconciled: number; completedAt: string; vo2MaxAuthorized?: boolean; vo2MaxSamplesRead?: number; workoutsWithVo2Max?: number };
 
 type Props = {
   connection: ConnectionState | null;
@@ -87,6 +87,7 @@ export const HealthSyncStatusCard: React.FC<Props> = ({
             <SyncMetric label="Failed" value={syncSummary.failed} tone={syncSummary.failed ? 'failed' : undefined} />
           </div>
           <p>Reconciled records combine Samsung Health measurements with details from an existing upload.</p>
+          {syncSummary.vo2MaxAuthorized !== undefined && <p>VO2 Max: {syncSummary.vo2MaxAuthorized ? `${syncSummary.vo2MaxSamplesRead ?? 0} Health Connect samples read · ${syncSummary.workoutsWithVo2Max ?? 0} workouts matched` : 'Permission not granted'}</p>}
         </section>
       )}
 

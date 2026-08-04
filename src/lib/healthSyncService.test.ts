@@ -18,7 +18,7 @@ describe('Health Sync Service', () => {
       performed: true,
       changed: false,
       sleep: { ...counts, dataSource: 'prepared' },
-      workout: { ...counts, dataSource: 'live' },
+      workout: { ...counts, dataSource: 'live', vo2MaxAuthorized: true, vo2MaxSamplesRead: 1, workoutsWithVo2Max: 1 },
     })).toMatchObject({ variant: 'mixed', detail: expect.stringContaining('snapshot plus live read') });
     expect(describeTodayHealthSyncPerformance({ performed: false, changed: false, sleep: null, workout: null }))
       .toMatchObject({ status: 'skipped', variant: 'cooldown' });

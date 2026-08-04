@@ -81,6 +81,12 @@ const menuGroups: Array<{ label: string; title: string; items: MoreMenuItem[] }>
     summary: 'Track weigh-ins synced from Health Connect over time.',
     path: '/body-weight-trend',
   },
+  {
+    icon: fitnessOutline,
+    title: 'Fitness Age',
+    summary: 'See how cardio fitness, sleep, recovery, and consistency shape your long-term estimate.',
+    path: '/fitness-age',
+  },
     ],
   },
   {

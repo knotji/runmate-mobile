@@ -22,6 +22,9 @@ export type SamsungWorkoutSyncResult = HealthSyncCounts & {
   status: 'synced' | 'unavailable' | 'permission_required';
   imported: number;
   dataSource: 'prepared' | 'live' | 'none';
+  vo2MaxAuthorized: boolean;
+  vo2MaxSamplesRead: number;
+  workoutsWithVo2Max: number;
   error?: string;
 };
 
@@ -71,11 +74,9 @@ async function runSync(lookbackDays: number | 'today'): Promise<SamsungWorkoutSy
       && Date.parse(workout.endDate) <= Date.now() - CLOSED_WORKOUT_GRACE_MS,
     );
     const canReadHeartRate = authorization.readAuthorized.includes('heartRate');
-    const vo2MaxSamples = authorization.readAuthorized.includes('vo2Max')
-      ? (usePrepared
-          ? prepared?.vo2Max?.samples ?? []
-          : (await Health.readSamples({ dataType: 'vo2Max', startDate, endDate, ascending: true, limit: 500 })).samples
-        ).filter((sample) => supportedWorkoutSource(sample.sourceId))
+    const vo2MaxAuthorized = authorization.readAuthorized.includes('vo2Max');
+    const vo2MaxSamples = vo2MaxAuthorized
+      ? await readVo2MaxWithPreparedFallback(prepared?.vo2Max?.samples ?? [], startDate, endDate)
       : [];
     const items = await Promise.all(workouts.map(async (workout) => {
       const heartRate = canReadHeartRate
@@ -86,6 +87,7 @@ async function runSync(lookbackDays: number | 'today'): Promise<SamsungWorkoutSy
       return mapSamsungWorkout(workout, heartRate, vo2MaxSamples);
     }));
     const validItems = items.filter((item): item is LocalHistoryItem => item !== null);
+    const workoutsWithVo2Max = validItems.filter(hasWorkoutVo2Max).length;
     const existing = await loadHistoryItems(['workout', 'strength'], {
       createdAfter: new Date(Date.parse(startDate) - EXISTING_RECORD_BUFFER_DAYS * 86_400_000).toISOString(),
       limit: EXISTING_RECORD_LIMIT,
@@ -98,11 +100,11 @@ async function runSync(lookbackDays: number | 'today'): Promise<SamsungWorkoutSy
     const changedItems = selectChangedHealthSyncItems(preservedItems, existingItems);
     if (changedItems.length) {
       const saved = await saveHistoryItems(changedItems);
-      if (!saved.ok) return { status: 'synced', imported: 0, dataSource, added: 0, updated: 0, unchanged: 0, failed: changedItems.length, error: saved.error };
+      if (!saved.ok) return { status: 'synced', imported: 0, dataSource, vo2MaxAuthorized, vo2MaxSamplesRead: vo2MaxSamples.length, workoutsWithVo2Max, added: 0, updated: 0, unchanged: 0, failed: changedItems.length, error: saved.error };
     }
     recordSuccessfulSync();
     await acknowledgeBackgroundHealthRecords({ workoutKeys: workouts.map(backgroundHealthRecordKey) });
-    return { status: 'synced', imported: validItems.length, dataSource, ...counts };
+    return { status: 'synced', imported: validItems.length, dataSource, vo2MaxAuthorized, vo2MaxSamplesRead: vo2MaxSamples.length, workoutsWithVo2Max, ...counts };
   } catch (error) {
     const isPermissionError = isReconciliationPermissionError(error);
     return {
@@ -114,7 +116,22 @@ async function runSync(lookbackDays: number | 'today'): Promise<SamsungWorkoutSy
 }
 
 function emptyResult(status: SamsungWorkoutSyncResult['status']): SamsungWorkoutSyncResult {
-  return { status, imported: 0, dataSource: 'none', added: 0, updated: 0, unchanged: 0, failed: 0 };
+  return { status, imported: 0, dataSource: 'none', vo2MaxAuthorized: false, vo2MaxSamplesRead: 0, workoutsWithVo2Max: 0, added: 0, updated: 0, unchanged: 0, failed: 0 };
+}
+
+async function readVo2MaxWithPreparedFallback(prepared: HealthSample[], startDate: string, endDate: string): Promise<HealthSample[]> {
+  const preparedSupported = prepared.filter((sample) => supportedWorkoutSource(sample.sourceId));
+  try {
+    const live = await Health.readSamples({ dataType: 'vo2Max', startDate, endDate, ascending: true, limit: 500 });
+    const combined = new Map<string, HealthSample>();
+    for (const sample of [...preparedSupported, ...live.samples.filter((entry) => supportedWorkoutSource(entry.sourceId))]) {
+      combined.set(`${sample.sourceId ?? ''}|${sample.startDate}|${sample.endDate}|${sample.value}`, sample);
+    }
+    return [...combined.values()].sort((a, b) => Date.parse(a.startDate) - Date.parse(b.startDate));
+  } catch (error) {
+    console.warn('[workout-sync] Live VO2 Max read failed, using prepared snapshot', error);
+    return preparedSupported;
+  }
 }
 
 /**
@@ -343,10 +360,11 @@ function swimKind(type: WorkoutType): 'pool' | 'open_water' | null { return type
 function nearestWorkoutSignal(samples: HealthSample[], startMs: number, endMs: number, afterGraceMs: number): number | null {
   const candidates = samples
     .map((sample) => ({ value: sample.value, at: Date.parse(sample.startDate) }))
-    .filter(({ value, at }) => Number.isFinite(value) && value > 0 && Number.isFinite(at) && at >= startMs - 60_000 && at <= endMs + Math.max(afterGraceMs, 24 * 60 * 60_000))
+    .filter(({ value, at }) => Number.isFinite(value) && value > 0 && Number.isFinite(at) && at >= startMs - 60_000 && at <= endMs + afterGraceMs)
     .sort((a, b) => Math.abs(a.at - endMs) - Math.abs(b.at - endMs));
   return candidates[0] ? round(candidates[0].value, 1) : null;
 }
+function hasWorkoutVo2Max(item: LocalHistoryItem): boolean { return numeric(asRecord(asRecord(item.data).extracted).vo2Max) != null; }
 function numeric(value: unknown): number | null { return typeof value === 'number' && Number.isFinite(value) ? value : null; }
 function positive(value: number | undefined): number | null { return typeof value === 'number' && Number.isFinite(value) && value > 0 ? round(value, 1) : null; }
 function validHeartRate(value: unknown): number | null {

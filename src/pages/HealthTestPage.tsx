@@ -364,7 +364,7 @@ function formatDiagnosticDuration(milliseconds: number): string {
 
 async function showSyncResult(
   sleep: HealthSyncCounts & { error?: string },
-  workouts: HealthSyncCounts & { error?: string },
+  workouts: HealthSyncCounts & { error?: string; vo2MaxAuthorized?: boolean; vo2MaxSamplesRead?: number; workoutsWithVo2Max?: number },
   setSummary: (summary: SyncSummary) => void,
 ): Promise<void> {
   const history = await loadHistoryItems(['sleep', 'workout', 'strength']);
@@ -375,6 +375,9 @@ async function showSyncResult(
     unchanged: sleep.unchanged + workouts.unchanged,
     failed: sleep.failed + workouts.failed,
     reconciled,
+    vo2MaxAuthorized: workouts.vo2MaxAuthorized,
+    vo2MaxSamplesRead: workouts.vo2MaxSamplesRead,
+    workoutsWithVo2Max: workouts.workoutsWithVo2Max,
     completedAt: new Date().toISOString(),
   });
 }

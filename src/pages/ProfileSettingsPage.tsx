@@ -4,7 +4,7 @@ import { IonAlert, IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle
 import { arrowBackOutline, barbellOutline, checkmarkCircleOutline, globeOutline, heartOutline, moonOutline, scaleOutline } from 'ionicons/icons';
 import { defaultProfile, type UserProfile } from '@/types/profile';
 import { loadProfileFromSupabase, saveProfileToSupabase } from '@/lib/profileStorage';
-import { applyProfileSettings, DAYS, profileToSettingsDraft, validateProfileSettings, type ProfileSettingsDraft } from '@/lib/profileSettings';
+import { applyProfileSettings, birthDateBounds, DAYS, profileToSettingsDraft, validateProfileSettings, type ProfileSettingsDraft } from '@/lib/profileSettings';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { findHighestObservedHeartRate, type ObservedHeartRate } from '@/lib/observedHeartRate';
@@ -17,7 +17,7 @@ import { loadProfileSettingsStartupSnapshot, saveProfileSettingsStartupSnapshot 
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import './ProfileSettingsPage.css';
 
-const emptyDraft: ProfileSettingsDraft = { maxHr: '', weightKg: '', weeklyTrainingDays: '', preferredLongRunDay: '', preferredRunTime: '', defaultWakeTime: '' };
+const emptyDraft: ProfileSettingsDraft = { birthDate: '', vo2max: '', maxHr: '', weightKg: '', weeklyTrainingDays: '', preferredLongRunDay: '', preferredRunTime: '', defaultWakeTime: '' };
 
 const ProfileSettingsPage: React.FC = () => {
   const history = useHistory();
@@ -110,6 +110,7 @@ const ProfileSettingsPage: React.FC = () => {
   }, [hasChanges, history]);
 
   const maxHrSource = draft.maxHr && observedHr?.bpm === Number(draft.maxHr) ? 'Highest Observed' : 'Manual';
+  const birthDateRange = birthDateBounds();
   const weightSource = draft.weightKg !== savedDraft.weightKg || profile?.fieldSources?.weightKg !== 'health_connect' ? 'Manual' : 'Samsung Health';
   const maxHrNumber = Number(draft.maxHr);
   const zoneBoundaries = draft.maxHr && restingHrBaseline != null
@@ -128,6 +129,8 @@ const ProfileSettingsPage: React.FC = () => {
         <section className="profile-settings-card">
           <header><IonIcon icon={heartOutline} /><div><p>Recovery</p><h2>Physiology</h2></div></header>
           <div className="profile-settings-grid">
+            <label><span>Birth Date</span><input type="date" max={birthDateRange.maximum} min={birthDateRange.minimum} value={draft.birthDate} onChange={(event) => update('birthDate', event.target.value)} /><em>Used only for long-term Fitness Age context.</em></label>
+            <label><span>VO₂ Max <SourceBadge label={profile?.fieldSources?.vo2max === 'health_connect' ? 'Samsung Health' : 'Profile'} /></span><div className="profile-input-unit"><input type="number" inputMode="decimal" min="10" max="100" step="0.1" value={draft.vo2max} onChange={(event) => update('vo2max', event.target.value)} placeholder="Example: 45.5" /><small>ml/kg/min</small></div><em>Fitness Age waits for this cardio signal.</em></label>
             <label><span>Max Heart Rate <SourceBadge label={maxHrSource} /></span><div className="profile-input-unit"><input type="number" inputMode="numeric" min="100" max="240" value={draft.maxHr} onChange={(event) => update('maxHr', event.target.value)} placeholder="Example: 190" /><small>bpm</small></div><em>Used to calculate Workout Strain.</em></label>
             <label><span>Body Weight <SourceBadge label={weightSource} /></span><div className="profile-input-unit"><input type="number" inputMode="decimal" min="30" max="300" step="0.1" value={draft.weightKg} onChange={(event) => update('weightKg', event.target.value)} placeholder="Example: 68.5" /><small>kg</small></div><em>{weightSource === 'Samsung Health' ? 'Synced from Samsung Health.' : 'Supports health and nutrition context.'}</em></label>
           </div>
@@ -187,7 +190,6 @@ const ProfileSettingsPage: React.FC = () => {
 };
 
 function SourceBadge({ label }: { label: string }) { return <small className="profile-source-badge">{label}</small>; }
-
 function recentRestingHr(item: LocalHistoryItem): number | null {
   if (item.type !== 'sleep') return null;
   const data = item.data as Record<string, unknown> | null;

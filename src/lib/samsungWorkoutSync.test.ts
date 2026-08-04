@@ -24,6 +24,18 @@ describe('Samsung Health workout importer', () => {
     expect(extracted).toMatchObject({ workoutKind: 'outdoor_run', distanceKm: 10.16, duration: '1:00:00', avgPace: '5:54/km', avgHR: 169, maxHR: 178, calories: 552, vo2Max: 47.7 });
   });
 
+  it('does not attach a VO₂ Max sample from a later unrelated session', () => {
+    const workout: Workout = {
+      workoutType: 'running', duration: 1800,
+      startDate: '2026-07-18T02:00:00.000Z', endDate: '2026-07-18T02:30:00.000Z',
+      sourceId: 'com.sec.android.app.shealth', platformId: 'morning-run',
+    };
+    const later: HealthSample = { dataType: 'vo2Max', value: 47.8, unit: 'mL/min/kg', startDate: '2026-07-18T05:00:00.000Z', endDate: '2026-07-18T05:00:00.000Z', sourceId: 'com.sec.android.app.shealth' };
+    const item = mapSamsungWorkout(workout, [], [later]);
+    const extracted = (item?.data as { extracted: Record<string, unknown> }).extracted;
+    expect(extracted.vo2Max).toBeNull();
+  });
+
   it('maps pool swimming with meter-based distance and /100 m pace', () => {
     const item = mapSamsungWorkout({
       workoutType: 'swimmingPool', duration: 1275, totalDistance: 200,

@@ -9,6 +9,7 @@ const loaders = {
   '/pain-trends': () => import('@/pages/PainTrendsPage'),
   '/weekly-plan': () => import('@/pages/WeeklyPlanCalendarPage'),
   '/body-weight-trend': () => import('@/pages/BodyWeightTrendPage'),
+  '/fitness-age': () => import('@/pages/FitnessAgePage'),
   '/about': () => import('@/pages/AboutPage'),
 } as const;
 
