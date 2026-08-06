@@ -16,6 +16,9 @@ export function TodayTrainingPlanCard({ context }: { context: CoachContext }) {
   );
   const supportCards = buildSupportCards(context);
   const supportItems = [
+    { ...brief.readiness, className: 'plan-support-data' },
+    { ...brief.limiter, className: 'plan-support-limiter' },
+    { ...brief.action, className: 'plan-support-action' },
     ...brief.evidence.map((item) => ({ ...item, className: 'plan-support-data' })),
     ...supportCards.map((card) => ({ ...card, eyebrow: card.category, className: `plan-support-${card.category}` })),
   ];
@@ -35,17 +38,10 @@ export function TodayTrainingPlanCard({ context }: { context: CoachContext }) {
             <em className={`adaptive-action adaptive-action-${recommendation.action}`}>Adaptive · {recommendation.label}</em>
           )}
         </div>
-        <div className="today-brief-grid">
-          {[brief.readiness, brief.limiter, brief.action].map((item, index) => (
-            <article
-              className={index === 1 ? 'today-brief-limiter' : index === 2 ? 'today-brief-action' : ''}
-              key={item.eyebrow}
-            >
-              <small>{item.eyebrow}</small>
-              <strong>{item.title}</strong>
-              <p>{item.summary}</p>
-            </article>
-          ))}
+        <div className="today-brief-focus">
+          <small>{brief.action.eyebrow}</small>
+          <strong>{brief.action.title}</strong>
+          <p><span>Main Signal</span> · {brief.limiter.title}</p>
         </div>
       </div>
       {supportCount > 0 && (

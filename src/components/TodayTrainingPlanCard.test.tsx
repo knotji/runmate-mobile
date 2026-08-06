@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { CoachContext } from '@/lib/buildCoachContext';
 import { TodayTrainingPlanCard } from '@/components/TodayTrainingPlanCard';
@@ -65,15 +65,19 @@ function moderateContext(): CoachContext {
 }
 
 describe('TodayTrainingPlanCard adaptive flow', () => {
-  it('turns Recovery into a three-part brief without changing the Race Plan', () => {
+  it('keeps the visible brief compact and moves explanations behind disclosure', () => {
     render(<TodayTrainingPlanCard context={moderateContext()} />);
 
-    expect(screen.getByLabelText("Today's Brief")).toBeInTheDocument();
+    const card = screen.getByLabelText("Today's Brief");
+    const focus = card.querySelector('.today-brief-focus');
+    expect(focus).not.toBeNull();
+    expect(within(focus as HTMLElement).getByText('One Adjustment')).toBeInTheDocument();
+    expect(within(focus as HTMLElement).getByText(/Main Signal/)).toBeInTheDocument();
+    expect(within(focus as HTMLElement).queryByText('Body Readiness')).not.toBeInTheDocument();
     expect(screen.getByText('Adaptive · Reduce')).toBeInTheDocument();
-    expect(screen.getByText('Body Readiness')).toBeInTheDocument();
-    expect(screen.getByText('Likely Limiter')).toBeInTheDocument();
-    expect(screen.getByText('One Adjustment')).toBeInTheDocument();
-    expect(screen.getByText('Reduce Today’s Load')).toBeInTheDocument();
+    expect(screen.getByText('Keep Today Controlled')).toBeInTheDocument();
+    expect(screen.getByText('No Single Strong Limiter')).toBeInTheDocument();
+    expect(screen.getAllByText('Reduce Today’s Load')).toHaveLength(2);
     expect(screen.getByText(/\d key signals?/)).toBeInTheDocument();
     expect(screen.queryByText(/Original Plan:/)).not.toBeInTheDocument();
     expect(racePlan.weeklyPlan?.[0].distanceKm).toBe(8);

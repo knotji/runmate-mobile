@@ -3,6 +3,28 @@ import type { LocalHistoryItem } from '@/lib/localHistory';
 import type { MergedWorkoutItem } from '@/lib/workoutDedupe';
 import { workoutDurationText } from '@/lib/workoutDuration';
 
+export type ActivityRecordGroupKey = 'training' | 'nutrition' | 'sleep' | 'health';
+export type ActivityRecordGroup = { key: ActivityRecordGroupKey; label: string; summary: string; icon: string; items: LocalHistoryItem[] };
+
+export function groupActivityRecords(items: LocalHistoryItem[]): ActivityRecordGroup[] {
+  const definitions: Array<Omit<ActivityRecordGroup, 'items'>> = [
+    { key: 'training', label: 'Training', summary: 'Runs, walks, and strength', icon: fitnessOutline },
+    { key: 'nutrition', label: 'Meals', summary: 'Food and nutrition logs', icon: fastFoodOutline },
+    { key: 'sleep', label: 'Sleep', summary: 'Recorded sleep session', icon: moonOutline },
+    { key: 'health', label: 'Health', summary: 'Body, pain, and check-ins', icon: heartOutline },
+  ];
+  return definitions.flatMap((definition) => {
+    const grouped = items.filter((item) => definition.key === 'training'
+      ? item.type === 'workout' || item.type === 'strength'
+      : definition.key === 'nutrition'
+        ? item.type === 'meal'
+        : definition.key === 'sleep'
+          ? item.type === 'sleep'
+          : !['workout', 'strength', 'meal', 'sleep'].includes(item.type));
+    return grouped.length ? [{ ...definition, items: grouped }] : [];
+  });
+}
+
 export function describeHistoryItem(item: LocalHistoryItem): { label: string; title: string; detail: string; icon: string; tone: string } {
   const data = asRecord(item.data); const extracted = asRecord(data.extracted);
   if (item.type === 'sleep') return { label: 'Sleep', title: text(extracted.sleepDuration) ?? minutesText(extracted.actualSleepDurationMinutes) ?? 'Sleep Record', detail: 'Sleep Session Recorded', icon: moonOutline, tone: 'sleep' };

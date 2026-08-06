@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
-import { arrowBackOutline, arrowDownOutline, checkmarkCircleOutline, chevronDownOutline, chevronUpOutline, helpCircleOutline, sendOutline, sparklesOutline, warningOutline } from 'ionicons/icons';
+import { arrowBackOutline, arrowDownOutline, checkmarkCircleOutline, chevronDownOutline, chevronUpOutline, sendOutline, sparklesOutline, warningOutline } from 'ionicons/icons';
 import { Capacitor, type PluginListenerHandle } from '@capacitor/core';
 import { Keyboard } from '@capacitor/keyboard';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { DataFreshnessStatus } from '@/components/DataFreshnessStatus';
-import { AI_COACH_TOPICS, askAiCoach, askAiCoachChat, type AiCoachAnswer, type AiCoachTopic } from '@/lib/aiCoach';
+import { AI_COACH_TOPICS, askAiCoach, askAiCoachChat, type AiCoachAnswer, type AiCoachChatTurn, type AiCoachTopic } from '@/lib/aiCoach';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
 import { hapticImpact } from '@/lib/haptics';
@@ -108,6 +108,7 @@ const AiCoachPage: React.FC = () => {
 
   const askTopic = useCallback(async (topicId: AiCoachTopic, force = false) => {
     if (!requestContext || asking) return;
+    const conversation = conversationFromMessages(messages);
     void hapticImpact();
     const topicInfo = AI_COACH_TOPICS.find((t) => t.id === topicId);
     const questionText = topicInfo?.title ?? 'Ask Coach';
@@ -126,7 +127,7 @@ const AiCoachPage: React.FC = () => {
     try {
       const answer = await measurePerformanceDiagnostic(
         'ai_coach_answer',
-        () => askAiCoach(topicId, requestContext, undefined, { force }),
+        () => askAiCoach(topicId, requestContext, undefined, { force, conversation }),
         () => ({ detail: force ? 'Topic answer refreshed' : 'Topic answer prepared' }),
       );
       const assistantMsg: ChatMessage = {
@@ -142,7 +143,7 @@ const AiCoachPage: React.FC = () => {
     } finally {
       setAsking(false);
     }
-  }, [asking, requestContext]);
+  }, [asking, messages, requestContext]);
 
   useEffect(() => {
     const initialTopic = location.state?.initialTopic;
@@ -152,9 +153,10 @@ const AiCoachPage: React.FC = () => {
     void askTopic(initialTopic);
   }, [askTopic, asking, history, location.pathname, location.state, requestContext]);
 
-  const submitCustomQuery = async () => {
-    const trimmed = inputQuery.trim();
+  const submitQuestion = useCallback(async (question: string) => {
+    const trimmed = question.trim();
     if (!trimmed || !requestContext || asking) return;
+    const conversation = conversationFromMessages(messages);
     setInputQuery('');
     
     const userMsg: ChatMessage = {
@@ -169,7 +171,7 @@ const AiCoachPage: React.FC = () => {
     try {
       const answer = await measurePerformanceDiagnostic(
         'ai_coach_answer',
-        () => askAiCoachChat(trimmed, requestContext),
+        () => askAiCoachChat(trimmed, requestContext, conversation),
         () => ({ detail: 'Custom question answered' }),
       );
       const assistantMsg: ChatMessage = {
@@ -185,7 +187,9 @@ const AiCoachPage: React.FC = () => {
     } finally {
       setAsking(false);
     }
-  };
+  }, [asking, messages, requestContext]);
+
+  const submitCustomQuery = useCallback(() => submitQuestion(inputQuery), [inputQuery, submitQuestion]);
 
   return <IonPage>
     <IonHeader translucent className="ai-coach-header"><IonToolbar>
@@ -227,8 +231,8 @@ const AiCoachPage: React.FC = () => {
           <section className="ai-coach-chat-stream" aria-label="Conversation History">
             {messages.length === 0 && <div className="ai-coach-welcome-hero">
               <div className="ai-coach-hero-mark"><IonIcon icon={sparklesOutline} /></div>
-              <h2>How can I help your running today?</h2>
-              <p>Choose a suggestion below or type any question to receive personal recovery and training guidance.</p>
+              <h2>What would you like to talk about?</h2>
+              <p>Ask about training, recovery, food—or anything else. I’ll use your RunMate data only when it helps.</p>
               
               <div className="ai-coach-prompt-grid">
                 {AI_COACH_TOPICS.map((topic, index) => (
@@ -259,12 +263,12 @@ const AiCoachPage: React.FC = () => {
                     <time>{msg.timestamp}</time>
                   </div>
                 ) : (
-                  msg.answer && <CoachAnswer answer={msg.answer} topicTitle={msg.topicTitle ?? 'Coach Answer'} onRefresh={() => void askTopic(msg.answer?.topic ?? 'today', true)} />
+                  msg.answer && <CoachAnswer answer={msg.answer} timestamp={msg.timestamp} onFollowUp={(question) => void submitQuestion(question)} />
                 )}
               </div>
             ))}
 
-            {asking && <section className="ai-coach-answer-loading" role="status"><IonSpinner name="crescent" /><div><strong>Thinking About Your RunMate Data…</strong><span>Analyzing recovery & training load</span></div></section>}
+            {asking && <section className="ai-coach-answer-loading" role="status"><IonSpinner name="crescent" /><div><strong>AI Coach is typing…</strong><span>Thinking about your question</span></div></section>}
             {!asking && error && <PageState kind="error" title="AI Coach Is Unavailable" detail={error} className="ai-coach-state" />}
             <div ref={chatEndRef} />
           </section>
@@ -280,7 +284,7 @@ const AiCoachPage: React.FC = () => {
               <input
                 type="text"
                 className="ai-coach-chat-input"
-                placeholder="Ask AI Coach anything (e.g. หลังวิ่งกินอะไรดี?)..."
+                placeholder="ถามอะไรก็ได้ เช่น วันนี้ควรวิ่งไหม…"
                 value={inputQuery}
                 onChange={(e) => setInputQuery(e.target.value)}
                 onKeyDown={(e) => {
@@ -303,28 +307,30 @@ const AiCoachPage: React.FC = () => {
   </IonPage>;
 };
 
-function CoachAnswer({ answer, topicTitle, onRefresh }: { answer: AiCoachAnswer; topicTitle: string; onRefresh: () => void }) {
-  return <section className="ai-coach-answer" aria-live="polite">
-    <header className="ai-coach-answer-header">
-      <div className="ai-coach-answer-label"><IonIcon icon={sparklesOutline} /><span>COACH ANSWER</span></div>
-      <span className="ai-coach-answer-topic">{topicTitle}</span>
-      <h2>{answer.headline}</h2><p className="ai-coach-summary">{answer.summary}</p>
-    </header>
-    {answer.actions.length > 0 && <AnswerList title="What To Do" items={answer.actions} numbered />}
-    {answer.nextMeal && <div className="ai-coach-next-meal">
-      <div className="ai-coach-next-meal-heading"><span>NEXT MEAL</span><h3>{answer.nextMeal.title}</h3>{answer.nextMeal.timing && <p>{answer.nextMeal.timing}</p>}</div>
-      <div className="ai-coach-meal-options">{answer.nextMeal.options.map((option, index) => <div key={option}><span>{index + 1}</span><p>{option}</p></div>)}</div>
-    </div>}
-    {answer.reasons.length > 0 && <AnswerList title="Why" items={answer.reasons} />}
-    {answer.missingData.length > 0 && <div className="ai-coach-missing"><div><IonIcon icon={helpCircleOutline} /><strong>Missing Data</strong></div><ul>{answer.missingData.map((item) => <li key={item}>{item}</li>)}</ul></div>}
-    {answer.caution && <div className="ai-coach-caution"><IonIcon icon={warningOutline} /><span>{answer.caution}</span></div>}
-    {answer.followUps.length > 0 && <div className="ai-coach-followups"><strong>Ask Next</strong>{answer.followUps.map((item) => <span key={item}>{item}</span>)}</div>}
-    <button type="button" className="ai-coach-refresh" onClick={onRefresh}>Refresh Answer</button>
-  </section>;
+function CoachAnswer({ answer, timestamp, onFollowUp }: { answer: AiCoachAnswer; timestamp: string; onFollowUp: (question: string) => void }) {
+  return <article className="ai-coach-assistant-message" aria-live="polite">
+    <div className="ai-coach-assistant-mark" aria-hidden="true"><IonIcon icon={sparklesOutline} /></div>
+    <div className="ai-coach-assistant-body">
+      <p className="ai-coach-conversation-text">{answer.message}</p>
+      {answer.caution && <div className="ai-coach-chat-caution"><IonIcon icon={warningOutline} /><span>{answer.caution}</span></div>}
+      {answer.missingData.length > 0 && <details className="ai-coach-chat-missing">
+        <summary>ข้อมูลที่ยังไม่มี ({answer.missingData.length})</summary>
+        <ul>{answer.missingData.map((item) => <li key={item}>{item}</li>)}</ul>
+      </details>}
+      {answer.followUps.length > 0 && <div className="ai-coach-chat-followups" aria-label="Suggested follow-up questions">
+        {answer.followUps.map((item) => <button key={item} type="button" onClick={() => onFollowUp(item)}>{item}</button>)}
+      </div>}
+      <time>{timestamp}</time>
+    </div>
+  </article>;
 }
 
-function AnswerList({ title, items, numbered = false }: { title: string; items: string[]; numbered?: boolean }) {
-  return <div className={`ai-coach-answer-list${numbered ? ' numbered' : ''}`}><h3>{title}</h3><ol>{items.map((item, index) => <li key={item}><span>{numbered ? index + 1 : '•'}</span><p>{item}</p></li>)}</ol></div>;
+function conversationFromMessages(messages: ChatMessage[]): AiCoachChatTurn[] {
+  return messages.flatMap((item): AiCoachChatTurn[] => {
+    const content = item.sender === 'user' ? item.text : item.answer?.message;
+    if (!content?.trim()) return [];
+    return [{ role: item.sender, content: content.trim() }];
+  }).slice(-8);
 }
 
 function message(value: unknown, fallback: string): string { return value instanceof Error && value.message ? value.message : fallback; }

@@ -11,6 +11,8 @@ import app.capgo.plugin.health.HealthManager
 import com.getcapacitor.JSObject
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
 class BackgroundHealthWorker(
     appContext: Context,
@@ -37,16 +39,24 @@ class BackgroundHealthWorker(
 
             val manager = HealthManager()
             val start = capturedAt.minus(Duration.ofHours(36))
+            val bangkokZone = ZoneId.of("Asia/Bangkok")
+            val today = LocalDate.ofInstant(capturedAt, bangkokZone).toString()
+            val previousHeartRateCursor = BackgroundHealthStore.heartRateCursor(applicationContext)
+            val fullHeartRateSync = previousHeartRateCursor == null || BackgroundHealthStore.heartRateFullSyncDate(applicationContext) != today
+            val bangkokMidnight = LocalDate.parse(today).atStartOfDay(bangkokZone).toInstant()
+            val heartRateStart = if (fullHeartRateSync) bangkokMidnight else maxOf(bangkokMidnight, previousHeartRateCursor.minus(Duration.ofMinutes(15)))
             val payload = JSObject().apply {
                 put("capturedAt", capturedAt.toString())
                 put("windowStart", start.toString())
                 put("windowEnd", capturedAt.toString())
+                put("heartRateWindowStart", heartRateStart.toString())
+                put("heartRateSyncMode", if (fullHeartRateSync) "full_day" else "incremental")
             }
 
             if (granted.contains(HealthDataType.SLEEP.readPermission)) {
                 payload.put("sleep", manager.readSamples(client, HealthDataType.SLEEP, start, capturedAt, 100, true))
             }
-            putSamplesWhenAllowed(payload, "heartRate", HealthDataType.HEART_RATE, granted, manager, client, start, capturedAt, 2500)
+            putSamplesWhenAllowed(payload, "heartRate", HealthDataType.HEART_RATE, granted, manager, client, heartRateStart, capturedAt, 20000)
             putSamplesWhenAllowed(payload, "heartRateVariability", HealthDataType.HEART_RATE_VARIABILITY, granted, manager, client, start, capturedAt, 200)
             putSamplesWhenAllowed(payload, "restingHeartRate", HealthDataType.RESTING_HEART_RATE, granted, manager, client, start, capturedAt, 200)
             putSamplesWhenAllowed(payload, "respiratoryRate", HealthDataType.RESPIRATORY_RATE, granted, manager, client, start, capturedAt, 200)
@@ -58,6 +68,9 @@ class BackgroundHealthWorker(
             }
 
             BackgroundHealthStore.recordSuccess(applicationContext, capturedAt.toString(), payload)
+            if (granted.contains(HealthDataType.HEART_RATE.readPermission)) {
+                BackgroundHealthStore.recordHeartRateCursor(applicationContext, capturedAt.toString(), today)
+            }
             runCatching {
                 if (previousSnapshot != null && BackgroundHealthStore.consumeFirstSuccessNotification(applicationContext)) {
                     BackgroundHealthNotifier.notifyFirstSuccess(applicationContext)

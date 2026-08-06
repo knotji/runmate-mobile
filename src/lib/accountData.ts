@@ -3,6 +3,8 @@ import { loadProfileFromSupabase } from '@/lib/profileStorage';
 import { loadActiveRaceGoalAndPlan } from '@/lib/raceStorage';
 import { loadRaceResults } from '@/lib/raceResults';
 import { supabase } from '@/lib/supabaseClient';
+import { loadAllDayHeartRateStore } from '@/lib/allDayHeartRate';
+import { exportStrainCheckIns } from '@/lib/strainContext';
 
 export type AccountDataExport = {
   exportedAt: string;
@@ -11,6 +13,8 @@ export type AccountDataExport = {
   raceGoal: unknown;
   racePlan: unknown;
   raceResults: unknown;
+  deviceHeartRateTimeline: unknown;
+  deviceStrainCheckIns: unknown;
 };
 
 export async function buildAccountDataExport(): Promise<{ ok: true; data: AccountDataExport } | { ok: false; error: string }> {
@@ -34,6 +38,8 @@ export async function buildAccountDataExport(): Promise<{ ok: true; data: Accoun
       raceGoal: race.goal,
       racePlan: race.plan,
       raceResults: raceResults.results,
+      deviceHeartRateTimeline: loadAllDayHeartRateStore(),
+      deviceStrainCheckIns: exportStrainCheckIns(),
     },
   };
 }

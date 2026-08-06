@@ -68,6 +68,7 @@ const WeeklyPlanCalendarPage = lazy(() => loadMorePage('/weekly-plan'));
 const BodyWeightTrendPage = lazy(() => loadMorePage('/body-weight-trend'));
 const AboutPage = lazy(() => loadMorePage('/about'));
 const FitnessAgePage = lazy(() => loadMorePage('/fitness-age'));
+const StrainDetailPage = lazy(() => import('@/pages/StrainDetailPage'));
 
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -199,6 +200,7 @@ const App: React.FC = () => {
             <Route exact path="/body-weight-trend">{session ? <BodyWeightTrendPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/about">{session ? <AboutPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/fitness-age">{session ? <FitnessAgePage /> : <Redirect to="/login" />}</Route>
+            <Route exact path="/strain">{session ? <StrainDetailPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/health-test"><Redirect to="/health-connect" /></Route>
             <Route exact path="/history/workout/:id"><Redirect to="/tabs/activity" /></Route>
             <Route exact path="/">

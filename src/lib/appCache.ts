@@ -9,6 +9,8 @@ import { clearProfileSettingsStartupSnapshot } from './profileSettingsStartupCac
 import { clearRecoveryStartupSnapshot } from './recoveryStartupCache';
 import { clearRecoveryTrendsStartupSnapshot } from './recoveryTrendsStartupCache';
 import { clearWeeklySummaryHistorySnapshot } from './weeklySummaryStartupCache';
+import { clearAllDayHeartRateStore } from './allDayHeartRate';
+import { clearStrainCheckIns } from './strainContext';
 
 export function clearRunMateCachedData(): void {
   clearRecoveryStartupSnapshot();
@@ -21,5 +23,7 @@ export function clearRunMateCachedData(): void {
   clearPainTrendsStartupSnapshot();
   clearWeeklySummaryHistorySnapshot();
   clearAiCoachAnswerCache();
+  clearAllDayHeartRateStore();
+  clearStrainCheckIns();
   invalidateCoachContextCache();
 }

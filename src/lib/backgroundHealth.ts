@@ -16,6 +16,8 @@ export type BackgroundHealthStatus = {
   preparedAt: string | null;
   windowStart: string | null;
   windowEnd: string | null;
+  heartRateWindowStart?: string | null;
+  heartRateSyncMode?: 'full_day' | 'incremental' | null;
   nextExpectedAt: string | null;
   workerState: string | null;
   backgroundRestricted: boolean;
@@ -43,6 +45,8 @@ export type PreparedHealthSnapshot = {
   capturedAt: string;
   windowStart: string;
   windowEnd: string;
+  heartRateWindowStart?: string;
+  heartRateSyncMode?: 'full_day' | 'incremental';
   sleep?: { samples: HealthSample[] };
   heartRate?: { samples: HealthSample[] };
   heartRateVariability?: { samples: HealthSample[] };

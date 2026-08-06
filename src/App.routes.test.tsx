@@ -43,6 +43,7 @@ vi.mock('@/pages/WorkoutDetailPage', () => ({
 vi.mock('@/pages/SleepDetailPage', () => ({ default: () => <h1>Sleep Detail Fixture</h1> }));
 vi.mock('@/pages/RaceGoalPage', () => ({ default: () => <h1>Race Goal Fixture</h1> }));
 vi.mock('@/pages/AiCoachPage', () => ({ default: () => <h1>AI Coach Fixture</h1> }));
+vi.mock('@/pages/StrainDetailPage', () => ({ default: () => <h1>Strain Detail Fixture</h1> }));
 
 describe('authenticated route contracts', () => {
   beforeEach(() => {
@@ -69,6 +70,7 @@ describe('authenticated route contracts', () => {
     ['/sleep?date=2026-07-29&from=activity', 'Sleep Detail Fixture'],
     ['/race-goal', 'Race Goal Fixture'],
     ['/ai-coach', 'AI Coach Fixture'],
+    ['/strain', 'Strain Detail Fixture'],
   ])('keeps authenticated critical route %s reachable', async (path, heading) => {
     window.history.replaceState({}, '', path);
     render(<App />);

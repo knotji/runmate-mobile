@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { askAiCoach, bangkokDayPhase, buildAiCoachContext, clearAiCoachAnswerCache } from '@/lib/aiCoach';
+import { askAiCoach, askAiCoachChat, bangkokDayPhase, buildAiCoachContext, clearAiCoachAnswerCache } from '@/lib/aiCoach';
 import type { CoachContext } from '@/lib/buildCoachContext';
 
 const invoke = vi.fn();
@@ -119,6 +119,51 @@ describe('askAiCoach caching', () => {
     await askAiCoach('chat', context, 'What should I eat?');
 
     expect(invoke).toHaveBeenCalledTimes(2);
+  });
+
+  it('preserves a natural conversational message from the coach service', async () => {
+    invoke.mockResolvedValue({ data: { data: { message: 'ได้เลยครับ วันนี้คุยเรื่องอะไรกันดี?' } }, error: null });
+
+    const answer = await askAiCoachChat('คุยเรื่องอื่นได้ไหม', buildContext());
+
+    expect(answer.message).toBe('ได้เลยครับ วันนี้คุยเรื่องอะไรกันดี?');
+  });
+
+  it('does not append a legacy meal card to a non-food answer', async () => {
+    invoke.mockResolvedValue({
+      data: {
+        data: {
+          headline: 'พักให้สดชื่น',
+          summary: 'วันนี้เหมาะกับการพักครับ',
+          actions: ['ดื่มน้ำให้เพียงพอ'],
+          nextMeal: { title: 'มื้อถัดไป', options: ['ข้าวกับไข่'] },
+        },
+      },
+      error: null,
+    });
+
+    const answer = await askAiCoach('today', buildContext());
+
+    expect(answer.message).toContain('ดื่มน้ำให้เพียงพอ');
+    expect(answer.message).not.toContain('มื้อถัดไป');
+    expect(answer.message).not.toContain('ข้าวกับไข่');
+  });
+
+  it('sends only the latest eight conversation turns for a follow-up question', async () => {
+    invoke.mockResolvedValue({ data: { data: { message: 'ต่อจากเมื่อกี้ได้เลยครับ' } }, error: null });
+    const conversation = Array.from({ length: 10 }, (_, index) => ({
+      role: index % 2 === 0 ? 'user' as const : 'assistant' as const,
+      content: `turn-${index}`,
+    }));
+
+    await askAiCoachChat('แล้วพรุ่งนี้ล่ะ', buildContext(), conversation);
+
+    expect(invoke).toHaveBeenCalledWith('ai-coach', expect.objectContaining({
+      body: expect.objectContaining({
+        userQuery: 'แล้วพรุ่งนี้ล่ะ',
+        history: conversation.slice(-8),
+      }),
+    }));
   });
 
   it('does not cache a degraded local fallback answer after a failed call', async () => {

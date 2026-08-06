@@ -17,6 +17,8 @@ internal object BackgroundHealthStore {
     private const val ACKNOWLEDGED_SLEEP = "acknowledged_sleep"
     private const val ACKNOWLEDGED_WORKOUTS = "acknowledged_workouts"
     private const val FIRST_SUCCESS_NOTIFIED = "first_success_notified"
+    private const val HEART_RATE_CURSOR = "heart_rate_cursor"
+    private const val HEART_RATE_FULL_SYNC_DATE = "heart_rate_full_sync_date"
 
     private fun preferences(context: Context) =
         context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
@@ -62,6 +64,18 @@ internal object BackgroundHealthStore {
             .apply()
     }
 
+    fun heartRateCursor(context: Context): java.time.Instant? =
+        preferences(context).getString(HEART_RATE_CURSOR, null)?.let { runCatching { java.time.Instant.parse(it) }.getOrNull() }
+
+    fun heartRateFullSyncDate(context: Context): String? = preferences(context).getString(HEART_RATE_FULL_SYNC_DATE, null)
+
+    fun recordHeartRateCursor(context: Context, at: String, fullSyncDate: String) {
+        preferences(context).edit()
+            .putString(HEART_RATE_CURSOR, at)
+            .putString(HEART_RATE_FULL_SYNC_DATE, fullSyncDate)
+            .apply()
+    }
+
     fun recordError(context: Context, at: String, code: String, message: String) {
         preferences(context).edit()
             .putString(LAST_COMPLETED, at)
@@ -101,6 +115,8 @@ internal object BackgroundHealthStore {
             put("nextExpectedAt", prefs.getString(NEXT_EXPECTED, null))
             put("windowStart", prepared?.optString("windowStart")?.takeIf { it.isNotBlank() })
             put("windowEnd", prepared?.optString("windowEnd")?.takeIf { it.isNotBlank() })
+            put("heartRateWindowStart", prepared?.optString("heartRateWindowStart")?.takeIf { it.isNotBlank() })
+            put("heartRateSyncMode", prepared?.optString("heartRateSyncMode")?.takeIf { it.isNotBlank() })
             put("recordCounts", JSObject().apply {
                 put("sleep", prepared.countArray("sleep", "samples"))
                 put("workouts", prepared.countArray("workouts", "workouts"))

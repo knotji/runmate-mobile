@@ -17,7 +17,7 @@ import {
   useIonViewWillEnter,
   type RefresherEventDetail,
 } from '@ionic/react';
-import { calendarClearOutline, chevronBackOutline, chevronForwardOutline, fitnessOutline, restaurantOutline, sparklesOutline } from 'ionicons/icons';
+import { calendarClearOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, fitnessOutline, restaurantOutline, sparklesOutline } from 'ionicons/icons';
 import { deleteHistoryItem, hideImportedHistoryItem, loadHistoryItems } from '@/lib/cloudHistory';
 import { getHistoryItemDateKey, todayBangkokDateKey } from '@/lib/date';
 import { isHealthConnectImportedItem, type LocalHistoryItem } from '@/lib/localHistory';
@@ -27,7 +27,7 @@ import { activityHistoryItemsMatch, activityRecentHistoryOptions, mergeActivityH
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { ActivityHistoryRow } from '@/components/ActivityHistoryRow';
-import { describeHistoryItem } from '@/lib/activityHistoryPresentation';
+import { describeHistoryItem, groupActivityRecords, type ActivityRecordGroupKey } from '@/lib/activityHistoryPresentation';
 import { measurePerformanceDiagnostic, recordPerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import { useHealthSyncStore } from '@/lib/health/healthSyncStore';
 import { loadActivityStartupSnapshot, saveActivityStartupSnapshot } from '@/lib/activityStartupCache';
@@ -57,6 +57,7 @@ const ActivityPage: React.FC = () => {
   const [fuelContextLoading, setFuelContextLoading] = useState(true);
   const [pendingDelete, setPendingDelete] = useState<LocalHistoryItem | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [expandedRecordGroups, setExpandedRecordGroups] = useState<Set<ActivityRecordGroupKey>>(() => new Set());
   const loadedRef = useRef(startupItems !== null);
   const startupCacheUsedRef = useRef(startupItems !== null);
   const recentLoadingRef = useRef<Promise<void> | null>(null);
@@ -65,6 +66,8 @@ const ActivityPage: React.FC = () => {
   const visibleRef = useRef(false);
   const syncTimerRef = useRef<number | null>(null);
   const cloudDataDirtyRef = useRef(false);
+
+  useEffect(() => { setExpandedRecordGroups(new Set()); }, [selectedDate]);
 
   useEffect(() => {
     let active = true;
@@ -216,6 +219,8 @@ const ActivityPage: React.FC = () => {
       .map(([date, dateItems]): [string, LocalHistoryItem[]] => [date, sortHistoryItemsByEventTimeDesc(dateItems)])
       .sort(([a], [b]) => b.localeCompare(a));
   }, [items, selectedDate]);
+  const selectedItems = useMemo(() => groupedItems.flatMap(([, dateItems]) => dateItems), [groupedItems]);
+  const recordGroups = useMemo(() => groupActivityRecords(selectedItems), [selectedItems]);
   const availableDates = useMemo(() => new Set([...items.map(getHistoryItemDateKey), todayDate]), [items, todayDate]);
   const nutritionMeasurement = useMemo(() => {
     const startedAt = performance.now();
@@ -243,6 +248,15 @@ const ActivityPage: React.FC = () => {
   const moveToDate = (date: string | undefined) => {
     if (!date || date === selectedDate) return;
     setSelectedDate(date);
+    setExpandedRecordGroups(new Set());
+  };
+
+  const toggleRecordGroup = (key: ActivityRecordGroupKey) => {
+    setExpandedRecordGroups((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
   };
 
   const confirmDelete = async () => {
@@ -276,17 +290,11 @@ const ActivityPage: React.FC = () => {
           <IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" />
         </IonRefresher>
         <main className="history-shell">
-          <header className="history-intro">
-            <p>Daily Activity</p>
-            <h1>{selectedDate === todayDate ? "Today's Activity" : formatSelectedDate(selectedDate)}</h1>
-            <span>Sleep, training, nutrition, and health records for the selected day.</span>
-          </header>
-
           <nav className={`activity-date-navigator${selectedDate !== todayDate ? ' has-current' : ''}`} aria-label="Choose Activity Date">
             <button type="button" className="activity-date-arrow" aria-label="Previous Activity Date" disabled={selectedDateIndex <= 0} onClick={() => moveToDate(sortedDates[selectedDateIndex - 1])}><IonIcon icon={chevronBackOutline} /></button>
             <button type="button" className="activity-date-button" aria-label={`Choose Activity Date. Selected ${selectedDate}`} onClick={() => { setCalendarOpen(true); void loadArchive(); }}>
               <IonIcon icon={calendarClearOutline} />
-              <span><small>Selected Date</small><strong>{selectedDate === todayDate ? `Today, ${formatMonthDay(selectedDate)}` : formatSelectedDate(selectedDate)}</strong></span>
+              <span><small>Selected Date</small><h1>{selectedDate === todayDate ? `Today, ${formatMonthDay(selectedDate)}` : formatSelectedDate(selectedDate)}</h1></span>
             </button>
             <button type="button" className="activity-date-arrow" aria-label="Next Activity Date" disabled={selectedDateIndex < 0 || selectedDateIndex >= sortedDates.length - 1} onClick={() => moveToDate(sortedDates[selectedDateIndex + 1])}><IonIcon icon={chevronForwardOutline} /></button>
             {selectedDate !== todayDate && <button type="button" className="activity-inline-current" onClick={() => moveToDate(todayDate)}>Current</button>}
@@ -298,10 +306,8 @@ const ActivityPage: React.FC = () => {
                 <div><p>Logged Nutrition</p><h2 id="daily-nutrition-heading">Daily Meal Total</h2></div>
                 <span>{nutritionSummary.mealCount} {nutritionSummary.mealCount === 1 ? 'Meal' : 'Meals'}</span>
               </header>
-              <div className="daily-nutrition-calories">
-                <strong>{formatMetric(nutritionSummary.caloriesKcal)}</strong><span>kcal logged</span>
-              </div>
-              <div className="daily-nutrition-macros">
+              <div className="daily-nutrition-metrics">
+                <div><span>Calories</span><strong>{formatMetric(nutritionSummary.caloriesKcal)}<small> kcal</small></strong></div>
                 <NutritionMetric label="Protein" value={nutritionSummary.proteinG} />
                 <NutritionMetric label="Carbs" value={nutritionSummary.carbsG} />
                 <NutritionMetric label="Fat" value={nutritionSummary.fatG} />
@@ -326,8 +332,16 @@ const ActivityPage: React.FC = () => {
                 <div><p>{selectedDate === todayDate ? 'Today' : 'Selected Day'}</p><h2>{selectedDate === todayDate ? "Today's Records" : 'Daily Records'}</h2></div>
                 <span>{dateItems.length} {dateItems.length === 1 ? 'Record' : 'Records'}</span>
               </header>
-              <div className="history-list">
-                {dateItems.map((item) => <ActivityHistoryRow item={item} deleting={deletingId === item.id} onDelete={() => setPendingDelete(item)} key={item.id} />)}
+              <div className="activity-record-groups">
+                {recordGroups.map((group) => {
+                  const expanded = expandedRecordGroups.has(group.key);
+                  return <section className={`activity-record-group is-${group.key}${expanded ? ' is-expanded' : ''}`} key={group.key}>
+                    <button type="button" className="activity-record-group-toggle" aria-expanded={expanded} aria-controls={`activity-records-${group.key}`} onClick={() => toggleRecordGroup(group.key)}>
+                      <IonIcon icon={group.icon} /><span><strong>{group.label}</strong><small>{group.summary}</small></span><b>{group.items.length}</b><IonIcon className="activity-record-group-chevron" icon={chevronDownOutline} />
+                    </button>
+                    {expanded && <div className="history-list" id={`activity-records-${group.key}`}>{group.items.map((item) => <ActivityHistoryRow item={item} deleting={deletingId === item.id} onDelete={() => setPendingDelete(item)} key={item.id} />)}</div>}
+                  </section>;
+                })}
               </div>
             </section>
           ))}
@@ -376,9 +390,9 @@ function DailyFuelCoachCard({ coach, preparing, onProfile, onLogMeal, onAskCoach
   return <section className="daily-fuel-card" aria-labelledby="daily-fuel-heading">
     <header><div><p>Daily Fuel Coach</p><h2 id="daily-fuel-heading">Fuel For This Day</h2></div><span>{coach.dayLabel}</span></header>
     {coach.status === 'needs_weight' ? <div className="daily-fuel-setup"><IonIcon icon={restaurantOutline} /><div><strong>{coach.recommendation.title}</strong><span>{coach.recommendation.detail}</span></div><button type="button" onClick={onProfile}>Review Profile</button></div> : <>
-      <div className="daily-fuel-targets">
-        <FuelTarget label="Protein" target={coach.protein!} />
-        <FuelTarget label="Carbohydrate" target={coach.carbs!} />
+      <div className="daily-fuel-quick-status" aria-label="Daily fuel target status">
+        <FuelStatus label="Protein" target={coach.protein!} />
+        <FuelStatus label="Carbs" target={coach.carbs!} />
       </div>
       <div className="daily-fuel-guidance"><IonIcon icon={sparklesOutline} /><div><strong>{coach.recommendation.title}</strong><span>{coach.recommendation.detail}</span></div></div>
       <div className="daily-fuel-footer"><span>{coach.note}</span>{coach.mealCount === 0 ? <button type="button" onClick={onLogMeal}>Log A Meal</button> : <button type="button" onClick={onAskCoach}>Ask AI Coach</button>}</div>
@@ -386,15 +400,9 @@ function DailyFuelCoachCard({ coach, preparing, onProfile, onLogMeal, onAskCoach
   </section>;
 }
 
-function FuelTarget({ label, target }: { label: string; target: NonNullable<DailyFuelCoach['protein']> }) {
-  const progress = target.logged == null ? 0 : Math.min(100, target.logged / target.minimum * 100);
-  const targetText = target.minimum === target.maximum ? `${target.minimum} g` : `${target.minimum}–${target.maximum} g`;
-  return <div className="daily-fuel-target">
-    <div><span>{label}</span><small>Target {targetText}</small></div>
-    <strong>{target.logged == null ? '—' : `${formatMetric(target.logged)} g`}<small> logged</small></strong>
-    <div className="daily-fuel-progress" role="progressbar" aria-label={`${label} logged against minimum target`} aria-valuemin={0} aria-valuemax={target.minimum} aria-valuenow={target.logged ?? 0}><i style={{ width: `${progress}%` }} /></div>
-    <small>{target.logged == null ? 'Macro value unavailable' : target.remainingToMinimum ? `${target.remainingToMinimum} g to lower target` : 'Lower target reached'}</small>
-  </div>;
+function FuelStatus({ label, target }: { label: string; target: NonNullable<DailyFuelCoach['protein']> }) {
+  const status = target.logged == null ? 'Not available' : target.remainingToMinimum ? `${target.remainingToMinimum} g remaining` : 'Target reached';
+  return <div className={target.remainingToMinimum ? '' : 'is-reached'}><span>{label}</span><strong>{status}</strong></div>;
 }
 
 function formatSelectedDate(date: string): string { return new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(`${date}T12:00:00`)); }

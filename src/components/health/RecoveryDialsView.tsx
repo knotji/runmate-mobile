@@ -38,12 +38,14 @@ export function RecoveryDials({
   recovery,
   onRecoveryClick,
   onSleepClick,
+  onStrainClick,
   freshness,
   onFreshnessClick,
 }: {
   recovery: RunMateRecoverySystem;
   onRecoveryClick: () => void;
   onSleepClick: () => void;
+  onStrainClick: () => void;
   freshness?: { status: 'fresh' | 'refreshing' | 'stale'; detail: string };
   onFreshnessClick?: () => void;
 }) {
@@ -72,7 +74,7 @@ export function RecoveryDials({
           </div>
           <div className="recovery-support-metrics">
             <MetricDial label="Sleep" value={recovery.dataFreshness.status === 'today' ? recovery.sleepPerformance.score : null} max={100} tone="sleep" onClick={onSleepClick} />
-            <MetricDial label="Strain" value={recovery.strain.score} max={21} tone="strain" />
+            <MetricDial label="Strain" value={recovery.strain.score} max={21} tone="strain" onClick={onStrainClick} />
           </div>
         </div>
         {waitingMessage && (

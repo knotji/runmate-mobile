@@ -33,18 +33,11 @@
 .plan-card strong { color: #1d3b5b; font-size: 15px; line-height: 1.25; }
 .plan-card p { max-width: 36rem; margin: 1px 0 0; color: #63778e; font-size: 11px; line-height: 1.45; }
 
-.today-brief-grid { display: grid; margin-top: 5px; }
-.today-brief-grid article { display: grid; gap: 4px; padding: 12px 0; border-top: 1px solid #e6edef; }
-.today-brief-grid article:first-child { padding-top: 8px; border-top: 0; }
-.today-brief-grid small { color: #73899a; font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
-.today-brief-grid strong { font-size: 15px; }
-.today-brief-grid p { margin: 0; }
-.today-brief-grid .today-brief-limiter small { display: flex; align-items: center; gap: 6px; color: #9a6a25; }
-.today-brief-grid .today-brief-limiter small::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #d7a13b; }
-.today-brief-grid .today-brief-limiter strong { color: #65491e; }
-.today-brief-grid .today-brief-action { margin-top: 3px; padding: 11px 12px; border: 0; border-radius: 15px; background: #eef7f4; }
-.today-brief-grid .today-brief-action small { color: #26806f; }
-.today-brief-grid .today-brief-action strong { color: #176655; }
+.today-brief-focus { display: grid; gap: 4px; padding: 11px 0 5px; }
+.today-brief-focus > small { color: #73899a; font-size: 9px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+.today-brief-focus > strong { color: #176655; font-size: 17px; line-height: 1.25; }
+.today-brief-focus > p { overflow: hidden; margin: 0; color: #687f90; font-size: 10px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.today-brief-focus > p span { color: #9a6a25; font-weight: 800; text-transform: uppercase; }
 
 .plan-metrics-line { color: #2e5e85; font-weight: 650; }
 .plan-guidance-line { margin-top: 4px; }
@@ -76,6 +69,8 @@
 .plan-support-list .plan-support-fuel::before { background: #d79b55; }
 .plan-support-list .plan-support-hydration::before { background: #4c9fd0; }
 .plan-support-list .plan-support-data::before { background: #65aa91; }
+.plan-support-list .plan-support-limiter::before { background: #d7a13b; }
+.plan-support-list .plan-support-action::before { background: #3ca78d; }
 .plan-support-list strong { font-size: 12px; }
 .plan-support-list p { margin: 0; }
 .plan-support-more { border-top: 1px solid rgba(215, 227, 237, .75); }

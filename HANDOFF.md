@@ -1253,3 +1253,28 @@ Verification for the latest workout-sync release:
 - `npm.cmd run build`: passed.
 - Signed APK `1.0.0 (1169)` was distributed through Firebase App Distribution.
 - Latest relevant commits: `6ffb753` (time-aware Coach), `2bf8cad` (adaptive Core routines), and `37fc3ea` (prepared plus live Workout reconciliation).
+
+## All-Day Heart Rate And Strain Detail (2026-08-06)
+
+- The Strain dial on Recovery now opens `/strain`. The detail view explains the current 0–21 score, its Recovery-compatible range, today’s observed Heart Rate timeline, likely contributors, seven-day Strain history, and one next action.
+- All-day Heart Rate is summarized into five-minute average/minimum/maximum buckets. RunMate retains up to seven days of these summaries locally; it does not upload raw all-day Heart Rate samples to Supabase. The account export includes the locally available summary and optional check-ins.
+- Foreground Health sync performs one full current-day reconciliation per Bangkok date (and on force refresh), then uses a durable timestamp cursor with a 15-minute overlap and sample deduplication. Empty or delayed provider reads preserve the last known good buckets.
+- Android Background Preparation uses the same policy: a current-day full read followed by hourly incremental reads with overlap. WorkManager remains inexact, and Samsung Health decides when its watch data becomes visible in Health Connect.
+- Strain contributors distinguish confirmed context from possible associations. Workout, user-reported Stress, and Hot/Humid conditions are confirmed context; caffeine log time, shifted RHR/HRV, and all-day HR coverage remain explicitly qualified. RunMate never diagnoses stress, heat strain, or illness from Heart Rate alone.
+- Stress and environment check-ins are optional, stored locally for up to 14 days, cleared on sign-out, and disclosed on Privacy & Data.
+- The underlying 0–21 Strain score remains workout-load based. All-day Heart Rate is context-only until movement-aware validation is available, preventing elevated HR from caffeine, heat, stress, or illness from being mislabeled as productive workout load.
+
+## Recovery, Activity, And AI Coach Interaction Polish (2026-08-06)
+
+- Recovery's Today Brief now keeps one adjustment and its main limiter visible. The first three supporting signals remain available in the primary disclosure, while additional evidence is nested under `View all` to reduce first-viewport density without removing data.
+- Activity records are grouped into collapsed Training, Meals, Sleep, and Health sections. Each group preserves record order and exposes its count, so busy days remain scannable while every original record and action stays available on expansion.
+- AI Coach now renders a normal conversational thread instead of a report-style answer card. It sends at most eight recent user/assistant turns, keeps freeform chat uncached, and uses the server-provided `message` as the complete visible response.
+- The AI Coach Edge Function limits Race context to explicit Race questions or a clear Race follow-up. Acknowledgements receive one short conversational reply, routine source gaps are omitted unless they materially affect the answer, and suggested follow-ups are limited to one relevant question.
+- Existing safety contracts remain in place: RunMate data is treated as context rather than diagnosis, Pain and Sick state override performance advice, completed workouts are not prescribed again, and the Coach never claims to mutate saved records or plans.
+
+Verification for this release candidate:
+
+- `npm.cmd run test.unit -- --run`: 95 files and 426 tests passed.
+- `npm.cmd run lint`: passed.
+- `npm.cmd run build`: passed.
+- `git diff --check`: passed.

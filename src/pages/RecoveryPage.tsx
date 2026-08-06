@@ -305,6 +305,7 @@ const RecoveryPage: React.FC = () => {
                 recovery={visibleRecovery}
                 onRecoveryClick={() => history.push('/recovery-trends')}
                 onSleepClick={() => history.push('/sleep')}
+                onStrainClick={() => history.push('/strain')}
                 freshness={dataStatus !== 'fallback' ? { status: dataStatus, detail: dataStatusCopy.detail } : undefined}
                 onFreshnessClick={() => void retryRecovery()}
               />

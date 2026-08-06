@@ -1,86 +1,807 @@
-.history-content { --background: #f5f8fc; }
-.history-header ion-toolbar { --background: rgba(245,248,252,.86); --border-color: rgba(180,199,219,.25); backdrop-filter: blur(18px); }
-.history-header ion-title { color: #142a46; font-size: 16px; font-weight: 800; }
-.history-shell { width: min(100%,600px); min-height: 100%; margin: 0 auto; padding: 24px 20px 40px; }
-.history-intro { margin: 0 2px 18px; }
-.history-intro > p { margin: 0 0 5px; color: #2474b2; font-size: 9px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
-.history-intro h1 { margin: 0; color: #172f4b; font-size: 24px; line-height: 1.2; letter-spacing: -.025em; }
-.history-intro span { display: block; max-width: 28rem; margin-top: 7px; color: #71859a; font-size: 10px; line-height: 1.5; }
-.activity-date-navigator { margin-bottom: 20px; display: grid; grid-template-columns: 44px minmax(0,1fr) 44px; align-items: stretch; gap: 8px; }
-.activity-date-navigator.has-current { grid-template-columns: 44px minmax(0,1fr) 44px auto; }
-.activity-date-navigator button { border: 1px solid #d9e6f0; color: #31536f; background: #fff; box-shadow: 0 6px 16px rgba(46,77,111,.04); cursor: pointer; }
-.activity-date-navigator button:focus-visible { outline: 2px solid #2a89b8; outline-offset: 2px; }
-.activity-date-arrow { min-height: 48px; display: grid; place-items: center; border-radius: 14px; }.activity-date-arrow ion-icon { width: 18px; height: 18px; }.activity-date-arrow:disabled { opacity: .35; cursor: default; }
-.activity-date-button { min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 9px; padding: 6px 12px; border-radius: 15px; text-align: left; }.activity-date-button > ion-icon,.activity-date-button > ion-spinner { width: 17px; height: 17px; color: #2780ad; }.activity-date-button span { display: grid; gap: 1px; }.activity-date-button small { color: #7890a5; font-size: 7px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }.activity-date-button strong { color: #1c3c59; font-size: 12px; line-height: 1.25; }.activity-date-button:disabled { opacity: .78; cursor: wait; }
-.activity-date-button small { font-size: 9px; }
-.activity-inline-current { align-self: center; min-height: 44px; padding: 0 10px; border-radius: 12px; color: #2479a7 !important; background: #edf7fc !important; font-size: 9px; font-weight: 750; box-shadow: none !important; }.activity-inline-current:disabled { opacity: .5; cursor: wait; }
-.history-date-modal { --width: min(84vw,330px); --height: auto; --border-radius: 20px; }.history-date-modal ion-datetime { width: 100%; max-width: 330px; margin: 0 auto; --background: #fff; }
-.history-archive-status { min-height: 42px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 14px 0; color: #66839a; background: #fff; font-size: 9px; font-weight: 700; }
-.history-archive-status ion-spinner { width: 14px; height: 14px; color: #2586b4; }
-.history-archive-status.is-error { justify-content: space-between; color: #925361; }
-.history-archive-status button { min-height: 36px; padding: 0 9px; border: 0; border-radius: 9px; color: #247aa8; background: #edf7fc; font: inherit; font-size: 9px; font-weight: 800; }
-.daily-nutrition-summary { margin: -2px 0 20px; padding: 16px; border: 1px solid #d4e9e3; border-radius: 18px; background: linear-gradient(145deg,#fff 0%,#f3fbf8 100%); box-shadow: 0 8px 20px rgba(46,77,111,.04); }
-.daily-nutrition-summary > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }.daily-nutrition-summary header p { margin: 0 0 3px; color: #33816e; font-size: 9px; font-weight: 850; letter-spacing: .09em; text-transform: uppercase; }.daily-nutrition-summary h2 { margin: 0; color: #193b50; font-size: 16px; line-height: 1.25; }.daily-nutrition-summary header > span { padding: 5px 8px; border-radius: 999px; color: #377966; background: #e5f5ef; font-size: 9px; font-weight: 750; white-space: nowrap; }
-.daily-nutrition-calories { display: flex; align-items: baseline; gap: 6px; margin: 15px 0 12px; }.daily-nutrition-calories strong { color: #163a50; font-size: 27px; line-height: 1; letter-spacing: -.03em; }.daily-nutrition-calories span { color: #72899b; font-size: 9px; }
-.daily-nutrition-macros { display: grid; grid-template-columns: repeat(3,1fr); border-block: 1px solid #dfede8; }.daily-nutrition-macros div { display: grid; gap: 3px; padding: 10px; }.daily-nutrition-macros div:first-child { padding-left: 0; }.daily-nutrition-macros div + div { border-left: 1px solid #dfede8; }.daily-nutrition-macros span { color: #71889b; font-size: 9px; }.daily-nutrition-macros strong { color: #275069; font-size: 13px; }
-.daily-nutrition-summary > small { display: block; margin-top: 10px; color: #8799a8; font-size: 9px; line-height: 1.45; }
-.daily-nutrition-trends-link { width:100%; min-height:44px; display:flex; align-items:center; justify-content:space-between; margin:12px 0 -5px; padding:9px 0 5px; border:0; border-top:1px solid #dfede8; color:#287c78; background:transparent; font:inherit; font-size:10px; font-weight:750; text-align:left; }.daily-nutrition-trends-link ion-icon{font-size:15px}.daily-nutrition-trends-link:focus-visible{outline:2px solid #2a8d88;outline-offset:2px}
-.daily-fuel-card{margin:0 0 24px;padding:15px;border:1px solid #cfe3eb;border-radius:20px;background:rgba(255,255,255,.96);box-shadow:var(--rm-card-shadow)}.daily-fuel-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.daily-fuel-card>header p,.daily-fuel-card.is-preparing p{margin:0 0 4px;color:#237e9b;font-size:9px;font-weight:850;letter-spacing:.1em;text-transform:uppercase}.daily-fuel-card h2{margin:0;color:#193b54;font-size:16px}.daily-fuel-card>header>span{padding:5px 8px;border-radius:999px;color:#7a622c;background:#fff4dc;font-size:9px;font-weight:800;white-space:nowrap}.daily-fuel-targets{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.daily-fuel-target{min-width:0;padding:12px;border-radius:15px;background:#f4f8fa}.daily-fuel-target>div:first-child{display:grid;gap:2px}.daily-fuel-target span{color:#31556c;font-size:10px;font-weight:800}.daily-fuel-target small{color:#7890a0;font-size:8px;line-height:1.4}.daily-fuel-target>strong{display:block;margin-top:9px;color:#173e56;font-size:18px}.daily-fuel-target>strong small{font-size:8px;font-weight:600}.daily-fuel-progress{height:6px;margin:9px 0 6px;overflow:hidden;border-radius:999px;background:#dfe9ee}.daily-fuel-progress i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#38a98c,#4db8c5)}.daily-fuel-guidance{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:start;margin-top:12px;padding:12px;border-radius:15px;background:#eef8f5}.daily-fuel-guidance ion-icon{padding:8px;border-radius:10px;color:#218c75;background:#dbf1e9;font-size:17px}.daily-fuel-guidance div{display:grid;gap:3px}.daily-fuel-guidance strong{color:#205149;font-size:11px}.daily-fuel-guidance span{color:#648079;font-size:9px;line-height:1.5}.daily-fuel-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:11px}.daily-fuel-footer>span{color:#8295a3;font-size:8px;line-height:1.4}.daily-fuel-footer button,.daily-fuel-setup button{flex:none;min-height:44px;padding:0 11px;border:0;border-radius:12px;color:#187b96;background:#e9f6fa;font:inherit;font-size:9px;font-weight:800}.daily-fuel-footer button:focus-visible,.daily-fuel-setup button:focus-visible{outline:2px solid #2389a6;outline-offset:2px}.daily-fuel-setup{display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;margin-top:13px}.daily-fuel-setup>ion-icon{padding:9px;border-radius:11px;color:#25866f;background:#e5f5ef;font-size:18px}.daily-fuel-setup>div{display:grid;gap:3px}.daily-fuel-setup strong{color:#24485b;font-size:11px}.daily-fuel-setup span{color:#6f8797;font-size:9px;line-height:1.5}.daily-fuel-setup button{grid-column:1/-1;width:100%}.daily-fuel-card.is-preparing{display:flex;align-items:center;gap:12px;min-height:86px}.daily-fuel-card.is-preparing ion-spinner{color:#328fa6}.daily-fuel-card.is-preparing div{display:grid}.daily-fuel-card.is-preparing span{color:#748b9b;font-size:9px}.daily-fuel-card.is-preparing h2{font-size:14px}@media(max-width:360px){.daily-fuel-targets{grid-template-columns:1fr}.daily-fuel-footer{align-items:flex-start;flex-direction:column}.daily-fuel-footer button{width:100%}}
-.history-state, .history-empty { min-height: 300px; display: grid; place-content: center; justify-items: center; gap: 10px; color: #70849a; text-align: center; }
-.history-state p, .history-empty p { margin: 0; font-size: 11px; }.history-empty ion-icon { width: 32px; height: 32px; color: #79a5c3; }.history-empty h2 { margin: 3px 0 0; color: #294760; font-size: 17px; }
-.history-error button { padding: 8px 12px; border: 0; border-radius: 10px; color: #176e99; background: #e9f5fb; font: inherit; font-size: 11px; font-weight: 750; }
-.history-day { margin-bottom: 28px; }.history-day > header { display: flex; align-items: baseline; justify-content: flex-end; margin: 0 2px 8px; }.history-day > header span { color: #8a9aac; font-size: 9px; font-weight: 600; }
-.history-list { border: 1px solid #dce7f1; border-radius: 19px; background: #fff; overflow: hidden; box-shadow: 0 8px 20px rgba(46,77,111,.04); }
-.history-row-shell{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 44px;border-bottom:1px solid #edf2f7}.history-row-shell:last-child{border-bottom:0}.history-row { width: 100%; min-height: 70px; display: grid; grid-template-columns: 40px minmax(0,1fr); align-items: center; gap: 11px; padding: 11px 7px 11px 13px; border: 0; color: inherit; background: transparent; font: inherit; text-align: left; }.history-row:disabled{opacity:.55}
-.history-row-button { grid-template-columns: 40px minmax(0,1fr) 14px; cursor: pointer; }.history-row-button:active { background: #f4f9fc; }
-.history-row-chevron { grid-column: -1; width: 14px; height: 14px; color: #9cafbf; }
-.history-icon { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 13px; color: #347aa6; background: #eaf5fb; }.history-icon ion-icon { width: 18px; height: 18px; }.history-icon-workout { color: #8b642a; background: #fff4df; }.history-icon-meal { color: #32836b; background: #eaf8f3; }.history-icon-health { color: #a2525d; background: #fff0f2; }.history-icon-body { color: #765da5; background: #f3effb; }
-.history-copy { min-width: 0; display: grid; gap: 2px; }.history-copy > span { color: #71879c; font-size: 9px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }.history-copy h3 { overflow: hidden; margin: 0; color: #23425e; font-size: 13px; font-weight: 700; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }.history-row-meta { min-width: 0; display: flex; align-items: center; gap: 6px; }.history-copy p { min-width: 0; overflow: hidden; margin: 0; color: #7d8fa1; font-size: 9px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }.history-row-meta small { flex: 0 1 auto; max-width: 82px; overflow: hidden; padding: 3px 6px; border-radius: 999px; color: #698096; background: #f0f5f8; font-size: 9px; font-weight: 750; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
-.history-row-delete{min-width:44px;align-self:stretch;display:grid;place-items:center;border:0;color:#a76a73;background:transparent}.history-row-delete:active{background:#fff1f3}.history-row-delete:focus-visible{outline:2px solid #c46e7b;outline-offset:-3px}.history-row-delete:disabled{opacity:.45}.history-row-delete ion-icon{width:16px;height:16px}.history-row-delete ion-spinner{width:16px;height:16px}.history-delete-error{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px;padding:11px 13px;border:1px solid #efd4d8;border-radius:14px;color:#934f5a;background:#fff2f4;font-size:10px}.history-delete-error button{min-height:44px;border:0;color:#934f5a;background:transparent;font-size:9px;font-weight:800}
-@media (max-width:390px) { .history-shell { padding-inline: 16px; }.activity-date-navigator.has-current { grid-template-columns: 44px minmax(0,1fr) 44px auto; gap: 6px; }.activity-inline-current { padding-inline: 7px; }.history-row-meta small { max-width: 64px; } }
+.history-content {
+  --background: #f5f8fc;
+}
+.history-header ion-toolbar {
+  --background: rgba(245, 248, 252, 0.86);
+  --border-color: rgba(180, 199, 219, 0.25);
+  backdrop-filter: blur(18px);
+}
+.history-header ion-title {
+  color: #142a46;
+  font-size: 16px;
+  font-weight: 800;
+}
+.history-shell {
+  width: min(100%, 600px);
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 18px 20px 40px;
+}
+.activity-date-navigator {
+  margin-bottom: 16px;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: stretch;
+  gap: 8px;
+}
+.activity-date-navigator.has-current {
+  grid-template-columns: 44px minmax(0, 1fr) 44px auto;
+}
+.activity-date-navigator button {
+  border: 1px solid #d9e6f0;
+  color: #31536f;
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(46, 77, 111, 0.04);
+  cursor: pointer;
+}
+.activity-date-navigator button:focus-visible {
+  outline: 2px solid #2a89b8;
+  outline-offset: 2px;
+}
+.activity-date-arrow {
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+}
+.activity-date-arrow ion-icon {
+  width: 18px;
+  height: 18px;
+}
+.activity-date-arrow:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.activity-date-button {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 6px 12px;
+  border-radius: 15px;
+  text-align: left;
+}
+.activity-date-button > ion-icon,
+.activity-date-button > ion-spinner {
+  width: 17px;
+  height: 17px;
+  color: #2780ad;
+}
+.activity-date-button span {
+  display: grid;
+  gap: 1px;
+}
+.activity-date-button small {
+  color: #7890a5;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.activity-date-button h1 {
+  margin: 0;
+  color: #1c3c59;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+.activity-date-button:disabled {
+  opacity: 0.78;
+  cursor: wait;
+}
+.activity-date-button small {
+  font-size: 9px;
+}
+.activity-inline-current {
+  align-self: center;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 12px;
+  color: #2479a7 !important;
+  background: #edf7fc !important;
+  font-size: 9px;
+  font-weight: 750;
+  box-shadow: none !important;
+}
+.activity-inline-current:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.history-date-modal {
+  --width: min(84vw, 330px);
+  --height: auto;
+  --border-radius: 20px;
+}
+.history-date-modal ion-datetime {
+  width: 100%;
+  max-width: 330px;
+  margin: 0 auto;
+  --background: #fff;
+}
+.history-archive-status {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 14px 0;
+  color: #66839a;
+  background: #fff;
+  font-size: 9px;
+  font-weight: 700;
+}
+.history-archive-status ion-spinner {
+  width: 14px;
+  height: 14px;
+  color: #2586b4;
+}
+.history-archive-status.is-error {
+  justify-content: space-between;
+  color: #925361;
+}
+.history-archive-status button {
+  min-height: 36px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 9px;
+  color: #247aa8;
+  background: #edf7fc;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 800;
+}
+.daily-nutrition-summary {
+  margin: -2px 0 20px;
+  padding: 16px;
+  border: 1px solid #d4e9e3;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #fff 0%, #f3fbf8 100%);
+  box-shadow: 0 8px 20px rgba(46, 77, 111, 0.04);
+}
+.daily-nutrition-summary > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.daily-nutrition-summary header p {
+  margin: 0 0 3px;
+  color: #33816e;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.daily-nutrition-summary h2 {
+  margin: 0;
+  color: #193b50;
+  font-size: 16px;
+  line-height: 1.25;
+}
+.daily-nutrition-summary header > span {
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: #377966;
+  background: #e5f5ef;
+  font-size: 9px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.daily-nutrition-summary > small {
+  display: block;
+  margin-top: 10px;
+  color: #8799a8;
+  font-size: 9px;
+  line-height: 1.45;
+}
+.daily-nutrition-metrics {
+  display: grid;
+  grid-template-columns: 1.15fr repeat(3, 1fr);
+  margin-top: 12px;
+  border-block: 1px solid #dfede8;
+}
+.daily-nutrition-metrics > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 9px 8px;
+}
+.daily-nutrition-metrics > div:first-child {
+  padding-left: 0;
+}
+.daily-nutrition-metrics > div + div {
+  border-left: 1px solid #dfede8;
+}
+.daily-nutrition-metrics span {
+  color: #71889b;
+  font-size: 9px;
+}
+.daily-nutrition-metrics strong {
+  color: #275069;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.daily-nutrition-metrics strong small {
+  font-size: 8px;
+  font-weight: 650;
+}
+.daily-nutrition-trends-link {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 0 -5px;
+  padding: 9px 0 5px;
+  border: 0;
+  border-top: 1px solid #dfede8;
+  color: #287c78;
+  background: transparent;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 750;
+  text-align: left;
+}
+.daily-nutrition-trends-link ion-icon {
+  font-size: 15px;
+}
+.daily-nutrition-trends-link:focus-visible {
+  outline: 2px solid #2a8d88;
+  outline-offset: 2px;
+}
+.daily-fuel-card {
+  margin: 0 0 24px;
+  padding: 15px;
+  border: 1px solid #cfe3eb;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--rm-card-shadow);
+}
+.daily-fuel-card > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.daily-fuel-card > header p,
+.daily-fuel-card.is-preparing p {
+  margin: 0 0 4px;
+  color: #237e9b;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.daily-fuel-card h2 {
+  margin: 0;
+  color: #193b54;
+  font-size: 16px;
+}
+.daily-fuel-card > header > span {
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: #7a622c;
+  background: #fff4dc;
+  font-size: 9px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.daily-fuel-quick-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 11px;
+}
+.daily-fuel-quick-status > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: #805f25;
+  background: #fff4dc;
+}
+.daily-fuel-quick-status > div.is-reached {
+  color: #27745f;
+  background: #e7f5ef;
+}
+.daily-fuel-quick-status span {
+  font-size: 8px;
+  font-weight: 750;
+}
+.daily-fuel-quick-status strong {
+  font-size: 9px;
+}
+.daily-fuel-guidance {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 10px;
+  align-items: start;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 15px;
+  background: #eef8f5;
+}
+.daily-fuel-guidance ion-icon {
+  padding: 8px;
+  border-radius: 10px;
+  color: #218c75;
+  background: #dbf1e9;
+  font-size: 17px;
+}
+.daily-fuel-guidance div {
+  display: grid;
+  gap: 3px;
+}
+.daily-fuel-guidance strong {
+  color: #205149;
+  font-size: 11px;
+}
+.daily-fuel-guidance span {
+  color: #648079;
+  font-size: 9px;
+  line-height: 1.5;
+}
+.daily-fuel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 11px;
+}
+.daily-fuel-footer > span {
+  color: #8295a3;
+  font-size: 8px;
+  line-height: 1.4;
+}
+.daily-fuel-footer button,
+.daily-fuel-setup button {
+  flex: none;
+  min-height: 44px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 12px;
+  color: #187b96;
+  background: #e9f6fa;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 800;
+}
+.daily-fuel-footer button:focus-visible,
+.daily-fuel-setup button:focus-visible {
+  outline: 2px solid #2389a6;
+  outline-offset: 2px;
+}
+.daily-fuel-setup {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 13px;
+}
+.daily-fuel-setup > ion-icon {
+  padding: 9px;
+  border-radius: 11px;
+  color: #25866f;
+  background: #e5f5ef;
+  font-size: 18px;
+}
+.daily-fuel-setup > div {
+  display: grid;
+  gap: 3px;
+}
+.daily-fuel-setup strong {
+  color: #24485b;
+  font-size: 11px;
+}
+.daily-fuel-setup span {
+  color: #6f8797;
+  font-size: 9px;
+  line-height: 1.5;
+}
+.daily-fuel-setup button {
+  grid-column: 1/-1;
+  width: 100%;
+}
+.daily-fuel-card.is-preparing {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 86px;
+}
+.daily-fuel-card.is-preparing ion-spinner {
+  color: #328fa6;
+}
+.daily-fuel-card.is-preparing div {
+  display: grid;
+}
+.daily-fuel-card.is-preparing span {
+  color: #748b9b;
+  font-size: 9px;
+}
+.daily-fuel-card.is-preparing h2 {
+  font-size: 14px;
+}
+@media (max-width: 360px) {
+  .daily-fuel-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .daily-fuel-footer button {
+    width: 100%;
+  }
+}
+.history-state,
+.history-empty {
+  min-height: 300px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  color: #70849a;
+  text-align: center;
+}
+.history-state p,
+.history-empty p {
+  margin: 0;
+  font-size: 11px;
+}
+.history-empty ion-icon {
+  width: 32px;
+  height: 32px;
+  color: #79a5c3;
+}
+.history-empty h2 {
+  margin: 3px 0 0;
+  color: #294760;
+  font-size: 17px;
+}
+.history-error button {
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 10px;
+  color: #176e99;
+  background: #e9f5fb;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 750;
+}
+.history-day {
+  margin-bottom: 28px;
+}
+.history-day > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  margin: 0 2px 8px;
+}
+.history-day > header span {
+  color: #8a9aac;
+  font-size: 9px;
+  font-weight: 600;
+}
+.history-list {
+  border: 1px solid #dce7f1;
+  border-radius: 19px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(46, 77, 111, 0.04);
+}
+.activity-record-groups {
+  display: grid;
+  gap: 9px;
+}
+.activity-record-group {
+  overflow: hidden;
+  border: 1px solid #dbe7ed;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 20px rgba(42, 68, 82, 0.045);
+}
+.activity-record-group-toggle {
+  width: 100%;
+  min-height: 62px;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto 18px;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+}
+.activity-record-group-toggle > ion-icon:first-child {
+  padding: 8px;
+  border-radius: 11px;
+  color: #347aa6;
+  background: #eaf5fb;
+  font-size: 18px;
+}
+.activity-record-group.is-training .activity-record-group-toggle > ion-icon:first-child {
+  color: #8b642a;
+  background: #fff4df;
+}
+.activity-record-group.is-nutrition .activity-record-group-toggle > ion-icon:first-child {
+  color: #32836b;
+  background: #eaf8f3;
+}
+.activity-record-group-toggle > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.activity-record-group-toggle strong {
+  color: #20415a;
+  font-size: 12px;
+}
+.activity-record-group-toggle small {
+  overflow: hidden;
+  color: #7b8f9d;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.activity-record-group-toggle > b {
+  min-width: 25px;
+  padding: 5px 7px;
+  border-radius: 999px;
+  color: #617c8e;
+  background: #edf3f6;
+  font-size: 9px;
+  text-align: center;
+}
+.activity-record-group-chevron {
+  color: #87a0af;
+  font-size: 15px;
+  transition: transform 0.18s ease;
+}
+.activity-record-group.is-expanded .activity-record-group-chevron {
+  transform: rotate(180deg);
+}
+.activity-record-group-toggle:focus-visible {
+  outline: 2px solid #2a89b8;
+  outline-offset: -3px;
+}
+.activity-record-group .history-list {
+  padding: 0 8px 8px;
+}
+.activity-record-group .history-row-shell {
+  box-shadow: none;
+}
+.history-row-shell {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  border-bottom: 1px solid #edf2f7;
+}
+.history-row-shell:last-child {
+  border-bottom: 0;
+}
+.history-row {
+  width: 100%;
+  min-height: 70px;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+  padding: 11px 7px 11px 13px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+}
+.history-row:disabled {
+  opacity: 0.55;
+}
+.history-row-button {
+  grid-template-columns: 40px minmax(0, 1fr) 14px;
+  cursor: pointer;
+}
+.history-row-button:active {
+  background: #f4f9fc;
+}
+.history-row-chevron {
+  grid-column: -1;
+  width: 14px;
+  height: 14px;
+  color: #9cafbf;
+}
+.history-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  color: #347aa6;
+  background: #eaf5fb;
+}
+.history-icon ion-icon {
+  width: 18px;
+  height: 18px;
+}
+.history-icon-workout {
+  color: #8b642a;
+  background: #fff4df;
+}
+.history-icon-meal {
+  color: #32836b;
+  background: #eaf8f3;
+}
+.history-icon-health {
+  color: #a2525d;
+  background: #fff0f2;
+}
+.history-icon-body {
+  color: #765da5;
+  background: #f3effb;
+}
+.history-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.history-copy > span {
+  color: #71879c;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.history-copy h3 {
+  overflow: hidden;
+  margin: 0;
+  color: #23425e;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.history-row-meta {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.history-copy p {
+  min-width: 0;
+  overflow: hidden;
+  margin: 0;
+  color: #7d8fa1;
+  font-size: 9px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.history-row-meta small {
+  flex: 0 1 auto;
+  max-width: 82px;
+  overflow: hidden;
+  padding: 3px 6px;
+  border-radius: 999px;
+  color: #698096;
+  background: #f0f5f8;
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.history-row-delete {
+  min-width: 44px;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  border: 0;
+  color: #a76a73;
+  background: transparent;
+}
+.history-row-delete:active {
+  background: #fff1f3;
+}
+.history-row-delete:focus-visible {
+  outline: 2px solid #c46e7b;
+  outline-offset: -3px;
+}
+.history-row-delete:disabled {
+  opacity: 0.45;
+}
+.history-row-delete ion-icon {
+  width: 16px;
+  height: 16px;
+}
+.history-row-delete ion-spinner {
+  width: 16px;
+  height: 16px;
+}
+.history-delete-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 11px 13px;
+  border: 1px solid #efd4d8;
+  border-radius: 14px;
+  color: #934f5a;
+  background: #fff2f4;
+  font-size: 10px;
+}
+.history-delete-error button {
+  min-height: 44px;
+  border: 0;
+  color: #934f5a;
+  background: transparent;
+  font-size: 9px;
+  font-weight: 800;
+}
+@media (max-width: 390px) {
+  .history-shell {
+    padding-inline: 16px;
+  }
+  .activity-date-navigator.has-current {
+    grid-template-columns: 44px minmax(0, 1fr) 44px auto;
+    gap: 6px;
+  }
+  .activity-inline-current {
+    padding-inline: 7px;
+  }
+  .history-row-meta small {
+    max-width: 64px;
+  }
+}
 
-@media (max-width:350px) {
-  .activity-date-navigator.has-current { grid-template-columns: 44px minmax(0,1fr) 44px; }
-  .activity-inline-current { grid-column: 1 / -1; justify-self: end; }
+@media (max-width: 350px) {
+  .activity-date-navigator.has-current {
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+  }
+  .activity-inline-current {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
 }
 
 /* Quiet premium Activity hierarchy */
-.history-intro span {
-  color: #62798d;
-  font-size: 10.5px;
-}
-
 .daily-nutrition-summary {
   margin-bottom: 24px;
   padding: 14px;
   border-radius: 20px;
-  box-shadow: 0 12px 30px rgba(35,61,76,.055);
+  box-shadow: 0 12px 30px rgba(35, 61, 76, 0.055);
 }
 
-.daily-nutrition-summary h2 { font-size: 15px; }
-.daily-nutrition-calories { margin: 11px 0 9px; }
-.daily-nutrition-calories strong { font-size: 24px; }
-.daily-nutrition-macros div { padding-block: 8px; }
-.daily-nutrition-summary > small { margin-top: 8px; }
+.daily-nutrition-summary h2 {
+  font-size: 15px;
+}
+.daily-nutrition-summary > small {
+  margin-top: 8px;
+}
 .daily-nutrition-trends-link {
   min-height: 38px;
   margin-top: 8px;
   padding-bottom: 1px;
 }
 
-.history-day { margin-bottom: 26px; }
+.history-day {
+  margin-bottom: 26px;
+}
 .history-day > header {
   align-items: flex-end;
   justify-content: space-between;
   margin: 0 2px 11px;
 }
-.history-day > header div { display: grid; gap: 3px; }
+.history-day > header div {
+  display: grid;
+  gap: 3px;
+}
 .history-day > header p {
   margin: 0;
   color: #438c91;
   font-size: 8px;
   font-weight: 850;
-  letter-spacing: .1em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 .history-day > header h2 {
@@ -88,7 +809,7 @@
   color: #18364d;
   font-size: 18px;
   font-weight: 680;
-  letter-spacing: -.025em;
+  letter-spacing: -0.025em;
 }
 .history-day > header span {
   padding: 5px 8px;
@@ -110,83 +831,91 @@
 }
 .history-row-shell {
   overflow: hidden;
-  grid-template-columns: minmax(0,1fr) 42px;
+  grid-template-columns: minmax(0, 1fr) 42px;
   border: 1px solid #dbe7ed;
   border-radius: 19px;
-  background: rgba(255,255,255,.94);
-  box-shadow: 0 9px 22px rgba(42,68,82,.05);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 9px 22px rgba(42, 68, 82, 0.05);
 }
-.history-row-shell:last-child { border-bottom: 1px solid #dbe7ed; }
+.history-row-shell:last-child {
+  border-bottom: 1px solid #dbe7ed;
+}
 .history-row {
   min-height: 78px;
-  grid-template-columns: 44px minmax(0,1fr);
+  grid-template-columns: 44px minmax(0, 1fr);
   gap: 12px;
   padding: 12px 7px 12px 12px;
 }
-.history-row-button { grid-template-columns:44px minmax(0,1fr) 16px; }
-.history-row-button:active { background: #f4f8f8; }
-.history-icon {
-  width:44px;
-  height:44px;
-  border-radius:15px;
+.history-row-button {
+  grid-template-columns: 44px minmax(0, 1fr) 16px;
 }
-.history-copy { gap:3px; }
+.history-row-button:active {
+  background: #f4f8f8;
+}
+.history-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 15px;
+}
+.history-copy {
+  gap: 3px;
+}
 .history-copy-eyebrow {
-  min-width:0;
-  display:flex;
-  align-items:center;
-  gap:7px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }
 .history-copy-eyebrow > span {
-  color:#6c8396;
-  font-size:8px;
-  font-weight:850;
-  letter-spacing:.09em;
-  text-transform:uppercase;
+  color: #6c8396;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
 }
 .history-copy-eyebrow > small {
-  min-width:0;
-  overflow:hidden;
-  padding:3px 6px;
-  border-radius:999px;
-  color:#668095;
-  background:#edf4f7;
-  font-size:8px;
-  font-weight:750;
-  line-height:1.2;
-  text-overflow:ellipsis;
-  white-space:nowrap;
+  min-width: 0;
+  overflow: hidden;
+  padding: 3px 6px;
+  border-radius: 999px;
+  color: #668095;
+  background: #edf4f7;
+  font-size: 8px;
+  font-weight: 750;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .history-copy h3 {
-  display:-webkit-box;
-  overflow:hidden;
-  color:#1d3b55;
-  font-size:13px;
-  font-weight:750;
-  line-height:1.3;
-  white-space:normal;
-  -webkit-box-orient:vertical;
-  -webkit-line-clamp:2;
+  display: -webkit-box;
+  overflow: hidden;
+  color: #1d3b55;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.3;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 .history-copy > p {
-  overflow:hidden;
-  margin:0;
-  color:#7a8fa1;
-  font-size:9px;
-  line-height:1.35;
-  text-overflow:ellipsis;
-  white-space:nowrap;
+  overflow: hidden;
+  margin: 0;
+  color: #7a8fa1;
+  font-size: 9px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .history-row-chevron {
-  width:16px;
-  height:16px;
-  color:#86a5b5;
+  width: 16px;
+  height: 16px;
+  color: #86a5b5;
 }
 .history-row-delete {
   min-width: 42px;
-  border-left:1px solid #eff3f5;
+  border-left: 1px solid #eff3f5;
   color: #a0afb6;
-  background: linear-gradient(90deg,#fff,#fbfcfc);
+  background: linear-gradient(90deg, #fff, #fbfcfc);
 }
 .history-row-delete:active {
   color: #a75e69;
@@ -212,7 +941,7 @@
   min-width: 96px;
   color: #fff;
   background: linear-gradient(135deg, #258eac, #31a693);
-  box-shadow: 0 6px 14px rgba(35, 137, 166, .16);
+  box-shadow: 0 6px 14px rgba(35, 137, 166, 0.16);
   font-size: 10px;
 }
 .daily-fuel-footer button:active {
@@ -221,9 +950,28 @@
 }
 
 /* Shared premium rhythm and readable metadata */
-.history-intro { margin-bottom:var(--rm-space-heading); }
-.daily-nutrition-summary { margin-bottom:var(--rm-space-section);border-color:var(--rm-card-border);box-shadow:var(--rm-card-shadow-primary); }
-.history-day { margin-bottom:var(--rm-space-section); }
-.history-row-shell { border-color:var(--rm-card-border);box-shadow:var(--rm-card-shadow); }
-.history-row-button:active { background:#eef6f8; }
-.history-day>header p,.history-day>header span,.history-copy-eyebrow>span,.history-copy-eyebrow>small,.history-copy>p,.daily-nutrition-summary header p,.daily-nutrition-summary header>span,.daily-nutrition-calories span,.daily-nutrition-macros span,.daily-nutrition-summary>small { font-size:10px; }
+.daily-nutrition-summary {
+  margin-bottom: var(--rm-space-section);
+  border-color: var(--rm-card-border);
+  box-shadow: var(--rm-card-shadow-primary);
+}
+.history-day {
+  margin-bottom: var(--rm-space-section);
+}
+.history-row-shell {
+  border-color: var(--rm-card-border);
+  box-shadow: var(--rm-card-shadow);
+}
+.history-row-button:active {
+  background: #eef6f8;
+}
+.history-day > header p,
+.history-day > header span,
+.history-copy-eyebrow > span,
+.history-copy-eyebrow > small,
+.history-copy > p,
+.daily-nutrition-summary header p,
+.daily-nutrition-summary header > span,
+.daily-nutrition-summary > small {
+  font-size: 10px;
+}

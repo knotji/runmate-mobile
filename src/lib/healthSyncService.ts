@@ -5,6 +5,7 @@ import { syncSamsungWorkouts, type SamsungWorkoutSyncResult } from '@/lib/samsun
 import { syncSamsungBody, type SamsungBodySyncResult } from '@/lib/samsungBodySync';
 import { invalidateCoachContextCache } from '@/lib/coachContextService';
 import { useHealthSyncStore } from '@/lib/health/healthSyncStore';
+import { syncAllDayHeartRate, type AllDayHeartRateSyncResult } from '@/lib/allDayHeartRate';
 
 export const TODAY_SYNC_COOLDOWN_MS = 3 * 60_000;
 export const TODAY_SYNC_STORAGE_KEY = 'runmate:today-health-last-completed-at';
@@ -15,6 +16,7 @@ export type TodayHealthSyncResult = {
   changed: boolean;
   sleep: SamsungSleepSyncResult | null;
   workout: SamsungWorkoutSyncResult | null;
+  heartRate?: AllDayHeartRateSyncResult | null;
 };
 
 export type TodayHealthSyncPerformance = {
@@ -48,19 +50,19 @@ export function syncTodayHealth(force = false): Promise<TodayHealthSyncResult> {
   if (activeTodaySync) return activeTodaySync;
   const previousSyncAt = Math.max(lastCompletedAt, getPersistedTodaySyncAt());
   if (!shouldSyncToday(previousSyncAt, Date.now(), force)) {
-    return Promise.resolve({ performed: false, changed: false, sleep: null, workout: null });
+    return Promise.resolve({ performed: false, changed: false, sleep: null, workout: null, heartRate: null });
   }
 
   useHealthSyncStore.getState().startSync();
-  activeTodaySync = Promise.all([syncSamsungSleep(force ? 7 : 2), syncSamsungWorkouts('today')])
-    .then(([sleep, workout]) => {
+  activeTodaySync = Promise.all([syncSamsungSleep(force ? 7 : 2), syncSamsungWorkouts('today'), syncAllDayHeartRate(force)])
+    .then(([sleep, workout, heartRate]) => {
       lastCompletedAt = Date.now();
       persistTodaySyncAt(lastCompletedAt);
       invalidateCoachContextCache();
       const changed = hasHealthChanges(sleep, workout);
-      const detail = { sleep, workout, changed };
+      const detail = { sleep, workout, heartRate, changed };
       useHealthSyncStore.getState().dispatchSyncCompleted(detail);
-      return { performed: true, changed, sleep, workout };
+      return { performed: true, changed, sleep, workout, heartRate };
     })
     .catch((error) => {
       useHealthSyncStore.setState({ isSyncing: false });

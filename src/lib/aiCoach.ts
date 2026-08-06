@@ -16,6 +16,7 @@ export const AI_COACH_TOPICS: Array<{ id: AiCoachTopic; title: string; summary: 
 
 export type AiCoachAnswer = {
   topic: AiCoachTopic;
+  message: string;
   headline: string;
   summary: string;
   actions: string[];
@@ -26,6 +27,8 @@ export type AiCoachAnswer = {
   followUps: string[];
   generatedAt: string;
 };
+
+export type AiCoachChatTurn = { role: 'user' | 'assistant'; content: string };
 
 export type AiCoachContext = ReturnType<typeof buildAiCoachContext>;
 
@@ -125,10 +128,11 @@ export async function askAiCoach(
   topic: AiCoachTopic,
   context: CoachContext,
   userQuery?: string,
-  options: { force?: boolean } = {},
+  options: { force?: boolean; conversation?: AiCoachChatTurn[] } = {},
 ): Promise<AiCoachAnswer> {
   const trimmedQuery = userQuery?.trim();
-  const cacheKey = trimmedQuery ? null : `${topic}::${JSON.stringify(buildAiCoachContext(context))}`;
+  const conversation = (options.conversation ?? []).filter((turn) => turn.content.trim()).slice(-8);
+  const cacheKey = trimmedQuery || conversation.length ? null : `${topic}::${JSON.stringify(buildAiCoachContext(context))}`;
   if (cacheKey && !options.force) {
     const cached = answerCache.get(cacheKey);
     if (cached) return cached;
@@ -136,7 +140,7 @@ export async function askAiCoach(
 
   try {
     const { data, error } = await supabase.functions.invoke('ai-coach', {
-      body: { topic, userQuery: trimmedQuery || undefined, context: buildAiCoachContext(context) },
+      body: { topic, userQuery: trimmedQuery || undefined, context: buildAiCoachContext(context), history: conversation },
     });
     if (error) throw error;
     const payload = record(data);
@@ -152,8 +156,8 @@ export async function askAiCoach(
   }
 }
 
-export async function askAiCoachChat(userQuery: string, context: CoachContext): Promise<AiCoachAnswer> {
-  return askAiCoach('chat', context, userQuery);
+export async function askAiCoachChat(userQuery: string, context: CoachContext, conversation: AiCoachChatTurn[] = []): Promise<AiCoachAnswer> {
+  return askAiCoach('chat', context, userQuery, { conversation });
 }
 
 function buildLocalFallbackAnswer(topic: AiCoachTopic, context: CoachContext, userQuery?: string): AiCoachAnswer {
@@ -204,6 +208,7 @@ function buildLocalFallbackAnswer(topic: AiCoachTopic, context: CoachContext, us
 
   return {
     topic,
+    message: conversationalMessage({ headline, summary, actions, nextMeal: null }),
     headline,
     summary,
     actions,
@@ -223,18 +228,50 @@ function buildLocalFallbackAnswer(topic: AiCoachTopic, context: CoachContext, us
 function normalizeAnswer(topic: AiCoachTopic, value: Record<string, unknown>): AiCoachAnswer {
   const headline = requiredString(value.headline, 'AI Coach Could Not Build An Answer.');
   const summary = requiredString(value.summary, 'Please try again when more data is available.');
+  const actions = stringArray(value.actions, 4);
+  const nextMeal = normalizeNextMeal(value.nextMeal);
   return {
     topic,
+    message: stringOrNull(value.message) ?? legacyConversationalMessage(topic, {
+      headline,
+      summary,
+      actions,
+      reasons: stringArray(value.reasons, 4),
+      nextMeal,
+    }),
     headline,
     summary,
-    actions: stringArray(value.actions, 4),
+    actions,
     reasons: stringArray(value.reasons, 4),
     missingData: stringArray(value.missingData, 4),
     caution: stringOrNull(value.caution),
-    nextMeal: normalizeNextMeal(value.nextMeal),
+    nextMeal,
     followUps: stringArray(value.followUps, 3),
     generatedAt: new Date().toISOString(),
   };
+}
+
+function conversationalMessage(input: Pick<AiCoachAnswer, 'headline' | 'summary' | 'actions' | 'nextMeal'>): string {
+  const parts = [input.headline, input.summary];
+  if (input.actions.length) parts.push(input.actions.map((action) => `• ${action}`).join('\n'));
+  if (input.nextMeal) {
+    const meal = [input.nextMeal.title, input.nextMeal.timing, ...input.nextMeal.options.map((option) => `• ${option}`)].filter(Boolean).join('\n');
+    parts.push(meal);
+  }
+  return parts.filter(Boolean).join('\n\n');
+}
+
+function legacyConversationalMessage(
+  topic: AiCoachTopic,
+  input: Pick<AiCoachAnswer, 'headline' | 'summary' | 'actions' | 'reasons' | 'nextMeal'>,
+): string {
+  const supportingPoints = topic === 'recovery' ? input.reasons : input.actions;
+  return conversationalMessage({
+    headline: input.headline,
+    summary: input.summary,
+    actions: supportingPoints.slice(0, 3),
+    nextMeal: topic === 'fuel' ? input.nextMeal : null,
+  });
 }
 
 function compactPlannedWorkout(workout: WeekWorkout) {
