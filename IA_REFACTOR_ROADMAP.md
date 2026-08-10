@@ -1,7 +1,7 @@
 # RunMate Information Architecture Refactor Roadmap
 
-Status: In progress  
-Working product name: RunMate  
+Status: In progress
+Working product name: RunMate
 Target positioning: Personal health and recovery companion
 
 ## Product question
@@ -63,10 +63,10 @@ Do not change stored health records, Supabase schemas, Health Connect permission
 
 ### Phase 2 — Health consolidation
 
-- [ ] Group Health into Overview, Trends, Body, and Data Sources.
-- [ ] Move Health Calendar, Recovery Trends, Nutrition Trends, Body Weight, Fitness Age, and Pain/Injury out of More.
-- [ ] Add honest freshness and missing-data states to each Health entry.
-- [ ] Use existing startup caches; do not create duplicate Supabase loaders.
+- [x] Group Health into Overview, Trends, Body, and Data Sources.
+- [x] Move Health Calendar, Recovery Trends, Nutrition Trends, Body Weight, Fitness Age, and Pain/Injury out of More.
+- [x] Add honest freshness and missing-data states to each Health entry.
+- [x] Use existing startup caches; do not create duplicate Supabase loaders.
 
 ### Phase 3 — Today interpretation layer
 

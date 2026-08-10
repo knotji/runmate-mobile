@@ -6,9 +6,11 @@ import { syncSamsungBody, type SamsungBodySyncResult } from '@/lib/samsungBodySy
 import { invalidateCoachContextCache } from '@/lib/coachContextService';
 import { useHealthSyncStore } from '@/lib/health/healthSyncStore';
 import { syncAllDayHeartRate, type AllDayHeartRateSyncResult } from '@/lib/allDayHeartRate';
+import { getPersistedTodaySyncAt, persistTodaySyncAt } from '@/lib/healthSyncMetadata';
+
+export { getPersistedTodaySyncAt, TODAY_SYNC_STORAGE_KEY } from '@/lib/healthSyncMetadata';
 
 export const TODAY_SYNC_COOLDOWN_MS = 3 * 60_000;
-export const TODAY_SYNC_STORAGE_KEY = 'runmate:today-health-last-completed-at';
 export const HEALTH_HISTORY_LOOKBACK_DAYS = 30;
 
 export type TodayHealthSyncResult = {
@@ -130,18 +132,4 @@ export function describeTodayHealthSyncPerformance(result: TodayHealthSyncResult
     variant,
     detail: `${prefix} used ${sourceLabel}; ${result.changed ? 'records changed' : 'no record changes'}`,
   };
-}
-
-export function getPersistedTodaySyncAt(): number {
-  try {
-    const value = Number(window.localStorage.getItem(TODAY_SYNC_STORAGE_KEY));
-    return Number.isFinite(value) && value > 0 ? value : 0;
-  } catch {
-    return 0;
-  }
-}
-
-function persistTodaySyncAt(value: number): void {
-  try { window.localStorage.setItem(TODAY_SYNC_STORAGE_KEY, String(value)); }
-  catch { /* The in-memory cooldown still prevents duplicate work in this session. */ }
 }

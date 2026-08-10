@@ -8,8 +8,6 @@ import {
   IonToolbar,
 } from '@ionic/react';
 import {
-  bandageOutline,
-  calendarOutline,
   chevronForwardOutline,
   flagOutline,
   fitnessOutline,
@@ -18,7 +16,6 @@ import {
   logOutOutline,
   notificationsOutline,
   personCircleOutline,
-  scaleOutline,
   sparklesOutline,
   statsChartOutline,
 } from 'ionicons/icons';
@@ -52,7 +49,7 @@ const menuGroups: Array<{ label: string; title: string; items: MoreMenuItem[] }>
     path: '/race-goal',
   },
   {
-    icon: calendarOutline,
+    icon: statsChartOutline,
     title: 'Weekly Plan',
     summary: 'This week’s full training plan, with what actually happened.',
     path: '/weekly-plan',
@@ -60,38 +57,14 @@ const menuGroups: Array<{ label: string; title: string; items: MoreMenuItem[] }>
     ],
   },
   {
-    label: 'Insights',
-    title: 'Trends & Summaries',
+    label: 'History',
+    title: 'Training Summary',
     items: [
   {
     icon: statsChartOutline,
     title: 'Training Summary',
     summary: 'Review workouts, sleep, and logged meals by calendar week or month.',
     path: '/weekly-summary',
-  },
-  {
-    icon: calendarOutline,
-    title: 'Health Calendar',
-    summary: 'See daily health records and evidence-labeled habit patterns in one place.',
-    path: '/health-calendar',
-  },
-  {
-    icon: bandageOutline,
-    title: 'Pain & Injury Trend',
-    summary: 'See how logged Pain and Injury reports are changing over time.',
-    path: '/pain-trends',
-  },
-  {
-    icon: scaleOutline,
-    title: 'Body Weight Trend',
-    summary: 'Track weigh-ins synced from Health Connect over time.',
-    path: '/body-weight-trend',
-  },
-  {
-    icon: fitnessOutline,
-    title: 'Fitness Age',
-    summary: 'See how cardio fitness, sleep, recovery, and consistency shape your long-term estimate.',
-    path: '/fitness-age',
   },
     ],
   },
