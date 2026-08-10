@@ -13,6 +13,7 @@ import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { SocialShareModal } from '@/components/SocialShareModal';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
+import { navigateBackOr } from '@/lib/navigationBack';
 import { loadRecoveryContextStartupSnapshot } from '@/lib/recoveryStartupCache';
 import { loadWeeklySummaryHistorySnapshot, saveWeeklySummaryHistorySnapshot } from '@/lib/weeklySummaryStartupCache';
 import type { LocalHistoryItem } from '@/lib/localHistory';
@@ -110,7 +111,7 @@ const WeeklyRecapPage: React.FC = () => {
     <IonPage>
       <IonHeader translucent className="recap-header">
         <IonToolbar>
-          <button type="button" className="recap-back" aria-label="Back To Weekly Summary" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
+          <button type="button" className="recap-back" aria-label="Back To Weekly Summary" onClick={() => navigateBackOr(history, '/weekly-summary')}><IonIcon icon={arrowBackOutline} /></button>
           <IonTitle>Your Recap</IonTitle>
         </IonToolbar>
       </IonHeader>

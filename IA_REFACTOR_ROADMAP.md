@@ -90,6 +90,16 @@ Do not change stored health records, Supabase schemas, Health Connect permission
 
 The final rebrand remains intentionally gated. Phase 5 changes the product structure and settings language only; it does not partially rename the installed app or Android package.
 
+### Phase 6 — Navigation hardening and migration closure
+
+- [x] Pass an explicit originating pillar when opening standalone Health, Move, Today, or Settings pages.
+- [x] Give cold deep links a safe pillar fallback instead of relying on unavailable browser history.
+- [x] Keep legacy `/tabs/more` and `/tabs/upload` names only as compatibility routes and regression contracts.
+- [x] Remove stale user-facing More, Upload, Recovery-tab, and Activity-tab navigation labels.
+- [x] Add focused regression coverage for canonical routes and back-navigation behavior.
+
+Internal file and loader names may retain legacy terminology until a later code-only cleanup. They are not user-facing and changing them is not required for route compatibility.
+
 ## Performance requirements
 
 - Tab changes must be immediate and must not trigger unrelated Health Connect or Supabase work.

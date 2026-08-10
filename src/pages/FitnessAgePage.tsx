@@ -10,6 +10,7 @@ import { loadProfileFromSupabase } from '@/lib/profileStorage';
 import type { UserProfile } from '@/types/profile';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { PageState } from '@/components/PageState';
+import { navigateBackOr } from '@/lib/navigationBack';
 import './FitnessAgePage.css';
 
 const FitnessAgePage: React.FC = () => {
@@ -41,7 +42,7 @@ const FitnessAgePage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="fitness-age-header"><IonToolbar>
-      <button type="button" className="fitness-age-back" aria-label="Back To Health" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
+      <button type="button" className="fitness-age-back" aria-label="Back To Health" onClick={() => navigateBackOr(history, '/tabs/health')}><IonIcon icon={arrowBackOutline} /></button>
       <IonTitle>Fitness Age</IonTitle>
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="fitness-age-content">

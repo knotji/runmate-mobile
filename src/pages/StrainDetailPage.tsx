@@ -13,6 +13,7 @@ import { buildHistoricalStrainDetailInsight, buildStrainDetailInsight, loadDaily
 import { shiftDate, todayBangkokDateKey } from '@/lib/date';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { PageState } from '@/components/PageState';
+import { navigateBackOr } from '@/lib/navigationBack';
 import './StrainDetailPage.css';
 
 const StrainDetailPage: React.FC = () => {
@@ -97,7 +98,7 @@ const StrainDetailPage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="strain-header"><IonToolbar>
-      <button type="button" className="strain-back" aria-label="Back To Recovery" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
+      <button type="button" className="strain-back" aria-label="Back To Today" onClick={() => navigateBackOr(history, '/tabs/today')}><IonIcon icon={arrowBackOutline} /></button>
       <IonTitle>Strain Detail</IonTitle>
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="strain-content">

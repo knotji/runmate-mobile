@@ -11,6 +11,7 @@ import { buildNutritionTrend, nutritionTrendHistoryOptions, type NutritionTrend,
 import { loadNutritionTrendsStartupSnapshot, saveNutritionTrendsStartupSnapshot } from '@/lib/nutritionTrendsStartupCache';
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import { todayBangkokDateKey } from '@/lib/date';
+import { navigateBackOr } from '@/lib/navigationBack';
 import './NutritionTrendsPage.css';
 
 const NutritionTrendsPage: React.FC = () => {
@@ -59,7 +60,7 @@ const NutritionTrendsPage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="nutrition-trends-header"><IonToolbar>
-      <button type="button" className="nutrition-trends-back" aria-label="Back To Activity" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
+      <button type="button" className="nutrition-trends-back" aria-label="Back To Move" onClick={() => navigateBackOr(history, '/tabs/move')}><IonIcon icon={arrowBackOutline} /></button>
       <IonTitle>Nutrition Trends</IonTitle>
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="nutrition-trends-content">

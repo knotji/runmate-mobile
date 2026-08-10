@@ -8,6 +8,7 @@ import { bodyWeightTrendHistoryOptions, buildBodyWeightTrend, type BodyWeightTre
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { loadBodyWeightTrendStartupSnapshot, saveBodyWeightTrendStartupSnapshot } from '@/lib/bodyWeightTrendStartupCache';
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
+import { navigateBackOr } from '@/lib/navigationBack';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { DataFreshnessStatus } from '@/components/DataFreshnessStatus';
@@ -59,7 +60,7 @@ const BodyWeightTrendPage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="body-trend-header"><IonToolbar>
-      <button type="button" className="body-trend-back" aria-label="Back To Health" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
+      <button type="button" className="body-trend-back" aria-label="Back To Health" onClick={() => navigateBackOr(history, '/tabs/health')}><IonIcon icon={arrowBackOutline} /></button>
       <IonTitle>Body Weight Trend</IonTitle>
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="body-trend-content">

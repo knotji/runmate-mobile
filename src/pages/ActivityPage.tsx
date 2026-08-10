@@ -308,13 +308,13 @@ const ActivityPage: React.FC = () => {
           </nav>
 
           <MoveToolsNav
-            onPlan={() => history.push('/weekly-plan')}
-            onRace={() => history.push('/race-goal')}
-            onSummary={() => history.push('/weekly-summary')}
+            onPlan={() => history.push('/weekly-plan', { from: '/tabs/move' })}
+            onRace={() => history.push('/race-goal', { from: '/tabs/move' })}
+            onSummary={() => history.push('/weekly-summary', { from: '/tabs/move' })}
           />
 
           {!loading && !error && plannedWorkout && (
-            <PlannedTrainingCard workout={plannedWorkout} onOpen={() => history.push('/weekly-plan')} />
+            <PlannedTrainingCard workout={plannedWorkout} onOpen={() => history.push('/weekly-plan', { from: '/tabs/move' })} />
           )}
 
           {!loading && !error && nutritionSummary && (
@@ -330,7 +330,7 @@ const ActivityPage: React.FC = () => {
                 <NutritionMetric label="Fat" value={nutritionSummary.fatG} />
               </div>
               <small>Based only on meals logged for this date.</small>
-              <button type="button" className="daily-nutrition-trends-link" onClick={() => history.push('/nutrition-trends')}>View Nutrition Trends<IonIcon icon={chevronForwardOutline} /></button>
+              <button type="button" className="daily-nutrition-trends-link" onClick={() => history.push('/nutrition-trends', { from: '/tabs/move' })}>View Nutrition Trends<IonIcon icon={chevronForwardOutline} /></button>
             </section>
           )}
 

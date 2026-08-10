@@ -8,6 +8,7 @@ import { arrowBackOutline, cloudDownloadOutline, documentTextOutline, lockClosed
 import { accountDataExportFileName, buildAccountDataExport, deleteMyAccount } from '@/lib/accountData';
 import { supabase } from '@/lib/supabaseClient';
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
+import { navigateBackOr } from '@/lib/navigationBack';
 import './PrivacyDataPage.css';
 
 const DELETE_CONFIRMATION_WORD = 'DELETE';
@@ -86,7 +87,7 @@ const PrivacyDataPage: React.FC = () => {
     <IonPage>
       <IonHeader translucent className="privacy-data-header">
         <IonToolbar>
-          <button type="button" className="privacy-data-back" aria-label="Back To Settings And Data" onClick={() => history.push('/tabs/settings')}>
+          <button type="button" className="privacy-data-back" aria-label="Back To Settings And Data" onClick={() => navigateBackOr(history, '/tabs/settings')}>
             <IonIcon icon={arrowBackOutline} />
           </button>
           <IonTitle>Privacy & Data</IonTitle>

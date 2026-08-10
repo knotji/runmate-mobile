@@ -48,6 +48,7 @@ import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
+import { navigateBackOr } from '@/lib/navigationBack';
 import { hapticImpact, hapticNotification } from '@/lib/haptics';
 
 const RaceGoalPage: React.FC = () => {
@@ -192,7 +193,7 @@ const RaceGoalPage: React.FC = () => {
     <IonPage>
       <IonHeader translucent className="race-header">
         <IonToolbar>
-          <IonButton slot="start" fill="clear" aria-label="Back To Move" onClick={() => history.push('/tabs/move')}>
+          <IonButton slot="start" fill="clear" aria-label="Back To Move" onClick={() => navigateBackOr(history, '/tabs/move')}>
             <IonIcon slot="icon-only" icon={arrowBackOutline} />
           </IonButton>
           <IonTitle>Race Goal</IonTitle>

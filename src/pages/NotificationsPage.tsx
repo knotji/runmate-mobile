@@ -4,6 +4,7 @@ import { IonButton, IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitl
 import { arrowBackOutline, barbellOutline, checkmarkCircleOutline, moonOutline, notificationsOutline, pulseOutline, refreshOutline } from 'ionicons/icons';
 import { loadNotificationPreferences, saveNotificationPreferences, type NotificationPreferences } from '@/lib/notificationPreferences';
 import { getNotificationDiagnostics, getNotificationPermission, refreshNotifications, requestExactReminderPermission, requestNotificationPermission, sendTestNotification, type NotificationDiagnostics } from '@/lib/notificationService';
+import { navigateBackOr } from '@/lib/navigationBack';
 import type { PermissionState } from '@capacitor/core';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import './NotificationsPage.css';
@@ -77,7 +78,7 @@ const NotificationsPage: React.FC = () => {
   };
 
   return <IonPage>
-    <IonHeader translucent className="notifications-header"><IonToolbar><IonButton slot="start" fill="clear" aria-label="Back To Settings And Data" onClick={() => history.push('/tabs/settings')}><IonIcon slot="icon-only" icon={arrowBackOutline} /></IonButton><IonTitle>Notifications</IonTitle></IonToolbar></IonHeader>
+    <IonHeader translucent className="notifications-header"><IonToolbar><IonButton slot="start" fill="clear" aria-label="Back To Settings And Data" onClick={() => navigateBackOr(history, '/tabs/settings')}><IonIcon slot="icon-only" icon={arrowBackOutline} /></IonButton><IonTitle>Notifications</IonTitle></IonToolbar></IonHeader>
     <IonContent fullscreen className="notifications-content"><main className="notifications-shell">
       <header className="notifications-intro"><p>Personal Guidance</p><h1>Helpful, Not Noisy</h1><span>RunMate sends only timely reminders based on your sleep, profile, and training plan.</span></header>
       {loading ? <PageDataSkeleton variant="notifications" label="Loading Notification Settings" /> : <>

@@ -13,6 +13,7 @@ import { useCoachContextStore } from '@/lib/context/coachContextStore';
 import { hapticImpact } from '@/lib/haptics';
 import { loadRecoveryContextStartupEntry, saveRecoveryContextStartupSnapshot } from '@/lib/recoveryStartupCache';
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
+import { navigateBackOr } from '@/lib/navigationBack';
 import { recoveryDataStatusCopy, resolveRecoveryDataStatus } from '@/lib/recoveryDataFreshness';
 import { guardCoachContextFreshness } from '@/lib/aiCoachFreshness';
 import { clearAiCoachChatHistory, loadAiCoachChatHistory, saveAiCoachChatHistory, type AiCoachStoredMessage } from '@/lib/aiCoachChatHistory';
@@ -188,7 +189,7 @@ const AiCoachPage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="ai-coach-header"><IonToolbar>
-      {!isPrimaryCoachTab && <button type="button" className="ai-coach-back" aria-label="Back" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>}
+      {!isPrimaryCoachTab && <button type="button" className="ai-coach-back" aria-label="Back To Coach" onClick={() => navigateBackOr(history, '/tabs/coach')}><IonIcon icon={arrowBackOutline} /></button>}
       <IonTitle>Coach</IonTitle>
       {messages.length > 0 && <button type="button" className="ai-coach-clear" aria-label="Clear Conversation" onClick={() => setClearConversationOpen(true)}><IonIcon icon={trashOutline} /></button>}
     </IonToolbar></IonHeader>

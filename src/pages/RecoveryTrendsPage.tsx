@@ -13,6 +13,7 @@ import type { LocalHistoryItem } from '@/lib/localHistory';
 import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
+import { navigateBackOr } from '@/lib/navigationBack';
 import './RecoveryTrendsPage.css';
 
 const RecoveryTrendsPage: React.FC = () => {
@@ -52,7 +53,7 @@ const RecoveryTrendsPage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="recovery-trends-header"><IonToolbar>
-      <button type="button" className="recovery-trends-back" aria-label="Back To Recovery" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
+      <button type="button" className="recovery-trends-back" aria-label="Back To Today" onClick={() => navigateBackOr(history, '/tabs/today')}><IonIcon icon={arrowBackOutline} /></button>
       <IonTitle>Recovery Trends</IonTitle>
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="recovery-trends-content">

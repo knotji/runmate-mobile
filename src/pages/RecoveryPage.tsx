@@ -324,13 +324,13 @@ const RecoveryPage: React.FC = () => {
               />}
               <RecoveryDials
                 recovery={visibleRecovery}
-                onRecoveryClick={() => history.push('/recovery-trends')}
+                onRecoveryClick={() => history.push('/recovery-trends', { from: '/tabs/today' })}
                 onSleepClick={() => history.push('/sleep')}
-                onStrainClick={() => history.push('/strain')}
+                onStrainClick={() => history.push('/strain', { from: '/tabs/today' })}
                 freshness={dataStatus !== 'fallback' ? { status: dataStatus, detail: dataStatusCopy.detail } : undefined}
                 onFreshnessClick={() => void retryRecovery()}
               />
-              {visibleEnergy && <EnergyReserveCard energy={visibleEnergy} onOpen={() => history.push('/energy')} />}
+              {visibleEnergy && <EnergyReserveCard energy={visibleEnergy} onOpen={() => history.push('/energy', { from: '/tabs/today' })} />}
               {secondaryLoading && !visibleContext ? <RecoverySecondaryLoading /> : secondaryError && !visibleContext ? <RecoverySecondaryError message={secondaryError} onRetry={() => void loadSecondaryRecovery(true)} /> : !visibleContext ? <RecoverySecondaryLoading /> : <>
                 <TodayTrainingPlanCard context={visibleContext} />
                 <RecoveryPlan recovery={visibleRecovery} wakeOverrideMinutes={wakeOverrideMinutes} sleepCycleOverride={sleepCycleOverride} onOpen={() => history.push('/sleep-window')} />

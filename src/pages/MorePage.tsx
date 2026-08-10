@@ -108,7 +108,7 @@ const MorePage: React.FC = () => {
                 </header>
                 <div className="more-menu">
                   {group.items.map((item) => (
-                    <button className="more-menu-row more-menu-button" type="button" onPointerEnter={() => warmPage(item.path)} onPointerDown={() => warmPage(item.path)} onFocus={() => warmPage(item.path)} onClick={() => history.push(item.path)} key={item.title}>
+                    <button className="more-menu-row more-menu-button" type="button" onPointerEnter={() => warmPage(item.path)} onPointerDown={() => warmPage(item.path)} onFocus={() => warmPage(item.path)} onClick={() => history.push(item.path, { from: '/tabs/settings' })} key={item.title}>
                       <div className="more-menu-icon"><IonIcon icon={item.icon} aria-hidden="true" /></div>
                       <div className="more-menu-copy">
                         <strong>{item.title}</strong>

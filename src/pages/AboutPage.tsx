@@ -5,6 +5,7 @@ import { useHistory } from 'react-router-dom';
 import { buildSupportDiagnostics, getReleaseHealthSnapshot, getRunMateBuildInfo, type ReleaseHealthRow, type RunMateBuildInfo } from '@/lib/aboutDiagnostics';
 import { copyToClipboard } from '@/lib/clipboard';
 import { clearRunMateCachedData } from '@/lib/appCache';
+import { navigateBackOr } from '@/lib/navigationBack';
 import './AboutPage.css';
 
 const releaseNotes = [
@@ -49,7 +50,7 @@ const AboutPage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="about-header"><IonToolbar>
-      <button type="button" className="about-back" aria-label="Back To Settings And Data" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
+      <button type="button" className="about-back" aria-label="Back To Settings And Data" onClick={() => navigateBackOr(history, '/tabs/settings')}><IonIcon icon={arrowBackOutline} /></button>
       <IonTitle>About RunMate</IonTitle>
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="about-content">

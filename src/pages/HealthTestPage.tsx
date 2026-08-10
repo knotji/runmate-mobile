@@ -37,6 +37,7 @@ import { HealthSyncStatusCard, type ConnectionState, type SyncSummary } from '@/
 import { BackgroundSyncSettings } from '@/components/health/BackgroundSyncSettings';
 import { HealthSyncPerformanceCard } from '@/components/health/HealthSyncPerformanceCard';
 import { HealthDiagnosticsPanel, type LogEntry } from '@/components/health/HealthDiagnosticsPanel';
+import { navigateBackOr } from '@/lib/navigationBack';
 import './HealthTestPage.css';
 
 const HealthTestPage: React.FC = () => {
@@ -285,7 +286,7 @@ const HealthTestPage: React.FC = () => {
     <IonPage>
       <IonHeader translucent className="health-connect-header">
         <IonToolbar>
-          <IonButton slot="start" fill="clear" aria-label="Back To Settings And Data" onClick={() => history.push('/tabs/settings')}>
+          <IonButton slot="start" fill="clear" aria-label="Back" onClick={() => navigateBackOr(history, '/tabs/settings')}>
             <IonIcon slot="icon-only" icon={arrowBackOutline} />
           </IonButton>
           <IonTitle>Health Connect</IonTitle>

@@ -12,6 +12,7 @@ import { shouldRefreshHealthCalendar } from '@/lib/healthCalendarRefresh';
 import { loadHealthCalendarSnapshot, saveHealthCalendarSnapshot } from '@/lib/healthCalendarStartupCache';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
+import { navigateBackOr } from '@/lib/navigationBack';
 import { exportStrainCheckIns } from '@/lib/strainContext';
 import './HealthCalendarPage.css';
 
@@ -170,7 +171,7 @@ const HealthCalendarPage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="health-calendar-header"><IonToolbar>
-      <button type="button" className="health-calendar-back" aria-label="Back To Health" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
+      <button type="button" className="health-calendar-back" aria-label="Back To Health" onClick={() => navigateBackOr(history, '/tabs/health')}><IonIcon icon={arrowBackOutline} /></button>
       <IonTitle>Health Calendar</IonTitle>
     </IonToolbar></IonHeader>
     <IonContent ref={contentRef} fullscreen className="health-calendar-content">

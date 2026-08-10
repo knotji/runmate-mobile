@@ -13,6 +13,7 @@ import { loadRecoveryContextStartupSnapshot } from '@/lib/recoveryStartupCache';
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import { loadActiveRaceGoalAndPlan } from '@/lib/raceStorage';
 import { useRacePlanStore } from '@/lib/race/racePlanStore';
+import { navigateBackOr } from '@/lib/navigationBack';
 import './WeeklyPlanCalendarPage.css';
 
 const WeeklyPlanCalendarPage: React.FC = () => {
@@ -46,7 +47,7 @@ const WeeklyPlanCalendarPage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="weekly-plan-header"><IonToolbar>
-      <button type="button" className="weekly-plan-back" aria-label="Back To Move" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
+      <button type="button" className="weekly-plan-back" aria-label="Back To Move" onClick={() => navigateBackOr(history, '/tabs/move')}><IonIcon icon={arrowBackOutline} /></button>
       <IonTitle>Weekly Plan</IonTitle>
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="weekly-plan-content">

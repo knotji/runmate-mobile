@@ -10,6 +10,7 @@ import { useCoachContextStore } from '@/lib/context/coachContextStore';
 import { buildEnergyReserveFromContext } from '@/lib/energyReserve';
 import { loadRecoveryContextStartupSnapshot } from '@/lib/recoveryStartupCache';
 import { loadDailyStrainCheckIn, type DailyStrainCheckIn } from '@/lib/strainContext';
+import { navigateBackOr } from '@/lib/navigationBack';
 import './EnergyReservePage.css';
 
 const EnergyReservePage: React.FC = () => {
@@ -45,7 +46,7 @@ const EnergyReservePage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="energy-header"><IonToolbar>
-      <button type="button" className="energy-back" aria-label="Back To Recovery" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
+      <button type="button" className="energy-back" aria-label="Back To Today" onClick={() => navigateBackOr(history, '/tabs/today')}><IonIcon icon={arrowBackOutline} /></button>
       <IonTitle>Energy Reserve</IonTitle>
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="energy-content">

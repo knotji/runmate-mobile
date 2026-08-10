@@ -68,13 +68,13 @@ const HealthPage: React.FC = () => {
           <span>Start with the signals that matter today, then explore changes over time.</span>
         </header>
 
-        <HealthGroup label="OVERVIEW" title="Your Body At A Glance" items={overview} snapshot={snapshot} onOpen={(path) => history.push(path)} />
-        <HealthGroup label="TRENDS" title="See What Is Changing" items={trends} snapshot={snapshot} onOpen={(path) => history.push(path)} />
-        <HealthGroup label="BODY" title="Longer-Term Signals" items={body} snapshot={snapshot} onOpen={(path) => history.push(path)} />
+        <HealthGroup label="OVERVIEW" title="Your Body At A Glance" items={overview} snapshot={snapshot} onOpen={(path) => history.push(path, { from: '/tabs/health' })} />
+        <HealthGroup label="TRENDS" title="See What Is Changing" items={trends} snapshot={snapshot} onOpen={(path) => history.push(path, { from: '/tabs/health' })} />
+        <HealthGroup label="BODY" title="Longer-Term Signals" items={body} snapshot={snapshot} onOpen={(path) => history.push(path, { from: '/tabs/health' })} />
 
         <section className="health-hub-group" aria-labelledby="health-data-sources">
           <div className="health-hub-section-heading"><p>DATA SOURCES</p><h2 id="health-data-sources">Connected Health Data</h2></div>
-          <button type="button" className="health-connect-entry" onClick={() => history.push('/health-connect')}>
+          <button type="button" className="health-connect-entry" onClick={() => history.push('/health-connect', { from: '/tabs/health' })}>
             <span><i><IonIcon icon={heartOutline} /></i><b>Health Connect</b><small>Sync and review connected health data</small><HealthStatus status={snapshot.healthConnect} /></span>
             <IonIcon icon={chevronForwardOutline} />
           </button>

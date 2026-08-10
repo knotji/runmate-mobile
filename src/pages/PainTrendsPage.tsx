@@ -11,6 +11,7 @@ import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { DataFreshnessStatus } from '@/components/DataFreshnessStatus';
+import { navigateBackOr } from '@/lib/navigationBack';
 import './PainTrendsPage.css';
 
 const PainTrendsPage: React.FC = () => {
@@ -59,7 +60,7 @@ const PainTrendsPage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="pain-trends-header"><IonToolbar>
-      <button type="button" className="pain-trends-back" aria-label="Back To Health" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
+      <button type="button" className="pain-trends-back" aria-label="Back To Health" onClick={() => navigateBackOr(history, '/tabs/health')}><IonIcon icon={arrowBackOutline} /></button>
       <IonTitle>Pain & Injury Trend</IonTitle>
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="pain-trends-content">
