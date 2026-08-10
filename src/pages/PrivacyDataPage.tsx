@@ -102,7 +102,7 @@ const PrivacyDataPage: React.FC = () => {
 
           <section className="privacy-data-card privacy-data-info">
             <details>
-              <summary><IonIcon icon={documentTextOutline} /><div><p>Collected</p><h2>What We Collect</h2></div><span className="privacy-data-summary-badge">5 Categories</span></summary>
+              <summary><IonIcon icon={documentTextOutline} /><div><p>Collected</p><h2>What We Collect</h2></div><span className="privacy-data-summary-badge">6 Categories</span></summary>
               <div className="privacy-data-info-body">
                 <ul className="privacy-data-list">
                   <li><strong>Health Connect</strong><span>Sleep, Workout, Heart Rate, and available vitals (Resting HR, HRV, Respiratory Rate) shared by Samsung Health.</span></li>
@@ -110,6 +110,7 @@ const PrivacyDataPage: React.FC = () => {
                   <li><strong>Uploaded Photos</strong><span>Meal, workout, and sleep screenshots you choose to upload, analyzed once to extract structured data.</span></li>
                   <li><strong>Profile</strong><span>Max Heart Rate, body weight, and training preferences you enter yourself.</span></li>
                   <li><strong>Race Goals</strong><span>Race date, distance, target time, and generated training plans.</span></li>
+                  <li><strong>AI Coach Conversation</strong><span>Chat messages retained on this device so your conversation is available when you return.</span></li>
                 </ul>
               </div>
             </details>
@@ -122,7 +123,7 @@ const PrivacyDataPage: React.FC = () => {
               RunMate uses this data to calculate Recovery, Sleep, and Strain scores and to power AI Coach guidance. Your durable
               account records are stored in your own RunMate account (Supabase) and are never sold or shared with third parties.
             </p>
-            <p className="privacy-data-paragraph">For responsive Strain Detail, five-minute Heart Rate summaries are retained on this device for up to 7 days and Strain check-ins for up to 14 days. Raw all-day samples are not uploaded to Supabase.</p>
+            <p className="privacy-data-paragraph">For responsive insights, five-minute Heart Rate summaries are retained on this device for up to 7 days, confirmed Strain check-ins for up to 90 days, and up to 100 AI Coach messages. Raw all-day samples and AI Coach history are not uploaded to Supabase.</p>
             <p className="privacy-data-paragraph">
               An uploaded photo is sent once to Google Gemini to extract the visible numbers, then discarded — RunMate keeps only
               the extracted data (distance, duration, calories, and so on), never the original image, its raw text, or a copy of it.
@@ -132,7 +133,7 @@ const PrivacyDataPage: React.FC = () => {
 
           <section className="privacy-data-card">
             <header><IonIcon icon={cloudDownloadOutline} /><div><p>Your Data</p><h2>Export</h2></div></header>
-            <p className="privacy-data-paragraph">Download every Sleep, Workout, Meal, Profile, Race, device Heart Rate summary, and Strain check-in available to RunMate as a single JSON file.</p>
+            <p className="privacy-data-paragraph">Download every Sleep, Workout, Meal, Profile, Race, device Heart Rate summary, Strain check-in, and on-device AI Coach message available to RunMate as a single JSON file.</p>
             <button type="button" className="privacy-data-export-btn" disabled={exporting} onClick={() => void exportData()}>
               {exporting ? <IonSpinner name="crescent" /> : <IonIcon icon={cloudDownloadOutline} />}
               {exporting ? 'Preparing Export…' : 'Export My Data'}

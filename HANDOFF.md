@@ -1316,3 +1316,22 @@ Verification for this release candidate:
 - `npm.cmd run build`: passed.
 - `git diff --check`: passed.
 - Automated browser visual QA was unavailable in the current environment; physical-device screenshot confirmation remains recommended after tester installation.
+
+## AI Coach history, Health Calendar, and Habit Impact Insights (working tree)
+
+- AI Coach now restores up to 100 valid messages from on-device storage when the user returns. The model still receives only the latest eight conversational turns, preserving the existing compact-context and latency contract.
+- A header action starts a new chat only after confirmation. Chat history is cleared on sign-out to prevent account mixing, remains local instead of being uploaded to Supabase, and is included in RunMate's JSON data export.
+- `/health-calendar` is available from More > Insights. It loads Sleep, Workout, Strength, and Meal records once, then switches calendar months and selected days locally without repeated network requests. A five-minute in-memory last-known-good snapshot now renders repeat visits immediately while a background refresh runs; pull-to-refresh, retry/fallback messaging, and the `health_calendar` performance diagnostic cover the live query.
+- Health Calendar resets to the top when re-entered, prevents future-day selection, summarizes monthly coverage, and surfaces recorded Sleep Score, RHR, and HRV in the selected-day card. Zero-valued physiology is treated as missing, and the metric header/icon layout avoids text overlap on narrow phones.
+- Calendar dots and the selected-day panel show recorded Sleep, Training, Meals, caffeine logs, and confirmed Stress check-ins. Missing records remain visibly unlogged rather than being inferred.
+- Habit Impact Insights compare next-morning Sleep Duration for late-caffeine logs, recorded training days, and confirmed Stress check-ins. Each comparison requires at least three paired outcomes in both groups, exposes sample counts and confidence maturity, and describes associations rather than causation.
+- Late caffeine means a caffeine-containing meal log timestamped at or after 2 PM Bangkok time. The logged timestamp is not claimed to be confirmed consumption time.
+- Confirmed Strain check-ins are retained locally for up to 90 days so habit comparisons can mature. Health Calendar and on-device AI Coach history are documented in Privacy & Data and included in account export.
+
+Verification for this working tree:
+
+- Targeted persistence, calendar, account export, cache, and authenticated-route tests: 18 passed.
+- `npm.cmd run lint`: passed.
+- `npm.cmd run build`: passed.
+- `git diff --check`: passed.
+- Automated browser visual QA remains unavailable in the current environment; verify Health Calendar spacing and AI Coach clear-chat interaction on the tester device before distribution.

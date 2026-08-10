@@ -5,6 +5,7 @@ import { loadRaceResults } from '@/lib/raceResults';
 import { supabase } from '@/lib/supabaseClient';
 import { loadAllDayHeartRateStore } from '@/lib/allDayHeartRate';
 import { exportStrainCheckIns } from '@/lib/strainContext';
+import { loadAiCoachChatHistory } from '@/lib/aiCoachChatHistory';
 
 export type AccountDataExport = {
   exportedAt: string;
@@ -15,6 +16,7 @@ export type AccountDataExport = {
   raceResults: unknown;
   deviceHeartRateTimeline: unknown;
   deviceStrainCheckIns: unknown;
+  deviceAiCoachChatHistory: unknown;
 };
 
 export async function buildAccountDataExport(): Promise<{ ok: true; data: AccountDataExport } | { ok: false; error: string }> {
@@ -40,6 +42,7 @@ export async function buildAccountDataExport(): Promise<{ ok: true; data: Accoun
       raceResults: raceResults.results,
       deviceHeartRateTimeline: loadAllDayHeartRateStore(),
       deviceStrainCheckIns: exportStrainCheckIns(),
+      deviceAiCoachChatHistory: loadAiCoachChatHistory(),
     },
   };
 }

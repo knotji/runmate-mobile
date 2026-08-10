@@ -99,12 +99,19 @@
 
 /* Compact first viewport */
 .plan-card {
-  gap: 10px;
-  margin-bottom: 23px;
-  padding: 16px 18px 10px;
+  gap: 6px;
+  margin-bottom: 20px;
+  padding: 13px 16px 7px;
+  border-radius: 21px;
 }
-.plan-card-main { gap: 5px; }
+.plan-card-main { gap: 2px; }
+.plan-card-eyebrow > span { font-size: 8px; }
+.today-brief-focus { gap: 2px; padding: 5px 0 2px; }
+.today-brief-focus > small { font-size: 8px; }
+.today-brief-focus > strong { font-size: 16px; }
+.today-brief-focus > p { font-size: 9px; line-height: 1.35; }
 .adaptive-guidance { margin-top: 4px; padding: 10px 12px; }
 .adaptive-guidance-keep { padding: 9px 12px; }
 .adaptive-guidance-keep ul { display: none; }
-.plan-support-details > summary { min-height: 39px; padding-top: 6px; }
+.plan-support-details > summary { min-height: 44px; padding-top: 2px; }
+.plan-support-details > summary small { padding: 3px 6px; font-size: 8px; }

@@ -24,7 +24,7 @@ export function TodayTrainingPlanCard({ context }: { context: CoachContext }) {
   const keySignals = supportItems.slice(0, 3);
   const remainingSignals = supportItems.slice(3);
   const supportCount = supportItems.length;
-  const actionEyebrow = recommendation?.action === 'keep' ? "Today's Plan" : brief.action.eyebrow;
+  const actionEyebrow = recommendation?.action === 'keep' ? null : brief.action.eyebrow;
 
   return (
     <section
@@ -39,7 +39,7 @@ export function TodayTrainingPlanCard({ context }: { context: CoachContext }) {
           )}
         </div>
         <div className="today-brief-focus">
-          <small>{actionEyebrow}</small>
+          {actionEyebrow && <small>{actionEyebrow}</small>}
           <strong>{brief.action.title}</strong>
           <p><span>Main Signal</span> · {brief.limiter.title}</p>
         </div>

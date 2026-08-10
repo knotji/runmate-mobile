@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
-import { IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
-import { arrowBackOutline, arrowDownOutline, checkmarkCircleOutline, chevronDownOutline, chevronUpOutline, sendOutline, sparklesOutline, warningOutline } from 'ionicons/icons';
+import { IonAlert, IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
+import { arrowBackOutline, arrowDownOutline, checkmarkCircleOutline, chevronDownOutline, chevronUpOutline, sendOutline, sparklesOutline, trashOutline, warningOutline } from 'ionicons/icons';
 import { Capacitor, type PluginListenerHandle } from '@capacitor/core';
 import { Keyboard } from '@capacitor/keyboard';
 import { PageState } from '@/components/PageState';
@@ -15,18 +15,10 @@ import { loadRecoveryContextStartupEntry, saveRecoveryContextStartupSnapshot } f
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import { recoveryDataStatusCopy, resolveRecoveryDataStatus } from '@/lib/recoveryDataFreshness';
 import { guardCoachContextFreshness } from '@/lib/aiCoachFreshness';
+import { clearAiCoachChatHistory, loadAiCoachChatHistory, saveAiCoachChatHistory, type AiCoachStoredMessage } from '@/lib/aiCoachChatHistory';
 import './AiCoachPage.css';
 
-type ChatMessage = {
-  id: string;
-  sender: 'user' | 'assistant';
-  text?: string;
-  topicTitle?: string;
-  answer?: AiCoachAnswer;
-  timestamp: string;
-  topicId?: AiCoachTopic;
-  isError?: boolean;
-};
+type ChatMessage = AiCoachStoredMessage;
 
 const AiCoachPage: React.FC = () => {
   const history = useHistory();
@@ -40,7 +32,8 @@ const AiCoachPage: React.FC = () => {
   const [loadingContext, setLoadingContext] = useState(() => displayContext === null);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadAiCoachChatHistory());
+  const [clearConversationOpen, setClearConversationOpen] = useState(false);
   const [inputQuery, setInputQuery] = useState('');
   const [showContextDrawer, setShowContextDrawer] = useState(false);
   const [isNearBottom, setIsNearBottom] = useState(true);
@@ -74,6 +67,7 @@ const AiCoachPage: React.FC = () => {
   }, []);
 
   useEffect(() => { void loadContext(); }, [loadContext]);
+  useEffect(() => { saveAiCoachChatHistory(messages); }, [messages]);
   const contextDataStatus = resolveRecoveryDataStatus({
     savedAt: contextSavedAt,
     refreshing: loadingContext && Boolean(displayContext),
@@ -195,6 +189,7 @@ const AiCoachPage: React.FC = () => {
     <IonHeader translucent className="ai-coach-header"><IonToolbar>
       <button type="button" className="ai-coach-back" aria-label="Back To More" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
       <IonTitle>AI Coach</IonTitle>
+      {messages.length > 0 && <button type="button" className="ai-coach-clear" aria-label="Clear Conversation" onClick={() => setClearConversationOpen(true)}><IonIcon icon={trashOutline} /></button>}
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="ai-coach-content">
       <main className="ai-coach-shell">
@@ -304,6 +299,16 @@ const AiCoachPage: React.FC = () => {
         </>}
       </main>
     </IonContent>
+    <IonAlert
+      isOpen={clearConversationOpen}
+      onDidDismiss={() => setClearConversationOpen(false)}
+      header="Start A New Chat?"
+      message="This clears the AI Coach conversation stored on this device."
+      buttons={[
+        { text: 'Cancel', role: 'cancel' },
+        { text: 'Clear Chat', role: 'destructive', handler: () => { clearAiCoachChatHistory(); setMessages([]); } },
+      ]}
+    />
   </IonPage>;
 };
 

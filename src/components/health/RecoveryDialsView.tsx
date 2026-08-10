@@ -169,12 +169,11 @@ export function RecoveryPlan({ recovery, wakeOverrideMinutes, sleepCycleOverride
         : { tomorrowHeadline: 'Prioritize Sleep Tonight', tomorrowSummary: 'Recovery is low — tonight’s sleep matters more than usual before adding any intensity tomorrow.' };
   return (
     <section aria-labelledby="plan-heading" className="loop-section">
-      <div className="section-heading"><div><p>Tonight</p><h2 id="plan-heading">Your Sleep Plan</h2></div></div>
       <button type="button" className="loop-card primary-loop sleep-window-link" onClick={onOpen}>
         <IonIcon icon={moonOutline} />
         <div className="sleep-schedule">
-          <span>Tonight</span>
-          <h3>{inBedMinutes != null ? `In Bed By ${formatClockMinutes(inBedMinutes)}` : `Sleep ${sleepNeedHours}h ${sleepNeedMinutes}m`}</h3>
+          <span>Tonight · Sleep Plan</span>
+          <h3 id="plan-heading">{inBedMinutes != null ? `In Bed By ${formatClockMinutes(inBedMinutes)}` : `Sleep ${sleepNeedHours}h ${sleepNeedMinutes}m`}</h3>
           {window ? (
             <div className="sleep-schedule-details">
               <p className="sleep-times"><span>{cyclePlan ? 'Cycle Plan' : 'Window'}</span><strong>{cyclePlan ? `${cyclePlan.cycleCount} cycles` : `${formatClockMinutes(window.windowStartMinutes)}–${formatClockMinutes(window.windowEndMinutes)}`}</strong><i aria-hidden="true" /><span>Wake</span><strong>{formatClockMinutes(window.wakeMinutes)}</strong></p>

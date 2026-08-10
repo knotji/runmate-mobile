@@ -50,7 +50,7 @@ export function saveDailyStrainCheckIn(checkIn: DailyStrainCheckIn): void {
     if (Array.isArray(parsed)) rows = parsed.filter((entry) => entry?.date !== checkIn.date);
   } catch { /* Replace malformed local data. */ }
   rows.push({ ...checkIn, updatedAt: new Date().toISOString() });
-  rows = rows.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 14);
+  rows = rows.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 90);
   try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(rows)); } catch { /* Keep the page usable without storage. */ }
   window.dispatchEvent(new CustomEvent('runmate:strain-check-in-updated'));
 }

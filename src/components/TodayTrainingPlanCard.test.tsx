@@ -84,7 +84,7 @@ describe('TodayTrainingPlanCard adaptive flow', () => {
     expect(racePlan.weeklyPlan?.[0].distanceKm).toBe(8);
   });
 
-  it("labels an unchanged recommendation as today's plan, not an adjustment", () => {
+  it("keeps an unchanged recommendation compact without adjustment copy", () => {
     const context = moderateContext();
     context.recoverySystem.overallScore = 80;
 
@@ -92,7 +92,7 @@ describe('TodayTrainingPlanCard adaptive flow', () => {
 
     const focus = screen.getByLabelText("Today's Brief").querySelector('.today-brief-focus');
     expect(focus).not.toBeNull();
-    expect(within(focus as HTMLElement).getByText("Today's Plan")).toBeInTheDocument();
+    expect(within(focus as HTMLElement).queryByText("Today's Plan")).not.toBeInTheDocument();
     expect(within(focus as HTMLElement).queryByText('One Adjustment')).not.toBeInTheDocument();
     expect(within(focus as HTMLElement).getByText('Keep The Original Plan')).toBeInTheDocument();
     expect(screen.queryByText('Adaptive · Keep')).not.toBeInTheDocument();

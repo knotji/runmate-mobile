@@ -10,6 +10,7 @@ const loaders = {
   '/weekly-plan': () => import('@/pages/WeeklyPlanCalendarPage'),
   '/body-weight-trend': () => import('@/pages/BodyWeightTrendPage'),
   '/fitness-age': () => import('@/pages/FitnessAgePage'),
+  '/health-calendar': () => import('@/pages/HealthCalendarPage'),
   '/about': () => import('@/pages/AboutPage'),
 } as const;
 

@@ -70,6 +70,7 @@ const AboutPage = lazy(() => loadMorePage('/about'));
 const FitnessAgePage = lazy(() => loadMorePage('/fitness-age'));
 const StrainDetailPage = lazy(() => import('@/pages/StrainDetailPage'));
 const EnergyReservePage = lazy(() => import('@/pages/EnergyReservePage'));
+const HealthCalendarPage = lazy(() => loadMorePage('/health-calendar'));
 
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -203,6 +204,7 @@ const App: React.FC = () => {
             <Route exact path="/fitness-age">{session ? <FitnessAgePage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/strain">{session ? <StrainDetailPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/energy">{session ? <EnergyReservePage /> : <Redirect to="/login" />}</Route>
+            <Route exact path="/health-calendar">{session ? <HealthCalendarPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/health-test"><Redirect to="/health-connect" /></Route>
             <Route exact path="/history/workout/:id"><Redirect to="/tabs/activity" /></Route>
             <Route exact path="/">

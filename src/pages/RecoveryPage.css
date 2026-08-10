@@ -663,9 +663,15 @@ button.recovery-inline-freshness:focus-visible {
 }
 .recovery-support-metrics .dial-center strong { color: #183b4d; font-size: 15px; }
 .loop-section .section-heading { margin-bottom: 10px; }
-.loop-card.primary-loop { padding: 13px 15px; }
-.loop-card.primary-loop ion-icon { padding: 7px; }
-.sleep-schedule-details { margin-top: 5px; }
+.loop-card.primary-loop { grid-template-columns: 30px minmax(0,1fr); gap: 10px; padding: 10px 12px; }
+.loop-card.primary-loop ion-icon { box-sizing: border-box; width: 30px; height: 30px; padding: 6px; border-radius: 10px; }
+.loop-card.primary-loop h3 { margin-top: 2px; font-size: 14px; }
+.sleep-window-link .sleep-schedule { padding-right: 38px; }
+.sleep-schedule-details { gap: 4px 8px; margin-top: 4px; }
+.sleep-times span { font-size: 8px; }
+.sleep-times strong { font-size: 10px; }
+.sleep-need-badge { padding: 3px 6px; font-size: 8px !important; }
+.sleep-window-link .sleep-window-chevron { right: 10px; }
 .recovery-plan-details summary { min-height: 40px; padding-block: 7px; }
 
 @media (max-width: 390px) {

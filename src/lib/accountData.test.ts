@@ -25,7 +25,10 @@ vi.mock('@/lib/supabaseClient', () => ({
 }));
 
 describe('buildAccountDataExport', () => {
+  beforeEach(() => window.localStorage.clear());
+
   it('assembles history, profile, and race data into one export payload', async () => {
+    window.localStorage.setItem('runmate:ai-coach-chat:v1', JSON.stringify([{ id: 'u1', sender: 'user', text: 'Hello', timestamp: '07:00 AM' }]));
     const result = await buildAccountDataExport();
 
     expect(result.ok).toBe(true);
@@ -33,6 +36,7 @@ describe('buildAccountDataExport', () => {
     expect(result.data.historyItems).toEqual([{ id: 'sleep-1', type: 'sleep' }]);
     expect(result.data.profile).toEqual({ maxHr: 190 });
     expect(result.data.raceGoal).toEqual({ raceName: 'Half Marathon' });
+    expect(result.data.deviceAiCoachChatHistory).toEqual([{ id: 'u1', sender: 'user', text: 'Hello', timestamp: '07:00 AM' }]);
     expect(typeof result.data.exportedAt).toBe('string');
   });
 

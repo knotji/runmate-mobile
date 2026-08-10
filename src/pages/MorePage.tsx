@@ -70,6 +70,12 @@ const menuGroups: Array<{ label: string; title: string; items: MoreMenuItem[] }>
     path: '/weekly-summary',
   },
   {
+    icon: calendarOutline,
+    title: 'Health Calendar',
+    summary: 'See daily health records and evidence-labeled habit patterns in one place.',
+    path: '/health-calendar',
+  },
+  {
     icon: bandageOutline,
     title: 'Pain & Injury Trend',
     summary: 'See how logged Pain and Injury reports are changing over time.',

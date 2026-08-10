@@ -11,6 +11,8 @@ import { clearRecoveryTrendsStartupSnapshot } from './recoveryTrendsStartupCache
 import { clearWeeklySummaryHistorySnapshot } from './weeklySummaryStartupCache';
 import { clearAllDayHeartRateStore } from './allDayHeartRate';
 import { clearStrainCheckIns } from './strainContext';
+import { clearAiCoachChatHistory } from './aiCoachChatHistory';
+import { clearHealthCalendarSnapshot } from './healthCalendarStartupCache';
 
 export function clearRunMateCachedData(): void {
   clearRecoveryStartupSnapshot();
@@ -25,5 +27,7 @@ export function clearRunMateCachedData(): void {
   clearAiCoachAnswerCache();
   clearAllDayHeartRateStore();
   clearStrainCheckIns();
+  clearAiCoachChatHistory();
+  clearHealthCalendarSnapshot();
   invalidateCoachContextCache();
 }
