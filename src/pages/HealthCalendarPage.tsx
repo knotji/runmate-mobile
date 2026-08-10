@@ -7,7 +7,8 @@ import { PageState } from '@/components/PageState';
 import { DataFreshnessStatus } from '@/components/DataFreshnessStatus';
 import { endOfMonth, shiftDate, shiftMonths, startOfMonth, todayBangkokDateKey, weekdayIndex } from '@/lib/date';
 import { buildHabitImpactInsights, buildHealthCalendarDays } from '@/lib/healthCalendar';
-import { HEALTH_CALENDAR_MAX_ROWS, loadHealthCalendarHistory } from '@/lib/healthCalendarHistory';
+import { HEALTH_CALENDAR_MAX_ROWS, loadHealthCalendarArchiveHistory, loadHealthCalendarRecentHistory, mergeHealthCalendarHistoryItems } from '@/lib/healthCalendarHistory';
+import { shouldRefreshHealthCalendar } from '@/lib/healthCalendarRefresh';
 import { loadHealthCalendarSnapshot, saveHealthCalendarSnapshot } from '@/lib/healthCalendarStartupCache';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
@@ -25,32 +26,81 @@ const HealthCalendarPage: React.FC = () => {
   const [items, setItems] = useState<LocalHistoryItem[]>(startupItems ?? []);
   const [dataReady, setDataReady] = useState(startupItems !== null);
   const [loading, setLoading] = useState(startupItems === null);
+  const [archiveLoading, setArchiveLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [archiveError, setArchiveError] = useState<string | null>(null);
   const [historyLimited, setHistoryLimited] = useState(false);
   const [checkIns, setCheckIns] = useState(() => exportStrainCheckIns());
   const activeLoadRef = useRef<Promise<void> | null>(null);
+  const lastSuccessfulLoadAtRef = useRef(0);
+  const cloudDataDirtyRef = useRef(false);
+  const loadGenerationRef = useRef(0);
   const contentRef = useRef<HTMLIonContentElement>(null);
 
-  const load = useCallback(async () => {
+  const loadArchive = useCallback(async (recentItems: LocalHistoryItem[], generation: number) => {
+    setArchiveLoading(true);
+    setArchiveError(null);
+    try {
+      const result = await measurePerformanceDiagnostic(
+        'health_calendar_archive',
+        () => loadHealthCalendarArchiveHistory(recentItems),
+        (value) => ({
+          status: value.ok ? 'success' : 'failed',
+          detail: value.ok ? `${Math.max(0, value.items.length - recentItems.length)} older health records prepared${value.limited ? ' (newest rows only)' : ''}` : value.error,
+        }),
+      );
+      if (generation !== loadGenerationRef.current) return;
+      if (result.ok) {
+        setItems(result.items);
+        setHistoryLimited(result.limited);
+        saveHealthCalendarSnapshot(result.items);
+        lastSuccessfulLoadAtRef.current = Date.now();
+      } else {
+        setHistoryLimited(true);
+        setArchiveError(result.error);
+        lastSuccessfulLoadAtRef.current = 0;
+      }
+    } catch (failure) {
+      if (generation !== loadGenerationRef.current) return;
+      setHistoryLimited(true);
+      setArchiveError(failure instanceof Error ? failure.message : 'Could Not Load Older Health History.');
+      lastSuccessfulLoadAtRef.current = 0;
+    } finally {
+      if (generation === loadGenerationRef.current) setArchiveLoading(false);
+    }
+  }, []);
+
+  const load = useCallback(async (force = false) => {
+    if (!force && !shouldRefreshHealthCalendar(lastSuccessfulLoadAtRef.current, cloudDataDirtyRef.current)) {
+      return;
+    }
     if (activeLoadRef.current) return activeLoadRef.current;
+    const generation = loadGenerationRef.current + 1;
+    loadGenerationRef.current = generation;
+    setArchiveLoading(false);
     const operation = (async () => {
       setLoading(true);
       setError(null);
+      setArchiveError(null);
       try {
         const result = await measurePerformanceDiagnostic(
           'health_calendar',
-          () => loadHealthCalendarHistory(),
+          () => loadHealthCalendarRecentHistory(),
           (value) => ({
             status: value.ok ? 'success' : 'failed',
             variant: startupItems ? 'prepared' : 'live',
-            detail: value.ok ? `${value.items.length} health records prepared${value.limited ? ' (newest rows only)' : ''}` : value.error,
+            detail: value.ok ? `${value.items.length} recent health records prepared${value.hasMore ? '; archive queued' : ''}` : value.error,
           }),
         );
+        if (generation !== loadGenerationRef.current) return;
         if (result.ok) {
-          setItems(result.items);
-          setHistoryLimited(result.limited);
-          saveHealthCalendarSnapshot(result.items);
+          setItems((current) => result.hasMore ? mergeHealthCalendarHistoryItems(current, result.items) : result.items);
+          setHistoryLimited(false);
+          if (!result.hasMore || startupItems === null) saveHealthCalendarSnapshot(result.items);
           setDataReady(true);
+          lastSuccessfulLoadAtRef.current = Date.now();
+          cloudDataDirtyRef.current = false;
+          if (result.hasMore) void loadArchive(result.items, generation);
         } else {
           setError(result.error);
         }
@@ -62,7 +112,7 @@ const HealthCalendarPage: React.FC = () => {
     })().finally(() => { activeLoadRef.current = null; });
     activeLoadRef.current = operation;
     return operation;
-  }, [startupItems]);
+  }, [loadArchive, startupItems]);
 
   const enterView = useCallback(() => {
     const currentToday = todayBangkokDateKey();
@@ -81,12 +131,13 @@ const HealthCalendarPage: React.FC = () => {
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
     const refreshAfterHistoryChange = () => {
+      cloudDataDirtyRef.current = true;
       const activeLoad = activeLoadRef.current;
       if (activeLoad) {
-        void activeLoad.finally(() => { void load(); });
+        void activeLoad.finally(() => { void load(true); });
         return;
       }
-      void load();
+      void load(true);
     };
     window.addEventListener('runmate:cloud-data-updated', refreshAfterHistoryChange);
     return () => window.removeEventListener('runmate:cloud-data-updated', refreshAfterHistoryChange);
@@ -115,7 +166,7 @@ const HealthCalendarPage: React.FC = () => {
     setMonth(next);
     setSelectedDate(next === startOfMonth(today) ? today : next);
   };
-  const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(); event.detail.complete(); };
+  const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(true); event.detail.complete(); };
 
   return <IonPage>
     <IonHeader translucent className="health-calendar-header"><IonToolbar>
@@ -127,9 +178,10 @@ const HealthCalendarPage: React.FC = () => {
       <main className="health-calendar-shell">
         <header className="health-calendar-heading"><p>YOUR HEALTH PATTERNS</p><h1>See Your Month At A Glance</h1><span>Sleep, training, meals, and check-ins—together by day.</span></header>
         {loading && !dataReady && <PageDataSkeleton variant="summary" label="Loading Health Calendar" />}
-        {dataReady && loading && <DataFreshnessStatus status="refreshing" detail="Refreshing your health history…" className="health-calendar-freshness" />}
+        {dataReady && loading && <DataFreshnessStatus status="refreshing" detail="Refreshing recent health data…" className="health-calendar-freshness" />}
+        {dataReady && !loading && archiveLoading && <DataFreshnessStatus status="refreshing" detail="Calendar ready · Loading older history in the background…" className="health-calendar-freshness" />}
         {dataReady && !loading && error && <DataFreshnessStatus status="fallback" label="Saved Data" detail="Refresh unavailable · Showing the last loaded calendar" onRetry={() => void load()} variant="panel" className="health-calendar-freshness" />}
-        {dataReady && !loading && !error && historyLimited && <DataFreshnessStatus status="fallback" label="Recent History" detail={`Showing the newest ${HEALTH_CALENDAR_MAX_ROWS.toLocaleString()} records · Older months may be incomplete`} variant="panel" className="health-calendar-freshness" />}
+        {dataReady && !loading && !archiveLoading && !error && historyLimited && <DataFreshnessStatus status="fallback" label="Recent History" detail={archiveError ? `Older history could not be refreshed · Showing the newest ${items.length.toLocaleString()} records` : `Showing the newest ${HEALTH_CALENDAR_MAX_ROWS.toLocaleString()} records · Older months may be incomplete`} onRetry={archiveError ? () => void load(true) : undefined} variant="panel" className="health-calendar-freshness" />}
         {!dataReady && !loading && error && <PageState kind="error" title="Calendar Data Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} />}
         {dataReady && <>
           <section className="health-calendar-card" aria-label="Monthly health calendar">

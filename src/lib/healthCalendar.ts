@@ -36,7 +36,18 @@ export type HabitImpactInsight = {
 
 export function buildHealthCalendarDays(items: LocalHistoryItem[], dates: string[], checkIns: DailyStrainCheckIn[] = []): HealthCalendarDay[] {
   const checkInsByDate = new Map(checkIns.map((item) => [item.date, item]));
-  return dates.map((date) => buildDay(items, date, checkInsByDate.get(date) ?? null));
+  const requestedDates = new Set(dates);
+  const itemsByDate = new Map<string, LocalHistoryItem[]>();
+
+  for (const item of items) {
+    const date = getHistoryItemDateKey(item);
+    if (!requestedDates.has(date)) continue;
+    const dayItems = itemsByDate.get(date);
+    if (dayItems) dayItems.push(item);
+    else itemsByDate.set(date, [item]);
+  }
+
+  return dates.map((date) => buildDay(itemsByDate.get(date) ?? [], date, checkInsByDate.get(date) ?? null));
 }
 
 export function buildHabitImpactInsights(items: LocalHistoryItem[], checkIns: DailyStrainCheckIn[] = []): HabitImpactInsight[] {
@@ -75,8 +86,7 @@ export function buildHabitImpactInsights(items: LocalHistoryItem[], checkIns: Da
   ];
 }
 
-function buildDay(items: LocalHistoryItem[], date: string, checkIn: DailyStrainCheckIn | null): HealthCalendarDay {
-  const dayItems = items.filter((item) => getHistoryItemDateKey(item) === date);
+function buildDay(dayItems: LocalHistoryItem[], date: string, checkIn: DailyStrainCheckIn | null): HealthCalendarDay {
   const sleep = dayItems.find((item) => item.type === 'sleep');
   const workouts = dayItems.filter(isWorkout);
   const nutrition = buildDailyNutritionSummary(dayItems, date);

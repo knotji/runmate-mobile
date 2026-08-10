@@ -36,4 +36,21 @@ describe('Health Calendar', () => {
 
     expect(day).toMatchObject({ sleepMinutes: 357, sleepScore: null, restingHr: null, hrv: null });
   });
+
+  it('groups a large history by date once while preserving requested day order', () => {
+    let dateReads = 0;
+    const items = Array.from({ length: 500 }, (_, index) => {
+      const value = item(`meal-${index}`, 'meal', index % 2 === 0 ? '2026-08-09' : '2026-08-10', { nutrition: { caloriesKcal: 100 } });
+      const dateKey = value.dateKey;
+      Object.defineProperty(value, 'dateKey', { get: () => { dateReads += 1; return dateKey; } });
+      return value;
+    });
+
+    const dates = Array.from({ length: 31 }, (_, index) => `2026-08-${String(index + 1).padStart(2, '0')}`);
+    const days = buildHealthCalendarDays(items, dates);
+
+    expect(days[8]).toMatchObject({ date: '2026-08-09', mealCount: 250 });
+    expect(days[9]).toMatchObject({ date: '2026-08-10', mealCount: 250 });
+    expect(dateReads).toBeLessThanOrEqual(items.length * 4);
+  });
 });

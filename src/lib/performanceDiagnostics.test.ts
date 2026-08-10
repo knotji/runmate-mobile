@@ -49,6 +49,7 @@ describe('Performance Diagnostics', () => {
     recordPerformanceDiagnostic('meal_detail', 160, 'success', 'Single meal record prepared');
     recordPerformanceDiagnostic('sleep_window', 210, 'success', 'Wake plan prepared');
     recordPerformanceDiagnostic('health_calendar', 280, 'success', '120 health records prepared');
+    recordPerformanceDiagnostic('health_calendar_archive', 820, 'success', '900 older health records prepared');
 
     expect(getPerformanceDiagnosticSummaries().map((summary) => summary.phase)).toEqual([
       'activity_health_sync',
@@ -60,6 +61,7 @@ describe('Performance Diagnostics', () => {
       'meal_detail',
       'sleep_window',
       'health_calendar',
+      'health_calendar_archive',
     ]);
   });
 
