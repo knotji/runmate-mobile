@@ -115,3 +115,9 @@
 .adaptive-guidance-keep ul { display: none; }
 .plan-support-details > summary { min-height: 44px; padding-top: 2px; }
 .plan-support-details > summary small { padding: 3px 6px; font-size: 8px; }
+
+/* Compact, but still legible with Android font scaling. */
+.plan-card-eyebrow > span,
+.today-brief-focus > small,
+.plan-support-details > summary small { font-size: 9px; }
+.today-brief-focus > p { font-size: 10px; }

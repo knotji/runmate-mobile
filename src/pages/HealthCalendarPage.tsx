@@ -5,9 +5,9 @@ import { arrowBackOutline, chevronBackOutline, chevronForwardOutline, fitnessOut
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { PageState } from '@/components/PageState';
 import { DataFreshnessStatus } from '@/components/DataFreshnessStatus';
-import { loadHistoryItems } from '@/lib/cloudHistory';
 import { endOfMonth, shiftDate, shiftMonths, startOfMonth, todayBangkokDateKey, weekdayIndex } from '@/lib/date';
 import { buildHabitImpactInsights, buildHealthCalendarDays } from '@/lib/healthCalendar';
+import { HEALTH_CALENDAR_MAX_ROWS, loadHealthCalendarHistory } from '@/lib/healthCalendarHistory';
 import { loadHealthCalendarSnapshot, saveHealthCalendarSnapshot } from '@/lib/healthCalendarStartupCache';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
@@ -18,7 +18,7 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const HealthCalendarPage: React.FC = () => {
   const history = useHistory();
-  const today = todayBangkokDateKey();
+  const [today, setToday] = useState(() => todayBangkokDateKey());
   const [startupItems] = useState(() => loadHealthCalendarSnapshot());
   const [month, setMonth] = useState(() => startOfMonth(today));
   const [selectedDate, setSelectedDate] = useState(today);
@@ -26,10 +26,10 @@ const HealthCalendarPage: React.FC = () => {
   const [dataReady, setDataReady] = useState(startupItems !== null);
   const [loading, setLoading] = useState(startupItems === null);
   const [error, setError] = useState<string | null>(null);
+  const [historyLimited, setHistoryLimited] = useState(false);
+  const [checkIns, setCheckIns] = useState(() => exportStrainCheckIns());
   const activeLoadRef = useRef<Promise<void> | null>(null);
   const contentRef = useRef<HTMLIonContentElement>(null);
-
-  useIonViewWillEnter(() => { void contentRef.current?.scrollToTop(0); });
 
   const load = useCallback(async () => {
     if (activeLoadRef.current) return activeLoadRef.current;
@@ -39,15 +39,16 @@ const HealthCalendarPage: React.FC = () => {
       try {
         const result = await measurePerformanceDiagnostic(
           'health_calendar',
-          () => loadHistoryItems(['sleep', 'meal', 'workout', 'strength'], { limit: 1000 }),
+          () => loadHealthCalendarHistory(),
           (value) => ({
             status: value.ok ? 'success' : 'failed',
             variant: startupItems ? 'prepared' : 'live',
-            detail: value.ok ? `${value.items.length} health records prepared` : value.error,
+            detail: value.ok ? `${value.items.length} health records prepared${value.limited ? ' (newest rows only)' : ''}` : value.error,
           }),
         );
         if (result.ok) {
           setItems(result.items);
+          setHistoryLimited(result.limited);
           saveHealthCalendarSnapshot(result.items);
           setDataReady(true);
         } else {
@@ -63,15 +64,40 @@ const HealthCalendarPage: React.FC = () => {
     return operation;
   }, [startupItems]);
 
+  const enterView = useCallback(() => {
+    const currentToday = todayBangkokDateKey();
+    if (today !== currentToday) {
+      setSelectedDate((current) => current === today ? currentToday : current);
+      setMonth((current) => current === startOfMonth(today) ? startOfMonth(currentToday) : current);
+      setToday(currentToday);
+    }
+    setCheckIns(exportStrainCheckIns());
+    void contentRef.current?.scrollToTop(0);
+    void load();
+  }, [load, today]);
+
+  useIonViewWillEnter(enterView);
+
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
-    const refreshAfterHistoryChange = () => { void load(); };
+    const refreshAfterHistoryChange = () => {
+      const activeLoad = activeLoadRef.current;
+      if (activeLoad) {
+        void activeLoad.finally(() => { void load(); });
+        return;
+      }
+      void load();
+    };
     window.addEventListener('runmate:cloud-data-updated', refreshAfterHistoryChange);
     return () => window.removeEventListener('runmate:cloud-data-updated', refreshAfterHistoryChange);
   }, [load]);
+  useEffect(() => {
+    const refreshCheckIns = () => setCheckIns(exportStrainCheckIns());
+    window.addEventListener('runmate:strain-check-in-updated', refreshCheckIns);
+    return () => window.removeEventListener('runmate:strain-check-in-updated', refreshCheckIns);
+  }, []);
 
   const monthDates = useMemo(() => datesBetween(month, endOfMonth(month)), [month]);
-  const checkIns = useMemo(() => exportStrainCheckIns(), []);
   const days = useMemo(() => buildHealthCalendarDays(items, monthDates, checkIns), [checkIns, items, monthDates]);
   const daysByDate = useMemo(() => new Map(days.map((day) => [day.date, day])), [days]);
   const selected = daysByDate.get(selectedDate) ?? buildHealthCalendarDays(items, [selectedDate], checkIns)[0];
@@ -103,6 +129,7 @@ const HealthCalendarPage: React.FC = () => {
         {loading && !dataReady && <PageDataSkeleton variant="summary" label="Loading Health Calendar" />}
         {dataReady && loading && <DataFreshnessStatus status="refreshing" detail="Refreshing your health history…" className="health-calendar-freshness" />}
         {dataReady && !loading && error && <DataFreshnessStatus status="fallback" label="Saved Data" detail="Refresh unavailable · Showing the last loaded calendar" onRetry={() => void load()} variant="panel" className="health-calendar-freshness" />}
+        {dataReady && !loading && !error && historyLimited && <DataFreshnessStatus status="fallback" label="Recent History" detail={`Showing the newest ${HEALTH_CALENDAR_MAX_ROWS.toLocaleString()} records · Older months may be incomplete`} variant="panel" className="health-calendar-freshness" />}
         {!dataReady && !loading && error && <PageState kind="error" title="Calendar Data Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} />}
         {dataReady && <>
           <section className="health-calendar-card" aria-label="Monthly health calendar">

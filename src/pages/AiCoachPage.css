@@ -6,6 +6,7 @@
 .ai-coach-clear { position: absolute; z-index: 2; inset: 0 8px 0 auto; width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 12px; color: #6f879c; background: transparent; font-size: 19px; cursor: pointer; }
 .ai-coach-clear:active { background: rgba(0, 0, 0, .05); }
 .ai-coach-clear:focus-visible { outline: 2px solid #258ab7; outline-offset: -4px; }
+
 .ai-coach-shell { width: min(100%, 600px); margin: 0 auto; padding: 24px 20px max(80px, env(safe-area-inset-bottom)); }
 .ai-coach-heading { display: grid; grid-template-columns: 48px minmax(0,1fr); gap: 14px; align-items: start; margin: 0 2px 24px; }
 .ai-coach-mark { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 15px; color: #fff; background: linear-gradient(145deg,#257bb4,#27a8b0); box-shadow: 0 10px 24px rgba(35,130,168,.2); }
@@ -149,3 +150,9 @@
   .ai-coach-prompt-grid { grid-template-columns: 1fr; }
   .ai-coach-prompt-card:first-child { grid-column: auto; }
 }
+
+/* Keep every conversational action comfortably tappable on Android. */
+.ai-coach-data-freshness button,
+.ai-coach-chip,
+.ai-coach-chat-followups button,
+.ai-coach-scroll-bottom-btn { min-height: 44px; }

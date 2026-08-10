@@ -1,6 +1,6 @@
 # RunMate Mobile Handoff
 
-Last updated: 2026-08-04
+Last updated: 2026-08-10
 
 Before changing layout, typography, cards, or user-facing wording, read
 [`UI_GUIDELINES.md`](./UI_GUIDELINES.md). It is the shared app-wide standard for
@@ -1317,7 +1317,7 @@ Verification for this release candidate:
 - `git diff --check`: passed.
 - Automated browser visual QA was unavailable in the current environment; physical-device screenshot confirmation remains recommended after tester installation.
 
-## AI Coach history, Health Calendar, and Habit Impact Insights (working tree)
+## AI Coach history, Health Calendar, and Habit Impact Insights (2026-08-10 release)
 
 - AI Coach now restores up to 100 valid messages from on-device storage when the user returns. The model still receives only the latest eight conversational turns, preserving the existing compact-context and latency contract.
 - A header action starts a new chat only after confirmation. Chat history is cleared on sign-out to prevent account mixing, remains local instead of being uploaded to Supabase, and is included in RunMate's JSON data export.
@@ -1328,10 +1328,17 @@ Verification for this release candidate:
 - Late caffeine means a caffeine-containing meal log timestamped at or after 2 PM Bangkok time. The logged timestamp is not claimed to be confirmed consumption time.
 - Confirmed Strain check-ins are retained locally for up to 90 days so habit comparisons can mature. Health Calendar and on-device AI Coach history are documented in Privacy & Data and included in account export.
 
-Verification for this working tree:
+Release evidence and verification:
 
 - Targeted persistence, calendar, account export, cache, and authenticated-route tests: 18 passed.
-- `npm.cmd run lint`: passed.
-- `npm.cmd run build`: passed.
+- Full unit suite: 101 files / 452 tests passed.
+- `npm.cmd run lint`, production web build, Capacitor Android sync, signed Gradle APK assembly, and the Health Connect read-only manifest check passed.
 - `git diff --check`: passed.
-- Automated browser visual QA remains unavailable in the current environment; verify Health Calendar spacing and AI Coach clear-chat interaction on the tester device before distribution.
+- Commit `c8d03af`; RunMate `1.0.0 (1208)`; v2-signed APK SHA-256 `34855DBBCCE75346018EF3EDBC369E6E920C98734A6789D3A32BD05D1FDCE519`; Firebase App Distribution release `55bpoctc3i7dg` delivered to the existing tester.
+- Automated browser visual QA remained unavailable in the release environment. Confirm Health Calendar spacing, AI Coach clear-chat interaction, offline last-known-good behavior, and Android font scaling on the tester device.
+
+Post-release maintenance follow-up in the current working tree:
+
+- Health Calendar refreshes Bangkok `Today` state and local Stress check-ins whenever the Ionic view re-enters, listens for check-in changes while mounted, and queues a new cloud-history load if a save event arrives during an active request.
+- Calendar history now pages through the newest 5,000 relevant records. If that safety ceiling is reached, the UI explicitly warns that older months may be incomplete instead of presenting partial history as complete.
+- Month navigation, AI Coach conversational actions, and the Recovery details disclosure meet the 44px Android touch-target baseline. Small Calendar, Recovery, and Today Brief metadata was raised to remain readable with Android font scaling.

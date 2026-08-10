@@ -125,6 +125,8 @@ export async function saveHistoryItems(items: LocalHistoryItem[]): Promise<{ ok:
 export type HistoryLoadOptions = {
   /** Limits rows before they are transferred from Supabase. */
   limit?: number;
+  /** Skips newer rows so callers can page through longer histories. */
+  offset?: number;
   /** Filters by persisted creation time. Event-date filtering still happens in the caller. */
   createdAfter?: string;
 };
@@ -136,15 +138,17 @@ export async function loadHistoryItems(types?: HistoryType[], options: HistoryLo
   }
 
   logSupabaseSyncStart({ table: "history_items", operation: "select", userId: session.userId });
+  const limit = Math.max(1, Math.min(MAX_HISTORY_ROWS, options.limit ?? MAX_HISTORY_ROWS));
+  const offset = Math.max(0, Math.floor(options.offset ?? 0));
   let query = session.supabase
     .from("history_items")
     .select("id, type, created_at, data")
     .eq("user_id", session.userId)
-    .order("created_at", { ascending: false })
-    .limit(Math.max(1, Math.min(MAX_HISTORY_ROWS, options.limit ?? MAX_HISTORY_ROWS)));
+    .order("created_at", { ascending: false });
 
   if (types?.length) query = query.in("type", types);
   if (options.createdAfter) query = query.gte("created_at", options.createdAfter);
+  query = offset > 0 ? query.range(offset, offset + limit - 1) : query.limit(limit);
 
   const { data, error } = await query;
   if (error) {
