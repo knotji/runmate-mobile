@@ -27,6 +27,8 @@ describe('primary information architecture', () => {
   it.each([
     ['/tabs/recovery', 'Today Fixture'],
     ['/tabs/activity', 'Move Fixture'],
+    ['/tabs/upload', 'Log Fixture'],
+    ['/tabs/log', 'Log Fixture'],
   ])('keeps legacy tab route %s working', async (route, heading) => {
     render(<IonApp><MemoryRouter initialEntries={[route]}><MainTabs /></MemoryRouter></IonApp>);
     expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument();

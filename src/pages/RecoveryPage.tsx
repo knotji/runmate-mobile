@@ -289,7 +289,7 @@ const RecoveryPage: React.FC = () => {
         <IonToolbar>
           <IonTitle>Today</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={() => history.push('/tabs/upload')} className="recovery-share-btn" aria-label="Log Health Data">
+            <IonButton onClick={() => history.push('/tabs/log')} className="recovery-share-btn" aria-label="Log Health Data">
               <IonIcon icon={addOutline} />
             </IonButton>
             <IonButton disabled={!visibleContext} onClick={() => setShowShareModal(true)} className="recovery-share-btn" aria-label="Share Story">

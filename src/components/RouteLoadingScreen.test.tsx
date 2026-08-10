@@ -18,6 +18,8 @@ describe('RouteLoadingScreen', () => {
     expect(loadingDetailsForPath('/tabs/health')).toEqual({ title: 'Health', variant: 'health' });
     expect(loadingDetailsForPath('/tabs/move')).toEqual({ title: 'Move', variant: 'activity' });
     expect(loadingDetailsForPath('/tabs/coach')).toEqual({ title: 'Coach', variant: 'coach' });
+    expect(loadingDetailsForPath('/tabs/log')).toEqual({ title: 'Log', variant: 'profile' });
+    expect(loadingDetailsForPath('/tabs/upload')).toEqual({ title: 'Log', variant: 'profile' });
     expect(loadingDetailsForPath('/nutrition-trends')).toEqual({ title: 'Nutrition Trends', variant: 'nutrition' });
     expect(loadingDetailsForPath('/activity/workout/workout-1')).toEqual({ title: 'Workout Detail', variant: 'detail' });
     expect(loadingDetailsForPath('/activity/meal/meal-1')).toEqual({ title: 'Meal Detail', variant: 'detail' });

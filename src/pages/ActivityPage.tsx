@@ -19,7 +19,7 @@ import {
   useIonViewWillEnter,
   type RefresherEventDetail,
 } from '@ionic/react';
-import { addOutline, calendarClearOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, fitnessOutline, restaurantOutline, sparklesOutline } from 'ionicons/icons';
+import { addOutline, barbellOutline, bicycleOutline, calendarClearOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, fitnessOutline, moonOutline, restaurantOutline, sparklesOutline, walkOutline } from 'ionicons/icons';
 import { deleteHistoryItem, hideImportedHistoryItem, loadHistoryItems } from '@/lib/cloudHistory';
 import { getHistoryItemDateKey, todayBangkokDateKey } from '@/lib/date';
 import { isHealthConnectImportedItem, type LocalHistoryItem } from '@/lib/localHistory';
@@ -38,7 +38,8 @@ import { loadProfileFromSupabase } from '@/lib/profileStorage';
 import { useUserProfileStore } from '@/lib/profile/userProfileStore';
 import { loadActiveRaceGoalAndPlan } from '@/lib/raceStorage';
 import { useRacePlanStore } from '@/lib/race/racePlanStore';
-import { getPlannedWorkoutForDate } from '@/lib/todayTrainingPlan';
+import { getPlannedWorkoutForDate, isRestDayWorkout, translatePlanFieldToEnglish } from '@/lib/todayTrainingPlan';
+import type { WeekWorkout } from '@/types/race';
 import './ActivityPage.css';
 
 const ActivityPage: React.FC = () => {
@@ -230,12 +231,13 @@ const ActivityPage: React.FC = () => {
     return { value, durationMs: performance.now() - startedAt };
   }, [items, selectedDate]);
   const nutritionSummary = nutritionMeasurement.value;
+  const plannedWorkout = useMemo(() => selectedDate === todayDate ? getPlannedWorkoutForDate(racePlan, selectedDate) : null, [racePlan, selectedDate, todayDate]);
   const fuelCoach = useMemo(() => buildDailyFuelCoach({
     date: selectedDate,
     items,
     profile,
-    plannedWorkout: selectedDate === todayDate ? getPlannedWorkoutForDate(racePlan, selectedDate) : null,
-  }), [items, profile, racePlan, selectedDate, todayDate]);
+    plannedWorkout,
+  }), [items, profile, plannedWorkout, selectedDate]);
   useEffect(() => {
     recordPerformanceDiagnostic(
       'activity_nutrition',
@@ -286,7 +288,7 @@ const ActivityPage: React.FC = () => {
         <IonToolbar>
           <IonTitle>Move</IonTitle>
           <IonButtons slot="end">
-            <IonButton aria-label="Log Activity" onClick={() => history.push('/tabs/upload')}><IonIcon icon={addOutline} /></IonButton>
+            <IonButton aria-label="Log Activity" onClick={() => history.push('/tabs/log')}><IonIcon icon={addOutline} /></IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>
@@ -305,6 +307,10 @@ const ActivityPage: React.FC = () => {
             {selectedDate !== todayDate && <button type="button" className="activity-inline-current" onClick={() => moveToDate(todayDate)}>Current</button>}
           </nav>
 
+          {!loading && !error && plannedWorkout && (
+            <PlannedTrainingCard workout={plannedWorkout} onOpen={() => history.push('/weekly-plan')} />
+          )}
+
           {!loading && !error && nutritionSummary && (
             <section className="daily-nutrition-summary" aria-labelledby="daily-nutrition-heading">
               <header>
@@ -322,7 +328,7 @@ const ActivityPage: React.FC = () => {
             </section>
           )}
 
-          {!loading && !error && <DailyFuelCoachCard coach={fuelCoach} preparing={fuelContextLoading && !profile} onProfile={() => history.push('/profile-settings')} onLogMeal={() => history.push('/tabs/upload?type=meal')} onAskCoach={() => history.push('/tabs/coach', { initialTopic: 'fuel' })} />}
+          {!loading && !error && <DailyFuelCoachCard coach={fuelCoach} preparing={fuelContextLoading && !profile} onProfile={() => history.push('/profile-settings')} onLogMeal={() => history.push('/tabs/log?type=meal')} onAskCoach={() => history.push('/tabs/coach', { initialTopic: 'fuel' })} />}
 
           {loading && <PageDataSkeleton variant="activity" label="Loading Your Activity" />}
           {!loading && error && <PageState kind="error" title="Activity Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void loadRecent()} className="history-state history-error" />}
@@ -334,7 +340,7 @@ const ActivityPage: React.FC = () => {
           {!loading && !error && groupedItems.map(([date, dateItems]) => (
             <section className="history-day" key={date}>
               <header>
-                <div><p>{selectedDate === todayDate ? 'Today' : 'Selected Day'}</p><h2>{selectedDate === todayDate ? "Today's Records" : 'Daily Records'}</h2></div>
+                <div><p>Recorded Data</p><h2>{selectedDate === todayDate ? "Today's Records" : 'Daily Records'}</h2></div>
                 <span>{dateItems.length} {dateItems.length === 1 ? 'Record' : 'Records'}</span>
               </header>
               <div className="activity-record-groups">
@@ -388,6 +394,34 @@ const ActivityPage: React.FC = () => {
 
 function NutritionMetric({ label, value }: { label: string; value: number | null }) {
   return <div><span>{label}</span><strong>{formatMetric(value)}{value !== null ? ' g' : ''}</strong></div>;
+}
+
+export function PlannedTrainingCard({ workout, onOpen }: { workout: WeekWorkout; onOpen: () => void }) {
+  const restDay = isRestDayWorkout(workout);
+  const details = [
+    workout.distanceKm ? `${workout.distanceKm} km` : null,
+    workout.durationMin ? `${workout.durationMin} min` : null,
+    workout.targetPace ? translatePlanFieldToEnglish(workout.targetPace) : null,
+  ].filter(Boolean).join(' · ');
+  return <section className={`move-plan-card${restDay ? ' is-rest' : ''}`} aria-labelledby="move-plan-heading">
+    <span className="move-plan-icon"><IonIcon icon={plannedWorkoutIcon(workout)} aria-hidden="true" /></span>
+    <div className="move-plan-copy">
+      <p>Planned Training</p>
+      <h2 id="move-plan-heading">{workout.workoutType || 'Training Session'}</h2>
+      <span>{workout.description || (restDay ? 'Recovery is the plan for today.' : 'Follow the planned session for today.')}</span>
+      {details && <small>{details}</small>}
+    </div>
+    <button type="button" onClick={onOpen} aria-label="Open Weekly Plan"><span>{restDay ? 'Rest' : 'Plan'}</span><IonIcon icon={chevronForwardOutline} aria-hidden="true" /></button>
+  </section>;
+}
+
+function plannedWorkoutIcon(workout: WeekWorkout): string {
+  const type = workout.workoutType.toLowerCase();
+  if (isRestDayWorkout(workout)) return moonOutline;
+  if (type.includes('strength') || type.includes('weight')) return barbellOutline;
+  if (type.includes('walk') || type.includes('recovery')) return walkOutline;
+  if (type.includes('cycle') || type.includes('bike')) return bicycleOutline;
+  return fitnessOutline;
 }
 
 function DailyFuelCoachCard({ coach, preparing, onProfile, onLogMeal, onAskCoach }: { coach: DailyFuelCoach; preparing: boolean; onProfile: () => void; onLogMeal: () => void; onAskCoach: () => void }) {

@@ -9,9 +9,11 @@ vi.mock('@/components/WorkoutUploadFlow', () => ({ default: () => <div>Workout U
 vi.mock('@/components/MealUploadFlow', () => ({ default: () => <div>Meal Upload Flow</div> }));
 
 describe('UploadPage', () => {
-  it('starts without selecting an upload type', async () => {
+  it('presents manual logging without selecting a record type', async () => {
     render(<MemoryRouter><UploadPage /></MemoryRouter>);
 
+    expect(screen.getByRole('heading', { name: 'What Would You Like To Log?' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Record Type' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Sleep' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('button', { name: 'Workout' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('button', { name: 'Meal' })).toHaveAttribute('aria-pressed', 'false');
@@ -22,11 +24,11 @@ describe('UploadPage', () => {
     expect(screen.getByRole('button', { name: 'Workout' })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('opens a requested flow directly from a contextual CTA', async () => {
-    render(<MemoryRouter initialEntries={['/tabs/upload?type=meal']}><UploadPage /></MemoryRouter>);
+  it.each(['/tabs/log?type=meal', '/tabs/upload?type=meal'])('opens a requested flow directly from %s', async (path) => {
+    render(<MemoryRouter initialEntries={[path]}><UploadPage /></MemoryRouter>);
 
     expect(await screen.findByText('Meal Upload Flow')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Meal' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.queryByText('What Would You Like To Upload?')).not.toBeInTheDocument();
+    expect(screen.queryByText('What Would You Like To Log?')).not.toBeInTheDocument();
   });
 });

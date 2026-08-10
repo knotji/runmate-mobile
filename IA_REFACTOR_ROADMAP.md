@@ -45,7 +45,7 @@ Secondary actions:
 | `/tabs/recovery` | `/tabs/today` | Redirect; keep native notifications and old links working |
 | `/tabs/activity` | `/tabs/move` | Redirect; retain detail-page back compatibility |
 | `/ai-coach` | `/tabs/coach` | Keep reachable during migration; update internal entry points progressively |
-| `/tabs/upload` | `/tabs/upload` | Hidden utility route opened by `Log`, not a primary tab |
+| `/tabs/upload` | `/tabs/log` | Legacy utility route remains available; new internal entry points use `Log` |
 | `/tabs/more` | `/tabs/more` | Hidden settings route until it is renamed |
 
 Do not change stored health records, Supabase schemas, Health Connect permissions, recovery formulas, or training-plan reconciliation as part of the IA refactor.
@@ -76,10 +76,10 @@ Do not change stored health records, Supabase schemas, Health Connect permission
 
 ### Phase 4 — Move and manual logging
 
-- [ ] Separate recorded activity from planned training without duplicating records.
-- [ ] Keep running, strength, walking, and other workouts first-class.
-- [ ] Rename Upload copy to Log and frame photo analysis as an optional intake method.
-- [ ] Preserve reviewed save/confirmation before any record is written.
+- [x] Separate recorded activity from planned training without duplicating records.
+- [x] Keep running, strength, walking, and other workouts first-class.
+- [x] Rename Upload copy to Log and frame photo analysis as an optional intake method.
+- [x] Preserve reviewed save/confirmation before any record is written.
 
 ### Phase 5 — Settings and brand transition
 
