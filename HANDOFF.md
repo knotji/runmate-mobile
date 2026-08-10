@@ -1337,8 +1337,10 @@ Release evidence and verification:
 - Commit `c8d03af`; RunMate `1.0.0 (1208)`; v2-signed APK SHA-256 `34855DBBCCE75346018EF3EDBC369E6E920C98734A6789D3A32BD05D1FDCE519`; Firebase App Distribution release `55bpoctc3i7dg` delivered to the existing tester.
 - Automated browser visual QA remained unavailable in the release environment. Confirm Health Calendar spacing, AI Coach clear-chat interaction, offline last-known-good behavior, and Android font scaling on the tester device.
 
-Post-release maintenance follow-up in the current working tree:
+Maintenance release follow-up (`1.0.0 (1209)`):
 
 - Health Calendar refreshes Bangkok `Today` state and local Stress check-ins whenever the Ionic view re-enters, listens for check-in changes while mounted, and queues a new cloud-history load if a save event arrives during an active request.
 - Calendar history now pages through the newest 5,000 relevant records. If that safety ceiling is reached, the UI explicitly warns that older months may be incomplete instead of presenting partial history as complete.
 - Month navigation, AI Coach conversational actions, and the Recovery details disclosure meet the 44px Android touch-target baseline. Small Calendar, Recovery, and Today Brief metadata was raised to remain readable with Android font scaling.
+- Commit `0ec60c6`; full unit suite 102 files / 454 tests, ESLint, production build, Capacitor Android sync, signed Gradle APK assembly, Health Connect read-only manifest validation, and `git diff --check` passed.
+- The v2-signed APK SHA-256 is `D84903B5691D3209D8382996425E8C742A4C8AC7D27DC96394A3AF700E184BAC`; Firebase App Distribution release `7qpvj02ras6s8` was delivered to the existing tester.
