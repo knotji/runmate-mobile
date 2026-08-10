@@ -1,6 +1,7 @@
 export const PERFORMANCE_DIAGNOSTICS_KEY = 'runmate:performance-diagnostics';
 
 export type PerformanceDiagnosticPhase =
+  | 'tab_navigation'
   | 'health_sync'
   | 'recovery_core'
   | 'recovery_secondary'
@@ -52,9 +53,11 @@ export type HealthSyncPerformanceComparison = {
   sampleCount: number;
 };
 
-const MAX_STORED_ENTRIES = 30;
+const MAX_STORED_ENTRIES = 60;
+const MAX_STORED_ENTRIES_PER_PHASE = 5;
 const SUMMARY_SAMPLE_SIZE = 5;
 const PERFORMANCE_BUDGETS_MS: Partial<Record<PerformanceDiagnosticPhase, number>> = {
+  tab_navigation: 250,
   health_sync: 2500,
   recovery_core: 2500,
   recovery_secondary: 4000,
@@ -112,7 +115,14 @@ export function recordPerformanceDiagnostic(
   };
   try {
     const current = getPerformanceDiagnostics();
-    window.localStorage.setItem(PERFORMANCE_DIAGNOSTICS_KEY, JSON.stringify([entry, ...current].slice(0, MAX_STORED_ENTRIES)));
+    const phaseCounts = new Map<PerformanceDiagnosticPhase, number>();
+    const retained = [entry, ...current].filter((candidate) => {
+      const count = phaseCounts.get(candidate.phase) ?? 0;
+      if (count >= MAX_STORED_ENTRIES_PER_PHASE) return false;
+      phaseCounts.set(candidate.phase, count + 1);
+      return true;
+    });
+    window.localStorage.setItem(PERFORMANCE_DIAGNOSTICS_KEY, JSON.stringify(retained.slice(0, MAX_STORED_ENTRIES)));
   } catch { /* Diagnostics must never interrupt Recovery. */ }
   return entry;
 }
@@ -143,6 +153,7 @@ export function getPerformanceDiagnostics(): PerformanceDiagnosticEntry[] {
 export function getPerformanceDiagnosticSummaries(): PerformanceDiagnosticSummary[] {
   const entries = getPerformanceDiagnostics();
   const phases: PerformanceDiagnosticPhase[] = [
+    'tab_navigation',
     'health_sync',
     'recovery_core',
     'recovery_secondary',
@@ -191,7 +202,7 @@ export function performanceBudgetMs(phase: PerformanceDiagnosticPhase): number |
 function isPerformanceDiagnosticEntry(value: unknown): value is PerformanceDiagnosticEntry {
   if (!value || typeof value !== 'object') return false;
   const entry = value as Partial<PerformanceDiagnosticEntry>;
-  return ['health_sync', 'recovery_core', 'recovery_secondary', 'activity_health_sync', 'activity_records', 'activity_archive', 'activity_nutrition', 'nutrition_trends', 'recovery_trends', 'meal_detail', 'workout_detail', 'sleep_window', 'weekly_plan', 'race_goal', 'weekly_summary', 'body_weight_trend', 'pain_trends', 'profile_settings', 'privacy_export', 'account_delete', 'ai_coach_context', 'ai_coach_answer', 'health_calendar', 'health_calendar_archive'].includes(entry.phase ?? '')
+  return ['tab_navigation', 'health_sync', 'recovery_core', 'recovery_secondary', 'activity_health_sync', 'activity_records', 'activity_archive', 'activity_nutrition', 'nutrition_trends', 'recovery_trends', 'meal_detail', 'workout_detail', 'sleep_window', 'weekly_plan', 'race_goal', 'weekly_summary', 'body_weight_trend', 'pain_trends', 'profile_settings', 'privacy_export', 'account_delete', 'ai_coach_context', 'ai_coach_answer', 'health_calendar', 'health_calendar_archive'].includes(entry.phase ?? '')
     && typeof entry.at === 'string'
     && typeof entry.durationMs === 'number'
     && ['success', 'skipped', 'failed'].includes(entry.status ?? '')

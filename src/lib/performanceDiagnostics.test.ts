@@ -29,6 +29,7 @@ describe('Performance Diagnostics', () => {
       budgetStatus: 'over',
     });
     expect(performanceBudgetMs('ai_coach_answer')).toBeNull();
+    expect(performanceBudgetMs('tab_navigation')).toBe(250);
   });
 
   it('records failed operations without swallowing the error', async () => {
@@ -75,5 +76,14 @@ describe('Performance Diagnostics', () => {
       { variant: 'prepared', averageMs: 150, sampleCount: 2 },
       { variant: 'live', averageMs: 1200, sampleCount: 1 },
     ]);
+  });
+
+  it('keeps frequent tab samples from displacing page-load diagnostics', () => {
+    recordPerformanceDiagnostic('recovery_core', 500);
+    for (let index = 0; index < 12; index += 1) recordPerformanceDiagnostic('tab_navigation', 80 + index);
+
+    const entries = getPerformanceDiagnostics();
+    expect(entries.filter((entry) => entry.phase === 'tab_navigation')).toHaveLength(5);
+    expect(entries.some((entry) => entry.phase === 'recovery_core')).toBe(true);
   });
 });

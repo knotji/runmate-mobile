@@ -100,6 +100,18 @@ The final rebrand remains intentionally gated. Phase 5 changes the product struc
 
 Internal file and loader names may retain legacy terminology until a later code-only cleanup. They are not user-facing and changing them is not required for route compatibility.
 
+### Phase 7 — Experience and performance closure
+
+- [x] Preserve the selected Move date and unfinished Coach draft for the current app session.
+- [x] Preserve Today, Health, and Move scroll positions when a primary view is remounted.
+- [x] Measure real tab-transition latency on-device against a 250 ms interaction budget.
+- [x] Keep constrained-network safeguards on idle tab prefetch and avoid new foreground data requests.
+- [x] Normalize plan placeholders so unavailable pace values are not presented as useful training guidance.
+- [x] Keep persistent visible labels on all four primary tab destinations and add focused regression coverage.
+- [ ] Validate Android Back, font scaling, TalkBack, scroll restoration, and tab timing on a physical tester device.
+
+Phase 7 code is complete when automated gates pass. Physical-device validation remains a release acceptance item and must not be inferred from browser tests or a successful Android build.
+
 ## Performance requirements
 
 - Tab changes must be immediate and must not trigger unrelated Health Connect or Supabase work.

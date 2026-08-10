@@ -22,6 +22,13 @@ describe('PlannedTrainingCard', () => {
     expect(screen.getByRole('heading', { name: 'Rest' })).toBeInTheDocument();
     expect(screen.queryByText(/0 km|N\/A/i)).not.toBeInTheDocument();
   });
+
+  it('replaces a recovery pace placeholder with useful recovery guidance', () => {
+    render(<IonApp><PlannedTrainingCard workout={{ day: 'Tue', workoutType: 'Recovery', distanceKm: 0, durationMin: 30, targetPace: 'N/A', targetHR: null, description: 'Light mobility, foam rolling, and dynamic stretching.' }} onOpen={vi.fn()} /></IonApp>);
+
+    expect(screen.getByText('30 min · Easy Recovery')).toBeInTheDocument();
+    expect(screen.queryByText(/N\/A/i)).not.toBeInTheDocument();
+  });
 });
 
 describe('MoveToolsNav', () => {

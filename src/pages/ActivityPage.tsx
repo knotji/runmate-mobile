@@ -38,18 +38,22 @@ import { loadProfileFromSupabase } from '@/lib/profileStorage';
 import { useUserProfileStore } from '@/lib/profile/userProfileStore';
 import { loadActiveRaceGoalAndPlan } from '@/lib/raceStorage';
 import { useRacePlanStore } from '@/lib/race/racePlanStore';
-import { getPlannedWorkoutForDate, isRestDayWorkout, translatePlanFieldToEnglish } from '@/lib/todayTrainingPlan';
+import { formatRaceWorkoutMetric } from '@/lib/mobileRaceGoal';
+import { getPlannedWorkoutForDate, isRestDayWorkout } from '@/lib/todayTrainingPlan';
+import { loadMoveSelectedDate, saveMoveSelectedDate } from '@/lib/primaryTabState';
+import { usePrimaryTabScroll } from '@/lib/usePrimaryTabScroll';
 import type { WeekWorkout } from '@/types/race';
 import './ActivityPage.css';
 
 const ActivityPage: React.FC = () => {
   const history = useHistory();
   const todayDate = todayBangkokDateKey();
+  const contentRef = usePrimaryTabScroll('move');
   const [startupItems] = useState(() => loadActivityStartupSnapshot());
   const profile = useUserProfileStore((state) => state.profile);
   const racePlan = useRacePlanStore((state) => state.plan);
   const [items, setItems] = useState<LocalHistoryItem[]>(() => startupItems ?? []);
-  const [selectedDate, setSelectedDate] = useState(todayDate);
+  const [selectedDate, setSelectedDate] = useState(() => loadMoveSelectedDate(todayDate));
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [archiveLoading, setArchiveLoading] = useState(false);
   const [archiveError, setArchiveError] = useState<string | null>(null);
@@ -71,6 +75,7 @@ const ActivityPage: React.FC = () => {
   const cloudDataDirtyRef = useRef(false);
 
   useEffect(() => { setExpandedRecordGroups(new Set()); }, [selectedDate]);
+  useEffect(() => { saveMoveSelectedDate(selectedDate, todayDate); }, [selectedDate, todayDate]);
 
   useEffect(() => {
     let active = true;
@@ -292,7 +297,7 @@ const ActivityPage: React.FC = () => {
           </IonButtons>
         </IonToolbar>
       </IonHeader>
-      <IonContent fullscreen className="history-content">
+      <IonContent ref={contentRef} fullscreen className="history-content">
         <IonRefresher slot="fixed" onIonRefresh={refresh}>
           <IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" />
         </IonRefresher>
@@ -404,11 +409,7 @@ function NutritionMetric({ label, value }: { label: string; value: number | null
 
 export function PlannedTrainingCard({ workout, onOpen }: { workout: WeekWorkout; onOpen: () => void }) {
   const restDay = isRestDayWorkout(workout);
-  const details = [
-    workout.distanceKm ? `${workout.distanceKm} km` : null,
-    workout.durationMin ? `${workout.durationMin} min` : null,
-    workout.targetPace ? translatePlanFieldToEnglish(workout.targetPace) : null,
-  ].filter(Boolean).join(' · ');
+  const details = formatRaceWorkoutMetric(workout);
   return <section className={`move-plan-card${restDay ? ' is-rest' : ''}`} aria-labelledby="move-plan-heading">
     <span className="move-plan-icon"><IonIcon icon={plannedWorkoutIcon(workout)} aria-hidden="true" /></span>
     <div className="move-plan-copy">

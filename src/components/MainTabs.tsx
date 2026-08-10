@@ -1,9 +1,10 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { Redirect, Route } from 'react-router-dom';
+import { Redirect, Route, useLocation } from 'react-router-dom';
 import { IonIcon, IonLabel, IonRouterOutlet, IonTabBar, IonTabButton, IonTabs } from '@ionic/react';
 import { fitnessOutline, heartOutline, homeOutline, sparklesOutline } from 'ionicons/icons';
 import { RouteLoadingScreen } from '@/components/RouteLoadingScreen';
 import { hapticSelection } from '@/lib/haptics';
+import { beginTabNavigation, completeTabNavigation } from '@/lib/tabNavigationPerformance';
 
 const loadRecoveryPage = () => import('@/pages/RecoveryPage');
 const loadActivityPage = () => import('@/pages/ActivityPage');
@@ -27,6 +28,15 @@ const tabPageLoaders = [
 ];
 
 const MainTabs: React.FC = () => {
+  const location = useLocation();
+
+  useEffect(() => { completeTabNavigation(location.pathname); }, [location.pathname]);
+
+  const startTabNavigation = (path: string) => {
+    beginTabNavigation(path, location.pathname);
+    void hapticSelection();
+  };
+
   useEffect(() => {
     const prefetchInactiveTabs = () => {
       const connection = Reflect.get(navigator, 'connection') as { effectiveType?: string; saveData?: boolean } | undefined;
@@ -65,10 +75,10 @@ const MainTabs: React.FC = () => {
         <Route exact path="/tabs"><Redirect to="/tabs/today" /></Route>
       </IonRouterOutlet>
       <IonTabBar slot="bottom" className="main-tab-bar">
-        <IonTabButton tab="today" href="/tabs/today" onClick={() => void hapticSelection()}><IonIcon icon={homeOutline} /><IonLabel>Today</IonLabel></IonTabButton>
-        <IonTabButton tab="health" href="/tabs/health" onClick={() => void hapticSelection()}><IonIcon icon={heartOutline} /><IonLabel>Health</IonLabel></IonTabButton>
-        <IonTabButton tab="move" href="/tabs/move" onClick={() => void hapticSelection()}><IonIcon icon={fitnessOutline} /><IonLabel>Move</IonLabel></IonTabButton>
-        <IonTabButton tab="coach" href="/tabs/coach" onClick={() => void hapticSelection()}><IonIcon icon={sparklesOutline} /><IonLabel>Coach</IonLabel></IonTabButton>
+        <IonTabButton tab="today" href="/tabs/today" onClick={() => startTabNavigation('/tabs/today')}><IonIcon icon={homeOutline} /><IonLabel>Today</IonLabel></IonTabButton>
+        <IonTabButton tab="health" href="/tabs/health" onClick={() => startTabNavigation('/tabs/health')}><IonIcon icon={heartOutline} /><IonLabel>Health</IonLabel></IonTabButton>
+        <IonTabButton tab="move" href="/tabs/move" onClick={() => startTabNavigation('/tabs/move')}><IonIcon icon={fitnessOutline} /><IonLabel>Move</IonLabel></IonTabButton>
+        <IonTabButton tab="coach" href="/tabs/coach" onClick={() => startTabNavigation('/tabs/coach')}><IonIcon icon={sparklesOutline} /><IonLabel>Coach</IonLabel></IonTabButton>
       </IonTabBar>
     </IonTabs>
   );

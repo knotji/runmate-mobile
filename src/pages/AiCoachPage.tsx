@@ -17,6 +17,7 @@ import { navigateBackOr } from '@/lib/navigationBack';
 import { recoveryDataStatusCopy, resolveRecoveryDataStatus } from '@/lib/recoveryDataFreshness';
 import { guardCoachContextFreshness } from '@/lib/aiCoachFreshness';
 import { clearAiCoachChatHistory, loadAiCoachChatHistory, saveAiCoachChatHistory, type AiCoachStoredMessage } from '@/lib/aiCoachChatHistory';
+import { loadCoachDraft, saveCoachDraft } from '@/lib/primaryTabState';
 import './AiCoachPage.css';
 
 type ChatMessage = AiCoachStoredMessage;
@@ -36,7 +37,7 @@ const AiCoachPage: React.FC = () => {
   const [asking, setAsking] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadAiCoachChatHistory());
   const [clearConversationOpen, setClearConversationOpen] = useState(false);
-  const [inputQuery, setInputQuery] = useState('');
+  const [inputQuery, setInputQuery] = useState(() => loadCoachDraft());
   const [showContextDrawer, setShowContextDrawer] = useState(false);
   const [isNearBottom, setIsNearBottom] = useState(true);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -70,6 +71,7 @@ const AiCoachPage: React.FC = () => {
 
   useEffect(() => { void loadContext(); }, [loadContext]);
   useEffect(() => { saveAiCoachChatHistory(messages); }, [messages]);
+  useEffect(() => { saveCoachDraft(inputQuery); }, [inputQuery]);
   const contextDataStatus = resolveRecoveryDataStatus({
     savedAt: contextSavedAt,
     refreshing: loadingContext && Boolean(displayContext),
@@ -154,6 +156,7 @@ const AiCoachPage: React.FC = () => {
     if (!trimmed || !requestContext || asking) return;
     const conversation = conversationFromMessages(messages);
     setInputQuery('');
+    saveCoachDraft('');
     
     const userMsg: ChatMessage = {
       id: `msg-${Date.now()}-user`,
@@ -283,6 +286,7 @@ const AiCoachPage: React.FC = () => {
                 className="ai-coach-chat-input"
                 placeholder="ถามอะไรก็ได้ เช่น วันนี้ควรวิ่งไหม…"
                 value={inputQuery}
+                maxLength={1000}
                 onChange={(e) => setInputQuery(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.nativeEvent.isComposing) {

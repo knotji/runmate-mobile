@@ -75,6 +75,7 @@ function PerformanceTimingRow({ summary, formatDiagnosticDuration }: { summary: 
 }
 
 function performancePhaseLabel(phase: PerformanceDiagnosticPhase): string {
+  if (phase === 'tab_navigation') return 'Tab Navigation';
   if (phase === 'health_sync') return 'Health Sync';
   if (phase === 'recovery_core') return 'Recovery Core';
   if (phase === 'recovery_secondary') return 'Secondary Content';

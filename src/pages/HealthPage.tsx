@@ -16,6 +16,7 @@ import {
 } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { buildHealthHubSnapshot, type HealthHubSnapshot, type HealthHubStatus } from '@/lib/healthHubSnapshot';
+import { usePrimaryTabScroll } from '@/lib/usePrimaryTabScroll';
 import './HealthPage.css';
 
 type HealthDestination = {
@@ -46,6 +47,7 @@ const body: HealthDestination[] = [
 
 const HealthPage: React.FC = () => {
   const history = useHistory();
+  const contentRef = usePrimaryTabScroll('health');
   const [snapshot, setSnapshot] = useState(() => buildHealthHubSnapshot());
 
   useIonViewWillEnter(() => setSnapshot(buildHealthHubSnapshot()));
@@ -60,7 +62,7 @@ const HealthPage: React.FC = () => {
         </div>
       </IonToolbar>
     </IonHeader>
-    <IonContent fullscreen className="health-hub-content">
+    <IonContent ref={contentRef} fullscreen className="health-hub-content">
       <main className="health-hub-shell">
         <header className="health-hub-heading">
           <p>YOUR HEALTH</p>

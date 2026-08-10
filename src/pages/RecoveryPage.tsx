@@ -42,10 +42,12 @@ import { recoveryDataStatusCopy, resolveRecoveryDataStatus } from '@/lib/recover
 import { healthDataErrorCopy, isHealthConnectPermissionError } from '@/lib/dataLoadState';
 import { buildEnergyReserve } from '@/lib/energyReserve';
 import { loadDailyStrainCheckIn } from '@/lib/strainContext';
+import { usePrimaryTabScroll } from '@/lib/usePrimaryTabScroll';
 import './RecoveryPage.css';
 
 const RecoveryPage: React.FC = () => {
   const history = useHistory();
+  const contentRef = usePrimaryTabScroll('today');
   const context = useCoachContextStore((state) => state.context);
   const [initialRecoveryEntry] = useState(() => loadRecoveryStartupEntry());
   const [startupContext, setStartupContext] = useState(() => loadRecoveryContextStartupSnapshot());
@@ -298,7 +300,7 @@ const RecoveryPage: React.FC = () => {
           </IonButtons>
         </IonToolbar>
       </IonHeader>
-      <IonContent fullscreen className="recovery-content">
+      <IonContent ref={contentRef} fullscreen className="recovery-content">
         <IonRefresher slot="fixed" onIonRefresh={refresh}>
           <IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" />
         </IonRefresher>
