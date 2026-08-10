@@ -1,0 +1,58 @@
+.energy-content { --background: radial-gradient(circle at 50% -12%, #e5f4ff 0, #f3f8fc 34%, #f7f9fc 72%); }
+.energy-header { box-shadow: 0 2px 8px rgba(35, 65, 89, .12); }
+.energy-header::after { display: none; }
+.energy-header ion-toolbar { --background: rgba(247,250,253,.92); --border-color: rgba(173,194,217,.28); --border-width: 0 0 1px; --min-height: 56px; backdrop-filter: blur(20px) saturate(1.25); }
+.energy-header ion-title { padding-inline: 58px; color: #142a46; font-size: 16px; font-weight: 800; text-align: center; }
+.energy-back { position: absolute; z-index: 2; inset-block: 0; left: 8px; width: 44px; display: grid; place-items: center; padding: 0; border: 0; color: #4f7894; background: transparent; }
+.energy-back ion-icon { width: 21px; height: 21px; }
+.energy-back:focus-visible { border-radius: 12px; outline: 3px solid rgba(35,145,191,.25); }
+.energy-shell { width: min(100%, 600px); margin: 0 auto; padding: 20px 20px max(34px, env(safe-area-inset-bottom)); }
+.energy-intro { margin: 0 4px 16px; }
+.energy-intro p, .energy-card header p, .energy-action p { margin: 0 0 7px; color: #2c8295; font-size: 9px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+.energy-intro h1 { margin: 0; color: #183a57; font-size: 22px; line-height: 1.16; letter-spacing: -.025em; }
+.energy-intro span { display: block; margin-top: 7px; color: #6d8298; font-size: 10px; line-height: 1.5; }
+.energy-hero, .energy-card, .energy-fuel, .energy-action, .energy-method { margin-bottom: 14px; border: 1px solid rgba(177,207,220,.7); border-radius: 22px; background: rgba(255,255,255,.92); box-shadow: 0 10px 26px rgba(51,91,117,.065); }
+.energy-hero { --energy-color: #2ba995; padding: 18px 20px; }
+.energy-hero.is-steady { --energy-color: #38aabe; } .energy-hero.is-low { --energy-color: #dda735; } .energy-hero.is-recharge { --energy-color: #d6766b; } .energy-hero.is-unavailable { --energy-color: #8ba0b2; }
+.energy-hero-top { display: grid; grid-template-columns: 46px 1fr auto; align-items: center; gap: 12px; }
+.energy-hero-icon { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 15px; color: var(--energy-color); background: color-mix(in srgb, var(--energy-color) 12%, white); font-size: 24px; }
+.energy-hero-top > span:nth-child(2) { display: grid; gap: 4px; }
+.energy-hero-top small { color: #6e889a; font-size: 9px; font-weight: 750; }
+.energy-hero-top span strong { color: #183a57; font-size: 19px; }
+.energy-hero-top > b { display: flex; align-items: baseline; color: #183a57; letter-spacing: -.05em; }
+.energy-hero-top > b > span { font-size: 34px; line-height: 1; }
+.energy-hero-top > b small { margin-left: 3px; font-size: 8px; letter-spacing: 0; }
+.energy-detail-track { height: 9px; margin: 15px 0 10px; overflow: hidden; border-radius: 99px; background: #e7eff3; }
+.energy-detail-track i { display: block; height: 100%; border-radius: inherit; background: var(--energy-color); }
+.energy-hero > p { margin: 0; color: #637d91; font-size: 10px; line-height: 1.45; }
+.energy-card { padding: 18px; }
+.energy-card header h2, .energy-action h2, .energy-fuel h2 { margin: 0; color: #183a57; font-size: 17px; letter-spacing: -.015em; }
+.energy-card-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; }
+.energy-card-heading > span { display: grid; justify-items: end; gap: 1px; }
+.energy-card-heading > span small { color: #7f94a5; font-size: 8px; font-weight: 700; }
+.energy-card-heading > span strong { color: #173b57; font-size: 22px; line-height: 1; }
+.energy-breakdown { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); margin-top: 15px; overflow: hidden; border: 1px solid #e2ecf1; border-radius: 16px; background: #f8fbfc; }
+.energy-breakdown > button { min-width: 0; padding: 0; border: 0; color: inherit; background: transparent; font: inherit; cursor: pointer; }
+.energy-breakdown > button:focus-visible { position: relative; z-index: 1; outline: 3px solid rgba(35,145,191,.24); outline-offset: -3px; }
+.energy-breakdown-item { min-height: 102px; display: grid; place-items: center; align-content: center; gap: 3px; padding: 10px 5px; border-right: 1px solid #e2ecf1; text-align: center; }
+.energy-breakdown > :last-child .energy-breakdown-item, .energy-breakdown > .energy-breakdown-item:last-child { border-right: 0; }
+.energy-breakdown-item > span { width: 30px; height: 30px; display: grid; place-items: center; margin-bottom: 3px; border-radius: 10px; color: #2c9bad; background: #e7f6f7; font-size: 16px; }
+.energy-breakdown-item strong { color: #183a57; font-size: 17px; line-height: 1; }
+.energy-breakdown-item small { color: #3d5b70; font-size: 9px; font-weight: 800; }
+.energy-breakdown-item em { max-width: 100%; overflow: hidden; color: #8a9cab; font-size: 8px; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
+.energy-context-note { margin: 11px 2px 0; color: #8195a4; font-size: 9px; line-height: 1.4; }
+.energy-context-note.has-context { color: #a87124; }
+.energy-fuel { width: 100%; min-height: 84px; display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 11px; padding: 14px 16px; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.energy-fuel > span { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 14px; color: #279780; background: #e6f6f1; font-size: 21px; }
+.energy-fuel > div { min-width: 0; display: grid; gap: 4px; }
+.energy-fuel p { margin: 0; color: #408878; font-size: 9px; font-weight: 850; letter-spacing: .09em; text-transform: uppercase; }
+.energy-fuel small { overflow: hidden; color: #71899b; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.energy-fuel > ion-icon { color: #78a3b7; }
+.energy-fuel.is-low > span, .energy-fuel.is-top_up > span { color: #b47a22; background: #fff3dc; }
+.energy-action { padding: 16px 18px; border-color: rgba(134,211,190,.72); background: linear-gradient(145deg, rgba(239,252,248,.96), rgba(255,255,255,.94)); }
+.energy-action h2 { color: #176a5d; }
+.energy-action span { display: block; margin-top: 6px; color: #647f83; font-size: 10px; line-height: 1.48; }
+.energy-method { padding: 0 16px; box-shadow: none; }
+.energy-method summary { min-height: 50px; display: flex; align-items: center; color: #4d6d84; font-size: 10px; font-weight: 800; cursor: pointer; }
+.energy-method p { margin: 0 0 16px; color: #718598; font-size: 10px; line-height: 1.55; }
+@media (prefers-reduced-motion: reduce) { .energy-detail-track i { transition: none; } }

@@ -1,0 +1,61 @@
+.energy-reserve-card {
+  --energy-color: #2ba995;
+  width: 100%;
+  min-height: 132px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 12px;
+  margin: -8px 0 20px;
+  padding: 16px;
+  border: 1px solid rgba(174, 207, 221, .72);
+  border-radius: 22px;
+  color: #163652;
+  background: rgba(255, 255, 255, .9);
+  box-shadow: 0 12px 30px rgba(51, 91, 117, .08);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+}
+
+.energy-reserve-card.is-ready { --energy-color: #2cad96; }
+.energy-reserve-card.is-steady { --energy-color: #38aabe; }
+.energy-reserve-card.is-low { --energy-color: #dda735; }
+.energy-reserve-card.is-recharge { --energy-color: #d6766b; }
+.energy-reserve-card.is-unavailable { --energy-color: #8ba0b2; }
+.energy-reserve-card:focus-visible { outline: 3px solid rgba(35, 145, 191, .28); outline-offset: 3px; }
+
+.energy-reserve-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: var(--energy-color);
+  background: color-mix(in srgb, var(--energy-color) 12%, white);
+  font-size: 22px;
+}
+
+.energy-reserve-body { min-width: 0; display: grid; gap: 8px; }
+.energy-reserve-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.energy-reserve-heading > span { color: #327b8f; font-size: 9px; font-weight: 850; letter-spacing: .11em; text-transform: uppercase; }
+.energy-reserve-heading > strong { color: var(--energy-color); font-size: 11px; font-weight: 850; }
+.energy-reserve-score-row { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; gap: 10px; }
+.energy-reserve-score-row > strong { color: #153852; font-size: 28px; line-height: 1; letter-spacing: -.05em; }
+.energy-reserve-track { height: 8px; overflow: hidden; border-radius: 99px; background: #e8f0f4; }
+.energy-reserve-track i { display: block; height: 100%; border-radius: inherit; background: var(--energy-color); transition: width 500ms cubic-bezier(.22,.72,.2,1); }
+.energy-reserve-meta { display: flex; flex-wrap: wrap; gap: 5px 12px; color: #617c90; font-size: 10px; font-weight: 750; line-height: 1.25; }
+.energy-reserve-meta span:not(:first-child) { position: relative; }
+.energy-reserve-meta span:not(:first-child)::before { content: ''; position: absolute; left: -7px; top: 50%; width: 2px; height: 2px; border-radius: 50%; background: #adc0ce; }
+.energy-reserve-meta [class*="is-fuel-"] { color: #3b7f71; }
+.energy-reserve-meta .is-fuel-low { color: #b27625; }
+.energy-reserve-action { overflow: hidden; color: #284c68; font-size: 11px; font-weight: 800; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.energy-reserve-chevron { color: #6ea6b9; font-size: 20px; }
+
+@media (max-width: 360px) {
+  .energy-reserve-card { grid-template-columns: 38px minmax(0, 1fr) 20px; gap: 9px; padding-inline: 13px; }
+  .energy-reserve-icon { width: 38px; height: 38px; }
+}
+
+@media (prefers-reduced-motion: reduce) { .energy-reserve-track i { transition: none; } }

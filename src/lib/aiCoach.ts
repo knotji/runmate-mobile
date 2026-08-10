@@ -36,6 +36,10 @@ export function buildAiCoachContext(context: CoachContext) {
   const planned = getTodayPlannedWorkout(context);
   const adaptive = buildAdaptiveTrainingRecommendation(context, planned);
   const racePlan = record(context.racePlan);
+  const sleepPerformance = context.recoverySystem.sleepPerformance;
+  const currentSleepGapMinutes = sleepPerformance.actualSleepMinutes == null
+    ? null
+    : Math.max(0, sleepPerformance.sleepNeedMinutes - sleepPerformance.actualSleepMinutes);
 
   return {
     date: context.todayDate,
@@ -51,9 +55,10 @@ export function buildAiCoachContext(context: CoachContext) {
       sleepScore: context.recoverySystem.sleepPerformance.state === 'unscorable'
         ? null
         : Math.round(context.recoverySystem.sleepPerformance.score),
-      sleepDuration: formatDuration(context.recoverySystem.sleepPerformance.actualSleepMinutes),
-      sleepNeed: formatDuration(context.recoverySystem.sleepPerformance.sleepNeedMinutes),
-      sleepShortfall: formatDuration(context.recoverySystem.sleepPerformance.sleepDebtMinutes),
+      sleepDuration: formatDuration(sleepPerformance.actualSleepMinutes),
+      sleepNeed: formatDuration(sleepPerformance.sleepNeedMinutes),
+      currentSleepGap: formatDuration(currentSleepGapMinutes),
+      accumulatedSleepDebt: formatDuration(sleepPerformance.sleepDebtMinutes),
       fuelStatus: context.recoverySystem.fuelInsight.status,
       fuelSummary: context.recoverySystem.fuelInsight.summary,
       usedSignals: context.recoverySystem.sourceCoverage.used.slice(0, 8),

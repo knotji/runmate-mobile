@@ -37,7 +37,7 @@ function buildContext(overrides: Partial<CoachContext> = {}): CoachContext {
       scoreState: 'scored', overallScore: 72, overallLabel: 'Good',
       dataFreshness: { status: 'today' },
       strain: { score: 4.24, estimated: true },
-      sleepPerformance: { state: 'scored', score: 74, actualSleepMinutes: 390, sleepNeedMinutes: 420, sleepDebtMinutes: 30 },
+      sleepPerformance: { state: 'scored', score: 74, actualSleepMinutes: 390, sleepNeedMinutes: 420, sleepDebtMinutes: 11 },
       fuelInsight: { status: 'top_up', summary: 'Add protein.' },
       sourceCoverage: { used: ['Sleep Duration'], missing: ['HRV'] },
     },
@@ -57,7 +57,9 @@ describe('buildAiCoachContext', () => {
     expect(['morning', 'midday', 'evening', 'night']).toContain(result.dayPhaseBangkok);
     expect(result.recovery.sleepDuration).toBe('6h 30m');
     expect(result.recovery.sleepNeed).toBe('7h');
-    expect(result.recovery.sleepShortfall).toBe('30m');
+    expect(result.recovery.currentSleepGap).toBe('30m');
+    expect(result.recovery.accumulatedSleepDebt).toBe('11m');
+    expect(result.recovery).not.toHaveProperty('sleepShortfall');
     expect(result.recentTraining.runDistanceKm7d).toBe(12.3);
     expect(result.nutritionToday?.foods).toEqual(['Rice', 'Egg']);
     expect(result.nutritionToday?.mealLog).toEqual([{ type: 'Lunch', foods: ['Rice', 'Egg'], caloriesKcal: undefined, proteinG: undefined, carbsG: undefined, fatG: undefined }]);

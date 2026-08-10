@@ -112,6 +112,15 @@ describe('getTodayPlannedWorkout', () => {
     const result = getTodayPlannedWorkout(planContext({ racePlan: plan }));
     expect(result?.workoutType).toBe('Rest Day');
   });
+
+  it('locks the actual race date as Race Day even when the stored Sunday plan is Easy Run', () => {
+    const context = planContext({
+      todayDate: '2026-08-16',
+      racePlan: { raceCountdownText: '', totalWeeks: 1, currentPhase: 'Race Week', planSummary: '', phases: [], weeks: [], safetyNotes: '', weeklyPlan: [workout({ day: 'Sunday', workoutType: 'Easy Run', distanceKm: 6 })] },
+    });
+    Object.assign(context, { raceGoal: { raceName: 'Bangkok 10K', raceDate: '2026-08-16', raceDistance: '10K', targetTime: '55:00' }, raceName: 'Bangkok 10K', raceDate: '2026-08-16', raceDistance: '10K', targetTime: '55:00' });
+    expect(getTodayPlannedWorkout(context)).toMatchObject({ workoutType: 'Race Day', distanceKm: 10, targetPace: '5:30/km' });
+  });
 });
 
 describe('getTodayTrainingPlanStatus', () => {

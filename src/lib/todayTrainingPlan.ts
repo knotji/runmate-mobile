@@ -1,5 +1,6 @@
 import type { CoachContext } from '@/lib/buildCoachContext';
 import type { RacePlan, WeekWorkout } from '@/types/race';
+import { goalFromContext, raceDayWorkout } from '@/lib/raceWeekAlignment';
 
 /**
  * Picks today's planned workout from the active race plan's weekly schedule.
@@ -7,6 +8,10 @@ import type { RacePlan, WeekWorkout } from '@/types/race';
  * then a weekday-label match, then falls back to a planStartDate offset into weeklyPlan.
  */
 export function getTodayPlannedWorkout(context: CoachContext): WeekWorkout | null {
+  if (context.raceDate === context.todayDate) {
+    const goal = goalFromContext(context.raceGoal, { raceName: context.raceName, raceDate: context.raceDate, raceDistance: context.raceDistance, targetTime: context.targetTime });
+    if (goal) return raceDayWorkout(goal);
+  }
   const plan = context.racePlan as RacePlan | null;
   return getPlannedWorkoutForDate(plan, context.todayDate);
 }

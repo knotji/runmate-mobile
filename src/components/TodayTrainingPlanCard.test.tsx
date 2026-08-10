@@ -77,9 +77,25 @@ describe('TodayTrainingPlanCard adaptive flow', () => {
     expect(screen.getByText('Adaptive · Reduce')).toBeInTheDocument();
     expect(screen.getByText('Keep Today Controlled')).toBeInTheDocument();
     expect(screen.getByText('No Single Strong Limiter')).toBeInTheDocument();
-    expect(screen.getAllByText('Reduce Today’s Load')).toHaveLength(2);
+    expect(screen.getAllByText('Reduce Today’s Load')).toHaveLength(1);
     expect(screen.getByText(/\d key signals?/)).toBeInTheDocument();
+    expect(screen.getByText(/View \d+ more signals?/)).toBeInTheDocument();
     expect(screen.queryByText(/Original Plan:/)).not.toBeInTheDocument();
     expect(racePlan.weeklyPlan?.[0].distanceKm).toBe(8);
+  });
+
+  it("labels an unchanged recommendation as today's plan, not an adjustment", () => {
+    const context = moderateContext();
+    context.recoverySystem.overallScore = 80;
+
+    render(<TodayTrainingPlanCard context={context} />);
+
+    const focus = screen.getByLabelText("Today's Brief").querySelector('.today-brief-focus');
+    expect(focus).not.toBeNull();
+    expect(within(focus as HTMLElement).getByText("Today's Plan")).toBeInTheDocument();
+    expect(within(focus as HTMLElement).queryByText('One Adjustment')).not.toBeInTheDocument();
+    expect(within(focus as HTMLElement).getByText('Keep The Original Plan')).toBeInTheDocument();
+    expect(screen.queryByText('Adaptive · Keep')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Keep The Original Plan')).toHaveLength(1);
   });
 });

@@ -18,13 +18,13 @@ export function TodayTrainingPlanCard({ context }: { context: CoachContext }) {
   const supportItems = [
     { ...brief.readiness, className: 'plan-support-data' },
     { ...brief.limiter, className: 'plan-support-limiter' },
-    { ...brief.action, className: 'plan-support-action' },
     ...brief.evidence.map((item) => ({ ...item, className: 'plan-support-data' })),
     ...supportCards.map((card) => ({ ...card, eyebrow: card.category, className: `plan-support-${card.category}` })),
   ];
   const keySignals = supportItems.slice(0, 3);
   const remainingSignals = supportItems.slice(3);
   const supportCount = supportItems.length;
+  const actionEyebrow = recommendation?.action === 'keep' ? "Today's Plan" : brief.action.eyebrow;
 
   return (
     <section
@@ -34,12 +34,12 @@ export function TodayTrainingPlanCard({ context }: { context: CoachContext }) {
       <div className="plan-card-main">
         <div className="plan-card-eyebrow">
           <span>Today's Brief</span>
-          {recommendation && status === 'pending' && (
+          {recommendation && recommendation.action !== 'keep' && status === 'pending' && (
             <em className={`adaptive-action adaptive-action-${recommendation.action}`}>Adaptive · {recommendation.label}</em>
           )}
         </div>
         <div className="today-brief-focus">
-          <small>{brief.action.eyebrow}</small>
+          <small>{actionEyebrow}</small>
           <strong>{brief.action.title}</strong>
           <p><span>Main Signal</span> · {brief.limiter.title}</p>
         </div>
@@ -59,7 +59,7 @@ export function TodayTrainingPlanCard({ context }: { context: CoachContext }) {
             ))}
             {remainingSignals.length > 0 && (
               <details className="plan-support-more">
-                <summary>View all {supportCount} signals</summary>
+                <summary>View {remainingSignals.length} more {remainingSignals.length === 1 ? 'signal' : 'signals'}</summary>
                 <div>
                   {remainingSignals.map((item) => (
                     <div className={item.className} key={`${item.eyebrow}-${item.title}`}>

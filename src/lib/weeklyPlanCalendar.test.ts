@@ -81,4 +81,18 @@ describe('buildWeeklyPlanCalendar', () => {
     const days = buildWeeklyPlanCalendar(context({ racePlan: { weeklyPlan: [] } }));
     expect(days.every((day) => day.status === 'no_plan')).toBe(true);
   });
+
+  it('shows the active Race Goal on its actual date instead of a generic Sunday run', () => {
+    const days = buildWeeklyPlanCalendar(context({
+      todayDate: '2026-08-10',
+      raceGoal: { raceName: 'Bangkok 10K', raceDate: '2026-08-16', raceDistance: '10K', targetTime: '55:00' },
+      raceName: 'Bangkok 10K', raceDate: '2026-08-16', raceDistance: '10K', targetTime: '55:00',
+      racePlan: { weeklyPlan: [
+        workout('Monday', 'Rest'), workout('Tuesday', 'Recovery'), workout('Wednesday', 'Intervals'), workout('Thursday', 'Rest'), workout('Friday', 'Easy Run'), workout('Saturday', 'Rest'), workout('Sunday', 'Easy Run'),
+      ] },
+    }));
+    expect(days[2].planned).toMatchObject({ workoutType: 'Race Primer', distanceKm: 4 });
+    expect(days[4].planned).toMatchObject({ workoutType: 'Shakeout Run', distanceKm: 3 });
+    expect(days[6].planned).toMatchObject({ workoutType: 'Race Day', distanceKm: 10, targetPace: '5:30/km' });
+  });
 });

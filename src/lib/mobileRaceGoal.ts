@@ -1,5 +1,6 @@
 import type { RaceGoal, RacePlan, WeekWorkout } from '@/types/race';
 import { translatePlanFieldToEnglish } from '@/lib/todayTrainingPlan';
+import { alignRaceWeekPlan } from '@/lib/raceWeekAlignment';
 
 const DISTANCE_KM: Record<string, number> = {
   '5K': 5,
@@ -25,11 +26,12 @@ export function buildMobileRaceSummary(goal: RaceGoal, plan: RacePlan | null, to
   const weeksRemaining = Math.max(0, Math.ceil(daysRemaining / 7));
   const totalWeeks = plan?.totalWeeks && plan.totalWeeks > 0 ? plan.totalWeeks : null;
   const currentWeek = totalWeeks == null ? null : Math.min(totalWeeks, Math.max(1, totalWeeks - weeksRemaining + 1));
-  const workouts = Array.isArray(plan?.weeklyPlan)
+  const sourceWorkouts = Array.isArray(plan?.weeklyPlan)
     ? plan.weeklyPlan
     : currentWeek != null
       ? plan?.weeks?.find((week) => week.weekNumber === currentWeek)?.workouts ?? []
       : plan?.weeks?.[0]?.workouts ?? [];
+  const workouts = alignRaceWeekPlan(goal, sourceWorkouts, today, today);
   const activeWorkouts = workouts.filter((workout) => !/rest|พัก/i.test(workout.workoutType));
 
   return {

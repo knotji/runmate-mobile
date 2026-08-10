@@ -22,6 +22,7 @@ import { useCoachContextStore } from '@/lib/context/coachContextStore';
 import { useHealthSyncStore } from '@/lib/health/healthSyncStore';
 import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
 import { TodayTrainingPlanCard } from '@/components/TodayTrainingPlanCard';
+import { EnergyReserveCard } from '@/components/EnergyReserveCard';
 import { PageState } from '@/components/PageState';
 import { DataFreshnessStatus } from '@/components/DataFreshnessStatus';
 import { RecoveryDials, RecoveryLoadingDials, RecoveryPlan, RecoverySecondaryError, RecoverySecondaryLoading } from '@/components/health/RecoveryDialsView';
@@ -39,6 +40,8 @@ import {
 } from '@/lib/recoveryStartupCache';
 import { recoveryDataStatusCopy, resolveRecoveryDataStatus } from '@/lib/recoveryDataFreshness';
 import { healthDataErrorCopy, isHealthConnectPermissionError } from '@/lib/dataLoadState';
+import { buildEnergyReserve } from '@/lib/energyReserve';
+import { loadDailyStrainCheckIn } from '@/lib/strainContext';
 import './RecoveryPage.css';
 
 const RecoveryPage: React.FC = () => {
@@ -58,6 +61,8 @@ const RecoveryPage: React.FC = () => {
   const [freshnessNow, setFreshnessNow] = useState(() => Date.now());
   const [wakeOverrideMinutes, setWakeOverrideMinutes] = useState<number | null>(() => loadTonightWakeOverride());
   const [sleepCycleOverride, setSleepCycleOverride] = useState<SleepCycleCount | null>(() => loadTonightSleepCycleOverride());
+  const energyDate = context?.todayDate ?? startupContext?.todayDate ?? getBangkokDateKey(Date.now());
+  const [energyCheckIn, setEnergyCheckIn] = useState(() => loadDailyStrainCheckIn(energyDate));
   const loadedRef = useRef(false);
   const loadedDateRef = useRef<string | null>(null);
   const visibleRef = useRef(false);
@@ -134,6 +139,13 @@ const RecoveryPage: React.FC = () => {
       unsubscribe();
     };
   }, [loadRecovery]);
+
+  useEffect(() => {
+    const updateEnergyContext = () => setEnergyCheckIn(loadDailyStrainCheckIn(energyDate));
+    updateEnergyContext();
+    window.addEventListener('runmate:strain-check-in-updated', updateEnergyContext);
+    return () => window.removeEventListener('runmate:strain-check-in-updated', updateEnergyContext);
+  }, [energyDate]);
 
   const loadInitialRecovery = useCallback(async (forceContext = false) => {
     setLoading(startupRecovery === null);
@@ -261,6 +273,12 @@ const RecoveryPage: React.FC = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const visibleRecovery = context?.recoverySystem ?? startupRecovery;
   const visibleContext = secondaryLoading && startupContext ? startupContext : context ?? startupContext;
+  const visibleEnergy = visibleRecovery ? buildEnergyReserve({
+    recovery: visibleRecovery,
+    checkIn: energyCheckIn,
+    activePain: visibleContext?.activePain ?? false,
+    activeSick: visibleContext?.activeSick ?? false,
+  }) : null;
   const dataStatus = resolveRecoveryDataStatus({ savedAt: lastSuccessfulAt, refreshing: refreshingData, refreshFailed, now: freshnessNow });
   const dataStatusCopy = recoveryDataStatusCopy(dataStatus, lastSuccessfulAt);
   const loadErrorCopy = healthDataErrorCopy(error, 'Recovery Is Unavailable');
@@ -309,6 +327,7 @@ const RecoveryPage: React.FC = () => {
                 freshness={dataStatus !== 'fallback' ? { status: dataStatus, detail: dataStatusCopy.detail } : undefined}
                 onFreshnessClick={() => void retryRecovery()}
               />
+              {visibleEnergy && <EnergyReserveCard energy={visibleEnergy} onOpen={() => history.push('/energy')} />}
               {secondaryLoading && !visibleContext ? <RecoverySecondaryLoading /> : secondaryError && !visibleContext ? <RecoverySecondaryError message={secondaryError} onRetry={() => void loadSecondaryRecovery(true)} /> : !visibleContext ? <RecoverySecondaryLoading /> : <>
                 <TodayTrainingPlanCard context={visibleContext} />
                 <RecoveryPlan recovery={visibleRecovery} wakeOverrideMinutes={wakeOverrideMinutes} sleepCycleOverride={sleepCycleOverride} onOpen={() => history.push('/sleep-window')} />

@@ -1278,3 +1278,41 @@ Verification for this release candidate:
 - `npm.cmd run lint`: passed.
 - `npm.cmd run build`: passed.
 - `git diff --check`: passed.
+
+## Energy Reserve Lite (release 1.0.0 build 1207)
+
+- Recovery now includes a compact `Energy Remaining` row below the Recovery/Sleep/Strain dials. It is intentionally a second-layer metric: Recovery is the morning starting point, Strain is recorded load, and Energy Reserve is what remains now.
+- Tapping the row opens `/energy`, which shows the starting Recovery, nonlinear recorded-Strain drain, user-confirmed Stress/heat drain, remaining Energy, Fuel Status, and one practical next action.
+- `runmate_energy_reserve_v1` is a transparent guidance heuristic, not a biological or medical measurement. It starts from the current-day Recovery score, subtracts `round((strain / 21)^1.5 * 70)`, then subtracts 4/8 points for moderate/high user-confirmed Stress and 3 points for user-confirmed hot/humid conditions.
+- Nutrition remains separate: Fuel Status can change the next action but never adds calories directly to the Energy number. All-day HR is also excluded; RunMate does not manufacture passive Strain from heart rate without validated movement context.
+- Stale, pending, or unscorable Recovery never produces a numeric Energy Reserve. The UI displays an honest waiting state instead.
+
+Verification for Energy Reserve Lite:
+
+- Targeted Energy and authenticated-route tests passed, including compact-card handling for missing Fuel data.
+- `npm.cmd run lint`: passed.
+- `npm.cmd run build`: passed.
+- Browser visual QA was unavailable because no controllable browser session was exposed in the current environment; physical-device layout review remains recommended.
+
+## Race-week alignment guard (release 1.0.0 build 1207)
+
+- The active Race Goal date is now a deterministic calendar lock. A legacy or AI-generated `Easy Run` on the same date is presented as `Race Day` with the goal distance, target duration, and target pace.
+- During the final seven-day window, future hard work 3–4 days before the race becomes a maximum 4 km Race Primer, a run two days before becomes a maximum 3 km Shakeout Run, the day before is Rest, and dates after the race are Recovery. Completed or past days remain unchanged.
+- Race Goal upcoming sessions are ordered from today, Weekly Plan uses the same aligned schedule, and Recovery resolves Race Day correctly on the race date.
+- The `generate-race-plan` Edge Function applies the same deterministic guard after AI normalization so AI output cannot override the race date or final taper caps. It was deployed with this release.
+
+## Recovery brief and AI sleep arithmetic correctness (release 1.0.0 build 1207)
+
+- A keep recommendation is labeled `Today's Plan`; the redundant `Adaptive · Keep` badge and duplicate action inside Support Data are removed.
+- The collapsed disclosure reports only the number of remaining signals instead of repeating the total signal count.
+- The compact Energy card hides an unknown Fuel state until nutrition data is available; detailed Energy Reserve remains transparent about missing Fuel data.
+- AI Coach now receives `currentSleepGap` as the direct difference between last night's Sleep Duration and current Sleep Need, while `accumulatedSleepDebt` remains a separate trailing estimate. The prompt explicitly prevents converting the composite Sleep Score into missing minutes or substituting accumulated debt for last night's gap.
+- `ai-coach` and `generate-race-plan` Edge Functions were deployed to the linked Supabase project on 10 Aug 2026.
+
+Verification for this release candidate:
+
+- Full unit suite: passed.
+- `npm.cmd run lint`: passed.
+- `npm.cmd run build`: passed.
+- `git diff --check`: passed.
+- Automated browser visual QA was unavailable in the current environment; physical-device screenshot confirmation remains recommended after tester installation.

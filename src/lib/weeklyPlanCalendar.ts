@@ -1,6 +1,7 @@
 import type { CoachContext, DayWorkoutSummary } from '@/lib/buildCoachContext';
 import { getTodayTrainingPlanStatus, isRestDayWorkout } from '@/lib/todayTrainingPlan';
 import type { RacePlan, WeekWorkout } from '@/types/race';
+import { alignRaceWeekPlan, goalFromContext } from '@/lib/raceWeekAlignment';
 
 export type CalendarDayStatus = 'rest' | 'completed' | 'missed' | 'today_pending' | 'today_completed' | 'today_logged_different' | 'upcoming' | 'no_plan';
 
@@ -18,8 +19,11 @@ const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 /** This week's plan (Monday-Sunday, Bangkok time) alongside each day's actual outcome. */
 export function buildWeeklyPlanCalendar(context: CoachContext): WeeklyCalendarDay[] {
   const plan = context.racePlan as RacePlan | null;
-  const weeklyPlan = plan && Array.isArray(plan.weeklyPlan) ? plan.weeklyPlan : [];
   const monday = mondayOfWeek(context.todayDate);
+  const sourceWeeklyPlan = plan && Array.isArray(plan.weeklyPlan) ? plan.weeklyPlan : [];
+  const goal = goalFromContext(context.raceGoal, { raceName: context.raceName, raceDate: context.raceDate, raceDistance: context.raceDistance, targetTime: context.targetTime });
+  const completedWorkoutDates = context.workouts7d.filter((day) => day.runs.length || day.walks.length || day.other.length).map((day) => day.date);
+  const weeklyPlan = goal ? alignRaceWeekPlan(goal, sourceWeeklyPlan, monday, context.todayDate, completedWorkoutDates) : sourceWeeklyPlan;
   const workoutsByDate = new Map(context.workouts7d.map((day) => [day.date, day]));
 
   const days: WeeklyCalendarDay[] = [];

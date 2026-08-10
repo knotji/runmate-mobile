@@ -44,6 +44,7 @@ vi.mock('@/pages/SleepDetailPage', () => ({ default: () => <h1>Sleep Detail Fixt
 vi.mock('@/pages/RaceGoalPage', () => ({ default: () => <h1>Race Goal Fixture</h1> }));
 vi.mock('@/pages/AiCoachPage', () => ({ default: () => <h1>AI Coach Fixture</h1> }));
 vi.mock('@/pages/StrainDetailPage', () => ({ default: () => <h1>Strain Detail Fixture</h1> }));
+vi.mock('@/pages/EnergyReservePage', () => ({ default: () => <h1>Energy Reserve Fixture</h1> }));
 
 describe('authenticated route contracts', () => {
   beforeEach(() => {
@@ -71,6 +72,7 @@ describe('authenticated route contracts', () => {
     ['/race-goal', 'Race Goal Fixture'],
     ['/ai-coach', 'AI Coach Fixture'],
     ['/strain', 'Strain Detail Fixture'],
+    ['/energy', 'Energy Reserve Fixture'],
   ])('keeps authenticated critical route %s reachable', async (path, heading) => {
     window.history.replaceState({}, '', path);
     render(<App />);
