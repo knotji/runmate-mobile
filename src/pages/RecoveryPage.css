@@ -402,13 +402,26 @@
 .sleep-window-link { position: relative; width: 100%; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .sleep-window-link:focus-visible { outline: 2px solid #2a89b8; outline-offset: 2px; }
 .sleep-window-link .sleep-schedule { padding-right: 18px; }
-.sleep-window-link .sleep-window-chevron { position: absolute; top: 50%; right: 12px; width: 14px; height: 14px; padding: 0; transform: translateY(-50%); color: #5d91b5; background: transparent; }
+.sleep-window-link .sleep-window-chevron { position: absolute; top: 50%; right: 12px; box-sizing: border-box; width: 34px; height: 34px; padding: 9px; transform: translateY(-50%); border-radius: 12px; color: #43889a; background: #eef7f5; }
 
-.loop-card.primary-loop ion-icon {
-  width: 18px;
-  height: 18px;
-  padding: 9px;
+.sleep-plan-icon {
+  display: grid;
+  place-items: center;
+  align-self: start;
+  box-sizing: border-box;
+  width: 36px;
+  height: 36px;
   border-radius: 12px;
+  color: #27879a;
+  background: #eaf7f6;
+}
+
+.sleep-plan-icon ion-icon {
+  width: 19px;
+  height: 19px;
+  padding: 0;
+  color: currentColor;
+  background: transparent;
 }
 
 .loop-card.primary-loop h3 { margin: 3px 0 0; font-size: 15px; }
@@ -427,6 +440,9 @@
 .loop-card p { max-width: 32rem; margin: 0; color: #687c92; font-size: 11px; line-height: 1.6; }
 
 .sleep-schedule { min-width: 0; }
+.sleep-plan-eyebrow { display: flex; align-items: center; gap: 6px; color: #748995 !important; font-style: normal; letter-spacing: .03em !important; }
+.sleep-plan-eyebrow b { color: #3b8584; font-size: inherit; }
+.sleep-plan-eyebrow i { width: 3px; height: 3px; border-radius: 50%; background: #aac0c4; }
 .sleep-schedule-details { display: flex; flex-wrap: wrap; align-items: center; gap: 7px 10px; margin-top: 7px; }
 .sleep-times { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 4px; }
 .sleep-times span { color: #8293a7; font-size: 9px; letter-spacing: .04em; text-transform: none; }
@@ -663,15 +679,16 @@ button.recovery-inline-freshness:focus-visible {
 }
 .recovery-support-metrics .dial-center strong { color: #183b4d; font-size: 15px; }
 .loop-section .section-heading { margin-bottom: 10px; }
-.loop-card.primary-loop { grid-template-columns: 30px minmax(0,1fr); gap: 10px; padding: 10px 12px; }
-.loop-card.primary-loop ion-icon { box-sizing: border-box; width: 30px; height: 30px; padding: 6px; border-radius: 10px; }
+.loop-card.primary-loop { grid-template-columns: 32px minmax(0,1fr); gap: 10px; padding: 10px 12px; }
+.sleep-plan-icon { width: 32px; height: 32px; border-radius: 10px; }
+.sleep-plan-icon ion-icon { width: 18px; height: 18px; }
 .loop-card.primary-loop h3 { margin-top: 2px; font-size: 14px; }
-.sleep-window-link .sleep-schedule { padding-right: 38px; }
+.sleep-window-link .sleep-schedule { padding-right: 42px; }
 .sleep-schedule-details { gap: 4px 8px; margin-top: 4px; }
 .sleep-times span { font-size: 8px; }
 .sleep-times strong { font-size: 10px; }
 .sleep-need-badge { padding: 3px 6px; font-size: 8px !important; }
-.sleep-window-link .sleep-window-chevron { right: 10px; }
+.sleep-window-link .sleep-window-chevron { right: 9px; width: 32px; height: 32px; padding: 8px; }
 .recovery-plan-details summary { min-height: 40px; padding-block: 7px; }
 
 @media (max-width: 390px) {

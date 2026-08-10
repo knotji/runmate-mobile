@@ -154,6 +154,9 @@ export function RecoveryPlan({ recovery, wakeOverrideMinutes, sleepCycleOverride
   const sleep = recovery.sleepPerformance;
   const sleepNeedHours = Math.floor(sleep.sleepNeedMinutes / 60);
   const sleepNeedMinutes = sleep.sleepNeedMinutes % 60;
+  const sleepNeedLabel = sleepNeedHours > 0
+    ? `${sleepNeedHours}h${sleepNeedMinutes > 0 ? ` ${sleepNeedMinutes}m` : ''}`
+    : `${sleepNeedMinutes}m`;
   const profileWakeMinutes = parseClockMinutes(sleep.targetWakeTime);
   const wakeMinutes = wakeOverrideMinutes ?? profileWakeMinutes;
   const window = wakeMinutes == null ? null : sleepWindowForWake(wakeMinutes, sleep.sleepNeedMinutes);
@@ -169,19 +172,26 @@ export function RecoveryPlan({ recovery, wakeOverrideMinutes, sleepCycleOverride
         : { tomorrowHeadline: 'Prioritize Sleep Tonight', tomorrowSummary: 'Recovery is low — tonight’s sleep matters more than usual before adding any intensity tomorrow.' };
   return (
     <section aria-labelledby="plan-heading" className="loop-section">
-      <button type="button" className="loop-card primary-loop sleep-window-link" onClick={onOpen}>
-        <IonIcon icon={moonOutline} />
+      <button
+        type="button"
+        className="loop-card primary-loop sleep-window-link"
+        onClick={onOpen}
+        aria-label={`Open tonight's Sleep Plan. ${inBedMinutes != null ? `In bed by ${formatClockMinutes(inBedMinutes)}.` : `Sleep need ${sleepNeedLabel}.`}${window ? ` Wake at ${formatClockMinutes(window.wakeMinutes)}.` : ''}`}
+      >
+        <span className="sleep-plan-icon" aria-hidden="true">
+          <IonIcon icon={moonOutline} />
+        </span>
         <div className="sleep-schedule">
-          <span>Tonight · Sleep Plan</span>
-          <h3 id="plan-heading">{inBedMinutes != null ? `In Bed By ${formatClockMinutes(inBedMinutes)}` : `Sleep ${sleepNeedHours}h ${sleepNeedMinutes}m`}</h3>
+          <span className="sleep-plan-eyebrow"><b>Tonight</b><i aria-hidden="true" />Sleep Plan</span>
+          <h3 id="plan-heading">{inBedMinutes != null ? `In Bed By ${formatClockMinutes(inBedMinutes)}` : `Sleep ${sleepNeedLabel}`}</h3>
           {window ? (
             <div className="sleep-schedule-details">
               <p className="sleep-times"><span>{cyclePlan ? 'Cycle Plan' : 'Window'}</span><strong>{cyclePlan ? `${cyclePlan.cycleCount} cycles` : `${formatClockMinutes(window.windowStartMinutes)}–${formatClockMinutes(window.windowEndMinutes)}`}</strong><i aria-hidden="true" /><span>Wake</span><strong>{formatClockMinutes(window.wakeMinutes)}</strong></p>
-              <p className="sleep-need-badge">Sleep Need <strong>{sleepNeedHours}h {sleepNeedMinutes}m</strong></p>
+              <p className="sleep-need-badge">Sleep Need <strong>{sleepNeedLabel}</strong></p>
             </div>
           ) : <p className="sleep-schedule-fallback">Set a consistent wake time to unlock a personalized bedtime.</p>}
         </div>
-        <IonIcon className="sleep-window-chevron" icon={chevronForwardOutline} />
+        <IonIcon className="sleep-window-chevron" icon={chevronForwardOutline} aria-hidden="true" />
       </button>
       <details className="recovery-plan-details">
         <summary>Tomorrow And Load</summary>

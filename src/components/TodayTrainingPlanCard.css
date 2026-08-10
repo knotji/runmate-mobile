@@ -16,28 +16,35 @@
 .plan-card-eyebrow > span { color: #2474b2; font-size: 9px; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; }
 
 .plan-card.plan-card-completed {
-  border-color: #c7e9d4;
+  border-color: rgba(28, 60, 79, .09);
   box-shadow: inset 3px 0 #5bb998, 0 10px 24px rgba(46, 77, 111, 0.06);
 }
 
 .plan-card.plan-card-different {
-  border-color: #f3dfa8;
+  border-color: rgba(28, 60, 79, .09);
   box-shadow: inset 3px 0 #e1ad3e, 0 10px 24px rgba(46, 77, 111, 0.06);
 }
 
 .plan-card.plan-card-adapted {
-  border-color: #b9dfe8;
+  border-color: rgba(28, 60, 79, .09);
   box-shadow: inset 3px 0 #278dab, 0 10px 24px rgba(46, 77, 111, 0.06);
 }
 
 .plan-card strong { color: #1d3b5b; font-size: 15px; line-height: 1.25; }
 .plan-card p { max-width: 36rem; margin: 1px 0 0; color: #63778e; font-size: 11px; line-height: 1.45; }
 
-.today-brief-focus { display: grid; gap: 4px; padding: 11px 0 5px; }
-.today-brief-focus > small { color: #73899a; font-size: 9px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+.today-brief-context { display: grid; margin-top: 7px; padding: 3px 11px; border: 1px solid #e4ecee; border-radius: 14px; background: #f7fafb; }
+.today-brief-context > div { display: grid; min-width: 0; min-height: 40px; grid-template-columns: 82px minmax(0, 1fr); align-items: center; gap: 8px; padding: 7px 0; }
+.today-brief-context > div + div { border-top: 1px solid #e4ecee; }
+.today-brief-context small,
+.today-brief-focus > small { display: block; color: #73899a; font-size: 9px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+.today-brief-context > div:first-child small { color: #3b8781; }
+.today-brief-context > div:last-child small { color: #9b702d; }
+.today-brief-focus > small { color: #3b8781; }
+.today-brief-context strong { display: block; color: #24475d; font-size: 12px; line-height: 1.35; }
+.today-brief-focus { display: grid; gap: 4px; margin-top: 7px; padding: 11px 12px; border: 1px solid rgba(87, 177, 151, .12); border-radius: 15px; background: #edf8f4; }
 .today-brief-focus > strong { color: #176655; font-size: 17px; line-height: 1.25; }
-.today-brief-focus > p { overflow: hidden; margin: 0; color: #687f90; font-size: 10px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
-.today-brief-focus > p span { color: #9a6a25; font-weight: 800; text-transform: uppercase; }
+.today-brief-focus > p { display: -webkit-box; overflow: hidden; margin: 0; color: #687f90; font-size: 10px; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 
 .plan-metrics-line { color: #2e5e85; font-weight: 650; }
 .plan-guidance-line { margin-top: 4px; }
@@ -101,12 +108,15 @@
 .plan-card {
   gap: 6px;
   margin-bottom: 20px;
-  padding: 13px 16px 7px;
+  padding: 14px 16px 7px;
   border-radius: 21px;
 }
 .plan-card-main { gap: 2px; }
 .plan-card-eyebrow > span { font-size: 8px; }
-.today-brief-focus { gap: 2px; padding: 5px 0 2px; }
+.today-brief-context { margin-top: 5px; }
+.today-brief-context > div { padding: 6px 0; }
+.today-brief-context strong { font-size: 12px; }
+.today-brief-focus { gap: 2px; margin-top: 5px; padding: 9px 10px; }
 .today-brief-focus > small { font-size: 8px; }
 .today-brief-focus > strong { font-size: 16px; }
 .today-brief-focus > p { font-size: 9px; line-height: 1.35; }
@@ -118,6 +128,14 @@
 
 /* Compact, but still legible with Android font scaling. */
 .plan-card-eyebrow > span,
+.today-brief-context small,
 .today-brief-focus > small,
 .plan-support-details > summary small { font-size: 9px; }
 .today-brief-focus > p { font-size: 10px; }
+
+@media (min-width: 520px) {
+  .today-brief-context { grid-template-columns: 1fr 1fr; padding: 0; }
+  .today-brief-context > div { display: block; min-height: 0; padding: 10px 12px; }
+  .today-brief-context > div + div { border-top: 0; border-left: 1px solid #e4ecee; }
+  .today-brief-context strong { margin-top: 4px; }
+}

@@ -68,15 +68,16 @@ describe('TodayTrainingPlanCard adaptive flow', () => {
   it('keeps the visible brief compact and moves explanations behind disclosure', () => {
     render(<TodayTrainingPlanCard context={moderateContext()} />);
 
-    const card = screen.getByLabelText("Today's Brief");
-    const focus = card.querySelector('.today-brief-focus');
-    expect(focus).not.toBeNull();
-    expect(within(focus as HTMLElement).getByText('One Adjustment')).toBeInTheDocument();
-    expect(within(focus as HTMLElement).getByText(/Main Signal/)).toBeInTheDocument();
-    expect(within(focus as HTMLElement).queryByText('Body Readiness')).not.toBeInTheDocument();
+    const bodyStatus = within(screen.getByLabelText('Body Status'));
+    const mainReason = within(screen.getByLabelText('Main Reason'));
+    const action = within(screen.getByLabelText('One Useful Action'));
+    expect(bodyStatus.getByText('Keep Today Controlled')).toBeInTheDocument();
+    expect(mainReason.getByText('No Single Strong Limiter')).toBeInTheDocument();
+    expect(action.getByText('One Adjustment')).toBeInTheDocument();
+    expect(action.getByText('Reduce Today’s Load')).toBeInTheDocument();
     expect(screen.getByText('Adaptive · Reduce')).toBeInTheDocument();
-    expect(screen.getByText('Keep Today Controlled')).toBeInTheDocument();
-    expect(screen.getByText('No Single Strong Limiter')).toBeInTheDocument();
+    expect(screen.getAllByText('Keep Today Controlled')).toHaveLength(1);
+    expect(screen.getAllByText('No Single Strong Limiter')).toHaveLength(1);
     expect(screen.getAllByText('Reduce Today’s Load')).toHaveLength(1);
     expect(screen.getByText(/\d key signals?/)).toBeInTheDocument();
     expect(screen.getByText(/View \d+ more signals?/)).toBeInTheDocument();
@@ -84,18 +85,31 @@ describe('TodayTrainingPlanCard adaptive flow', () => {
     expect(racePlan.weeklyPlan?.[0].distanceKm).toBe(8);
   });
 
-  it("keeps an unchanged recommendation compact without adjustment copy", () => {
+  it('keeps an unchanged recommendation compact with one clear action', () => {
     const context = moderateContext();
     context.recoverySystem.overallScore = 80;
 
     render(<TodayTrainingPlanCard context={context} />);
 
-    const focus = screen.getByLabelText("Today's Brief").querySelector('.today-brief-focus');
-    expect(focus).not.toBeNull();
-    expect(within(focus as HTMLElement).queryByText("Today's Plan")).not.toBeInTheDocument();
-    expect(within(focus as HTMLElement).queryByText('One Adjustment')).not.toBeInTheDocument();
-    expect(within(focus as HTMLElement).getByText('Keep The Original Plan')).toBeInTheDocument();
+    const action = within(screen.getByLabelText('One Useful Action'));
+    expect(action.queryByText("Today's Plan")).not.toBeInTheDocument();
+    expect(action.getByText('One Adjustment')).toBeInTheDocument();
+    expect(action.getByText('Keep The Original Plan')).toBeInTheDocument();
     expect(screen.queryByText('Adaptive · Keep')).not.toBeInTheDocument();
     expect(screen.getAllByText('Keep The Original Plan')).toHaveLength(1);
+  });
+
+  it('shows stale data as a status instead of a physiological explanation', () => {
+    const context = moderateContext();
+    context.sleep7d = [];
+    context.sleepHistory = [];
+    context.recoverySystem.scoreState = 'stale';
+    context.recoverySystem.dataFreshness = { status: 'stale', latestSleepDate: '2026-07-19', ageDays: 1 };
+
+    render(<TodayTrainingPlanCard context={context} />);
+
+    expect(within(screen.getByLabelText('Body Status')).getByText('Waiting For Fresh Sleep Data')).toBeInTheDocument();
+    expect(within(screen.getByLabelText('Main Reason')).getByText('Latest Sleep Is Missing')).toBeInTheDocument();
+    expect(screen.queryByText(/respiratory|stress caused|HRV below/i)).not.toBeInTheDocument();
   });
 });

@@ -16,15 +16,12 @@ export function TodayTrainingPlanCard({ context }: { context: CoachContext }) {
   );
   const supportCards = buildSupportCards(context);
   const supportItems = [
-    { ...brief.readiness, className: 'plan-support-data' },
-    { ...brief.limiter, className: 'plan-support-limiter' },
     ...brief.evidence.map((item) => ({ ...item, className: 'plan-support-data' })),
     ...supportCards.map((card) => ({ ...card, eyebrow: card.category, className: `plan-support-${card.category}` })),
   ];
   const keySignals = supportItems.slice(0, 3);
   const remainingSignals = supportItems.slice(3);
   const supportCount = supportItems.length;
-  const actionEyebrow = recommendation?.action === 'keep' ? null : brief.action.eyebrow;
 
   return (
     <section
@@ -38,10 +35,20 @@ export function TodayTrainingPlanCard({ context }: { context: CoachContext }) {
             <em className={`adaptive-action adaptive-action-${recommendation.action}`}>Adaptive · {recommendation.label}</em>
           )}
         </div>
-        <div className="today-brief-focus">
-          {actionEyebrow && <small>{actionEyebrow}</small>}
+        <div className="today-brief-context">
+          <div aria-label="Body Status">
+            <small>Body Status</small>
+            <strong>{brief.readiness.title}</strong>
+          </div>
+          <div aria-label="Main Reason">
+            <small>Main Reason</small>
+            <strong>{brief.limiter.title}</strong>
+          </div>
+        </div>
+        <div className="today-brief-focus" aria-label="One Useful Action">
+          <small>{brief.action.eyebrow}</small>
           <strong>{brief.action.title}</strong>
-          <p><span>Main Signal</span> · {brief.limiter.title}</p>
+          <p>{brief.action.summary}</p>
         </div>
       </div>
       {supportCount > 0 && (

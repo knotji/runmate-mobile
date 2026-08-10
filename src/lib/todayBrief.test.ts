@@ -110,4 +110,21 @@ describe('buildTodayBrief', () => {
     expect(brief.readiness.title).toBe('Waiting For Fresh Sleep Data');
     expect(brief.limiter.title).toBe('Latest Sleep Is Missing');
   });
+
+  it('puts a logged safety signal ahead of lower-priority sleep explanations', () => {
+    const latest = night('2026-07-31', { awakeMinutes: 58, hrv: 40 });
+    const brief = buildTodayBrief(context({ activePain: true, sleep7d: [latest], sleepHistory: [latest] }), options);
+
+    expect(brief.limiter.title).toBe('Active Pain Takes Priority');
+    expect(brief.limiter.summary).not.toMatch(/diagnos|injury caused/i);
+  });
+
+  it('labels a partial baseline as calibration rather than full readiness', () => {
+    const base = context();
+    const brief = buildTodayBrief(context({
+      recoverySystem: { ...base.recoverySystem, scoreState: 'calibrating' },
+    }), options);
+
+    expect(brief.readiness.title).toBe('Recovery Is Still Calibrating');
+  });
 });

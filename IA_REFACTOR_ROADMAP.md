@@ -70,9 +70,9 @@ Do not change stored health records, Supabase schemas, Health Connect permission
 
 ### Phase 3 — Today interpretation layer
 
-- [ ] Present one plain-language body status, one main reason, and one useful action.
-- [ ] Keep Recovery, Sleep, Strain, and Energy as supporting evidence rather than adding another opaque score.
-- [ ] Verify that recommendations never diagnose illness or invent unavailable HRV/respiratory/stress data.
+- [x] Present one plain-language body status, one main reason, and one useful action.
+- [x] Keep Recovery, Sleep, Strain, and Energy as supporting evidence rather than adding another opaque score.
+- [x] Verify that recommendations never diagnose illness or invent unavailable HRV/respiratory/stress data.
 
 ### Phase 4 — Move and manual logging
 

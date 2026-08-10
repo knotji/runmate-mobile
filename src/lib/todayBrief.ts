@@ -44,6 +44,13 @@ function readinessItem(context: CoachContext): TodayBriefItem {
       summary: 'Use the saved plan cautiously until the latest overnight record is available.',
     };
   }
+  if (recovery.scoreState === 'calibrating') {
+    return {
+      eyebrow: 'Body Readiness',
+      title: 'Recovery Is Still Calibrating',
+      summary: 'Use today as early guidance while RunMate builds your personal baseline.',
+    };
+  }
   if (recovery.overallScore >= 67) {
     return {
       eyebrow: 'Body Readiness',
@@ -67,6 +74,28 @@ function readinessItem(context: CoachContext): TodayBriefItem {
 
 function limiterItem(context: CoachContext, latest: WeekSleepRow | null, baseline: WeekSleepRow[]): TodayBriefItem {
   const recovery = context.recoverySystem;
+  if (context.activePain) {
+    return {
+      eyebrow: 'Likely Limiter',
+      title: 'Active Pain Takes Priority',
+      summary: 'Avoid movements that aggravate the area, regardless of today\'s score.',
+    };
+  }
+  if (context.activeSick) {
+    return {
+      eyebrow: 'Likely Limiter',
+      title: 'Recovery Symptoms Take Priority',
+      summary: 'Your latest check-in favors recovery over additional training load.',
+    };
+  }
+  const strainScore = recovery.strain?.score;
+  if (strainScore != null && strainScore >= 14) {
+    return {
+      eyebrow: 'Likely Limiter',
+      title: `Strain Is Already ${formatNumber(strainScore)}/21`,
+      summary: 'You have already accumulated substantial load today.',
+    };
+  }
   if (!latest || recovery.dataFreshness.status !== 'today') {
     return {
       eyebrow: 'Likely Limiter',
