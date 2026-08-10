@@ -71,7 +71,7 @@ const EnergyReservePage: React.FC = () => {
             <p className={`energy-context-note ${energy.context.length ? 'has-context' : ''}`}>{energy.context.length ? energy.context.join(' · ') : 'No confirmed stress or heat drain today.'}</p>
           </section>
 
-          <button type="button" className={`energy-fuel is-${energy.fuel.status}`} onClick={() => history.push('/tabs/activity')}>
+          <button type="button" className={`energy-fuel is-${energy.fuel.status}`} onClick={() => history.push('/tabs/move')}>
             <span><IonIcon icon={nutritionOutline} /></span><div><p>Fuel Status</p><h2>{energy.fuel.label}</h2><small>{energy.fuel.summary}</small></div><IonIcon icon={chevronForwardOutline} />
           </button>
 

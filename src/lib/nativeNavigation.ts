@@ -1,5 +1,13 @@
 const NATIVE_NAVIGATION_PROTOCOL = 'com.runmate.mobile:';
-const ALLOWED_NOTIFICATION_ROUTES = new Set(['/tabs/recovery', '/tabs/activity', '/health-connect']);
+const ALLOWED_NOTIFICATION_ROUTES = new Set([
+  '/tabs/today',
+  '/tabs/health',
+  '/tabs/move',
+  '/tabs/coach',
+  '/tabs/recovery',
+  '/tabs/activity',
+  '/health-connect',
+]);
 
 export function notificationRouteFromUrl(value: string): string | null {
   try {
@@ -30,4 +38,3 @@ export function onAppNavigate(callback: (route: string) => void): () => void {
   window.addEventListener(APP_NAVIGATE_EVENT, handler);
   return () => window.removeEventListener(APP_NAVIGATE_EVENT, handler);
 }
-

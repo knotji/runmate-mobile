@@ -172,12 +172,12 @@ const App: React.FC = () => {
                 visible jump when opening or closing a detail page. */}
             <IonRouterOutlet animated={false}>
             <Route exact path="/login">
-              {session ? <Redirect to="/tabs/recovery" /> : <LoginPage />}
+              {session ? <Redirect to="/tabs/today" /> : <LoginPage />}
             </Route>
             <Route path="/tabs">
               {session ? <MainTabs /> : <Redirect to="/login" />}
             </Route>
-            <Route exact path="/recovery"><Redirect to="/tabs/recovery" /></Route>
+            <Route exact path="/recovery"><Redirect to="/tabs/today" /></Route>
             <Route exact path="/sleep">
               {session ? <SleepDetailPage /> : <Redirect to="/login" />}
             </Route>
@@ -206,9 +206,9 @@ const App: React.FC = () => {
             <Route exact path="/energy">{session ? <EnergyReservePage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/health-calendar">{session ? <HealthCalendarPage /> : <Redirect to="/login" />}</Route>
             <Route exact path="/health-test"><Redirect to="/health-connect" /></Route>
-            <Route exact path="/history/workout/:id"><Redirect to="/tabs/activity" /></Route>
+            <Route exact path="/history/workout/:id"><Redirect to="/tabs/move" /></Route>
             <Route exact path="/">
-              <Redirect to={session ? '/tabs/recovery' : '/login'} />
+              <Redirect to={session ? '/tabs/today' : '/login'} />
             </Route>
             </IonRouterOutlet>
           </Suspense>

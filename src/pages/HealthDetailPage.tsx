@@ -25,7 +25,7 @@ const HealthDetailPage: React.FC = () => {
   useEffect(() => { void load(); }, [load]); const detail = item ? buildHealthDetail(item) : null;
   const latest = items[0];
   const openRecord = (record: LocalHistoryItem) => history.replace(`/activity/health/${encodeURIComponent(record.id)}`);
-  return <IonPage><IonHeader translucent className="record-detail-header"><IonToolbar><IonButton slot="start" fill="clear" onClick={() => history.push('/tabs/activity')} aria-label="Back To Activity"><IonIcon slot="icon-only" icon={arrowBackOutline} /></IonButton><IonTitle>Health Detail</IonTitle></IonToolbar></IonHeader><IonContent fullscreen className="record-detail-content"><main className="record-detail-shell health-detail-shell">
+  return <IonPage><IonHeader translucent className="record-detail-header"><IonToolbar><IonButton slot="start" fill="clear" onClick={() => history.push('/tabs/move')} aria-label="Back To Move"><IonIcon slot="icon-only" icon={arrowBackOutline} /></IonButton><IonTitle>Health Detail</IonTitle></IonToolbar></IonHeader><IonContent fullscreen className="record-detail-content"><main className="record-detail-shell health-detail-shell">
     {!detail && !error && <DetailState text="Loading Health Record..." spinner />}{error && <DetailState text={error} />}
     {detail && <><section className={`record-hero record-hero-${detail.tone}`}><IonIcon icon={detail.kind === 'Pain' ? heartOutline : medkitOutline} /><div><p>{detail.kind}</p><h1>{detail.title}</h1><span>{detail.date}</span></div><strong>{detail.status}</strong></section>
       {detail.alerts.length > 0 && <section className="record-alert"><strong>Safety Flags</strong><ul>{detail.alerts.map((alert) => <li key={alert}>{alert}</li>)}</ul></section>}

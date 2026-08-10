@@ -95,7 +95,7 @@ const WorkoutDetailPage: React.FC = () => {
     <IonPage>
       <IonHeader translucent className="workout-detail-header">
         <IonToolbar>
-          <IonButton slot="start" fill="clear" aria-label="Back To Activity" onClick={() => history.push('/tabs/activity')}><IonIcon slot="icon-only" icon={arrowBackOutline} /></IonButton>
+          <IonButton slot="start" fill="clear" aria-label="Back To Move" onClick={() => history.push('/tabs/move')}><IonIcon slot="icon-only" icon={arrowBackOutline} /></IonButton>
           <IonTitle>Workout Detail</IonTitle>
           <IonButtons slot="end">
             <IonButton onClick={() => setShowShareModal(true)} aria-label="Share Workout">
@@ -107,7 +107,7 @@ const WorkoutDetailPage: React.FC = () => {
       <IonContent fullscreen className="workout-detail-content">
         <main className="workout-detail-shell">
           {loading && <PageDataSkeleton variant="detail" label="Loading Workout Details" />}
-          {!loading && error && !detail && <PageState kind="error" title="Workout Is Unavailable" detail={error} actionLabel="Back To Activity" onAction={() => history.push('/tabs/activity')} className="workout-detail-state" />}
+          {!loading && error && !detail && <PageState kind="error" title="Workout Is Unavailable" detail={error} actionLabel="Back To Move" onAction={() => history.push('/tabs/move')} className="workout-detail-state" />}
           {detail && (
             <>
               {refreshError && <div className="workout-detail-refresh-note" role="status"><span>{refreshError}</span><button type="button" onClick={() => void load()}>Retry</button></div>}

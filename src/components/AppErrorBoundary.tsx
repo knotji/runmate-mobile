@@ -20,7 +20,7 @@ export class AppErrorBoundary extends Component<Props, State> {
 
   handleReturnToRecovery = () => {
     this.setState({ error: null });
-    navigateToAppRoute('/tabs/recovery');
+    navigateToAppRoute('/tabs/today');
   };
 
   render() {

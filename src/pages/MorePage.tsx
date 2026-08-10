@@ -137,7 +137,7 @@ const MorePage: React.FC = () => {
   const history = useHistory();
 
   const openPage = (path: MorePagePath) => {
-    history.push(path);
+    history.push(path === '/ai-coach' ? '/tabs/coach' : path);
   };
 
   const warmPage = (path: MorePagePath) => {

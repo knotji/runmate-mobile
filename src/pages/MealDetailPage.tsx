@@ -36,7 +36,7 @@ const MealDetailPage: React.FC = () => {
     ...detail.guidance,
     ...(detail.note ? [{ label: 'Meal Note', value: detail.note }] : []),
   ] : [];
-  return <IonPage><IonHeader translucent className="record-detail-header"><IonToolbar><IonButton slot="start" fill="clear" onClick={() => history.push('/tabs/activity')} aria-label="Back To Activity"><IonIcon slot="icon-only" icon={arrowBackOutline} /></IonButton><IonTitle>Meal Detail</IonTitle></IonToolbar></IonHeader><IonContent fullscreen className="record-detail-content"><main className="record-detail-shell meal-detail-shell">
+  return <IonPage><IonHeader translucent className="record-detail-header"><IonToolbar><IonButton slot="start" fill="clear" onClick={() => history.push('/tabs/move')} aria-label="Back To Move"><IonIcon slot="icon-only" icon={arrowBackOutline} /></IonButton><IonTitle>Meal Detail</IonTitle></IonToolbar></IonHeader><IonContent fullscreen className="record-detail-content"><main className="record-detail-shell meal-detail-shell">
     {!detail && !error && <DetailState text="Loading Meal…" spinner />}{error && <DetailState text={error} />}
     {detail && <><section className="record-hero record-hero-meal"><IonIcon icon={fastFoodOutline} /><div><p>Nutrition</p><h1>{detail.title}</h1><span>{detail.date}</span></div></section>
       <NutritionOverview metrics={detail.metrics} />

@@ -36,7 +36,7 @@ vi.mock('@/pages/WorkoutDetailPage', () => ({
     const history = useHistory();
     return <main>
       <h1>Workout Detail Fixture</h1>
-      <button type="button" onClick={() => history.push('/tabs/activity')}>Back To Activity</button>
+      <button type="button" onClick={() => history.push('/tabs/move')}>Back To Move</button>
     </main>;
   },
 }));
@@ -49,7 +49,7 @@ vi.mock('@/pages/HealthCalendarPage', () => ({ default: () => <h1>Health Calenda
 
 describe('authenticated route contracts', () => {
   beforeEach(() => {
-    window.history.replaceState({}, '', '/tabs/activity');
+    window.history.replaceState({}, '', '/tabs/move');
   });
 
   afterEach(() => {
@@ -63,9 +63,9 @@ describe('authenticated route contracts', () => {
     expect(await screen.findByRole('heading', { name: 'Workout Detail Fixture' })).toBeInTheDocument();
     expect(window.location.pathname).toBe('/activity/workout/workout-1');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Back To Activity' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back To Move' }));
     expect(await screen.findByRole('heading', { name: 'Activity Fixture' })).toBeInTheDocument();
-    expect(window.location.pathname).toBe('/tabs/activity');
+    expect(window.location.pathname).toBe('/tabs/move');
   });
 
   it.each([

@@ -126,7 +126,7 @@ const SleepWindowPage: React.FC = () => {
   return (
     <IonPage>
       <IonHeader translucent className="sleep-window-header"><IonToolbar>
-        <IonButton slot="start" fill="clear" aria-label="Back To Recovery" onClick={() => history.push('/tabs/recovery')}><IonIcon slot="icon-only" icon={arrowBackOutline} /></IonButton>
+        <IonButton slot="start" fill="clear" aria-label="Back To Today" onClick={() => history.push('/tabs/today')}><IonIcon slot="icon-only" icon={arrowBackOutline} /></IonButton>
         <IonTitle>Sleep Window</IonTitle>
       </IonToolbar></IonHeader>
       <IonContent fullscreen className="sleep-window-content"><main className="sleep-window-shell">

@@ -15,7 +15,7 @@ import {
   useIonViewWillEnter,
   type RefresherEventDetail,
 } from '@ionic/react';
-import { shareSocialOutline } from 'ionicons/icons';
+import { addOutline, shareSocialOutline } from 'ionicons/icons';
 import { SocialShareModal } from '@/components/SocialShareModal';
 import { buildRecoveryCoreContextFromSupabase, buildRecoveryPageContextFromSupabase } from '@/lib/coachContextService';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
@@ -287,8 +287,11 @@ const RecoveryPage: React.FC = () => {
     <IonPage>
       <IonHeader translucent className="recovery-header">
         <IonToolbar>
-          <IonTitle>Recovery</IonTitle>
+          <IonTitle>Today</IonTitle>
           <IonButtons slot="end">
+            <IonButton onClick={() => history.push('/tabs/upload')} className="recovery-share-btn" aria-label="Log Health Data">
+              <IonIcon icon={addOutline} />
+            </IonButton>
             <IonButton disabled={!visibleContext} onClick={() => setShowShareModal(true)} className="recovery-share-btn" aria-label="Share Story">
               <IonIcon icon={shareSocialOutline} />
             </IonButton>

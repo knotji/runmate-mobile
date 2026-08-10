@@ -23,6 +23,7 @@ type ChatMessage = AiCoachStoredMessage;
 const AiCoachPage: React.FC = () => {
   const history = useHistory();
   const location = useLocation<{ initialTopic?: AiCoachTopic }>();
+  const isPrimaryCoachTab = location.pathname === '/tabs/coach';
   const context = useCoachContextStore((state) => state.context);
   const [startupEntry] = useState(() => loadRecoveryContextStartupEntry());
   const startupContext = startupEntry?.context ?? null;
@@ -187,8 +188,8 @@ const AiCoachPage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="ai-coach-header"><IonToolbar>
-      <button type="button" className="ai-coach-back" aria-label="Back To More" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
-      <IonTitle>AI Coach</IonTitle>
+      {!isPrimaryCoachTab && <button type="button" className="ai-coach-back" aria-label="Back" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>}
+      <IonTitle>Coach</IonTitle>
       {messages.length > 0 && <button type="button" className="ai-coach-clear" aria-label="Clear Conversation" onClick={() => setClearConversationOpen(true)}><IonIcon icon={trashOutline} /></button>}
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="ai-coach-content">

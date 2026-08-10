@@ -6,6 +6,8 @@ import {
   IonDatetime,
   IonHeader,
   IonIcon,
+  IonButton,
+  IonButtons,
   IonModal,
   IonPage,
   IonRefresher,
@@ -17,7 +19,7 @@ import {
   useIonViewWillEnter,
   type RefresherEventDetail,
 } from '@ionic/react';
-import { calendarClearOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, fitnessOutline, restaurantOutline, sparklesOutline } from 'ionicons/icons';
+import { addOutline, calendarClearOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, fitnessOutline, restaurantOutline, sparklesOutline } from 'ionicons/icons';
 import { deleteHistoryItem, hideImportedHistoryItem, loadHistoryItems } from '@/lib/cloudHistory';
 import { getHistoryItemDateKey, todayBangkokDateKey } from '@/lib/date';
 import { isHealthConnectImportedItem, type LocalHistoryItem } from '@/lib/localHistory';
@@ -282,7 +284,10 @@ const ActivityPage: React.FC = () => {
     <IonPage>
       <IonHeader translucent className="history-header">
         <IonToolbar>
-          <IonTitle>Activity</IonTitle>
+          <IonTitle>Move</IonTitle>
+          <IonButtons slot="end">
+            <IonButton aria-label="Log Activity" onClick={() => history.push('/tabs/upload')}><IonIcon icon={addOutline} /></IonButton>
+          </IonButtons>
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen className="history-content">
@@ -317,7 +322,7 @@ const ActivityPage: React.FC = () => {
             </section>
           )}
 
-          {!loading && !error && <DailyFuelCoachCard coach={fuelCoach} preparing={fuelContextLoading && !profile} onProfile={() => history.push('/profile-settings')} onLogMeal={() => history.push('/tabs/upload?type=meal')} onAskCoach={() => history.push('/ai-coach', { initialTopic: 'fuel' })} />}
+          {!loading && !error && <DailyFuelCoachCard coach={fuelCoach} preparing={fuelContextLoading && !profile} onProfile={() => history.push('/profile-settings')} onLogMeal={() => history.push('/tabs/upload?type=meal')} onAskCoach={() => history.push('/tabs/coach', { initialTopic: 'fuel' })} />}
 
           {loading && <PageDataSkeleton variant="activity" label="Loading Your Activity" />}
           {!loading && error && <PageState kind="error" title="Activity Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void loadRecent()} className="history-state history-error" />}

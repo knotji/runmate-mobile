@@ -5,6 +5,10 @@ export type RouteLoadingDetails = { title: string; variant: PageDataSkeletonVari
 const routeDetails: Record<string, RouteLoadingDetails> = {
   '/tabs/recovery': { title: 'Recovery', variant: 'recovery' },
   '/tabs/activity': { title: 'Activity', variant: 'activity' },
+  '/tabs/today': { title: 'Today', variant: 'recovery' },
+  '/tabs/health': { title: 'Health', variant: 'health' },
+  '/tabs/move': { title: 'Move', variant: 'activity' },
+  '/tabs/coach': { title: 'Coach', variant: 'coach' },
   '/tabs/upload': { title: 'Upload', variant: 'profile' },
   '/tabs/more': { title: 'More', variant: 'profile' },
   '/ai-coach': { title: 'AI Coach', variant: 'coach' },

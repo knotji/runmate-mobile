@@ -23,7 +23,7 @@ const SleepDetailPage: React.FC = () => {
   const location = useLocation();
   const routeParams = new URLSearchParams(location.search);
   const initialDate = routeParams.get('date');
-  const backPath = routeParams.get('from') === 'activity' ? '/tabs/activity' : '/tabs/recovery';
+  const backPath = routeParams.get('from') === 'activity' ? '/tabs/move' : '/tabs/today';
   const context = useCoachContextStore((state) => state.context);
   const [startupEntry] = useState(() => loadRecoveryContextStartupEntry());
   const startupContext = startupEntry?.context ?? null;

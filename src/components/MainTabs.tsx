@@ -1,25 +1,29 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Redirect, Route } from 'react-router-dom';
 import { IonIcon, IonLabel, IonRouterOutlet, IonTabBar, IonTabButton, IonTabs } from '@ionic/react';
-import { addCircleOutline, ellipsisHorizontalCircleOutline, pulseOutline, todayOutline } from 'ionicons/icons';
+import { fitnessOutline, heartOutline, homeOutline, sparklesOutline } from 'ionicons/icons';
 import { RouteLoadingScreen } from '@/components/RouteLoadingScreen';
 import { hapticSelection } from '@/lib/haptics';
 
 const loadRecoveryPage = () => import('@/pages/RecoveryPage');
 const loadActivityPage = () => import('@/pages/ActivityPage');
+const loadHealthPage = () => import('@/pages/HealthPage');
+const loadCoachPage = () => import('@/pages/AiCoachPage');
 const loadUploadPage = () => import('@/pages/UploadPage');
 const loadMorePage = () => import('@/pages/MorePage');
 
 const RecoveryPage = lazy(loadRecoveryPage);
 const ActivityPage = lazy(loadActivityPage);
+const HealthPage = lazy(loadHealthPage);
+const CoachPage = lazy(loadCoachPage);
 const UploadPage = lazy(loadUploadPage);
 const MorePage = lazy(loadMorePage);
 
 const tabPageLoaders = [
-  { path: '/tabs/recovery', load: loadRecoveryPage },
-  { path: '/tabs/upload', load: loadUploadPage },
-  { path: '/tabs/activity', load: loadActivityPage },
-  { path: '/tabs/more', load: loadMorePage },
+  { path: '/tabs/today', load: loadRecoveryPage },
+  { path: '/tabs/health', load: loadHealthPage },
+  { path: '/tabs/move', load: loadActivityPage },
+  { path: '/tabs/coach', load: loadCoachPage },
 ];
 
 const MainTabs: React.FC = () => {
@@ -47,18 +51,22 @@ const MainTabs: React.FC = () => {
   return (
     <IonTabs>
       <IonRouterOutlet>
-        <Route exact path="/tabs/recovery"><Suspense fallback={<RouteLoadingScreen />}><RecoveryPage /></Suspense></Route>
-        <Route exact path="/tabs/activity"><Suspense fallback={<RouteLoadingScreen />}><ActivityPage /></Suspense></Route>
+        <Route exact path="/tabs/today"><Suspense fallback={<RouteLoadingScreen />}><RecoveryPage /></Suspense></Route>
+        <Route exact path="/tabs/health"><Suspense fallback={<RouteLoadingScreen />}><HealthPage /></Suspense></Route>
+        <Route exact path="/tabs/move"><Suspense fallback={<RouteLoadingScreen />}><ActivityPage /></Suspense></Route>
+        <Route exact path="/tabs/coach"><Suspense fallback={<RouteLoadingScreen />}><CoachPage /></Suspense></Route>
         <Route exact path="/tabs/upload"><Suspense fallback={<RouteLoadingScreen />}><UploadPage /></Suspense></Route>
         <Route exact path="/tabs/more"><Suspense fallback={<RouteLoadingScreen />}><MorePage /></Suspense></Route>
-        <Route exact path="/tabs/history"><Redirect to="/tabs/activity" /></Route>
-        <Route exact path="/tabs"><Redirect to="/tabs/recovery" /></Route>
+        <Route exact path="/tabs/recovery"><Redirect to="/tabs/today" /></Route>
+        <Route exact path="/tabs/activity"><Redirect to="/tabs/move" /></Route>
+        <Route exact path="/tabs/history"><Redirect to="/tabs/move" /></Route>
+        <Route exact path="/tabs"><Redirect to="/tabs/today" /></Route>
       </IonRouterOutlet>
       <IonTabBar slot="bottom" className="main-tab-bar">
-        <IonTabButton tab="recovery" href="/tabs/recovery" onClick={() => void hapticSelection()}><IonIcon icon={pulseOutline} /><IonLabel>Recovery</IonLabel></IonTabButton>
-        <IonTabButton tab="upload" href="/tabs/upload" onClick={() => void hapticSelection()}><IonIcon icon={addCircleOutline} /><IonLabel>Upload</IonLabel></IonTabButton>
-        <IonTabButton tab="activity" href="/tabs/activity" onClick={() => void hapticSelection()}><IonIcon icon={todayOutline} /><IonLabel>Activity</IonLabel></IonTabButton>
-        <IonTabButton tab="more" href="/tabs/more" onClick={() => void hapticSelection()}><IonIcon icon={ellipsisHorizontalCircleOutline} /><IonLabel>More</IonLabel></IonTabButton>
+        <IonTabButton tab="today" href="/tabs/today" onClick={() => void hapticSelection()}><IonIcon icon={homeOutline} /><IonLabel>Today</IonLabel></IonTabButton>
+        <IonTabButton tab="health" href="/tabs/health" onClick={() => void hapticSelection()}><IonIcon icon={heartOutline} /><IonLabel>Health</IonLabel></IonTabButton>
+        <IonTabButton tab="move" href="/tabs/move" onClick={() => void hapticSelection()}><IonIcon icon={fitnessOutline} /><IonLabel>Move</IonLabel></IonTabButton>
+        <IonTabButton tab="coach" href="/tabs/coach" onClick={() => void hapticSelection()}><IonIcon icon={sparklesOutline} /><IonLabel>Coach</IonLabel></IonTabButton>
       </IonTabBar>
     </IonTabs>
   );
