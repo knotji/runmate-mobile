@@ -9,99 +9,72 @@ import {
 } from '@ionic/react';
 import {
   chevronForwardOutline,
-  flagOutline,
   fitnessOutline,
   informationCircleOutline,
   lockClosedOutline,
   logOutOutline,
   notificationsOutline,
   personCircleOutline,
-  sparklesOutline,
-  statsChartOutline,
 } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { loadMorePage, type MorePagePath } from '@/lib/morePageLoaders';
 import './MorePage.css';
 
-type MoreMenuItem = {
+type SettingsMenuItem = {
   icon: string;
   title: string;
   summary: string;
   path: MorePagePath;
 };
 
-const menuGroups: Array<{ label: string; title: string; items: MoreMenuItem[] }> = [
+const menuGroups: Array<{ label: string; title: string; items: SettingsMenuItem[] }> = [
   {
-    label: 'Plan',
-    title: 'Training & Goals',
+    label: 'Personalize',
+    title: 'Profile & Preferences',
     items: [
-  {
-    icon: sparklesOutline,
-    title: 'AI Coach',
-    summary: 'Get a data-aware recommendation for training, Recovery, nutrition, or your Race Goal.',
-    path: '/ai-coach',
-  },
-  {
-    icon: flagOutline,
-    title: 'Race Goal',
-    summary: 'Race date, distance, target time, and training progress.',
-    path: '/race-goal',
-  },
-  {
-    icon: statsChartOutline,
-    title: 'Weekly Plan',
-    summary: 'This week’s full training plan, with what actually happened.',
-    path: '/weekly-plan',
-  },
+      {
+        icon: personCircleOutline,
+        title: 'Profile & Settings',
+        summary: 'Body metrics, heart-rate zones, sleep schedule, and training preferences.',
+        path: '/profile-settings',
+      },
+      {
+        icon: notificationsOutline,
+        title: 'Notifications',
+        summary: 'Bedtime, missing sleep, workout, and Recovery reminders.',
+        path: '/notifications',
+      },
     ],
   },
   {
-    label: 'History',
-    title: 'Training Summary',
+    label: 'Your Data',
+    title: 'Connections & Control',
     items: [
-  {
-    icon: statsChartOutline,
-    title: 'Training Summary',
-    summary: 'Review workouts, sleep, and logged meals by calendar week or month.',
-    path: '/weekly-summary',
-  },
+      {
+        icon: fitnessOutline,
+        title: 'Health Connect',
+        summary: 'Connect Samsung Health and manage automatic health data sync.',
+        path: '/health-connect',
+      },
+      {
+        icon: lockClosedOutline,
+        title: 'Privacy, Export & Account',
+        summary: 'Review stored data, export a copy, or delete your RunMate account.',
+        path: '/privacy-data',
+      },
     ],
   },
   {
-    label: 'RunMate',
-    title: 'Settings & Data',
+    label: 'Support',
+    title: 'App & Diagnostics',
     items: [
-  {
-    icon: personCircleOutline,
-    title: 'Profile & Settings',
-    summary: 'Max HR, body weight, and essential training preferences.',
-    path: '/profile-settings',
-  },
-  {
-    icon: notificationsOutline,
-    title: 'Notifications',
-    summary: 'Bedtime, missing sleep, workout, and recovery reminders.',
-    path: '/notifications',
-  },
-  {
-    icon: fitnessOutline,
-    title: 'Health Connect',
-    summary: 'Connect Samsung Health and manage automatic health data sync.',
-    path: '/health-connect',
-  },
-  {
-    icon: lockClosedOutline,
-    title: 'Privacy & Data',
-    summary: 'What RunMate collects, and how to export or delete your data.',
-    path: '/privacy-data',
-  },
-  {
-    icon: informationCircleOutline,
-    title: 'About RunMate',
-    summary: 'App version, release notes, and support diagnostics.',
-    path: '/about',
-  },
+      {
+        icon: informationCircleOutline,
+        title: 'About RunMate',
+        summary: 'App version, release notes, and Copy Diagnostics for support.',
+        path: '/about',
+      },
     ],
   },
 ];
@@ -109,60 +82,56 @@ const menuGroups: Array<{ label: string; title: string; items: MoreMenuItem[] }>
 const MorePage: React.FC = () => {
   const history = useHistory();
 
-  const openPage = (path: MorePagePath) => {
-    history.push(path === '/ai-coach' ? '/tabs/coach' : path);
-  };
-
   const warmPage = (path: MorePagePath) => {
     void loadMorePage(path).catch(() => undefined);
   };
 
   return (
-  <IonPage>
-    <IonHeader translucent className="more-header">
-      <IonToolbar><IonTitle>More</IonTitle></IonToolbar>
-    </IonHeader>
-    <IonContent fullscreen className="more-content">
-      <main className="more-shell">
-        <header className="more-heading">
-          <p>YOUR RUNMATE</p>
-          <h1>Plan And Personalize</h1>
-          <span>Manage goals, connected health data, summaries, and app preferences.</span>
-        </header>
+    <IonPage>
+      <IonHeader translucent className="more-header">
+        <IonToolbar><IonTitle>Settings & Data</IonTitle></IonToolbar>
+      </IonHeader>
+      <IonContent fullscreen className="more-content">
+        <main className="more-shell">
+          <header className="more-heading">
+            <p>YOUR RUNMATE</p>
+            <h1>Your App, Your Data</h1>
+            <span>Manage your profile, connected health sources, privacy, exports, and support details.</span>
+          </header>
 
-        <div className="more-groups">
-          {menuGroups.map((group) => (
-            <section className="more-group" aria-labelledby={`more-${group.label.toLowerCase()}`} key={group.label}>
-              <header className="more-group-heading">
-                <p>{group.label}</p>
-                <h2 id={`more-${group.label.toLowerCase()}`}>{group.title}</h2>
-              </header>
-              <div className="more-menu">
-                {group.items.map((item) => (
-                  <button className="more-menu-row more-menu-button" type="button" onPointerEnter={() => warmPage(item.path)} onPointerDown={() => warmPage(item.path)} onFocus={() => warmPage(item.path)} onClick={() => openPage(item.path)} key={item.title}>
-                    <div className="more-menu-icon"><IonIcon icon={item.icon} /></div>
-                    <div className="more-menu-copy">
-                      <strong>{item.title}</strong>
-                      <span>{item.summary}</span>
-                    </div>
-                    <IonIcon className="more-chevron" icon={chevronForwardOutline} />
-                  </button>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
+          <div className="more-groups">
+            {menuGroups.map((group) => (
+              <section className="more-group" aria-labelledby={`settings-${group.label.toLowerCase().replace(' ', '-')}`} key={group.label}>
+                <header className="more-group-heading">
+                  <p>{group.label}</p>
+                  <h2 id={`settings-${group.label.toLowerCase().replace(' ', '-')}`}>{group.title}</h2>
+                </header>
+                <div className="more-menu">
+                  {group.items.map((item) => (
+                    <button className="more-menu-row more-menu-button" type="button" onPointerEnter={() => warmPage(item.path)} onPointerDown={() => warmPage(item.path)} onFocus={() => warmPage(item.path)} onClick={() => history.push(item.path)} key={item.title}>
+                      <div className="more-menu-icon"><IonIcon icon={item.icon} aria-hidden="true" /></div>
+                      <div className="more-menu-copy">
+                        <strong>{item.title}</strong>
+                        <span>{item.summary}</span>
+                      </div>
+                      <IonIcon className="more-chevron" icon={chevronForwardOutline} aria-hidden="true" />
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
 
-        <section className="more-account" aria-labelledby="account-heading">
-          <p id="account-heading">ACCOUNT</p>
-          <IonButton expand="block" fill="outline" color="danger" onClick={() => void supabase.auth.signOut()}>
-            <IonIcon slot="start" icon={logOutOutline} />
-            Sign Out
-          </IonButton>
-        </section>
-      </main>
-    </IonContent>
-  </IonPage>
+          <section className="more-account" aria-labelledby="account-heading">
+            <p id="account-heading">ACCOUNT</p>
+            <IonButton expand="block" fill="outline" color="danger" onClick={() => void supabase.auth.signOut()}>
+              <IonIcon slot="start" icon={logOutOutline} />
+              Sign Out
+            </IonButton>
+          </section>
+        </main>
+      </IonContent>
+    </IonPage>
   );
 };
 

@@ -2,7 +2,7 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { IonApp } from '@ionic/react';
 import { vi } from 'vitest';
-import { PlannedTrainingCard } from './ActivityPage';
+import { MoveToolsNav, PlannedTrainingCard } from './ActivityPage';
 
 describe('PlannedTrainingCard', () => {
   it('keeps planned training distinct from recorded data', () => {
@@ -21,5 +21,19 @@ describe('PlannedTrainingCard', () => {
 
     expect(screen.getByRole('heading', { name: 'Rest' })).toBeInTheDocument();
     expect(screen.queryByText(/0 km|N\/A/i)).not.toBeInTheDocument();
+  });
+});
+
+describe('MoveToolsNav', () => {
+  it('keeps planning, race, and summary destinations in Move', () => {
+    const onPlan = vi.fn(); const onRace = vi.fn(); const onSummary = vi.fn();
+    render(<IonApp><MoveToolsNav onPlan={onPlan} onRace={onRace} onSummary={onSummary} /></IonApp>);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Plan' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Race' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Summary' }));
+    expect(onPlan).toHaveBeenCalledOnce();
+    expect(onRace).toHaveBeenCalledOnce();
+    expect(onSummary).toHaveBeenCalledOnce();
   });
 });

@@ -49,7 +49,7 @@ const AboutPage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="about-header"><IonToolbar>
-      <button type="button" className="about-back" aria-label="Back To More" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
+      <button type="button" className="about-back" aria-label="Back To Settings And Data" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
       <IonTitle>About RunMate</IonTitle>
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="about-content">

@@ -19,7 +19,7 @@ import {
   useIonViewWillEnter,
   type RefresherEventDetail,
 } from '@ionic/react';
-import { addOutline, barbellOutline, bicycleOutline, calendarClearOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, fitnessOutline, moonOutline, restaurantOutline, sparklesOutline, walkOutline } from 'ionicons/icons';
+import { addOutline, barbellOutline, bicycleOutline, calendarClearOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, fitnessOutline, flagOutline, moonOutline, restaurantOutline, sparklesOutline, statsChartOutline, walkOutline } from 'ionicons/icons';
 import { deleteHistoryItem, hideImportedHistoryItem, loadHistoryItems } from '@/lib/cloudHistory';
 import { getHistoryItemDateKey, todayBangkokDateKey } from '@/lib/date';
 import { isHealthConnectImportedItem, type LocalHistoryItem } from '@/lib/localHistory';
@@ -307,6 +307,12 @@ const ActivityPage: React.FC = () => {
             {selectedDate !== todayDate && <button type="button" className="activity-inline-current" onClick={() => moveToDate(todayDate)}>Current</button>}
           </nav>
 
+          <MoveToolsNav
+            onPlan={() => history.push('/weekly-plan')}
+            onRace={() => history.push('/race-goal')}
+            onSummary={() => history.push('/weekly-summary')}
+          />
+
           {!loading && !error && plannedWorkout && (
             <PlannedTrainingCard workout={plannedWorkout} onOpen={() => history.push('/weekly-plan')} />
           )}
@@ -413,6 +419,14 @@ export function PlannedTrainingCard({ workout, onOpen }: { workout: WeekWorkout;
     </div>
     <button type="button" onClick={onOpen} aria-label="Open Weekly Plan"><span>{restDay ? 'Rest' : 'Plan'}</span><IonIcon icon={chevronForwardOutline} aria-hidden="true" /></button>
   </section>;
+}
+
+export function MoveToolsNav({ onPlan, onRace, onSummary }: { onPlan: () => void; onRace: () => void; onSummary: () => void }) {
+  return <nav className="move-tools-nav" aria-label="Move Tools">
+    <button type="button" onClick={onPlan}><IonIcon icon={calendarClearOutline} aria-hidden="true" /><span>Plan</span></button>
+    <button type="button" onClick={onRace}><IonIcon icon={flagOutline} aria-hidden="true" /><span>Race</span></button>
+    <button type="button" onClick={onSummary}><IonIcon icon={statsChartOutline} aria-hidden="true" /><span>Summary</span></button>
+  </nav>;
 }
 
 function plannedWorkoutIcon(workout: WeekWorkout): string {

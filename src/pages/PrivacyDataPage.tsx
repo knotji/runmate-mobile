@@ -86,7 +86,7 @@ const PrivacyDataPage: React.FC = () => {
     <IonPage>
       <IonHeader translucent className="privacy-data-header">
         <IonToolbar>
-          <button type="button" className="privacy-data-back" aria-label="Back To More" onClick={() => history.push('/tabs/more')}>
+          <button type="button" className="privacy-data-back" aria-label="Back To Settings And Data" onClick={() => history.push('/tabs/settings')}>
             <IonIcon icon={arrowBackOutline} />
           </button>
           <IonTitle>Privacy & Data</IonTitle>

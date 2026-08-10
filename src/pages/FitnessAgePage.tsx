@@ -41,7 +41,7 @@ const FitnessAgePage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="fitness-age-header"><IonToolbar>
-      <button type="button" className="fitness-age-back" aria-label="Back To More" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
+      <button type="button" className="fitness-age-back" aria-label="Back To Health" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
       <IonTitle>Fitness Age</IonTitle>
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="fitness-age-content">
@@ -86,4 +86,3 @@ function Signals({ signals }: { signals: FitnessAgeSignal[] }) {
 function MethodNote() { return <section className="fitness-age-method"><IonIcon icon={informationCircleOutline} /><div><strong>RunMate Estimate · Beta</strong><span>This is a fitness and lifestyle trend, not biological age or medical advice. It updates as your long-term data improves.</span></div></section>; }
 
 export default FitnessAgePage;
-

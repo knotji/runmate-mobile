@@ -46,7 +46,7 @@ Secondary actions:
 | `/tabs/activity` | `/tabs/move` | Redirect; retain detail-page back compatibility |
 | `/ai-coach` | `/tabs/coach` | Keep reachable during migration; update internal entry points progressively |
 | `/tabs/upload` | `/tabs/log` | Legacy utility route remains available; new internal entry points use `Log` |
-| `/tabs/more` | `/tabs/more` | Hidden settings route until it is renamed |
+| `/tabs/more` | `/tabs/settings` | Legacy route remains available; new internal entry points use `Settings & Data` |
 
 Do not change stored health records, Supabase schemas, Health Connect permissions, recovery formulas, or training-plan reconciliation as part of the IA refactor.
 
@@ -83,10 +83,12 @@ Do not change stored health records, Supabase schemas, Health Connect permission
 
 ### Phase 5 — Settings and brand transition
 
-- [ ] Rename More to Settings and Data.
-- [ ] Move profile, notifications, Health Connect, privacy, export, diagnostics, and About into it.
-- [ ] Keep RunMate as the working name until store, domain, social, and preliminary trademark checks produce a viable shortlist.
+- [x] Rename More to Settings and Data.
+- [x] Move profile, notifications, Health Connect, privacy, export, diagnostics, and About into it.
+- [x] Keep RunMate as the working name until store, domain, social, and preliminary trademark checks produce a viable shortlist.
 - [ ] Rebrand app name, icon, package-facing copy, and store listing together; do not partially rename the product.
+
+The final rebrand remains intentionally gated. Phase 5 changes the product structure and settings language only; it does not partially rename the installed app or Android package.
 
 ## Performance requirements
 

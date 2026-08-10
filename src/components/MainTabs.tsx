@@ -57,6 +57,7 @@ const MainTabs: React.FC = () => {
         <Route exact path="/tabs/coach"><Suspense fallback={<RouteLoadingScreen />}><CoachPage /></Suspense></Route>
         <Route exact path="/tabs/log"><Suspense fallback={<RouteLoadingScreen />}><UploadPage /></Suspense></Route>
         <Route exact path="/tabs/upload"><Suspense fallback={<RouteLoadingScreen />}><UploadPage /></Suspense></Route>
+        <Route exact path="/tabs/settings"><Suspense fallback={<RouteLoadingScreen />}><MorePage /></Suspense></Route>
         <Route exact path="/tabs/more"><Suspense fallback={<RouteLoadingScreen />}><MorePage /></Suspense></Route>
         <Route exact path="/tabs/recovery"><Redirect to="/tabs/today" /></Route>
         <Route exact path="/tabs/activity"><Redirect to="/tabs/move" /></Route>

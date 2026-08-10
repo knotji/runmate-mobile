@@ -56,7 +56,7 @@ const HealthPage: React.FC = () => {
         <IonTitle>Health</IonTitle>
         <div slot="end" className="health-hub-actions">
           <button type="button" aria-label="Log Health Data" onClick={() => history.push('/tabs/log')}><IonIcon icon={addOutline} /></button>
-          <button type="button" aria-label="Open Settings And Data" onClick={() => history.push('/tabs/more')}><IonIcon icon={settingsOutline} /></button>
+          <button type="button" aria-label="Open Settings And Data" onClick={() => history.push('/tabs/settings')}><IonIcon icon={settingsOutline} /></button>
         </div>
       </IonToolbar>
     </IonHeader>

@@ -119,7 +119,7 @@ const ProfileSettingsPage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="profile-settings-header"><IonToolbar>
-      <button type="button" className="profile-settings-back" aria-label="Back To More" onClick={() => history.push('/tabs/more')}><IonIcon icon={arrowBackOutline} /></button>
+      <button type="button" className="profile-settings-back" aria-label="Back To Settings And Data" onClick={() => history.push('/tabs/settings')}><IonIcon icon={arrowBackOutline} /></button>
       <IonTitle>Profile & Settings</IonTitle>
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="profile-settings-content"><main className="profile-settings-shell">
@@ -185,7 +185,7 @@ const ProfileSettingsPage: React.FC = () => {
       </>}
       {!loading && !profile && <PageState kind="error" title="Profile Is Unavailable" detail={error ?? 'Could Not Load Your Profile.'} actionLabel="Try Again" onAction={() => void load()} className="profile-settings-state profile-settings-failed" />}
     </main></IonContent>
-    <IonAlert isOpen={discardOpen} onDidDismiss={() => setDiscardOpen(false)} header="Discard Unsaved Changes?" message="Your latest Profile changes have not been saved." buttons={[{ text: 'Keep Editing', role: 'cancel' }, { text: 'Discard', role: 'destructive', handler: () => { setSavedDraft(draft); window.setTimeout(() => history.push('/tabs/more'), 0); } }]} />
+    <IonAlert isOpen={discardOpen} onDidDismiss={() => setDiscardOpen(false)} header="Discard Unsaved Changes?" message="Your latest Profile changes have not been saved." buttons={[{ text: 'Keep Editing', role: 'cancel' }, { text: 'Discard', role: 'destructive', handler: () => { setSavedDraft(draft); window.setTimeout(() => history.push('/tabs/settings'), 0); } }]} />
   </IonPage>;
 };
 

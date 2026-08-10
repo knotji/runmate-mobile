@@ -120,7 +120,7 @@ const WeeklySummaryPage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="weekly-header"><IonToolbar>
-      <button type="button" className="weekly-back" aria-label="Back To More" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
+      <button type="button" className="weekly-back" aria-label="Back To Move" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
       <IonTitle>Training Summary</IonTitle>
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="weekly-content">

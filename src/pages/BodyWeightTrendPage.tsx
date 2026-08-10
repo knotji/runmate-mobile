@@ -59,7 +59,7 @@ const BodyWeightTrendPage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="body-trend-header"><IonToolbar>
-      <button type="button" className="body-trend-back" aria-label="Back To More" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
+      <button type="button" className="body-trend-back" aria-label="Back To Health" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
       <IonTitle>Body Weight Trend</IonTitle>
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="body-trend-content">

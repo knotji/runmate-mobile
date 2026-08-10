@@ -192,7 +192,7 @@ const RaceGoalPage: React.FC = () => {
     <IonPage>
       <IonHeader translucent className="race-header">
         <IonToolbar>
-          <IonButton slot="start" fill="clear" aria-label="Back To More" onClick={() => history.push('/tabs/more')}>
+          <IonButton slot="start" fill="clear" aria-label="Back To Move" onClick={() => history.push('/tabs/move')}>
             <IonIcon slot="icon-only" icon={arrowBackOutline} />
           </IonButton>
           <IonTitle>Race Goal</IonTitle>

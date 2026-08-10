@@ -170,7 +170,7 @@ const HealthCalendarPage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="health-calendar-header"><IonToolbar>
-      <button type="button" className="health-calendar-back" aria-label="Back To More" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
+      <button type="button" className="health-calendar-back" aria-label="Back To Health" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
       <IonTitle>Health Calendar</IonTitle>
     </IonToolbar></IonHeader>
     <IonContent ref={contentRef} fullscreen className="health-calendar-content">

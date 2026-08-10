@@ -46,7 +46,7 @@ const WeeklyPlanCalendarPage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="weekly-plan-header"><IonToolbar>
-      <button type="button" className="weekly-plan-back" aria-label="Back To More" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
+      <button type="button" className="weekly-plan-back" aria-label="Back To Move" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
       <IonTitle>Weekly Plan</IonTitle>
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="weekly-plan-content">

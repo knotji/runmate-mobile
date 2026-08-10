@@ -59,7 +59,7 @@ const PainTrendsPage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="pain-trends-header"><IonToolbar>
-      <button type="button" className="pain-trends-back" aria-label="Back To More" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
+      <button type="button" className="pain-trends-back" aria-label="Back To Health" onClick={() => history.goBack()}><IonIcon icon={arrowBackOutline} /></button>
       <IonTitle>Pain & Injury Trend</IonTitle>
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="pain-trends-content">

@@ -285,7 +285,7 @@ const HealthTestPage: React.FC = () => {
     <IonPage>
       <IonHeader translucent className="health-connect-header">
         <IonToolbar>
-          <IonButton slot="start" fill="clear" aria-label="Back To More" onClick={() => history.push('/tabs/more')}>
+          <IonButton slot="start" fill="clear" aria-label="Back To Settings And Data" onClick={() => history.push('/tabs/settings')}>
             <IonIcon slot="icon-only" icon={arrowBackOutline} />
           </IonButton>
           <IonTitle>Health Connect</IonTitle>
