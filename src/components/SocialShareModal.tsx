@@ -1,481 +1,290 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  IonButton,
-  IonButtons,
-  IonContent,
-  IonHeader,
-  IonIcon,
-  IonModal,
-  IonSpinner,
-  IonTitle,
-  IonToolbar,
-} from '@ionic/react';
-import {
-  checkmarkOutline,
-  closeOutline,
-  downloadOutline,
-  informationCircleOutline,
-  shareSocialOutline,
-} from 'ionicons/icons';
+import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonModal, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
+import { checkmarkOutline, closeOutline, downloadOutline, informationCircleOutline, shareSocialOutline } from 'ionicons/icons';
 import type { CoachContext } from '@/lib/buildCoachContext';
+import type { EnergyReserve } from '@/lib/energyReserve';
 import { hapticImpact, hapticNotification } from '@/lib/haptics';
+import { recordPerformanceDiagnostic } from '@/lib/performanceDiagnostics';
+import {
+  recoveryShareComposition,
+  todayShareComposition,
+  weeklyShareComposition,
+  workoutShareComposition,
+  type ShareBackground,
+  type ShareComposition,
+  type ShareLayout,
+  type ShareTextTreatment,
+  type WorkoutShareData,
+} from '@/lib/shareComposition';
+import { renderShareComposition } from '@/lib/shareCanvasRenderer';
 import { canSaveStoryImageNatively, saveStoryImageNatively } from '@/lib/storyImage';
 import type { WeeklyRecapHighlights } from '@/lib/weeklyRecapHighlights';
-import {
-  getAvailableWorkoutMetrics,
-  WORKOUT_METRIC_ORDER,
-  type SportType,
-  type WorkoutMetricKey,
-} from '@/lib/workoutShareMetrics';
+import { getAvailableWorkoutMetrics, WORKOUT_METRIC_ORDER, type WorkoutMetricKey } from '@/lib/workoutShareMetrics';
 import './SocialShareModal.css';
 
-export type ShareTheme = 'cyber-dark' | 'sunrise-fresh' | 'minimal-glass' | 'transparent-overlay' | 'ultra-minimal' | 'compact-row' | 'compact-row-overlay' | 'calendar-dots' | 'month-overlay';
 export type { SportType } from '@/lib/workoutShareMetrics';
+export type { WorkoutShareData } from '@/lib/shareComposition';
 
-export interface WorkoutShareData {
-  title: string;
-  type?: SportType;
-  distanceKm?: number;
-  durationSeconds: number;
-  paceFormatted?: string;
-  avgHeartRateBpm?: number;
-  caloriesKcal?: number;
-  elevationMeters?: number;
-  dateStr?: string;
-  isStrength?: boolean;
-}
+type ShareMode = 'recovery' | 'today' | 'workout' | 'weekly';
+type TodayContent = 'today' | 'recovery';
 
 interface SocialShareModalProps {
   isOpen: boolean;
   onDismiss: () => void;
   context?: CoachContext | null;
-  mode?: 'recovery' | 'workout' | 'weekly';
+  energyReserve?: EnergyReserve | null;
+  mode?: ShareMode;
   workoutData?: WorkoutShareData | null;
   weeklyData?: WeeklyRecapHighlights | null;
 }
 
-type CanvasPalette = {
-  text: string;
-  muted: string;
-  faint: string;
-  accent: string;
-  hairline: string;
-};
-
-type StoryMetric = {
-  label: string;
-  value: string;
-  unit?: string;
-};
-
-const PORTRAIT_WIDTH = 833;
-const PORTRAIT_HEIGHT = 1579;
-const LANDSCAPE_WIDTH = 1579;
-const LANDSCAPE_HEIGHT = 833;
-const STORY_FONT = '"IBM Plex Sans Thai", sans-serif';
-
-function isHorizontalTheme(theme: ShareTheme): boolean {
-  return theme === 'compact-row' || theme === 'compact-row-overlay';
-}
-
-function isTransparentTheme(theme: ShareTheme): boolean {
-  return theme === 'transparent-overlay' || theme === 'compact-row-overlay' || theme === 'calendar-dots' || theme === 'month-overlay';
-}
-
-function getStoryDimensions(theme: ShareTheme): { width: number; height: number } {
-  return isHorizontalTheme(theme)
-    ? { width: LANDSCAPE_WIDTH, height: LANDSCAPE_HEIGHT }
-    : { width: PORTRAIT_WIDTH, height: PORTRAIT_HEIGHT };
-}
+const layouts: Array<{ value: ShareLayout; label: string }> = [
+  { value: 'minimal', label: 'Minimal' },
+  { value: 'stack', label: 'Stack' },
+  { value: 'signature', label: 'Signature' },
+];
 
 export const SocialShareModal: React.FC<SocialShareModalProps> = ({
   isOpen,
   onDismiss,
   context = null,
-  mode = 'recovery',
+  energyReserve = null,
+  mode = 'today',
   workoutData = null,
   weeklyData = null,
 }) => {
-  const defaultTheme: ShareTheme = mode === 'workout' ? 'transparent-overlay' : 'minimal-glass';
-  const [selectedTheme, setSelectedTheme] = useState<ShareTheme>(defaultTheme);
-  const [generating, setGenerating] = useState(false);
-  const [dataUrl, setDataUrl] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [layout, setLayout] = useState<ShareLayout>('signature');
+  const [treatment, setTreatment] = useState<ShareTextTreatment>('light');
+  const [background, setBackground] = useState<ShareBackground>('transparent');
+  const [todayContent, setTodayContent] = useState<TodayContent>(mode === 'recovery' ? 'recovery' : 'today');
   const [selectedWorkoutMetrics, setSelectedWorkoutMetrics] = useState<WorkoutMetricKey[]>([]);
+  const [generating, setGenerating] = useState(false);
+  const [imageBlob, setImageBlob] = useState<Blob | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const generationRef = useRef(0);
+  const previewUrlRef = useRef<string | null>(null);
+  const renderCacheRef = useRef(new Map<string, Blob>());
 
-  const themeOptions: Array<{ theme: ShareTheme; label: string }> = mode === 'workout'
-    ? [
-      { theme: 'transparent-overlay', label: 'Overlay' },
-      { theme: 'compact-row-overlay', label: 'Horizontal Overlay' },
-      { theme: 'ultra-minimal', label: 'Ultra Minimal' },
-      { theme: 'compact-row', label: 'Horizontal' },
-      { theme: 'cyber-dark', label: 'Dark' },
-      { theme: 'minimal-glass', label: 'Light' },
-    ]
-    : mode === 'weekly'
-      ? weeklyData?.period === 'month'
-        ? [
-          { theme: 'month-overlay', label: 'Month Overlay' },
-          { theme: 'cyber-dark', label: 'Dark' },
-          { theme: 'minimal-glass', label: 'Light' },
-        ]
-        : [
-          { theme: 'cyber-dark', label: 'Dark' },
-          { theme: 'minimal-glass', label: 'Light' },
-          { theme: 'calendar-dots', label: 'Calendar' },
-        ]
-      : [
-        { theme: 'cyber-dark', label: 'Dark' },
-        { theme: 'minimal-glass', label: 'Light' },
-      ];
-  const themeIndex = Math.max(0, themeOptions.findIndex(({ theme }) =>
-    theme === selectedTheme || (theme === 'minimal-glass' && selectedTheme === 'sunrise-fresh')));
-
-  const score = context ? Math.round(context.recoverySystem.overallScore) : null;
-  const recoveryLabel = context?.recoverySystem.overallLabel ?? 'Recovery';
-  const sleepMinutes = context?.recoverySystem.sleepPerformance.actualSleepMinutes ?? null;
-  const strainScore = context?.recoverySystem.strain.score ?? null;
-
-  const title = workoutData?.title ?? 'Workout';
-  const sportType: SportType = workoutData?.type ?? (workoutData?.isStrength ? 'strength' : 'workout');
-  const distanceKm = workoutData?.distanceKm;
-  const durationSeconds = workoutData?.durationSeconds ?? 0;
-  const pace = workoutData?.paceFormatted;
-  const averageHeartRate = workoutData?.avgHeartRateBpm;
-  const caloriesKcal = workoutData?.caloriesKcal;
-  const elevationMeters = workoutData?.elevationMeters;
-  const dateText = workoutData?.dateStr ?? new Intl.DateTimeFormat('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone: 'Asia/Bangkok',
-  }).format(new Date());
-  const availableWorkoutMetrics = useMemo(
-    () => getAvailableWorkoutMetrics({
-      sportType,
-      distanceKm,
-      durationSeconds,
-      pace,
-      averageHeartRate,
-      caloriesKcal,
-      elevationMeters,
-    }),
-    [averageHeartRate, caloriesKcal, distanceKm, durationSeconds, elevationMeters, pace, sportType],
-  );
-
-  const renderCardCanvas = useCallback(async () => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!canvas || !ctx) return false;
-
-    const { width, height } = getStoryDimensions(selectedTheme);
-    canvas.width = width;
-    canvas.height = height;
-    ctx.clearRect(0, 0, width, height);
-
-    const palette = drawStoryBackground(ctx, selectedTheme, width, height);
-
-    if (mode === 'workout') {
-      drawWorkoutStory(ctx, palette, {
-        title,
-        sportType,
-        theme: selectedTheme,
-        width,
-        height,
-        distanceKm,
-        durationSeconds,
-        pace,
-        averageHeartRate,
-        caloriesKcal,
-        elevationMeters,
-        dateText,
-        selectedMetrics: selectedWorkoutMetrics,
-      });
-    } else if (mode === 'weekly' && weeklyData) {
-      if (selectedTheme === 'month-overlay') {
-        drawMonthRecapOverlay(ctx, palette, { width, height, ...weeklyData });
-      } else if (selectedTheme === 'calendar-dots') {
-        drawWeeklyRecapCalendar(ctx, palette, { width, height, ...weeklyData });
-      } else {
-        drawWeeklyRecapStory(ctx, palette, { width, height, ...weeklyData });
-      }
-    } else if (score !== null) {
-      drawRecoveryStory(ctx, palette, {
-        width,
-        height,
-        score,
-        label: recoveryLabel,
-        sleepMinutes,
-        strainScore,
-        dateText,
-      });
-    }
-
-    setDataUrl(canvas.toDataURL('image/png'));
-    return true;
-  }, [
-    averageHeartRate,
-    caloriesKcal,
-    dateText,
-    distanceKm,
-    durationSeconds,
-    elevationMeters,
-    mode,
-    pace,
-    recoveryLabel,
-    score,
-    selectedWorkoutMetrics,
-    selectedTheme,
-    sleepMinutes,
+  const sportType = workoutData?.type ?? (workoutData?.isStrength ? 'strength' : 'workout');
+  const availableWorkoutMetrics = useMemo(() => workoutData ? getAvailableWorkoutMetrics({
     sportType,
-    strainScore,
-    title,
-    weeklyData,
-  ]);
+    distanceKm: workoutData.distanceKm,
+    durationSeconds: workoutData.durationSeconds,
+    pace: workoutData.paceFormatted,
+    averageHeartRate: workoutData.avgHeartRateBpm,
+    caloriesKcal: workoutData.caloriesKcal,
+    elevationMeters: workoutData.elevationMeters,
+    loadScore: workoutData.loadScore,
+  }) : [], [sportType, workoutData]);
+
+  const composition = useMemo<ShareComposition | null>(() => {
+    if (mode === 'workout' && workoutData) return workoutShareComposition(workoutData, selectedWorkoutMetrics);
+    if (mode === 'weekly' && weeklyData) return weeklyShareComposition(weeklyData);
+    if (context && (mode === 'today' || mode === 'recovery')) {
+      return todayContent === 'today'
+        ? todayShareComposition(context, energyReserve)
+        : recoveryShareComposition(context, energyReserve);
+    }
+    return null;
+  }, [context, energyReserve, mode, selectedWorkoutMetrics, todayContent, weeklyData, workoutData]);
+
+  const showPreview = useCallback((blob: Blob) => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    const nextUrl = URL.createObjectURL(blob);
+    previewUrlRef.current = nextUrl;
+    setImageBlob(blob);
+    setPreviewUrl(nextUrl);
+  }, []);
 
   const prepareStory = useCallback(async () => {
-    setGenerating(true);
-    try {
-      await renderCardCanvas();
-    } finally {
+    if (!canvasRef.current || !composition) {
+      setImageBlob(null);
+      setPreviewUrl(null);
+      return;
+    }
+    const generation = ++generationRef.current;
+    const cacheKey = JSON.stringify({ composition, layout, treatment, background });
+    const cached = renderCacheRef.current.get(cacheKey);
+    if (cached) {
+      showPreview(cached);
+      recordPerformanceDiagnostic('share_render', 0, 'skipped', 'Prepared image cache hit', 'prepared');
       setGenerating(false);
+      return;
     }
-  }, [renderCardCanvas]);
+    if (!imageBlob) setGenerating(true);
+    const startedAt = performance.now();
+    try {
+      if (document.fonts?.ready) await document.fonts.ready;
+      renderShareComposition(canvasRef.current, composition, { layout, treatment, background });
+      const blob = await canvasToBlob(canvasRef.current);
+      if (generation !== generationRef.current) return;
+      renderCacheRef.current.set(cacheKey, blob);
+      while (renderCacheRef.current.size > 6) {
+        const oldest = renderCacheRef.current.keys().next().value as string | undefined;
+        if (!oldest) break;
+        renderCacheRef.current.delete(oldest);
+      }
+      showPreview(blob);
+      recordPerformanceDiagnostic('share_render', performance.now() - startedAt, 'success', `${layout} · ${background}`, 'live');
+    } catch (error) {
+      recordPerformanceDiagnostic('share_render', performance.now() - startedAt, 'failed', error instanceof Error ? error.message : 'Render failed');
+      throw error;
+    } finally {
+      if (generation === generationRef.current) setGenerating(false);
+    }
+  }, [background, composition, imageBlob, layout, showPreview, treatment]);
 
   useEffect(() => {
     if (!isOpen) return;
-    setSelectedTheme(mode === 'workout'
-      ? 'transparent-overlay'
-      : mode === 'weekly' && weeklyData?.period === 'month'
-        ? 'month-overlay'
-        : 'minimal-glass');
-    if (mode === 'workout') {
-      setSelectedWorkoutMetrics(availableWorkoutMetrics.slice(0, 3).map((metric) => metric.key));
-    }
-  }, [availableWorkoutMetrics, isOpen, mode, weeklyData?.period]);
+    setLayout('signature');
+    setTreatment('light');
+    setBackground('transparent');
+    setTodayContent(mode === 'recovery' ? 'recovery' : 'today');
+    if (mode === 'workout') setSelectedWorkoutMetrics(availableWorkoutMetrics.slice(0, 3).map((metric) => metric.key));
+  }, [availableWorkoutMetrics, isOpen, mode]);
 
   useEffect(() => {
     if (!isOpen) return;
-    const frame = window.requestAnimationFrame(() => {
-      void prepareStory();
-    });
+    const frame = window.requestAnimationFrame(() => void prepareStory());
     return () => window.cancelAnimationFrame(frame);
   }, [isOpen, prepareStory]);
 
-  const selectTheme = (theme: ShareTheme) => {
-    void hapticImpact();
-    setSelectedTheme(theme);
-  };
+  useEffect(() => {
+    if (isOpen) return;
+    generationRef.current += 1;
+    renderCacheRef.current.clear();
+    setImageBlob(null);
+    setPreviewUrl(null);
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    previewUrlRef.current = null;
+  }, [isOpen]);
 
-  const stepTheme = (direction: 1 | -1) => {
-    const nextIndex = themeIndex + direction;
-    if (nextIndex < 0 || nextIndex >= themeOptions.length) return;
-    selectTheme(themeOptions[nextIndex].theme);
-  };
-
-  const SWIPE_THRESHOLD_PX = 45;
-
-  const handlePreviewTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
-    const touch = event.touches[0];
-    swipeStartRef.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
-  };
-
-  const handlePreviewTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
-    const start = swipeStartRef.current;
-    swipeStartRef.current = null;
-    const touch = event.changedTouches[0];
-    if (!start || !touch) return;
-    const deltaX = touch.clientX - start.x;
-    const deltaY = touch.clientY - start.y;
-    if (Math.abs(deltaX) < SWIPE_THRESHOLD_PX || Math.abs(deltaX) < Math.abs(deltaY)) return;
-    stepTheme(deltaX < 0 ? 1 : -1);
-  };
+  useEffect(() => () => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    renderCacheRef.current.clear();
+  }, []);
 
   const showToast = (message: string, durationMs = 2600) => {
     setToastMessage(message);
     window.setTimeout(() => setToastMessage(null), durationMs);
   };
 
-  const showOverlayInfo = () => {
+  const setOption = <T,>(setter: React.Dispatch<React.SetStateAction<T>>, value: T) => {
     void hapticImpact();
-    showToast(
-      'Layer this over your own photo or video in Instagram/Facebook Stories. Saving it directly may show as solid black in apps that do not support transparency.',
-      4200,
-    );
+    setter(value);
   };
 
   const toggleWorkoutMetric = (metric: WorkoutMetricKey) => {
     void hapticImpact();
     setSelectedWorkoutMetrics((current) => {
       if (current.includes(metric)) {
-        if (current.length === 1) {
-          showToast('Keep at least one detail');
-          return current;
-        }
+        if (current.length === 1) { showToast('Keep at least one metric'); return current; }
         return current.filter((key) => key !== metric);
       }
-      if (current.length >= 3) {
-        showToast('Choose up to 3 details');
-        return current;
-      }
+      if (current.length >= 3) { showToast('Choose up to 3 metrics'); return current; }
       const next = new Set([...current, metric]);
       return WORKOUT_METRIC_ORDER.filter((key) => next.has(key));
     });
   };
 
+  const fileName = () => `RunMate-${composition?.kind ?? 'Story'}-${Date.now()}.png`;
+
   const saveImage = async () => {
-    if (!dataUrl) return;
+    if (!imageBlob) return;
     void hapticImpact();
-    const fileName = `RunMate-${mode === 'workout' ? 'Workout' : mode === 'weekly' ? 'Recap' : 'Recovery'}-${Date.now()}.png`;
-    const savedMessage = isTransparentTheme(selectedTheme)
-      ? 'Saved (Transparent Background)'
-      : 'Saved To Pictures / RunMate';
+    const startedAt = performance.now();
     if (canSaveStoryImageNatively()) {
       try {
-        await saveStoryImageNatively(dataUrl, fileName);
+        const dataUrl = await blobToDataUrl(imageBlob);
+        await saveStoryImageNatively(dataUrl, fileName());
+        recordPerformanceDiagnostic('share_export', performance.now() - startedAt, 'success', 'Android MediaStore', 'live');
         void hapticNotification();
-        showToast(savedMessage);
-      } catch {
+        showToast(background === 'transparent' ? 'Transparent PNG Saved' : 'Saved To Pictures / RunMate');
+      } catch (error) {
+        recordPerformanceDiagnostic('share_export', performance.now() - startedAt, 'failed', error instanceof Error ? error.message : 'Save failed');
         showToast('Could Not Save Image');
       }
       return;
     }
     const link = document.createElement('a');
-    link.download = fileName;
-    link.href = dataUrl;
+    link.download = fileName();
+    link.href = URL.createObjectURL(imageBlob);
     link.click();
+    window.setTimeout(() => URL.revokeObjectURL(link.href), 0);
+    recordPerformanceDiagnostic('share_export', performance.now() - startedAt, 'success', 'Browser download', 'live');
     void hapticNotification();
-    showToast(isTransparentTheme(selectedTheme) ? savedMessage : 'Story image saved');
+    showToast('Story Image Saved');
   };
 
   const shareImage = async () => {
-    if (!dataUrl) return;
+    if (!imageBlob || !composition) return;
     void hapticImpact();
+    const startedAt = performance.now();
     try {
-      const response = await fetch(dataUrl);
-      const file = new File([await response.blob()], 'runmate-story.png', { type: 'image/png' });
+      const file = new File([imageBlob], 'runmate-story.png', { type: 'image/png' });
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          title: mode === 'workout' ? 'RunMate Workout' : mode === 'weekly' ? 'RunMate Recap' : 'RunMate Recovery',
-          text: mode === 'workout'
-            ? `${title}${distanceKm ? ` · ${distanceKm.toFixed(2)} km` : ''}`
-            : mode === 'weekly'
-              ? `${weeklyData?.periodTitle ?? 'Your Recap'}${weeklyData?.recoveryAverage != null ? ` · Recovery ${weeklyData.recoveryAverage}/100` : ''}`
-              : `Recovery ${score ?? '—'}/100`,
-          files: [file],
-        });
+        await navigator.share({ title: `RunMate ${composition.eyebrow}`, text: composition.accessibleDescription, files: [file] });
+        recordPerformanceDiagnostic('share_export', performance.now() - startedAt, 'success', 'Web Share', 'live');
         void hapticNotification();
         return;
       }
-      await saveImage();
-    } catch {
-      await saveImage();
+    } catch (error) {
+      recordPerformanceDiagnostic('share_export', performance.now() - startedAt, 'failed', error instanceof Error ? error.message : 'Share failed');
     }
+    await saveImage();
   };
 
-  const isReady = Boolean(dataUrl) && !generating;
+  const title = mode === 'workout' ? 'Share Workout' : mode === 'weekly' ? 'Share Recap' : 'Share Today';
+  const ready = Boolean(imageBlob && composition) && !generating;
 
   return (
-    <IonModal
-      isOpen={isOpen}
-      onDidPresent={() => void prepareStory()}
-      onDidDismiss={onDismiss}
-      className="social-share-modal"
-    >
+    <IonModal isOpen={isOpen} onDidPresent={() => void prepareStory()} onDidDismiss={onDismiss} className="social-share-modal">
       <IonHeader translucent className="social-share-header">
         <div className="social-share-sheet-handle" aria-hidden="true" />
         <IonToolbar>
-          <IonTitle>{mode === 'workout' ? 'Share Workout' : mode === 'weekly' ? 'Share Recap' : 'Share Recovery'}</IonTitle>
-          <IonButtons slot="end">
-            <IonButton onClick={onDismiss} aria-label="Close Share">
-              <IonIcon icon={closeOutline} />
-            </IonButton>
-          </IonButtons>
+          <IonTitle>{title}</IonTitle>
+          <IonButtons slot="end"><IonButton onClick={onDismiss} aria-label="Close Share"><IonIcon icon={closeOutline} /></IonButton></IonButtons>
         </IonToolbar>
       </IonHeader>
-
       <IonContent className="social-share-content">
         <div className="social-share-shell">
-          <div
-            className={`social-share-preview-container ${isTransparentTheme(selectedTheme) ? 'transparent-grid' : ''}`}
-            onTouchStart={handlePreviewTouchStart}
-            onTouchEnd={handlePreviewTouchEnd}
-          >
-            {generating && (
-              <div className="social-share-loading" role="status">
-                <IonSpinner name="crescent" />
-                <p>Preparing Story</p>
-              </div>
-            )}
-            <canvas ref={canvasRef} className="social-share-canvas" hidden />
-            {dataUrl && <img src={dataUrl} alt="RunMate Story Preview" className="social-share-preview-img" draggable={false} />}
+          <div className={`social-share-preview-container${background === 'transparent' ? ' transparent-grid' : ''}`}>
+            {generating && !previewUrl && <div className="social-share-loading" role="status"><IonSpinner name="crescent" /><p>Preparing Story</p></div>}
+            <canvas ref={canvasRef} hidden />
+            {previewUrl && <img src={previewUrl} alt={composition?.accessibleDescription ?? 'RunMate Story preview'} className="social-share-preview-img" draggable={false} />}
           </div>
 
-          <div className="social-share-theme-slider" aria-labelledby="story-style-label">
-            <div className="social-share-theme-current-row">
-              <p id="story-style-label" className="social-share-theme-current">{themeOptions[themeIndex]?.label}</p>
-              {isTransparentTheme(selectedTheme) && (
-                <button type="button" className="theme-info-btn" aria-label="About Transparent Background" onClick={showOverlayInfo}>
-                  <IonIcon icon={informationCircleOutline} />
-                </button>
-              )}
-            </div>
-            <div className="social-share-theme-dots">
-              {themeOptions.map((option, index) => (
-                <button
-                  key={option.theme}
-                  type="button"
-                  className={`theme-dot${index === themeIndex ? ' active' : ''}`}
-                  aria-label={`Background Style: ${option.label}`}
-                  aria-pressed={index === themeIndex}
-                  onClick={() => selectTheme(option.theme)}
-                />
-              ))}
-            </div>
-            <p className="social-share-theme-hint">Swipe The Preview To Change Background</p>
+          <div className="social-share-export-note">
+            <strong>{background === 'transparent' ? 'Transparent PNG' : 'Soft Canvas'}</strong>
+            {background === 'transparent' && <button type="button" onClick={() => showToast('Add this PNG over a photo or video. Some apps may flatten transparency when opened directly.', 4200)} aria-label="About Transparent PNG"><IonIcon icon={informationCircleOutline} /></button>}
+            <span>1080 × 1920 · Story</span>
           </div>
 
-          {mode === 'workout' && availableWorkoutMetrics.length > 0 && (
-            <div className="social-share-controls">
-              <section className="social-share-detail-selector" aria-labelledby="story-details-label">
-                <div className="social-share-selector-heading">
-                  <p id="story-details-label">Workout Metrics</p>
-                  <span>Select 1–3</span>
-                </div>
-                <p className="social-share-selector-note">The top active metric is shown largest.</p>
-                <div className="social-share-detail-chips">
-                  {availableWorkoutMetrics.map((metric) => {
-                    const active = selectedWorkoutMetrics.includes(metric.key);
-                    return (
-                      <button
-                        type="button"
-                        key={metric.key}
-                        className={`detail-chip${active ? ' active' : ''}`}
-                        aria-pressed={active}
-                        onClick={() => toggleWorkoutMetric(metric.key)}
-                      >
-                        <span aria-hidden="true">{active && <IonIcon icon={checkmarkOutline} />}</span>
-                        {metric.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
+          <div className="social-share-controls">
+            {(mode === 'today' || mode === 'recovery') && <ControlGroup label="Share">
+              <OptionRow options={[{ value: 'today', label: 'Today' }, { value: 'recovery', label: 'Recovery' }]} value={todayContent} onChange={(value) => setOption(setTodayContent, value as TodayContent)} />
+            </ControlGroup>}
+            <ControlGroup label="Layout">
+              <OptionRow options={layouts} value={layout} onChange={(value) => setOption(setLayout, value as ShareLayout)} />
+            </ControlGroup>
+            <div className="social-share-control-grid">
+              <ControlGroup label="Text"><OptionRow options={[{ value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }]} value={treatment} onChange={(value) => setOption(setTreatment, value as ShareTextTreatment)} /></ControlGroup>
+              <ControlGroup label="Canvas"><OptionRow options={[{ value: 'transparent', label: 'Clear' }, { value: 'soft', label: 'Soft' }]} value={background} onChange={(value) => setOption(setBackground, value as ShareBackground)} /></ControlGroup>
             </div>
-          )}
+            {mode === 'workout' && availableWorkoutMetrics.length > 0 && <ControlGroup label="Workout Metrics" hint="Choose 1–3">
+              <div className="social-share-metric-chips">{availableWorkoutMetrics.map((metric) => {
+                const active = selectedWorkoutMetrics.includes(metric.key);
+                return <button key={metric.key} type="button" className={active ? 'active' : ''} aria-pressed={active} onClick={() => toggleWorkoutMetric(metric.key)}><IonIcon icon={checkmarkOutline} />{metric.label}</button>;
+              })}</div>
+            </ControlGroup>}
+          </div>
 
           <div className="social-share-actions">
-            <button type="button" className="share-action-btn primary" disabled={!isReady} onClick={() => void shareImage()}>
-              <IonIcon icon={shareSocialOutline} /> Share
-            </button>
-            <button type="button" className="share-action-btn secondary" disabled={!isReady} onClick={() => void saveImage()}>
-              <IonIcon icon={downloadOutline} /> Save
-            </button>
+            <button type="button" className="share-action-btn primary" disabled={!ready} onClick={() => void shareImage()}><IonIcon icon={shareSocialOutline} /> Share</button>
+            <button type="button" className="share-action-btn secondary" disabled={!ready} onClick={() => void saveImage()}><IonIcon icon={downloadOutline} /> Save</button>
           </div>
-
           {toastMessage && <div className="social-share-toast" role="status">{toastMessage}</div>}
         </div>
       </IonContent>
@@ -483,691 +292,22 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
   );
 };
 
+const ControlGroup: React.FC<{ label: string; hint?: string; children: React.ReactNode }> = ({ label, hint, children }) => <section className="social-share-control-group"><header><strong>{label}</strong>{hint && <span>{hint}</span>}</header>{children}</section>;
 
-function drawStoryBackground(
-  ctx: CanvasRenderingContext2D,
-  theme: ShareTheme,
-  width: number,
-  height: number,
-): CanvasPalette {
-  if (isTransparentTheme(theme)) {
-    ctx.clearRect(0, 0, width, height);
-    return darkPalette();
-  }
+const OptionRow: React.FC<{ options: Array<{ value: string; label: string }>; value: string; onChange: (value: string) => void }> = ({ options, value, onChange }) => <div className="social-share-option-row">{options.map((option) => <button key={option.value} type="button" className={option.value === value ? 'active' : ''} aria-pressed={option.value === value} onClick={() => onChange(option.value)}>{option.label}</button>)}</div>;
 
-  if (theme === 'ultra-minimal' || theme === 'compact-row') {
-    const background = ctx.createLinearGradient(0, 0, 0, height);
-    background.addColorStop(0, '#0c131a');
-    background.addColorStop(1, '#05090d');
-    ctx.fillStyle = background;
-    ctx.fillRect(0, 0, width, height);
-    return {
-      text: '#ffffff',
-      muted: 'rgba(255, 255, 255, 0.72)',
-      faint: 'rgba(255, 255, 255, 0.45)',
-      accent: '#00f0ff',
-      hairline: 'rgba(255, 255, 255, 0.12)',
-    };
-  }
-
-  if (theme === 'minimal-glass' || theme === 'sunrise-fresh') {
-    const background = ctx.createLinearGradient(0, 0, width, height);
-    background.addColorStop(0, '#f5fbfd');
-    background.addColorStop(1, '#dceff4');
-    ctx.fillStyle = background;
-    ctx.fillRect(0, 0, width, height);
-    return {
-      text: '#102c43',
-      muted: 'rgba(16, 44, 67, .66)',
-      faint: 'rgba(16, 44, 67, .42)',
-      accent: '#138fb1',
-      hairline: 'rgba(16, 44, 67, .14)',
-    };
-  }
-
-  const background = ctx.createLinearGradient(0, 0, 0, height);
-  background.addColorStop(0, '#10263a');
-  background.addColorStop(1, '#08131f');
-  ctx.fillStyle = background;
-  ctx.fillRect(0, 0, width, height);
-  return darkPalette();
+function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise((resolve, reject) => canvas.toBlob((blob) => {
+    if (blob) resolve(blob);
+    else reject(new Error('Could not encode PNG'));
+  }, 'image/png'));
 }
 
-function darkPalette(): CanvasPalette {
-  return {
-    text: '#ffffff',
-    muted: 'rgba(255, 255, 255, .85)',
-    faint: 'rgba(255, 255, 255, .75)',
-    accent: '#00f0ff',
-    hairline: 'rgba(255, 255, 255, .35)',
-  };
-}
-
-function drawWorkoutStory(
-  ctx: CanvasRenderingContext2D,
-  palette: CanvasPalette,
-  data: {
-    title: string;
-    sportType: SportType;
-    theme: ShareTheme;
-    width: number;
-    height: number;
-    distanceKm?: number;
-    durationSeconds: number;
-    pace?: string;
-    averageHeartRate?: number;
-    caloriesKcal?: number;
-    elevationMeters?: number;
-    dateText: string;
-    selectedMetrics: WorkoutMetricKey[];
-  },
-) {
-  const metrics = getAvailableWorkoutMetrics(data)
-    .filter((metric) => data.selectedMetrics.includes(metric.key));
-  const centerX = data.width / 2;
-
-  // Lay everything out at these fixed offsets first, then shift the whole
-  // block up/down so the empty space above the accent dot matches the empty
-  // space below the logo, instead of always leaving a big gap up top.
-  const isHorizontal = data.theme === 'compact-row' || data.theme === 'compact-row-overlay';
-  const signatureScale = 0.85;
-
-  if (isHorizontal) {
-    // Horizontal layout: sport logo above, metrics row below, vertically
-    // centered as a block within the shorter landscape canvas.
-    const logoY = Math.round(data.height * 0.31);
-    const metricsY = Math.round(data.height * 0.67);
-
-    ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
-    ctx.shadowBlur = 10;
-    ctx.shadowOffsetY = 2;
-
-    drawSportSignature(ctx, palette, data.sportType, centerX, logoY, signatureScale);
-    drawWorkoutMetricRow(ctx, palette, metrics, centerX, data.width, metricsY);
-    ctx.restore();
-  } else {
-    // Vertical stacked layout
-    const blockHeight = 250;
-    const baseAccentY = 372;
-    const baseMetricsStartY = baseAccentY + 60;
-    const metricsGap = 140;
-    const signatureTextExtra = 138 * signatureScale + 40;
-    const baseSignatureY = metrics.length > 0 ? baseMetricsStartY + metrics.length * blockHeight + metricsGap : 950;
-    const contentTop = baseAccentY - 20;
-    const contentBottom = baseSignatureY + signatureTextExtra;
-    const delta = (data.height - (contentBottom - contentTop)) / 2 - contentTop;
-
-    const accentY = baseAccentY + delta;
-    const metricsStartY = baseMetricsStartY + delta;
-    const signatureY = baseSignatureY + delta;
-
-    ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
-    ctx.shadowBlur = 10;
-    ctx.shadowOffsetY = 2;
-
-    ctx.strokeStyle = palette.accent;
-    ctx.lineWidth = 6;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(centerX - 55, accentY);
-    ctx.lineTo(centerX + 55, accentY);
-    ctx.stroke();
-    ctx.fillStyle = palette.accent;
-    ctx.beginPath();
-    ctx.arc(centerX, accentY, 9, 0, Math.PI * 2);
-    ctx.fill();
-
-    drawWorkoutMetricColumn(ctx, palette, metrics, centerX, metricsStartY, blockHeight);
-    drawSportSignature(ctx, palette, data.sportType, centerX, signatureY, signatureScale);
-    ctx.restore();
-  }
-}
-
-function cleanMetricLabel(label: string): string {
-  return label
-    .replace(/^AVERAGE\s+/i, 'AVG ')
-    .replace(/^AVG\.\s+/i, 'AVG ')
-    .toUpperCase();
-}
-
-/** Stacks each selected metric on its own row with unit below the value. */
-function drawWorkoutMetricColumn(ctx: CanvasRenderingContext2D, palette: CanvasPalette, metrics: StoryMetric[], centerX: number, startY: number, blockHeight: number) {
-  if (metrics.length === 0) return;
-  const valueSize = 104;
-  const labelSize = 30;
-  const unitSize = 28;
-
-  ctx.save();
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
-  ctx.shadowBlur = 12;
-  ctx.shadowOffsetY = 2;
-
-  metrics.forEach((metric, index) => {
-    const blockTop = startY + index * blockHeight;
-    ctx.textAlign = 'center';
-    ctx.fillStyle = palette.faint;
-    ctx.font = `600 ${labelSize}px ${STORY_FONT}`;
-    ctx.fillText(cleanMetricLabel(metric.label), centerX, blockTop + 32);
-    ctx.fillStyle = palette.text;
-    ctx.font = `700 ${valueSize}px ${STORY_FONT}`;
-    ctx.fillText(metric.value, centerX, blockTop + 150);
-    if (metric.unit) {
-      ctx.fillStyle = palette.accent;
-      ctx.font = `600 ${unitSize}px ${STORY_FONT}`;
-      ctx.fillText(metric.unit, centerX, blockTop + 200);
-    }
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Could not encode image'));
+    reader.onerror = () => reject(reader.error ?? new Error('Could not encode image'));
+    reader.readAsDataURL(blob);
   });
-  ctx.restore();
-}
-
-/** Draws metrics in a horizontal row (side by side columns). */
-function drawWorkoutMetricRow(ctx: CanvasRenderingContext2D, palette: CanvasPalette, metrics: StoryMetric[], centerX: number, canvasWidth: number, y: number) {
-  if (metrics.length === 0) return;
-  const totalWidth = Math.min(1300, canvasWidth - 160);
-  const left = centerX - totalWidth / 2;
-  const colWidth = totalWidth / metrics.length;
-  const valueSize = metrics.length <= 2 ? 80 : 64;
-  const unitSize = metrics.length <= 2 ? 22 : 18;
-  const labelSize = 26;
-
-  ctx.save();
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
-  ctx.shadowBlur = 12;
-  ctx.shadowOffsetY = 2;
-
-  metrics.forEach((metric, index) => {
-    const colCenter = left + colWidth * index + colWidth / 2;
-    ctx.textAlign = 'center';
-    ctx.fillStyle = palette.faint;
-    ctx.font = `600 ${labelSize}px ${STORY_FONT}`;
-    ctx.fillText(cleanMetricLabel(metric.label), colCenter, y);
-    ctx.fillStyle = palette.text;
-    ctx.font = `700 ${valueSize}px ${STORY_FONT}`;
-    ctx.fillText(metric.value, colCenter, y + 72);
-    if (metric.unit) {
-      ctx.fillStyle = palette.accent;
-      ctx.font = `600 ${unitSize}px ${STORY_FONT}`;
-      ctx.fillText(metric.unit, colCenter, y + 108);
-    }
-  });
-  ctx.restore();
-}
-
-
-
-function drawRecoveryStory(
-  ctx: CanvasRenderingContext2D,
-  palette: CanvasPalette,
-  data: { width: number; height: number; score: number; label: string; sleepMinutes: number | null; strainScore: number | null; dateText: string },
-) {
-  drawStoryHeader(ctx, palette, 'Recovery', data.dateText);
-
-  const centerX = data.width / 2;
-  const centerY = 690;
-  const radius = 210;
-  ctx.lineWidth = 18;
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = palette.hairline;
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-  ctx.stroke();
-
-  const accent = recoveryAccent(data.score);
-  ctx.strokeStyle = accent;
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, radius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, Math.min(100, data.score)) / 100);
-  ctx.stroke();
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = palette.text;
-  ctx.font = `700 178px ${STORY_FONT}`;
-  ctx.fillText(`${data.score}`, centerX, centerY + 45);
-  ctx.fillStyle = palette.muted;
-  ctx.font = `600 26px ${STORY_FONT}`;
-  ctx.fillText('RECOVERY / 100', centerX, centerY + 105);
-  ctx.fillStyle = accent;
-  ctx.font = `700 30px ${STORY_FONT}`;
-  ctx.fillText(data.label, centerX, centerY + 290);
-
-  const metrics: StoryMetric[] = [];
-  if (data.sleepMinutes !== null) metrics.push({ label: 'SLEEP', value: formatSleep(data.sleepMinutes) });
-  if (data.strainScore !== null) metrics.push({ label: 'STRAIN', value: data.strainScore.toFixed(1), unit: '/21' });
-  drawMetricRow(ctx, palette, metrics, centerX, 1200);
-  drawFooter(ctx, palette, centerX);
-}
-
-function drawWeeklyRecapStory(
-  ctx: CanvasRenderingContext2D,
-  palette: CanvasPalette,
-  data: WeeklyRecapHighlights & { width: number; height: number },
-) {
-  drawStoryHeader(ctx, palette, data.periodTitle, data.dateRangeLabel);
-
-  const centerX = data.width / 2;
-  const centerY = 690;
-  const radius = 210;
-  ctx.lineWidth = 18;
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = palette.hairline;
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-  ctx.stroke();
-
-  const hasRecovery = data.recoveryAverage !== null;
-  const accent = hasRecovery ? recoveryAccent(data.recoveryAverage as number) : palette.faint;
-  if (hasRecovery) {
-    ctx.strokeStyle = accent;
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * Math.max(0, Math.min(100, data.recoveryAverage as number))) / 100);
-    ctx.stroke();
-  }
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = palette.text;
-  ctx.font = `700 178px ${STORY_FONT}`;
-  ctx.fillText(hasRecovery ? `${data.recoveryAverage}` : '—', centerX, centerY + 45);
-  ctx.fillStyle = palette.muted;
-  ctx.font = `600 26px ${STORY_FONT}`;
-  ctx.fillText('AVG RECOVERY / 100', centerX, centerY + 105);
-  ctx.fillStyle = accent;
-  ctx.font = `700 30px ${STORY_FONT}`;
-  ctx.fillText(data.recoveryInsightTitle, centerX, centerY + 290);
-
-  const topMetrics: StoryMetric[] = [
-    { label: 'SLEEP BEST', value: data.sleepBestScore !== null ? `${data.sleepBestScore}` : '—' },
-    { label: 'ADHERENCE', value: data.adherencePlanned > 0 ? `${data.adherencePercentage}%` : '—' },
-    { label: 'SESSIONS', value: `${data.sessions}` },
-  ];
-  drawMetricRow(ctx, palette, topMetrics, centerX, 1160);
-
-  const bottomMetrics: StoryMetric[] = [
-    { label: 'DISTANCE', value: data.distanceKm.toFixed(1), unit: 'km' },
-    { label: 'ACTIVE TIME', value: formatSleep(data.activeMinutes) },
-  ];
-  drawMetricRow(ctx, palette, bottomMetrics, centerX, 1340);
-
-  drawFooter(ctx, palette, centerX);
-}
-
-/** Compact transparent month overlay designed to sit over a user's own Story photo or video. */
-function drawMonthRecapOverlay(
-  ctx: CanvasRenderingContext2D,
-  palette: CanvasPalette,
-  data: WeeklyRecapHighlights & { width: number; height: number },
-) {
-  const centerX = data.width / 2;
-  const plateX = 62;
-  const plateY = 390;
-  const plateWidth = data.width - plateX * 2;
-  const plateHeight = 720;
-
-  ctx.save();
-  ctx.shadowColor = 'rgba(0, 0, 0, .42)';
-  ctx.shadowBlur = 28;
-  ctx.shadowOffsetY = 8;
-  ctx.fillStyle = 'rgba(7, 24, 35, .72)';
-  ctx.beginPath();
-  ctx.roundRect(plateX, plateY, plateWidth, plateHeight, 42);
-  ctx.fill();
-  ctx.restore();
-
-  ctx.textAlign = 'left';
-  ctx.fillStyle = palette.accent;
-  ctx.font = `700 22px ${STORY_FONT}`;
-  ctx.fillText('RUNMATE · MONTH IN MOTION', plateX + 48, plateY + 70);
-
-  ctx.fillStyle = palette.text;
-  ctx.font = `700 54px ${STORY_FONT}`;
-  ctx.fillText(data.periodTitle.toUpperCase(), plateX + 48, plateY + 145);
-  ctx.fillStyle = palette.muted;
-  ctx.font = `500 24px ${STORY_FONT}`;
-  ctx.fillText(data.dateRangeLabel, plateX + 48, plateY + 188);
-
-  ctx.strokeStyle = 'rgba(255, 255, 255, .18)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(plateX + 48, plateY + 230);
-  ctx.lineTo(plateX + plateWidth - 48, plateY + 230);
-  ctx.stroke();
-
-  const heroValue = data.distanceKm > 0 ? data.distanceKm.toFixed(1) : formatSleep(data.activeMinutes);
-  const heroUnit = data.distanceKm > 0 ? 'KM RUNNING' : 'ACTIVE TIME';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = palette.text;
-  ctx.font = `700 130px ${STORY_FONT}`;
-  ctx.fillText(heroValue, centerX, plateY + 410);
-  ctx.fillStyle = palette.accent;
-  ctx.font = `700 23px ${STORY_FONT}`;
-  ctx.fillText(heroUnit, centerX, plateY + 455);
-
-  const metrics: StoryMetric[] = [
-    { label: 'SESSIONS', value: String(data.sessions) },
-    { label: 'ACTIVE TIME', value: formatSleep(data.activeMinutes) },
-    { label: 'ACTIVE DAYS', value: String(data.activeDateKeys.length) },
-  ];
-  drawMetricRow(ctx, palette, metrics, centerX, plateY + 555);
-
-  const caption = data.topTrainingMixLabel
-    ? `${data.topTrainingMixLabel} led the month`
-    : 'Built one day at a time';
-  ctx.strokeStyle = 'rgba(255, 255, 255, .14)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(plateX + 48, plateY + 625);
-  ctx.lineTo(plateX + plateWidth - 48, plateY + 625);
-  ctx.stroke();
-
-  ctx.textAlign = 'left';
-  ctx.fillStyle = palette.muted;
-  ctx.font = `500 22px ${STORY_FONT}`;
-  ctx.fillText(caption, plateX + 48, plateY + 680);
-
-  ctx.textAlign = 'right';
-  ctx.fillStyle = palette.text;
-  ctx.font = `700 22px ${STORY_FONT}`;
-  ctx.fillText('RUNMATE', plateX + plateWidth - 48, plateY + 680);
-}
-
-/** Calendar grid: one dot per day of the period, filled solid for days with a workout, hollow otherwise. */
-function drawWeeklyRecapCalendar(
-  ctx: CanvasRenderingContext2D,
-  palette: CanvasPalette,
-  data: WeeklyRecapHighlights & { width: number; height: number },
-) {
-  drawStoryHeader(ctx, palette, data.periodTitle, data.dateRangeLabel);
-
-  const centerX = data.width / 2;
-  const gridWidth = Math.min(700, data.width - 100);
-  const left = centerX - gridWidth / 2;
-  const cellSize = gridWidth / 7;
-  const activeDates = new Set(data.activeDateKeys);
-  const weekdayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-  const gridTop = 420;
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = palette.faint;
-  ctx.font = `700 22px ${STORY_FONT}`;
-  weekdayLabels.forEach((label, index) => {
-    ctx.fillText(label, left + cellSize * index + cellSize / 2, gridTop - 24);
-  });
-
-  const dotRadius = Math.min(24, cellSize * 0.32);
-  data.periodDates.forEach((date, index) => {
-    const slot = data.periodStartWeekday + index;
-    const column = slot % 7;
-    const row = Math.floor(slot / 7);
-    const x = left + cellSize * column + cellSize / 2;
-    const y = gridTop + cellSize * row + cellSize / 2;
-    const dayNumber = Number(date.slice(8, 10));
-    const isActive = activeDates.has(date);
-
-    ctx.beginPath();
-    ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
-    if (isActive) {
-      ctx.fillStyle = palette.accent;
-      ctx.fill();
-    } else {
-      ctx.strokeStyle = palette.hairline;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    ctx.fillStyle = isActive ? '#0b1a26' : palette.faint;
-    ctx.font = `700 ${Math.round(dotRadius * 0.8)}px ${STORY_FONT}`;
-    ctx.fillText(String(dayNumber), x, y + dotRadius * 0.3);
-  });
-
-  const rows = Math.ceil((data.periodStartWeekday + data.periodDates.length) / 7);
-  const legendY = gridTop + cellSize * rows + 60;
-  ctx.beginPath();
-  ctx.fillStyle = palette.accent;
-  ctx.arc(centerX - 96, legendY - 8, 10, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.textAlign = 'left';
-  ctx.fillStyle = palette.muted;
-  ctx.font = `600 24px ${STORY_FONT}`;
-  ctx.fillText(`${data.activeDateKeys.length} Training ${data.activeDateKeys.length === 1 ? 'Day' : 'Days'}`, centerX - 76, legendY);
-
-  drawFooter(ctx, palette, centerX);
-}
-
-function drawStoryHeader(ctx: CanvasRenderingContext2D, palette: CanvasPalette, title: string, date: string) {
-  drawFittedText(ctx, title, 110, 230, 860, 54, palette.text, '700');
-  ctx.textAlign = 'left';
-  ctx.fillStyle = palette.muted;
-  ctx.font = `500 24px ${STORY_FONT}`;
-  ctx.fillText(date, 110, 275);
-}
-
-function drawMetricRow(ctx: CanvasRenderingContext2D, palette: CanvasPalette, metrics: StoryMetric[], centerX: number, y: number) {
-  if (metrics.length === 0) return;
-  const width = 860;
-  const left = centerX - width / 2;
-  const columnWidth = width / metrics.length;
-
-  metrics.forEach((metric, index) => {
-    const x = left + columnWidth * index;
-    ctx.textAlign = 'center';
-    const textX = x + columnWidth / 2;
-    ctx.fillStyle = palette.faint;
-    ctx.font = `600 19px ${STORY_FONT}`;
-    ctx.fillText(metric.label, textX, y);
-    ctx.fillStyle = palette.text;
-    ctx.font = `650 42px ${STORY_FONT}`;
-    ctx.fillText(metric.value, textX, y + 66);
-    if (metric.unit) {
-      ctx.fillStyle = palette.accent;
-      ctx.font = `600 26px ${STORY_FONT}`;
-      ctx.fillText(metric.unit, textX, y + 103);
-    }
-  });
-}
-
-function drawFooter(ctx: CanvasRenderingContext2D, palette: CanvasPalette, centerX: number) {
-  const y = 1680;
-  ctx.textAlign = 'center';
-  ctx.fillStyle = palette.muted;
-  ctx.font = `600 28px ${STORY_FONT}`;
-  ctx.fillText('RUNMATE', centerX, y);
-}
-
-function drawSportSignature(
-  ctx: CanvasRenderingContext2D,
-  palette: CanvasPalette,
-  sportType: SportType,
-  centerX: number,
-  centerY: number,
-  scale = 1,
-) {
-  ctx.save();
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
-  ctx.shadowBlur = 12;
-  ctx.shadowOffsetY = 2;
-
-  ctx.translate(centerX, centerY);
-  ctx.scale(scale, scale);
-  ctx.strokeStyle = palette.accent;
-  ctx.fillStyle = palette.accent;
-  ctx.lineWidth = 15;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-
-  switch (sportType) {
-    case 'cycling':
-      drawCyclingGlyph(ctx);
-      break;
-    case 'strength':
-      drawStrengthGlyph(ctx);
-      break;
-    case 'swimming':
-      drawSwimmingGlyph(ctx);
-      break;
-    case 'walking':
-      drawWalkingGlyph(ctx);
-      break;
-    case 'running':
-      drawRunningGlyph(ctx);
-      break;
-    default:
-      drawWorkoutGlyph(ctx);
-      break;
-  }
-
-  ctx.restore();
-  ctx.textAlign = 'center';
-  ctx.fillStyle = palette.text;
-  ctx.font = `700 ${Math.round(30 * scale)}px ${STORY_FONT}`;
-  ctx.fillText('RUNMATE', centerX, centerY + 138 * scale);
-}
-
-function drawCyclingGlyph(ctx: CanvasRenderingContext2D) {
-  strokeCircle(ctx, -78, 32, 48);
-  strokeCircle(ctx, 78, 32, 48);
-  ctx.beginPath();
-  ctx.moveTo(-78, 32);
-  ctx.lineTo(-24, 32);
-  ctx.lineTo(10, -28);
-  ctx.lineTo(48, 32);
-  ctx.lineTo(-24, 32);
-  ctx.lineTo(-4, -8);
-  ctx.lineTo(62, -8);
-  ctx.moveTo(-14, -32);
-  ctx.lineTo(17, -32);
-  ctx.moveTo(48, 32);
-  ctx.lineTo(67, -30);
-  ctx.lineTo(87, -30);
-  ctx.stroke();
-}
-
-function drawStrengthGlyph(ctx: CanvasRenderingContext2D) {
-  ctx.beginPath();
-  ctx.moveTo(-92, 0);
-  ctx.lineTo(92, 0);
-  ctx.stroke();
-  [-72, -48, 48, 72].forEach((x) => {
-    ctx.beginPath();
-    ctx.moveTo(x, -42);
-    ctx.lineTo(x, 42);
-    ctx.stroke();
-  });
-}
-
-function drawSwimmingGlyph(ctx: CanvasRenderingContext2D) {
-  strokeCircle(ctx, -34, -44, 19, true);
-  ctx.beginPath();
-  ctx.moveTo(-12, -27);
-  ctx.lineTo(34, -5);
-  ctx.lineTo(74, -35);
-  ctx.moveTo(-91, 22);
-  ctx.bezierCurveTo(-58, -2, -29, 46, 3, 22);
-  ctx.bezierCurveTo(34, -2, 61, 46, 94, 22);
-  ctx.moveTo(-91, 62);
-  ctx.bezierCurveTo(-58, 38, -29, 86, 3, 62);
-  ctx.bezierCurveTo(34, 38, 61, 86, 94, 62);
-  ctx.stroke();
-}
-
-function drawWalkingGlyph(ctx: CanvasRenderingContext2D) {
-  strokeCircle(ctx, 4, -66, 21, true);
-  ctx.beginPath();
-  ctx.moveTo(-1, -39);
-  ctx.lineTo(-18, 9);
-  ctx.lineTo(-68, 45);
-  ctx.moveTo(-13, -2);
-  ctx.lineTo(38, 18);
-  ctx.lineTo(67, 66);
-  ctx.moveTo(-18, 9);
-  ctx.lineTo(7, 43);
-  ctx.lineTo(-26, 84);
-  ctx.stroke();
-}
-
-function drawRunningGlyph(ctx: CanvasRenderingContext2D) {
-  // A simple running shoe stays recognizable at Story-preview size and avoids
-  // the ambiguous crossed limbs of a small stick-figure runner.
-  ctx.beginPath();
-  ctx.moveTo(-90, 23);
-  ctx.bezierCurveTo(-65, 22, -48, 9, -40, -22);
-  ctx.lineTo(-29, -56);
-  ctx.lineTo(-3, -34);
-  ctx.bezierCurveTo(18, -16, 43, -2, 77, 9);
-  ctx.bezierCurveTo(96, 15, 104, 27, 99, 41);
-  ctx.bezierCurveTo(95, 54, 83, 61, 65, 61);
-  ctx.lineTo(-73, 61);
-  ctx.bezierCurveTo(-94, 61, -105, 50, -103, 38);
-  ctx.bezierCurveTo(-102, 30, -98, 25, -90, 23);
-  ctx.closePath();
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(-92, 34);
-  ctx.lineTo(93, 34);
-  ctx.moveTo(-34, -20);
-  ctx.lineTo(-4, -13);
-  ctx.moveTo(-18, -4);
-  ctx.lineTo(12, 3);
-  ctx.moveTo(-98, 82);
-  ctx.lineTo(-48, 82);
-  ctx.moveTo(-113, 105);
-  ctx.lineTo(-77, 105);
-  ctx.stroke();
-}
-
-function drawWorkoutGlyph(ctx: CanvasRenderingContext2D) {
-  ctx.beginPath();
-  ctx.moveTo(-90, 5);
-  ctx.lineTo(-50, 5);
-  ctx.lineTo(-25, -38);
-  ctx.lineTo(9, 55);
-  ctx.lineTo(40, -5);
-  ctx.lineTo(90, -5);
-  ctx.stroke();
-}
-
-function strokeCircle(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  radius: number,
-  fill = false,
-) {
-  ctx.beginPath();
-  ctx.arc(x, y, radius, 0, Math.PI * 2);
-  if (fill) {
-    ctx.fill();
-  } else {
-    ctx.stroke();
-  }
-}
-
-function drawFittedText(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  y: number,
-  maxWidth: number,
-  maxFontSize: number,
-  color: string,
-  weight: string,
-) {
-  let fontSize = maxFontSize;
-  do {
-    ctx.font = `${weight} ${fontSize}px ${STORY_FONT}`;
-    fontSize -= 2;
-  } while (ctx.measureText(text).width > maxWidth && fontSize > 34);
-  ctx.textAlign = 'left';
-  ctx.fillStyle = color;
-  ctx.fillText(text, x, y);
-}
-
-function recoveryAccent(score: number): string {
-  if (score >= 67) return '#16b894';
-  if (score >= 34) return '#e5a11d';
-  return '#e45d6c';
-}
-
-function formatSleep(minutes: number): string {
-  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 }

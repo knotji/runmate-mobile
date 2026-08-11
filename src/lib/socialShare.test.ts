@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { CoachContext } from '@/lib/buildCoachContext';
-import type { WorkoutShareData } from '@/components/SocialShareModal';
+import type { WorkoutShareData } from '@/lib/shareComposition';
 import { getAvailableWorkoutMetrics } from '@/lib/workoutShareMetrics';
 
 describe('Social Share Story Card', () => {
@@ -54,5 +54,26 @@ describe('Social Share Story Card', () => {
       caloriesKcal: mockWorkout.caloriesKcal,
     });
     expect(metrics).toContainEqual({ key: 'calories', label: 'Calories', value: '612', unit: 'kcal' });
+  });
+
+  it('does not expose running-only metrics for strength sessions', () => {
+    const metrics = getAvailableWorkoutMetrics({
+      sportType: 'strength',
+      distanceKm: 3,
+      durationSeconds: 2400,
+      pace: '5:30/km',
+      loadScore: 62,
+    });
+    expect(metrics.map((metric) => metric.key)).toEqual(['duration', 'load']);
+  });
+
+  it('does not expose pace for cycling sessions', () => {
+    const metrics = getAvailableWorkoutMetrics({
+      sportType: 'cycling',
+      distanceKm: 21.3,
+      durationSeconds: 3600,
+      pace: '2:49/km',
+    });
+    expect(metrics.map((metric) => metric.key)).toEqual(['distance', 'duration']);
   });
 });

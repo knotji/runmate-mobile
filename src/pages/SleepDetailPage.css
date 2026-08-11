@@ -123,7 +123,7 @@
 }
 .sleep-data-freshness i { width: 6px; height: 6px; flex: 0 0 auto; border-radius: 50%; background: #48aa94; }
 .sleep-data-freshness span { min-width: 0; flex: 1; }
-.sleep-data-freshness button { min-width: 44px; min-height: 36px; padding: 0 10px; border: 1px solid #c9dfea; border-radius: 10px; color: #217fa9; background: #fff; font: inherit; font-size: 9px; font-weight: 800; }
+.sleep-data-freshness button { min-width: 44px; min-height: 44px; padding: 0 10px; border: 1px solid #c9dfea; border-radius: 10px; color: #217fa9; background: #fff; font: inherit; font-size: 9px; font-weight: 800; }
 .sleep-data-freshness-refreshing i { background: #4c9fc3; animation: sleep-freshness-pulse 1.25s ease-in-out infinite; }
 .sleep-data-freshness-stale,
 .sleep-data-freshness-fallback { color: #946526; }

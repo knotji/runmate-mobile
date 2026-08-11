@@ -25,7 +25,9 @@ export type PerformanceDiagnosticPhase =
   | 'ai_coach_context'
   | 'ai_coach_answer'
   | 'health_calendar'
-  | 'health_calendar_archive';
+  | 'health_calendar_archive'
+  | 'share_render'
+  | 'share_export';
 export type PerformanceDiagnosticStatus = 'success' | 'skipped' | 'failed';
 export type PerformanceDiagnosticVariant = 'prepared' | 'mixed' | 'live' | 'cooldown';
 
@@ -79,6 +81,8 @@ const PERFORMANCE_BUDGETS_MS: Partial<Record<PerformanceDiagnosticPhase, number>
   ai_coach_context: 2500,
   health_calendar: 2500,
   health_calendar_archive: 4000,
+  share_render: 500,
+  share_export: 800,
 };
 
 export async function measurePerformanceDiagnostic<T>(
@@ -178,6 +182,8 @@ export function getPerformanceDiagnosticSummaries(): PerformanceDiagnosticSummar
     'ai_coach_answer',
     'health_calendar',
     'health_calendar_archive',
+    'share_render',
+    'share_export',
   ];
   return phases.flatMap((phase) => {
     const samples = entries.filter((entry) => entry.phase === phase).slice(0, SUMMARY_SAMPLE_SIZE);
@@ -202,7 +208,7 @@ export function performanceBudgetMs(phase: PerformanceDiagnosticPhase): number |
 function isPerformanceDiagnosticEntry(value: unknown): value is PerformanceDiagnosticEntry {
   if (!value || typeof value !== 'object') return false;
   const entry = value as Partial<PerformanceDiagnosticEntry>;
-  return ['tab_navigation', 'health_sync', 'recovery_core', 'recovery_secondary', 'activity_health_sync', 'activity_records', 'activity_archive', 'activity_nutrition', 'nutrition_trends', 'recovery_trends', 'meal_detail', 'workout_detail', 'sleep_window', 'weekly_plan', 'race_goal', 'weekly_summary', 'body_weight_trend', 'pain_trends', 'profile_settings', 'privacy_export', 'account_delete', 'ai_coach_context', 'ai_coach_answer', 'health_calendar', 'health_calendar_archive'].includes(entry.phase ?? '')
+  return ['tab_navigation', 'health_sync', 'recovery_core', 'recovery_secondary', 'activity_health_sync', 'activity_records', 'activity_archive', 'activity_nutrition', 'nutrition_trends', 'recovery_trends', 'meal_detail', 'workout_detail', 'sleep_window', 'weekly_plan', 'race_goal', 'weekly_summary', 'body_weight_trend', 'pain_trends', 'profile_settings', 'privacy_export', 'account_delete', 'ai_coach_context', 'ai_coach_answer', 'health_calendar', 'health_calendar_archive', 'share_render', 'share_export'].includes(entry.phase ?? '')
     && typeof entry.at === 'string'
     && typeof entry.durationMs === 'number'
     && ['success', 'skipped', 'failed'].includes(entry.status ?? '')

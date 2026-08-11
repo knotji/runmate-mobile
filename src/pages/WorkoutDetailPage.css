@@ -83,4 +83,4 @@
   line-height: 1.45;
 }
 .workout-detail-refresh-note span { min-width: 0; flex: 1; }
-.workout-detail-refresh-note button { min-width: 44px; min-height: 36px; border: 1px solid #dfc69d; border-radius: 9px; color: #936426; background: #fff; font: inherit; font-size: 9px; font-weight: 800; }
+.workout-detail-refresh-note button { min-width: 44px; min-height: 44px; border: 1px solid #dfc69d; border-radius: 9px; color: #936426; background: #fff; font: inherit; font-size: 9px; font-weight: 800; }

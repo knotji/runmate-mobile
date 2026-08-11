@@ -221,3 +221,33 @@
 .meal-text-input textarea:focus { border-color: #65afd4; box-shadow: 0 0 0 3px rgba(54,152,200,.1); }
 .meal-text-input textarea:disabled, .upload-note textarea:disabled { cursor: wait; opacity: .7; }
 .meal-text-input small { color: #8497a9; font-size: 9px; }
+
+/* Secondary editor actions must remain usable under Android font scaling. */
+.upload-review-foods > header button,
+.food-edit-delete,
+.food-edit-empty button {
+  min-width: var(--rm-touch-target-min);
+  min-height: var(--rm-touch-target-min);
+}
+
+.food-edit-row {
+  grid-template-columns: 25px minmax(0, 1fr) var(--rm-touch-target-min);
+}
+
+.upload-review-foods > header button,
+.food-edit-empty button {
+  padding-inline: 12px;
+}
+
+.upload-review-foods > header button:focus-visible,
+.food-edit-delete:focus-visible,
+.food-edit-empty button:focus-visible {
+  outline: 2px solid #2a89b8;
+  outline-offset: 2px;
+}
+
+.meal-text-input > span,
+.meal-text-input small {
+  font-size: var(--rm-font-meta);
+  line-height: 1.45;
+}

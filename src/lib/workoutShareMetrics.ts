@@ -1,6 +1,6 @@
 export type SportType = 'running' | 'walking' | 'cycling' | 'strength' | 'swimming' | 'workout';
 
-export type WorkoutMetricKey = 'distance' | 'duration' | 'pace' | 'heart-rate' | 'calories' | 'elevation';
+export type WorkoutMetricKey = 'distance' | 'duration' | 'pace' | 'heart-rate' | 'calories' | 'elevation' | 'load';
 
 export type WorkoutStoryMetric = {
   key: WorkoutMetricKey;
@@ -16,6 +16,7 @@ export const WORKOUT_METRIC_ORDER: WorkoutMetricKey[] = [
   'heart-rate',
   'calories',
   'elevation',
+  'load',
 ];
 
 export function getAvailableWorkoutMetrics(data: {
@@ -26,9 +27,12 @@ export function getAvailableWorkoutMetrics(data: {
   averageHeartRate?: number;
   caloriesKcal?: number;
   elevationMeters?: number;
+  loadScore?: number;
 }): WorkoutStoryMetric[] {
   const metrics: WorkoutStoryMetric[] = [];
-  const hasDistance = typeof data.distanceKm === 'number' && data.distanceKm > 0;
+  const supportsDistance = data.sportType === 'running' || data.sportType === 'walking' || data.sportType === 'cycling' || data.sportType === 'swimming';
+  const supportsPace = data.sportType === 'running' || data.sportType === 'walking' || data.sportType === 'swimming';
+  const hasDistance = supportsDistance && typeof data.distanceKm === 'number' && data.distanceKm > 0;
   if (hasDistance) {
     const showSwimMeters = data.sportType === 'swimming' && data.distanceKm! < 1;
     metrics.push({
@@ -45,7 +49,7 @@ export function getAvailableWorkoutMetrics(data: {
       value: formatDuration(data.durationSeconds),
     });
   }
-  if (data.pace) {
+  if (supportsPace && data.pace) {
     metrics.push({
       key: 'pace',
       label: 'Average Pace',
@@ -74,6 +78,14 @@ export function getAvailableWorkoutMetrics(data: {
       label: 'Elevation',
       value: `${Math.round(data.elevationMeters)}`,
       unit: 'm',
+    });
+  }
+  if (typeof data.loadScore === 'number' && Number.isFinite(data.loadScore)) {
+    metrics.push({
+      key: 'load',
+      label: 'RunMate Load',
+      value: `${Math.round(data.loadScore)}`,
+      unit: '/100',
     });
   }
   return metrics;

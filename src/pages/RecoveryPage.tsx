@@ -345,6 +345,8 @@ const RecoveryPage: React.FC = () => {
           isOpen={showShareModal}
           onDismiss={() => setShowShareModal(false)}
           context={visibleContext}
+          energyReserve={visibleEnergy}
+          mode="today"
         />
       </IonContent>
     </IonPage>

@@ -157,3 +157,14 @@
   font-size:9px;
 }
 .meal-fiber-row strong { color:#2d5a55; font-size:12px; }
+
+/* Dense detail metadata stays readable and every timeline action is tappable. */
+.health-timeline > header button {
+  min-height: var(--rm-touch-target-min);
+  padding-inline: 14px;
+}
+
+.meal-fiber-row { min-height: var(--rm-touch-target-min); }
+.meal-macro-heading span,
+.meal-macro-legend span,
+.health-timeline-copy small { font-size: var(--rm-font-meta); }

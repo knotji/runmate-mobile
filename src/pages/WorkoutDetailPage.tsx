@@ -79,6 +79,7 @@ const WorkoutDetailPage: React.FC = () => {
     avgHeartRateBpm: detail.summaryHr.avgHr ?? undefined,
     caloriesKcal: numberValue(shareExtracted.calories) ?? metricNumber(detail.metrics, 'calories') ?? undefined,
     elevationMeters: numberValue(shareExtracted.elevationGainMeters) ?? numberValue(shareExtracted.elevationGain) ?? metricNumber(detail.metrics, 'elevation') ?? undefined,
+    loadScore: detail.heartRateZones?.load?.score,
     dateStr: detail.date,
   } : null;
 

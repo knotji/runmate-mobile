@@ -4,3 +4,23 @@
 .notification-list article span,
 .notifications-privacy { font-size: 9px; }
 .notifications-permission ion-button { min-height: 44px; }
+
+/* Match the app-wide reading floor and preserve bottom safe-area breathing room. */
+.notifications-shell {
+  padding-bottom: max(44px, calc(24px + env(safe-area-inset-bottom)));
+}
+
+.notifications-permission span,
+.notification-list article span,
+.notifications-permission p,
+.notification-list p,
+.notifications-message,
+.notifications-privacy {
+  font-size: var(--rm-font-meta);
+}
+
+@media (max-width: 390px) {
+  .notifications-shell { padding-inline: 16px; }
+  .notifications-permission { grid-template-columns: 40px minmax(0, 1fr); }
+  .notifications-permission ion-button { grid-column: 1 / -1; width: 100%; margin-top: 2px; }
+}

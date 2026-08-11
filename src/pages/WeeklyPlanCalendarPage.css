@@ -13,7 +13,7 @@
 .weekly-plan-overview div { display: grid; gap: 3px; padding: 12px 8px; text-align: center; }
 .weekly-plan-overview div + div { border-left: 1px solid #e5edf3; }
 .weekly-plan-overview strong { color: #1d4964; font-size: 15px; }
-.weekly-plan-overview span { color: #7890a2; font-size: 8.5px; line-height: 1.25; }
+.weekly-plan-overview span { color: #7890a2; font-size: 8.5px; line-height: 1.25; overflow-wrap: anywhere; }
 .weekly-plan-list { display: grid; gap: 8px; }
 .weekly-plan-row { display: grid; grid-template-columns: 48px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 13px 14px; border: 1px solid #d9e6f0; border-radius: 16px; background: #fff; }
 .weekly-plan-row.is-today { position: relative; border-color: #72bdd2; background: linear-gradient(135deg,#f2fbfd,#fff); box-shadow: 0 9px 22px rgba(34,103,125,.08); }
@@ -40,3 +40,4 @@
 .weekly-plan-back:focus-visible,
 .weekly-plan-state button:focus-visible { outline: 3px solid rgba(42,145,199,.24); outline-offset: 2px; }
 @media(max-width:390px){.weekly-plan-shell{padding-inline:16px}.weekly-plan-row{grid-template-columns:40px minmax(0,1fr) auto;padding:11px 12px}}
+@media(max-width:350px){.weekly-plan-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.weekly-plan-overview div:last-child:nth-child(odd){grid-column:1/-1}.weekly-plan-overview div:nth-child(3){border-top:1px solid #e5edf3;border-left:0}.weekly-plan-row{grid-template-columns:38px minmax(0,1fr)}.weekly-plan-badge{grid-column:2;justify-self:start;white-space:normal}.weekly-plan-type{white-space:normal}}

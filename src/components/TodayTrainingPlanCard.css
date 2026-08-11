@@ -81,7 +81,7 @@
 .plan-support-list strong { font-size: 12px; }
 .plan-support-list p { margin: 0; }
 .plan-support-more { border-top: 1px solid rgba(215, 227, 237, .75); }
-.plan-support-more > summary { min-height: 42px; display: flex; align-items: center; justify-content: space-between; color: #287a87; font-size: 10px; font-weight: 850; cursor: pointer; list-style: none; }
+.plan-support-more > summary { min-height: 44px; display: flex; align-items: center; justify-content: space-between; color: #287a87; font-size: 10px; font-weight: 850; cursor: pointer; list-style: none; }
 .plan-support-more > summary::-webkit-details-marker { display: none; }
 .plan-support-more > summary::after { content: '›'; margin-right: 2px; font-size: 17px; line-height: 1; transform: rotate(90deg); transition: transform 160ms ease; }
 .plan-support-more[open] > summary::after { transform: rotate(-90deg); }

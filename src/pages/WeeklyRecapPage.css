@@ -13,7 +13,7 @@
 
 .recap-period-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; padding: 4px 6px; border: 1px solid #d9e6f0; border-radius: 14px; background: #fff; }
 .recap-period-nav span { color: #2474b2; font-size: 11px; font-weight: 850; letter-spacing: .04em; text-transform: uppercase; }
-.recap-period-arrow { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 10px; color: #52708f; background: transparent; font-size: 18px; }
+.recap-period-arrow { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 10px; color: #52708f; background: transparent; font-size: 18px; }
 .recap-period-arrow:disabled { color: #c4d3df; }
 .recap-period-loading { height: 0; display: flex; align-items: center; justify-content: center; gap: 6px; overflow: hidden; color: #4f829c; opacity: 0; font-size: 9px; font-weight: 750; transition: height 140ms ease,opacity 140ms ease; }
 .recap-period-loading.visible { height: 22px; opacity: 1; }
@@ -42,3 +42,11 @@
 .recap-adherence-card span { color: #6d8398; font-size: 10px; font-weight: 700; text-align: center; }
 
 .recap-share-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 52px; border: 0; border-radius: 14px; color: #fff; background: var(--rm-brand-blue, #2474b2); font: inherit; font-size: 15px; font-weight: 800; }
+
+@media (max-width: 390px) {
+  .recap-shell { padding-inline: 16px; }
+  .recap-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .recap-stat:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .recap-stat strong,
+  .recap-stat span { max-width: 100%; overflow-wrap: anywhere; }
+}

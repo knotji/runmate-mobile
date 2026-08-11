@@ -1,6 +1,6 @@
 # RunMate Information Architecture Refactor Roadmap
 
-Status: In progress
+Status: Phase 7 code complete; Phase 8 tester validation pending
 Working product name: RunMate
 Target positioning: Personal health and recovery companion
 
@@ -111,6 +111,25 @@ Internal file and loader names may retain legacy terminology until a later code-
 - [ ] Validate Android Back, font scaling, TalkBack, scroll restoration, and tab timing on a physical tester device.
 
 Phase 7 code is complete when automated gates pass. Physical-device validation remains a release acceptance item and must not be inferred from browser tests or a successful Android build.
+
+### Phase 8 — Physical-device validation and IA stabilization
+
+Release candidate: RunMate `1.0.0 (1219)`; Firebase App Distribution upload pending.
+
+- [x] Produce a signed, v2-verified APK with read-only Health Connect permissions.
+- [x] Pass 498 unit tests, lint, production web build, Capacitor sync, and Android release build.
+- [ ] Smoke-test Today, Health, Move, Coach, Log, and Settings on the physical tester device.
+- [ ] Verify Android Back and cold deep links return to the correct originating pillar.
+- [ ] Verify Move date continuity, Today/Health/Move scroll restoration, Coach draft restoration, and the next-day Move reset.
+- [ ] Capture at least five real tab-navigation samples and confirm the rolling average remains within the 250 ms budget.
+- [ ] Validate 200% font scaling, TalkBack reading order, visible focus, and 44 by 44 CSS pixel touch targets on core journeys.
+- [ ] Record any device-only issue with reproduction evidence; fix only confirmed regressions and rerun the release gates.
+
+Phase 8 exits only after tester-device evidence is recorded. A successful APK build or Firebase upload is distribution evidence, not physical-device UX acceptance.
+
+### Next product decision gate — Brand transition
+
+Do not schedule another feature phase immediately after Phase 8. First decide whether RunMate remains the product name or moves to a broader health identity. If a new name is selected, update the app name, icon, package-facing copy, privacy copy, diagnostics, and store listing together as one coordinated release.
 
 ## Performance requirements
 

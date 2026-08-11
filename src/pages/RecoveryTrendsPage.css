@@ -8,7 +8,7 @@
 .recovery-trends-heading h1 { margin: 0; color: #173451; font-size: 24px; line-height: 1.18; }
 .recovery-trends-heading > span { display: block; margin-top: 8px; color: #6d8398; font-size: 11px; line-height: 1.5; }
 .recovery-range { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin-bottom: 12px; padding: 3px; border: 1px solid #d9e6f0; border-radius: 14px; background: rgba(255,255,255,.94); box-shadow: 0 8px 22px rgba(34,73,105,.04); }
-.recovery-range button { min-height: 40px; border: 0; border-radius: 10px; color: #70869b; background: transparent; font: inherit; font-size: 11px; font-weight: 800; }
+.recovery-range button { min-height: 44px; border: 0; border-radius: 10px; color: #70869b; background: transparent; font: inherit; font-size: 11px; font-weight: 800; }
 .recovery-range button.active { color: #176f9f; background: #e7f5fc; box-shadow: inset 0 0 0 1px #c9e6f4; }
 .recovery-trends-state { min-height: 320px; display: grid; place-content: center; justify-items: center; gap: 12px; color: #6d8398; font-size: 11px; }
 .recovery-trends-state button { min-height: 44px; padding: 0 18px; border: 1px solid #a9cee1; border-radius: 12px; color: #2379a7; background: #fff; font: inherit; font-weight: 800; }

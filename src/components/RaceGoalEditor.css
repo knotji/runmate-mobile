@@ -19,7 +19,7 @@
 .race-editor-date > button strong { font-size: 11px; }
 .race-editor-date > input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .race-goal-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 14px; padding: 4px; border: 1px solid #d8e4ed; border-radius: 14px; background: #fff; }
-.race-goal-toggle button { min-height: 36px; border: 0; border-radius: 10px; color: #6b8094; background: transparent; font: inherit; font-size: 10px; font-weight: 750; }
+.race-goal-toggle button { min-height: 44px; border: 0; border-radius: 10px; color: #6b8094; background: transparent; font: inherit; font-size: 10px; font-weight: 750; }
 .race-goal-toggle button.active { color: #1e789f; background: #e5f4fb; }
 .race-editor-divider { height: 1px; margin: 23px 0; background: #dfe9f1; }
 .race-editor-plan-heading { margin-bottom: 14px !important; }
