@@ -5,12 +5,10 @@ import {
   bandageOutline,
   calendarOutline,
   chevronForwardOutline,
-  fitnessOutline,
   heartOutline,
   moonOutline,
   nutritionOutline,
   pulseOutline,
-  scaleOutline,
   settingsOutline,
   statsChartOutline,
 } from 'ionicons/icons';
@@ -37,11 +35,6 @@ const overview: HealthDestination[] = [
 const trends: HealthDestination[] = [
   { icon: statsChartOutline, title: 'Recovery Trends', summary: 'See how Recovery, Sleep, and Strain are changing.', path: '/recovery-trends', tone: 'blue', statusKey: 'recoveryTrends' },
   { icon: nutritionOutline, title: 'Nutrition', summary: 'Calories, protein, carbohydrates, and logged patterns.', path: '/nutrition-trends', tone: 'teal', statusKey: 'nutrition' },
-];
-
-const body: HealthDestination[] = [
-  { icon: scaleOutline, title: 'Body Weight', summary: 'Health Connect weigh-ins and longer-term direction.', path: '/body-weight-trend', tone: 'blue', statusKey: 'weight' },
-  { icon: fitnessOutline, title: 'Fitness Age', summary: 'A transparent estimate from your available signals.', path: '/fitness-age', tone: 'teal', statusKey: 'fitnessAge' },
   { icon: bandageOutline, title: 'Pain & Injury', summary: 'Review changes in your logged pain reports.', path: '/pain-trends', tone: 'amber', statusKey: 'pain' },
 ];
 
@@ -72,7 +65,6 @@ const HealthPage: React.FC = () => {
 
         <HealthGroup label="OVERVIEW" title="Your Body At A Glance" items={overview} snapshot={snapshot} onOpen={(path) => history.push(path, { from: '/tabs/health' })} />
         <HealthGroup label="TRENDS" title="See What Is Changing" items={trends} snapshot={snapshot} onOpen={(path) => history.push(path, { from: '/tabs/health' })} />
-        <HealthGroup label="BODY" title="Longer-Term Signals" items={body} snapshot={snapshot} onOpen={(path) => history.push(path, { from: '/tabs/health' })} />
 
         <section className="health-hub-group" aria-labelledby="health-data-sources">
           <div className="health-hub-section-heading"><p>DATA SOURCES</p><h2 id="health-data-sources">Connected Health Data</h2></div>

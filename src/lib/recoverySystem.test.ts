@@ -156,6 +156,86 @@ describe('WHOOP-style Recovery Engine', () => {
     expect(recovery.dataFreshness.status).toBe('today');
   });
 
+  it('classifies HRV above baseline as a helping factor and RHR above baseline as hurting', () => {
+    const context = buildCoachContext();
+    context.sleep7d = [
+      sleepNight(context.todayDate, { hrv: 80, restingHR: 62 }),
+      sleepNight(dateBefore(context.todayDate, 1), { hrv: 60, restingHR: 55 }),
+      sleepNight(dateBefore(context.todayDate, 2), { hrv: 60, restingHR: 55 }),
+      sleepNight(dateBefore(context.todayDate, 3), { hrv: 60, restingHR: 55 }),
+    ];
+    context.sleepBaseline30d = context.sleep7d;
+
+    const recovery = buildRunMateRecoverySystem(context);
+    const factors = recovery.recovery.factors ?? [];
+
+    expect(factors.find((factor) => factor.key === 'hrv')?.direction).toBe('helping');
+    expect(factors.find((factor) => factor.key === 'restingHR')?.direction).toBe('hurting');
+  });
+
+  it('marks a factor unavailable instead of neutral or hurting when its baseline has no samples', () => {
+    const context = buildCoachContext();
+    context.sleep7d = [sleepNight(context.todayDate, { hrv: null, restingHR: null, respiratoryRate: null })];
+    context.sleepBaseline30d = context.sleep7d;
+
+    const recovery = buildRunMateRecoverySystem(context);
+    const factors = recovery.recovery.factors ?? [];
+
+    expect(factors.find((factor) => factor.key === 'hrv')?.direction).toBe('unavailable');
+    expect(factors.find((factor) => factor.key === 'restingHR')?.direction).toBe('unavailable');
+    expect(factors.find((factor) => factor.key === 'respiratoryRate')?.direction).toBe('unavailable');
+  });
+
+  it('marks active pain as a hurting factor', () => {
+    const context = buildCoachContext();
+    context.sleep7d = [
+      sleepNight(context.todayDate), sleepNight(dateBefore(context.todayDate, 1)),
+      sleepNight(dateBefore(context.todayDate, 2)), sleepNight(dateBefore(context.todayDate, 3)),
+    ];
+    context.sleepBaseline30d = context.sleep7d;
+    context.activePain = true;
+    context.latestPain = { painLevel: 6, redFlags: [] } as unknown as typeof context.latestPain;
+
+    const recovery = buildRunMateRecoverySystem(context);
+
+    expect(recovery.recovery.factors?.find((factor) => factor.key === 'pain')?.direction).toBe('hurting');
+  });
+
+  it('keeps every recovery.factors[].detail in English, since the Today UI is English-only', () => {
+    const context = buildCoachContext();
+    context.sleep7d = [
+      sleepNight(context.todayDate, { hrv: 80, restingHR: 62, respiratoryRate: 18 }),
+      sleepNight(dateBefore(context.todayDate, 1), { hrv: 60, restingHR: 55, respiratoryRate: 15 }),
+      sleepNight(dateBefore(context.todayDate, 2), { hrv: 60, restingHR: 55, respiratoryRate: 15 }),
+      sleepNight(dateBefore(context.todayDate, 3), { hrv: 60, restingHR: 55, respiratoryRate: 15 }),
+    ];
+    context.sleepBaseline30d = context.sleep7d;
+    context.activePain = true;
+    context.latestPain = { painLevel: 5, redFlags: [] } as unknown as typeof context.latestPain;
+    context.activeSick = true;
+    context.sickRiskLevel = 'monitor' as unknown as typeof context.sickRiskLevel;
+
+    const recovery = buildRunMateRecoverySystem(context);
+    const thaiCharacters = /[฀-๿]/;
+
+    for (const factor of recovery.recovery.factors ?? []) {
+      expect(factor.detail).not.toMatch(thaiCharacters);
+    }
+  });
+
+  it('keeps every unavailable factor.detail in English when the signal has no baseline yet', () => {
+    const context = buildCoachContext();
+    context.sleep7d = [sleepNight(context.todayDate, { hrv: null, restingHR: null, respiratoryRate: null })];
+    context.sleepBaseline30d = [];
+
+    const recovery = buildRunMateRecoverySystem(context);
+    const thaiCharacters = /[฀-๿]/;
+
+    for (const factor of recovery.recovery.factors ?? []) {
+      expect(factor.detail).not.toMatch(thaiCharacters);
+    }
+  });
+
   it('applies the pain safety display cap', () => {
     const display = getOverallDisplayStatus(90, 90, 20, 90, 90, true, false);
 

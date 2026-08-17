@@ -4,7 +4,7 @@ import { IonButton, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolba
 import { arrowBackOutline, fastFoodOutline } from 'ionicons/icons';
 import { DetailNotes, DetailState } from '@/components/RecordDetailSections';
 import { loadHistoryItemById } from '@/lib/cloudHistory';
-import { buildMealDetail } from '@/lib/activityDetails';
+import { buildMealDetail, formatFoodDetail } from '@/lib/activityDetails';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { cacheMealDetailItem, loadCachedMealDetailItem } from '@/lib/mealDetailCache';
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
@@ -72,7 +72,10 @@ function NutritionOverview({ metrics }: { metrics: Array<{ label: string; value:
           {macros.map((macro) => <span className={`macro-${macro.key}`} style={{ width: `${macroEnergy > 0 ? macro.energy / macroEnergy * 100 : 100 / macros.length}%` }} key={macro.key} />)}
         </div>
         <div className="meal-macro-legend">
-          {macros.map((macro) => <div className={`macro-${macro.key}`} key={macro.key}><span>{macro.label}</span><strong>{formatNutritionValue(macro.grams!)} g</strong></div>)}
+          {macros.map((macro) => {
+            const percent = macroEnergy > 0 ? Math.round(macro.energy / macroEnergy * 100) : null;
+            return <div className={`macro-${macro.key}`} key={macro.key}><span>{macro.label}</span><strong>{formatNutritionValue(macro.grams!)} g{percent !== null && <small> · {percent}%</small>}</strong></div>;
+          })}
         </div>
       </div>}
       {fiber !== null && <div className="meal-fiber-row"><span>Fiber</span><strong>{formatNutritionValue(fiber)} g</strong></div>}
@@ -82,11 +85,6 @@ function NutritionOverview({ metrics }: { metrics: Array<{ label: string; value:
 
 function formatNutritionValue(value: number): string {
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(value);
-}
-
-function formatFoodDetail(food: { quantity: number | null; unit: string | null; portion: string | null }): string {
-  const amount = [food.quantity, food.unit].filter((value) => value !== null && value !== '').join(' ');
-  return [amount, food.portion].filter(Boolean).join(' · ') || 'No Portion Details';
 }
 
 export default MealDetailPage;

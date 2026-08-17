@@ -4,22 +4,24 @@
 .health-test-content { --background: #f4f8fc; }
 .health-test-shell { width: min(100%, 600px); margin: 0 auto; padding: 24px 20px 48px; }
 .health-connect-heading { margin-bottom: 20px; }
-.health-connect-heading p, .health-connect-section-heading p { margin: 0 0 7px; color: #1976ad; font-size: 9px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.health-connect-heading p { margin: 0 0 7px; color: #1976ad; font-size: 9px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
 .health-connect-heading h1 { margin: 0; color: #173451; font-size: 25px; line-height: 1.18; }
 .health-connect-heading span { display: block; margin-top: 8px; color: #627d98; font-size: 12px; line-height: 1.55; }
-.health-connect-status { display: grid; grid-template-columns: 48px 1fr; gap: 14px; align-items: center; padding: 18px; border: 1px solid #d4e4f0; border-radius: 20px; background: #fff; box-shadow: 0 12px 30px rgba(34, 73, 105, .07); }
-.health-connect-status.is-connected { border-color: #bde6dc; background: linear-gradient(135deg, #f6fffc, #eefaf7); }
+.health-connect-card { padding: 18px; border: 1px solid #d4e4f0; border-radius: 20px; background: #fff; box-shadow: 0 12px 30px rgba(34, 73, 105, .07); }
+.health-connect-card.is-connected { border-color: #bde6dc; background: linear-gradient(135deg, #f6fffc, #eefaf7); }
+.health-connect-status-row { display: grid; grid-template-columns: 48px 1fr; gap: 14px; align-items: center; }
 .health-connect-status-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 15px; color: #55728c; background: #edf4f9; }
-.health-connect-status.is-connected .health-connect-status-icon { color: #159477; background: #dcf5ed; }
+.health-connect-card.is-connected .health-connect-status-icon { color: #159477; background: #dcf5ed; }
 .health-connect-status-icon ion-icon { font-size: 26px; }
-.health-connect-status span, .health-connect-sync-card span { color: #7890a7; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-.health-connect-status h2 { margin: 4px 0 3px; color: #173451; font-size: 18px; }
-.health-connect-status p, .health-connect-sync-card p { margin: 0; color: #627d98; font-size: 11px; line-height: 1.5; }
-.health-connect-section { margin-top: 24px; }
-.health-connect-section-heading h2 { margin: 0 0 12px; color: #173451; font-size: 19px; }
-.health-connect-access-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.health-connect-access-heading > span { flex: none; margin-top: 2px; padding: 5px 8px; border-radius: 999px; color: #18745f; background: #e4f5ef; font-size: 9px; font-weight: 800; }
-.health-connect-read-only-note { margin: -4px 0 12px; color: #627d98; font-size: 10px; line-height: 1.5; }
+.health-connect-status-row span, .health-connect-sync-row span { color: #7890a7; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.health-connect-status-row h2 { margin: 4px 0 3px; color: #173451; font-size: 18px; }
+.health-connect-status-row p, .health-connect-sync-row p { margin: 0; color: #627d98; font-size: 11px; line-height: 1.5; }
+.health-connect-permissions-details { margin-top: 16px; padding-top: 14px; border-top: 1px solid #e5edf4; }
+.health-connect-permissions-details > summary { min-height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; list-style: none; }
+.health-connect-permissions-details > summary::-webkit-details-marker { display: none; }
+.health-connect-permissions-details > summary > span:first-child { color: #173451; font-size: 13px; font-weight: 800; }
+.health-connect-permissions-badge { flex: none; padding: 5px 8px; border-radius: 999px; color: #18745f; background: #e4f5ef; font-size: 9px; font-weight: 800; text-transform: none; letter-spacing: normal; }
+.health-connect-read-only-note { margin: 8px 0 12px; color: #627d98; font-size: 10px; line-height: 1.5; }
 .health-permission-list { overflow: hidden; border: 1px solid #d4e4f0; border-radius: 18px; background: #fff; }
 .health-permission-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 14px; }
 .health-permission-row + .health-permission-row { border-top: 1px solid #e6eef5; }
@@ -31,9 +33,9 @@
 .health-permission-row small { color: #91a3b3; font-size: 9px; }
 .health-permission-badge { padding: 5px 8px; border-radius: 999px; color: #73899d; background: #eef3f7; font-size: 9px; font-weight: 800; white-space: nowrap; }
 .health-permission-badge.granted { color: #147b65; background: #e4f6f0; }
-.health-connect-sync-card { margin: 18px 2px 0; padding: 14px 2px; border-block: 1px solid #d4e4f0; background: transparent; }
-.health-connect-sync-card div { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 7px; }
-.health-connect-sync-card strong { color: #203d59; font-size: 12px; }
+.health-connect-sync-row { margin: 16px 0 0; padding: 14px 0 0; border-top: 1px solid #d4e4f0; background: transparent; }
+.health-connect-sync-row > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 7px; }
+.health-connect-sync-row strong { color: #203d59; font-size: 12px; }
 .health-background-card { margin-top: 20px; padding: 15px; border: 1px solid #cfe2ee; border-radius: 18px; background: #fff; }
 .health-background-card header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .health-background-card header div { min-width: 0; }
@@ -49,6 +51,18 @@
 .health-background-counts > div { display: grid; gap: 2px; min-width: 0; padding: 9px 7px; border-radius: 11px; background: #f3f8fb; }
 .health-background-counts strong { color: #173f5f; font-size: 14px; }
 .health-background-counts span { overflow: hidden; color: #7890a7; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+
+.health-nutrition-sync-card { margin-top: 20px; padding: 15px; border: 1px solid #cfe2ee; border-radius: 18px; background: #fff; }
+.health-nutrition-sync-card header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.health-nutrition-sync-card header div { min-width: 0; }
+.health-nutrition-sync-card header span { color: #7890a7; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.health-nutrition-sync-card h2 { margin: 4px 0 0; color: #203d59; font-size: 15px; line-height: 1.3; }
+.health-nutrition-sync-card > p { margin: 10px 0 0; color: #627d98; font-size: 10px; line-height: 1.5; }
+.health-nutrition-sync-card > small { display: block; margin-top: 8px; color: #93631b; font-size: 10px; }
+.health-nutrition-sync-last-attempt { display: grid; gap: 2px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #e5edf4; }
+.health-nutrition-sync-last-attempt span { color: #7890a7; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.health-nutrition-sync-last-attempt strong { color: #294762; font-size: 12px; }
+.health-nutrition-sync-last-attempt small { color: #7890a7; font-size: 9px; }
 .health-background-card > small { display: block; margin-top: 8px; color: #a56a31; font-size: 9px; line-height: 1.4; }
 .health-background-card ion-button { min-height: 44px; margin: 12px 0 0; font-size: 10px; font-weight: 800; }
 .health-connect-source-note { margin: 20px 2px 0; color: #6f879c; font-size: 10px; line-height: 1.5; }

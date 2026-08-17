@@ -101,4 +101,17 @@
     <uses-permission android:name="android.permission.health.WRITE_BASAL_METABOLIC_RATE" tools:node="remove" />
     <uses-permission android:name="android.permission.health.WRITE_TOTAL_CALORIES_BURNED" tools:node="remove" />
     <uses-permission android:name="android.permission.health.WRITE_MINDFULNESS" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.WRITE_HYDRATION" tools:node="remove" />
+    <!--
+      WRITE_NUTRITION is RunMate's one deliberate, opt-in exception to an otherwise
+      read-only Health Connect integration: with the "Share Logged Nutrition With Health
+      Connect" toggle on (src/components/health/NutritionSyncSettings.tsx), each saved
+      meal's calories and macros are written as a NutritionRecord via the custom
+      MealNutritionPlugin (android/app/src/main/java/com/runmate/mobile/MealNutritionPlugin.kt).
+      A single WRITE_NUTRITION permission covers the whole NutritionRecord type, including
+      protein/carbs/fat — Health Connect permissions are per record type, not per nutrient.
+      Do not remove this permission without also removing that feature; do not add any
+      other WRITE_* permission to the manifest without an equally deliberate, documented
+      decision.
+    -->
 </manifest>

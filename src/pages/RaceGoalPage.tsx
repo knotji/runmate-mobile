@@ -19,7 +19,7 @@ import { arrowBackOutline, calendarClearOutline, chevronDownOutline, chevronForw
 import { todayBangkokDateKey } from '@/lib/date';
 import { buildMobileRaceSummary, formatRaceWorkoutMetric, isRaceWorkoutToday } from '@/lib/mobileRaceGoal';
 import { loadActiveRaceGoalAndPlan, loadRacePlanVersions, saveRaceGoalAndPlan } from '@/lib/raceStorage';
-import { loadRaceResults } from '@/lib/raceResults';
+import { loadRaceResults, maybeCompleteRaceFromWorkoutItem } from '@/lib/raceResults';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { useRacePlanStore } from '@/lib/race/racePlanStore';
 import { generateRacePlan } from '@/lib/racePlanGeneration';
@@ -27,6 +27,7 @@ import { mergeRefreshedRacePlanWithOptions } from '@/lib/racePlanRefresh';
 import { buildRacePlanDiff, prepareActivePlanVersion, prepareLegacyActivePlanVersion, type RacePlanChange } from '@/lib/racePlanVersions';
 import { applyProfilePreferencesToRaceGoal } from '@/lib/raceProfilePreferences';
 import { loadHistoryItems } from '@/lib/cloudHistory';
+import { activityRecentHistoryOptions } from '@/lib/activityHistoryLoad';
 import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
 import { buildTrainingAdherence, type TrainingAdherence } from '@/lib/trainingAdherence';
 import {
@@ -34,6 +35,7 @@ import {
   adherenceStatusLabel,
   formatPlanUpdated,
   formatRaceDate,
+  formatRacePace,
   formatRaceResultDay,
   formatRaceResultMonth,
   raceResultLabel,
@@ -90,7 +92,7 @@ const RaceGoalPage: React.FC = () => {
   const { loading, error, setError, reload: load } = useAsyncLoad(async () => {
     const [result, workoutHistory] = await measurePerformanceDiagnostic(
       'race_goal',
-      () => Promise.all([loadActiveRaceGoalAndPlan(), loadHistoryItems(['workout', 'strength'])]),
+      () => Promise.all([loadActiveRaceGoalAndPlan(), loadHistoryItems(['workout', 'strength'], activityRecentHistoryOptions())]),
       () => ({ detail: 'Active race, plan, and adherence prepared' }),
     );
     if (result.ok) {
@@ -110,6 +112,19 @@ const RaceGoalPage: React.FC = () => {
       }
       const summary = activeGoal ? buildMobileRaceSummary(activeGoal, activePlan, todayBangkokDateKey()) : null;
       setAdherence(summary && workoutHistory.ok ? buildTrainingAdherence(summary.workouts, dedupeWorkoutItems(workoutHistory.items), todayBangkokDateKey()) : null);
+
+      // Catches a workout that was already logged/synced on the race date before this
+      // check existed (or before the goal was made active), since the sync-time check
+      // in samsungWorkoutSync.ts only fires for items new to that specific sync run.
+      // Safe to run every load — maybeCompleteRaceFromWorkoutItem() is a no-op once
+      // the goal is already completed or nothing on the race date matches.
+      if (activeGoal?.id && workoutHistory.ok) {
+        const raceDateWorkouts = workoutHistory.items.filter((item) => item.dateKey === activeGoal!.raceDate);
+        for (const item of raceDateWorkouts) {
+          const outcome = await maybeCompleteRaceFromWorkoutItem(item);
+          if (outcome.completed) { void loadRaceHistory(); break; }
+        }
+      }
     } else {
       setError(result.error);
     }
@@ -207,7 +222,7 @@ const RaceGoalPage: React.FC = () => {
           {loading && !hasPreparedRace && <PageDataSkeleton variant="race" label="Loading Race Goal" />}
           {!hasPreparedRace && error && <PageState kind="error" title="Race Goal Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="race-state race-error" />}
           {!loading && (!error || hasPreparedRace) && !goal && (
-            <section className="race-empty">
+            <section className={`race-empty${raceResults.length > 0 ? ' race-empty-compact' : ''}`}>
               <div><IonIcon icon={flagOutline} /></div>
               <p>Race Planning</p>
               <h1>No Active Race Goal</h1>
@@ -314,7 +329,7 @@ const RaceGoalPage: React.FC = () => {
                       <div className="race-result-date"><strong>{formatRaceResultDay(result.raceDate)}</strong><span>{formatRaceResultMonth(result.raceDate)}</span></div>
                       <div className="race-result-copy">
                         <strong>{result.raceName || 'Completed Race'}</strong>
-                        <span>{[result.raceDistance, result.actualTime, result.actualPace ? `${result.actualPace}/km` : null].filter(Boolean).join(' · ') || 'Result Logged'}</span>
+                        <span>{[result.raceDistance, result.actualTime, formatRacePace(result.actualPace)].filter(Boolean).join(' · ') || 'Result Logged'}</span>
                       </div>
                       <em className={`race-result-badge race-result-${result.goalResult ?? 'unknown'}`}>{raceResultLabel(result.goalResult)}</em>
                     </article>

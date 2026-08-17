@@ -128,7 +128,13 @@ function formatWeekRange(start: string, end: string): string {
   return `${startLabel}–${endLabel}`;
 }
 
-function isSupportiveDay(value: string): boolean {
+/**
+ * Rest and Recovery days are support for the plan, not a "session" a runner needs
+ * to complete — excluded here and in mobileRaceGoal.ts's scheduledSessions/
+ * scheduledDistanceKm so the Race Goal page's "This Week: N Sessions" and
+ * Training Adherence's "N Of N Sessions Done" always agree on what counts.
+ */
+export function isSupportiveDay(value: string): boolean {
   return /\b(rest|recovery)\b|พัก|ฟื้นฟู/i.test(value);
 }
 

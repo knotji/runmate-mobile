@@ -94,6 +94,15 @@ function mergeCurrentWeek(previous: WeekWorkout[], generated: WeekWorkout[], loc
   return days.flatMap((day) => {
     const oldWorkout = previousByDay.get(day);
     const newWorkout = generatedByDay.get(day);
+    // Race Day is an immutable fact from the active Race Goal (see raceDayWorkout()/
+    // enforceRaceWeek() on the generator side) — it must always win over whatever was
+    // previously committed for that date, even if the date is locked as already
+    // completed (e.g. an unrelated workout was logged that day) or the workout kind
+    // otherwise "changed" from the runner's committed plan. Every other check below
+    // exists specifically to protect a runner's committed schedule from being silently
+    // rewritten by the AI; Race Day is not a discretionary AI decision, so it is not
+    // subject to that protection.
+    if (newWorkout?.workoutType === 'Race Day') return [newWorkout];
     if (lockedDays?.has(day)) return oldWorkout ? [oldWorkout] : [];
     if (lockedDays) return newWorkout ? [newWorkout] : oldWorkout ? [oldWorkout] : [];
     if (!oldWorkout) return newWorkout ? [newWorkout] : [];

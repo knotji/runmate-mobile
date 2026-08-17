@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { IonButton, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar, useIonViewWillEnter } from '@ionic/react';
-import { arrowBackOutline } from 'ionicons/icons';
+import { IonButton, IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar, useIonViewWillEnter } from '@ionic/react';
+import { arrowBackOutline, syncOutline } from 'ionicons/icons';
 import { Health } from '@capgo/capacitor-health';
 import type { HealthDataType } from '@capgo/capacitor-health';
 import { getSamsungSleepLastSyncedAt } from '@/lib/samsungSleepSync';
@@ -35,6 +35,7 @@ import {
 } from '@/lib/backgroundHealth';
 import { HealthSyncStatusCard, type ConnectionState, type SyncSummary } from '@/components/health/HealthSyncStatusCard';
 import { BackgroundSyncSettings } from '@/components/health/BackgroundSyncSettings';
+import { NutritionSyncSettings } from '@/components/health/NutritionSyncSettings';
 import { HealthSyncPerformanceCard } from '@/components/health/HealthSyncPerformanceCard';
 import { HealthDiagnosticsPanel, type LogEntry } from '@/components/health/HealthDiagnosticsPanel';
 import { navigateBackOr } from '@/lib/navigationBack';
@@ -309,7 +310,6 @@ const HealthTestPage: React.FC = () => {
               onConnect={() => void connect()}
               onSyncNow={() => void syncNow()}
               onManagePermissions={() => void managePermissions()}
-              onRepairWorkouts={() => void repairWorkouts()}
               formatLastSynced={formatLastSynced}
               formatSyncTime={formatSyncTime}
             />
@@ -324,6 +324,8 @@ const HealthTestPage: React.FC = () => {
               formatNextExpected={formatNextExpected}
             />
 
+            <NutritionSyncSettings />
+
             <p className="health-connect-source-note">
               RunMate imports records shared by Samsung Health through Health Connect. A workout visible in Samsung Health may not appear here if Samsung Health has not shared that record.
             </p>
@@ -331,6 +333,16 @@ const HealthTestPage: React.FC = () => {
             <details className="health-developer-details">
               <summary>Developer Details</summary>
               <div className="health-developer-body">
+                <details className="health-sync-tools">
+                  <summary>Sync Tools</summary>
+                  <div className="health-repair-action">
+                    <IonButton expand="block" fill="outline" disabled={connectionBusy !== null || !connection?.workoutsAuthorized} onClick={() => void repairWorkouts()}>
+                      {connectionBusy === 'repair' ? <IonSpinner name="crescent" /> : <><IonIcon slot="start" icon={syncOutline} />Repair Last 30 Days</>}
+                    </IonButton>
+                    <p>Re-read workout sessions and heart rate samples when older details are incomplete.</p>
+                  </div>
+                </details>
+
                 <HealthSyncPerformanceCard
                   performanceSummaries={performanceSummaries}
                   healthSyncComparison={healthSyncComparison}

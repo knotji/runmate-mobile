@@ -194,6 +194,29 @@ export async function deleteHistoryItem(id: string): Promise<{ ok: boolean; erro
   return { ok: true };
 }
 
+/** Merges `patch` into an already-saved item's `data` column, leaving every other field untouched. */
+export async function patchHistoryItemData(item: LocalHistoryItem, patch: Record<string, unknown>): Promise<{ ok: boolean; error?: string }> {
+  const session = await ensureSupabaseProfileSession();
+  if (!session.ok) return { ok: false, error: sessionMessage(session) };
+
+  const sanitizedData = sanitizePersistedHistoryData(item.data);
+  const dataObj = typeof sanitizedData === "object" && sanitizedData !== null
+    ? { ...sanitizedData } as Record<string, unknown>
+    : {};
+  if (item.recordedAt) dataObj.recordedAt = item.recordedAt;
+  if (item.dateKey) dataObj.dateKey = item.dateKey;
+  if (item.source) dataObj.source = item.source;
+  Object.assign(dataObj, patch);
+
+  const { error } = await session.supabase
+    .from("history_items")
+    .update({ data: dataObj })
+    .eq("user_id", session.userId)
+    .eq("id", item.id);
+  if (error) return { ok: false, error: friendlySupabaseError(error) };
+  return { ok: true };
+}
+
 export async function hideImportedHistoryItem(item: LocalHistoryItem): Promise<{ ok: boolean; error?: string }> {
   if (!isHealthConnectImportedItem(item)) return { ok: false, error: "Only imported health records can be hidden." };
   const session = await ensureSupabaseProfileSession();

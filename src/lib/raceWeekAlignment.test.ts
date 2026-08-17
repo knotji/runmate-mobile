@@ -24,6 +24,14 @@ describe('alignRaceWeekPlan', () => {
     expect(result.find((item) => item.day === 'Sunday')?.workoutType).toBe('Race Day');
   });
 
+  it('still shows Race Day on the race date itself even when a workout was already logged that day', () => {
+    // Someone logging an unrelated training session (or the race itself, before the
+    // race-result import runs) on the active race date must not make the Weekly Plan
+    // page fall back to the stale "Easy Run" entry that was there before alignment.
+    const result = alignRaceWeekPlan(goal, week, '2026-08-10', '2026-08-16', ['2026-08-16']);
+    expect(result.find((item) => item.day === 'Sunday')?.workoutType).toBe('Race Day');
+  });
+
   it('does nothing outside the seven-day race window', () => {
     expect(alignRaceWeekPlan(goal, week, '2026-08-03', '2026-08-03')).toEqual(week);
   });

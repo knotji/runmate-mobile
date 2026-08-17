@@ -9,6 +9,7 @@ export type DailyFuelCoach = {
   status: 'needs_weight' | 'ready';
   dayType: FuelDayType;
   dayLabel: string;
+  basedOnLoggedTraining: boolean;
   mealCount: number;
   completeMacroMeals: number;
   coverage: 'none' | 'partial' | 'stronger';
@@ -28,6 +29,8 @@ export function buildDailyFuelCoach(options: {
   const workouts = options.items.filter((item) => (item.type === 'workout' || item.type === 'strength') && getHistoryItemDateKey(item) === options.date);
   const dayType = classifyDay(workouts, options.plannedWorkout ?? null);
   const dayLabel = describeDay(workouts, options.plannedWorkout ?? null, dayType);
+  const plannedType = options.plannedWorkout ? classifyDay([], options.plannedWorkout) : null;
+  const basedOnLoggedTraining = workouts.length > 0 && plannedType != null && plannedType !== dayType;
   const mealCount = meals.length;
   const completeMacroMeals = meals.filter((meal) => {
     const nutrition = record(record(meal.data).nutrition);
@@ -39,7 +42,7 @@ export function buildDailyFuelCoach(options: {
   const weight = validWeight(options.profile?.weightKg);
   if (weight == null) {
     return {
-      status: 'needs_weight', dayType, dayLabel, mealCount, completeMacroMeals, coverage,
+      status: 'needs_weight', dayType, dayLabel, basedOnLoggedTraining, mealCount, completeMacroMeals, coverage,
       protein: null, carbs: null,
       recommendation: { title: 'Add Your Body Weight', detail: 'RunMate needs a current weight to calculate personal protein and carbohydrate ranges.' },
       note: 'Meal totals remain available, but RunMate will not guess a personal target.',
@@ -53,7 +56,7 @@ export function buildDailyFuelCoach(options: {
   const protein = macro(proteinLogged, proteinRange, proteinOverride != null);
   const carbs = macro(carbsLogged, carbRange, carbOverride != null);
   return {
-    status: 'ready', dayType, dayLabel, mealCount, completeMacroMeals, coverage,
+    status: 'ready', dayType, dayLabel, basedOnLoggedTraining, mealCount, completeMacroMeals, coverage,
     protein, carbs,
     recommendation: recommendation(dayType, mealCount, protein, carbs),
     note: coverage === 'stronger'

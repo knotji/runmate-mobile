@@ -2,6 +2,7 @@ import type { CoachContext, DayWorkoutSummary } from '@/lib/buildCoachContext';
 import { getTodayTrainingPlanStatus, isRestDayWorkout } from '@/lib/todayTrainingPlan';
 import type { RacePlan, WeekWorkout } from '@/types/race';
 import { alignRaceWeekPlan, goalFromContext } from '@/lib/raceWeekAlignment';
+import { normalizeWeekdayLabel } from '@/lib/raceGoalFormatting';
 
 export type CalendarDayStatus = 'rest' | 'completed' | 'missed' | 'today_pending' | 'today_completed' | 'today_logged_different' | 'upcoming' | 'no_plan';
 
@@ -86,14 +87,3 @@ function shiftDate(dateKey: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
-function normalizeWeekdayLabel(day: string): number {
-  const value = (day ?? '').trim().toLowerCase();
-  if (/^(sun|sunday|อา\.|อาทิตย์|วันอาทิตย์)/i.test(value)) return 0;
-  if (/^(mon|monday|จ\.|จันทร์|วันจันทร์)/i.test(value)) return 1;
-  if (/^(tue|tuesday|อ\.|อังคาร|วันอังคาร)/i.test(value)) return 2;
-  if (/^(wed|wednesday|พ\.|พุธ|วันพุธ)/i.test(value)) return 3;
-  if (/^(thu|thursday|พฤ\.|พฤหัส|วันพฤหัส)/i.test(value)) return 4;
-  if (/^(fri|friday|ศ\.|ศุกร์|วันศุกร์)/i.test(value)) return 5;
-  if (/^(sat|saturday|ส\.|เสาร์|วันเสาร์)/i.test(value)) return 6;
-  return -1;
-}

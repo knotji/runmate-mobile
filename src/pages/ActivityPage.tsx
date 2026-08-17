@@ -21,6 +21,7 @@ import {
 } from '@ionic/react';
 import { addOutline, barbellOutline, bicycleOutline, calendarClearOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, fitnessOutline, flagOutline, moonOutline, restaurantOutline, sparklesOutline, statsChartOutline, walkOutline } from 'ionicons/icons';
 import { deleteHistoryItem, hideImportedHistoryItem, loadHistoryItems } from '@/lib/cloudHistory';
+import { deleteMealNutritionRecord } from '@/lib/nutritionSync';
 import { getHistoryItemDateKey, todayBangkokDateKey } from '@/lib/date';
 import { isHealthConnectImportedItem, type LocalHistoryItem } from '@/lib/localHistory';
 import { describeTodayHealthSyncPerformance, syncTodayHealth } from '@/lib/healthSyncService';
@@ -39,7 +40,7 @@ import { useUserProfileStore } from '@/lib/profile/userProfileStore';
 import { loadActiveRaceGoalAndPlan } from '@/lib/raceStorage';
 import { useRacePlanStore } from '@/lib/race/racePlanStore';
 import { formatRaceWorkoutMetric } from '@/lib/mobileRaceGoal';
-import { getPlannedWorkoutForDate, isRestDayWorkout } from '@/lib/todayTrainingPlan';
+import { getPlannedWorkoutForDateWithRaceDay, isRestDayWorkout } from '@/lib/todayTrainingPlan';
 import { loadMoveSelectedDate, saveMoveSelectedDate } from '@/lib/primaryTabState';
 import { usePrimaryTabScroll } from '@/lib/usePrimaryTabScroll';
 import type { WeekWorkout } from '@/types/race';
@@ -52,6 +53,7 @@ const ActivityPage: React.FC = () => {
   const [startupItems] = useState(() => loadActivityStartupSnapshot());
   const profile = useUserProfileStore((state) => state.profile);
   const racePlan = useRacePlanStore((state) => state.plan);
+  const raceGoal = useRacePlanStore((state) => state.goal);
   const [items, setItems] = useState<LocalHistoryItem[]>(() => startupItems ?? []);
   const [selectedDate, setSelectedDate] = useState(() => loadMoveSelectedDate(todayDate));
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -236,7 +238,7 @@ const ActivityPage: React.FC = () => {
     return { value, durationMs: performance.now() - startedAt };
   }, [items, selectedDate]);
   const nutritionSummary = nutritionMeasurement.value;
-  const plannedWorkout = useMemo(() => selectedDate === todayDate ? getPlannedWorkoutForDate(racePlan, selectedDate) : null, [racePlan, selectedDate, todayDate]);
+  const plannedWorkout = useMemo(() => selectedDate === todayDate ? getPlannedWorkoutForDateWithRaceDay(racePlan, raceGoal, selectedDate) : null, [racePlan, raceGoal, selectedDate, todayDate]);
   const fuelCoach = useMemo(() => buildDailyFuelCoach({
     date: selectedDate,
     items,
@@ -282,6 +284,7 @@ const ActivityPage: React.FC = () => {
         saveActivityStartupSnapshot(next);
         return next;
       });
+      void deleteMealNutritionRecord(target);
     }
     else setDeleteError(result.error ?? 'Could Not Delete This Activity. Please Try Again.');
     setDeletingId(null);
@@ -410,12 +413,15 @@ function NutritionMetric({ label, value }: { label: string; value: number | null
 export function PlannedTrainingCard({ workout, onOpen }: { workout: WeekWorkout; onOpen: () => void }) {
   const restDay = isRestDayWorkout(workout);
   const details = formatRaceWorkoutMetric(workout);
+  // workout.description is Coach Guidance text (Thai, shown in the Session Details
+  // modal opened via onOpen) — this card stays on a fixed English caption instead
+  // of rendering it directly, since the Move tab is English-only.
   return <section className={`move-plan-card${restDay ? ' is-rest' : ''}`} aria-labelledby="move-plan-heading">
     <span className="move-plan-icon"><IonIcon icon={plannedWorkoutIcon(workout)} aria-hidden="true" /></span>
     <div className="move-plan-copy">
       <p>Planned Training</p>
       <h2 id="move-plan-heading">{workout.workoutType || 'Training Session'}</h2>
-      <span>{workout.description || (restDay ? 'Recovery is the plan for today.' : 'Follow the planned session for today.')}</span>
+      <span>{restDay ? 'Recovery is the plan for today.' : 'Follow the planned session for today.'}</span>
       {details && <small>{details}</small>}
     </div>
     <button type="button" onClick={onOpen} aria-label="Open Weekly Plan"><span>{restDay ? 'Rest' : 'Plan'}</span><IonIcon icon={chevronForwardOutline} aria-hidden="true" /></button>
@@ -443,7 +449,8 @@ function DailyFuelCoachCard({ coach, preparing, onProfile, onLogMeal, onAskCoach
   if (preparing) return <section className="daily-fuel-card is-preparing" aria-busy="true"><IonSpinner name="crescent" /><div><p>Daily Fuel Coach</p><h2>Preparing Your Targets</h2><span>Loading your current weight and training plan.</span></div></section>;
   return <section className="daily-fuel-card" aria-labelledby="daily-fuel-heading">
     <header><div><p>Daily Fuel Coach</p><h2 id="daily-fuel-heading">Fuel For This Day</h2></div><span>{coach.dayLabel}</span></header>
-    {coach.status === 'needs_weight' ? <div className="daily-fuel-setup"><IonIcon icon={restaurantOutline} /><div><strong>{coach.recommendation.title}</strong><span>{coach.recommendation.detail}</span></div><button type="button" onClick={onProfile}>Review Profile</button></div> : <>
+    {coach.basedOnLoggedTraining && <small className="daily-fuel-day-source">Based on today&apos;s logged training, which differs from the planned session above.</small>}
+    {coach.status === 'needs_weight' ?<div className="daily-fuel-setup"><IonIcon icon={restaurantOutline} /><div><strong>{coach.recommendation.title}</strong><span>{coach.recommendation.detail}</span></div><button type="button" onClick={onProfile}>Review Profile</button></div> : <>
       <div className="daily-fuel-quick-status" aria-label="Daily fuel target status">
         <FuelStatus label="Protein" target={coach.protein!} />
         <FuelStatus label="Carbs" target={coach.carbs!} />

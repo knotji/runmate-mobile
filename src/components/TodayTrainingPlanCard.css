@@ -49,11 +49,11 @@
 .plan-metrics-line { color: #2e5e85; font-weight: 650; }
 .plan-guidance-line { margin-top: 4px; }
 
-.adaptive-action { flex: none; padding: 4px 8px; border-radius: 999px; color: #24769c; background: #e7f4fa; font-size: 9px; font-style: normal; font-weight: 850; }
-.adaptive-action-reduce { color: #93631b; background: #fff1d8; }
-.adaptive-action-swap { color: #4f6388; background: #edf0fa; }
-.adaptive-action-rest { color: #a04e5a; background: #fff0f2; }
-.adaptive-action-keep { color: #167762; background: #e4f6f0; }
+.today-focus-badge { flex: none; padding: 4px 8px; border-radius: 999px; color: #24769c; background: #e7f4fa; font-size: 9px; font-style: normal; font-weight: 850; }
+.today-focus-push { color: #167762; background: #e4f6f0; }
+.today-focus-normal { color: #24769c; background: #e7f4fa; }
+.today-focus-reduce { color: #93631b; background: #fff1d8; }
+.today-focus-recover { color: #a04e5a; background: #fff0f2; }
 .adaptive-guidance { display: grid; gap: 8px; margin-top: 5px; padding: 11px 12px; border-radius: 13px; background: #f3f8fb; }
 .adaptive-guidance p { display: grid; gap: 3px; margin: 0; }
 .adaptive-guidance p strong { font-size: 11px; }
@@ -76,6 +76,9 @@
 .plan-support-list .plan-support-fuel::before { background: #d79b55; }
 .plan-support-list .plan-support-hydration::before { background: #4c9fd0; }
 .plan-support-list .plan-support-data::before { background: #65aa91; }
+.plan-support-list .plan-support-helping::before { background: #3ca78d; }
+.plan-support-list .plan-support-hurting::before { background: #d96f7e; }
+.plan-support-list .plan-support-plan::before { background: #2b7fa9; }
 .plan-support-list .plan-support-limiter::before { background: #d7a13b; }
 .plan-support-list .plan-support-action::before { background: #3ca78d; }
 .plan-support-list strong { font-size: 12px; }
@@ -100,7 +103,7 @@
 }
 .plan-card-main { gap: 7px; }
 .plan-card-eyebrow > span { color: #438c91; letter-spacing: .1em; }
-.adaptive-action { color: #2a766d; background: #eaf5f1; }
+.today-focus-badge { color: #2a766d; background: #eaf5f1; }
 .adaptive-guidance { margin-top: 7px; padding: 13px 14px; border-radius: 16px; background: #f3f7f7; }
 .plan-support-details { border-top-color: #e4eaeb; }
 

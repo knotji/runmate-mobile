@@ -9,6 +9,7 @@ import type { MealAnalysis } from '@/types/logs';
 import UploadDateField from './UploadDateField';
 import { cacheMealDetailItem } from '@/lib/mealDetailCache';
 import { hapticNotification, hapticSelection } from '@/lib/haptics';
+import { syncMealNutritionToHealthConnect } from '@/lib/nutritionSync';
 
 const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
 const nutritionKeys = ['caloriesKcal', 'proteinG', 'carbsG', 'fatG'] as const;
@@ -74,7 +75,13 @@ const MealUploadFlow: React.FC = () => {
       ? { provider: 'generic_image', importType: 'image', importedAt: new Date().toISOString() }
       : { provider: 'manual', importType: 'manual', importedAt: new Date().toISOString() };
     const result = await saveHistoryItems([item]);
-    if (result.ok) { void hapticNotification(); cacheMealDetailItem(item); reset(); history.push(`/activity/meal/${encodeURIComponent(item.id)}`); }
+    if (result.ok) {
+      void hapticNotification();
+      cacheMealDetailItem(item);
+      void syncMealNutritionToHealthConnect(item);
+      reset();
+      history.push(`/activity/meal/${encodeURIComponent(item.id)}`);
+    }
     else { setError(result.error ?? 'Could Not Save This Meal'); setSaving(false); }
   };
 

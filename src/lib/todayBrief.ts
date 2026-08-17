@@ -1,5 +1,6 @@
 import type { CoachContext, MealContextSummary, WeekSleepRow } from '@/lib/buildCoachContext';
 import type { AdaptiveTrainingRecommendation } from '@/lib/adaptiveTrainingPlan';
+import type { DailyRecommendationAction } from '@/lib/dailyRecommendation';
 import type { WeekWorkout } from '@/types/race';
 import type { TodayTrainingPlanStatus } from '@/lib/todayTrainingPlan';
 
@@ -20,6 +21,17 @@ type BriefOptions = {
   planned: WeekWorkout | null;
   recommendation: AdaptiveTrainingRecommendation | null;
   planStatus: TodayTrainingPlanStatus | null;
+  /**
+   * The same action already shown as the "Today's Focus" badge above this card
+   * (buildDailyRecommendation()'s output). readinessItem() must key its "Body
+   * Status" text off this instead of independently re-deriving one from
+   * overallScore alone — dailyRecommendation.ts's reduce/recover thresholds also
+   * check sleep performance, current Strain, and weekly load, so a day can read
+   * "reduce" there while overallScore alone still clears 67 — re-deriving
+   * separately produced a badge/body-status contradiction ("Reduce Load" next to
+   * "Ready For A Normal Day") whenever the trigger wasn't the composite score.
+   */
+  dailyAction?: DailyRecommendationAction | null;
 };
 
 const CAFFEINE_PATTERN = /\b(coffee|espresso|americano|latte|cappuccino|mocha|cold brew|tea|matcha|cocoa|chocolate|energy drink|cola)\b|กาแฟ|ชา|มัทฉะ|โกโก้|ช็อกโกแลต|เครื่องดื่มชูกำลัง/i;
@@ -28,14 +40,14 @@ export function buildTodayBrief(context: CoachContext, options: BriefOptions): T
   const latest = context.sleep7d?.[0] ?? context.sleepHistory?.[0] ?? null;
   const baseline = (context.sleepBaseline30d ?? []).filter((night) => night.date !== latest?.date);
   const caffeine = latestCaffeine(context.mealsToday ?? []);
-  const readiness = readinessItem(context);
+  const readiness = readinessItem(context, options.dailyAction ?? null);
   const limiter = limiterItem(context, latest, baseline);
   const action = actionItem(context, options, caffeine, limiter);
   const evidence = evidenceItems(context, latest, baseline, caffeine);
   return { readiness, limiter, action, evidence };
 }
 
-function readinessItem(context: CoachContext): TodayBriefItem {
+function readinessItem(context: CoachContext, dailyAction: DailyRecommendationAction | null): TodayBriefItem {
   const recovery = context.recoverySystem;
   if (recovery.scoreState === 'stale' || recovery.scoreState === 'unscorable' || recovery.scoreState === 'pending') {
     return {
@@ -51,6 +63,37 @@ function readinessItem(context: CoachContext): TodayBriefItem {
       summary: 'Use today as early guidance while RunMate builds your personal baseline.',
     };
   }
+  if (dailyAction === 'recover') {
+    return {
+      eyebrow: 'Body Readiness',
+      title: 'Recovery Comes First',
+      summary: 'Your current signals favor recovery over demanding training.',
+    };
+  }
+  if (dailyAction === 'reduce') {
+    return {
+      eyebrow: 'Body Readiness',
+      title: 'Keep Today Controlled',
+      summary: 'You can stay active, but today is better suited to controlled effort.',
+    };
+  }
+  if (dailyAction === 'push') {
+    return {
+      eyebrow: 'Body Readiness',
+      title: 'Ready To Push Today',
+      summary: 'Your current signals support a strong training day.',
+    };
+  }
+  if (dailyAction === 'normal') {
+    return {
+      eyebrow: 'Body Readiness',
+      title: 'Ready For A Normal Day',
+      summary: 'Your current recovery signals support a normal day without adding extra load.',
+    };
+  }
+  // dailyAction unavailable (e.g. the daily recommendation itself reports
+  // insufficient_data for a reason readinessItem's own state checks above don't
+  // cover) — fall back to the composite score alone rather than showing nothing.
   if (recovery.overallScore >= 67) {
     return {
       eyebrow: 'Body Readiness',

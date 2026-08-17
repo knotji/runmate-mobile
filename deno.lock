@@ -1,0 +1,60 @@
+{
+  "version": "5",
+  "redirects": {
+    "https://esm.sh/@supabase/supabase-js@2": "https://esm.sh/@supabase/supabase-js@2.112.3"
+  },
+  "remote": {
+    "https://esm.sh/@supabase/supabase-js@2.112.3": "f6b9130984301066587e8917dfab3b3d60be47dc966bd3d04c733bc9423c1cf9"
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:@capacitor-firebase/crashlytics@^8.3.0",
+        "npm:@capacitor/android@^8.4.2",
+        "npm:@capacitor/app@8.1.1",
+        "npm:@capacitor/browser@^8.0.4",
+        "npm:@capacitor/cli@8.5.0",
+        "npm:@capacitor/core@8.5.0",
+        "npm:@capacitor/filesystem@^8.1.2",
+        "npm:@capacitor/haptics@8.0.2",
+        "npm:@capacitor/ios@^8.4.2",
+        "npm:@capacitor/keyboard@8.0.5",
+        "npm:@capacitor/local-notifications@^8.2.1",
+        "npm:@capacitor/share@^8.0.1",
+        "npm:@capacitor/status-bar@8.0.3",
+        "npm:@capgo/capacitor-health@^8.9.3",
+        "npm:@fontsource/ibm-plex-sans-thai@^5.2.8",
+        "npm:@ionic/react-router@^8.5.0",
+        "npm:@ionic/react@^8.5.0",
+        "npm:@supabase/supabase-js@^2.110.7",
+        "npm:@testing-library/dom@>=7.21.4",
+        "npm:@testing-library/jest-dom@^5.16.5",
+        "npm:@testing-library/react@^16.2.0",
+        "npm:@testing-library/user-event@^14.4.3",
+        "npm:@types/react-dom@19.2.4",
+        "npm:@types/react-router-dom@^5.3.3",
+        "npm:@types/react-router@^5.1.20",
+        "npm:@types/react@19.2.18",
+        "npm:@vitejs/plugin-react@^4.0.1",
+        "npm:cypress@^13.5.0",
+        "npm:eslint-plugin-react-hooks@^5.1.0",
+        "npm:eslint-plugin-react-refresh@~0.4.19",
+        "npm:eslint-plugin-react@^7.32.2",
+        "npm:eslint@^9.20.1",
+        "npm:globals@^15.15.0",
+        "npm:ionicons@^7.4.0",
+        "npm:jsdom@^22.1.0",
+        "npm:react-dom@19.2.8",
+        "npm:react-router-dom@^5.3.4",
+        "npm:react-router@^5.3.4",
+        "npm:react@19.2.8",
+        "npm:terser@^5.4.0",
+        "npm:typescript-eslint@^8.24.0",
+        "npm:typescript@5.9",
+        "npm:vite@5",
+        "npm:vitest@~0.34.6",
+        "npm:zustand@^5.0.14"
+      ]
+    }
+  }
+}

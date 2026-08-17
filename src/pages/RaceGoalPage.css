@@ -7,6 +7,11 @@
 .race-error ion-button { margin-top: 5px; }
 
 .race-empty { min-height: 62vh; display: grid; place-content: center; justify-items: center; text-align: center; }
+/* A completed Race Goal with history now falls back to this same empty state
+   (see raceResults.ts's auto-completion) — the 62vh reservation above assumed
+   the empty state was always the only content on the page, which left a large
+   dead gap before the Race History card once that assumption stopped holding. */
+.race-empty-compact { min-height: 0; padding-block: 36px 12px; }
 .race-empty > div { width: 58px; height: 58px; display: grid; place-items: center; border-radius: 19px; color: #2581b5; background: #e4f4fc; }
 .race-empty > div ion-icon { font-size: 27px; }
 .race-empty p { margin: 20px 0 6px; color: #1f79b2; font-size: 10px; font-weight: 850; letter-spacing: .12em; }

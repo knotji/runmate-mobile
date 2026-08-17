@@ -103,6 +103,23 @@ describe('mergeRefreshedRacePlan', () => {
     expect(result.weeklyPlan?.[1].workoutType).toBe('Rest');
   });
 
+  it('always applies a freshly generated Race Day even when that date is locked as already completed', () => {
+    // Reproduces a real-device bug: the runner logged an unrelated workout on the
+    // actual race date, which locked that date under dynamicUpcoming, and the merge
+    // then discarded the newly generated "Race Day" entry in favor of the stale
+    // committed "Easy Run" — even though the generator (enforceRaceWeek) already
+    // produced the correct Race Day workout for that date.
+    const previous = plan([workout('Sunday', 'Easy Run', 6)]);
+    const generated = plan([workout('Sunday', 'Race Day', 10, 'ASICS META Time Trials · 10K')]);
+
+    const result = mergeRefreshedRacePlanWithOptions(previous, generated, '2026-08-16', {
+      dynamicUpcoming: true,
+      completedWorkoutDates: ['2026-08-16'],
+    });
+
+    expect(result.weeklyPlan?.[0]).toMatchObject({ workoutType: 'Race Day', distanceKm: 10 });
+  });
+
   it('applies the rolling schedule to the actual current training week, not generated week one', () => {
     const currentWeek = { weekNumber: 3, phase: 'Build', weeklyFocus: '', targetWeeklyDistanceKm: 12, longRunDistanceKm: 7, workouts: [workout('Wednesday', 'Recovery', null), workout('Thursday', 'Tempo Run', 7)] };
     const previous = plan(currentWeek.workouts, { planStartDate: '2026-07-12', weeks: [currentWeek] });

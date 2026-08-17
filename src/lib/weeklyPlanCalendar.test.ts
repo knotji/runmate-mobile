@@ -82,6 +82,18 @@ describe('buildWeeklyPlanCalendar', () => {
     expect(days.every((day) => day.status === 'no_plan')).toBe(true);
   });
 
+  it('still places workouts into the grid when day is an ISO date instead of a weekday name (regression: this previously made every day come back unmatched, showing a false "No Active Race Plan" empty state)', () => {
+    const days = buildWeeklyPlanCalendar(context({
+      racePlan: { weeklyPlan: [
+        workout('2026-07-20', 'Easy Run'), workout('2026-07-21', 'Rest'), workout('2026-07-22', 'Tempo Run'),
+        workout('2026-07-23', 'Rest'), workout('2026-07-24', 'Interval'), workout('2026-07-25', 'Long Run'), workout('2026-07-26', 'Rest'),
+      ] },
+    }));
+    expect(days.some((day) => day.planned != null)).toBe(true);
+    expect(days[0].planned?.workoutType).toBe('Easy Run');
+    expect(days[4].planned?.workoutType).toBe('Interval');
+  });
+
   it('shows the active Race Goal on its actual date instead of a generic Sunday run', () => {
     const days = buildWeeklyPlanCalendar(context({
       todayDate: '2026-08-10',

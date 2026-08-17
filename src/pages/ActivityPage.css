@@ -357,6 +357,13 @@
   font-weight: 800;
   white-space: nowrap;
 }
+.daily-fuel-day-source {
+  display: block;
+  margin: 8px 0 0;
+  color: #7c90a3;
+  font-size: 9.5px;
+  line-height: 1.4;
+}
 .daily-fuel-quick-status {
   display: flex;
   flex-wrap: wrap;

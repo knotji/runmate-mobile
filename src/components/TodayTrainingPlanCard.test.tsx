@@ -75,7 +75,7 @@ describe('TodayTrainingPlanCard adaptive flow', () => {
     expect(mainReason.getByText('No Single Strong Limiter')).toBeInTheDocument();
     expect(action.getByText('One Adjustment')).toBeInTheDocument();
     expect(action.getByText('Reduce Today’s Load')).toBeInTheDocument();
-    expect(screen.getByText('Adaptive · Reduce')).toBeInTheDocument();
+    expect(screen.getByLabelText("Today's Focus")).toHaveTextContent('Reduce Load');
     expect(screen.getAllByText('Keep Today Controlled')).toHaveLength(1);
     expect(screen.getAllByText('No Single Strong Limiter')).toHaveLength(1);
     expect(screen.getAllByText('Reduce Today’s Load')).toHaveLength(1);
@@ -95,7 +95,7 @@ describe('TodayTrainingPlanCard adaptive flow', () => {
     expect(action.queryByText("Today's Plan")).not.toBeInTheDocument();
     expect(action.getByText('One Adjustment')).toBeInTheDocument();
     expect(action.getByText('Keep The Original Plan')).toBeInTheDocument();
-    expect(screen.queryByText('Adaptive · Keep')).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Today's Focus")).toHaveTextContent('Normal Training');
     expect(screen.getAllByText('Keep The Original Plan')).toHaveLength(1);
   });
 
@@ -111,5 +111,6 @@ describe('TodayTrainingPlanCard adaptive flow', () => {
     expect(within(screen.getByLabelText('Body Status')).getByText('Waiting For Fresh Sleep Data')).toBeInTheDocument();
     expect(within(screen.getByLabelText('Main Reason')).getByText('Latest Sleep Is Missing')).toBeInTheDocument();
     expect(screen.queryByText(/respiratory|stress caused|HRV below/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Today's Focus")).not.toBeInTheDocument();
   });
 });

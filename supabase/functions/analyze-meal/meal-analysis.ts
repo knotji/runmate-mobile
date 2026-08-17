@@ -57,6 +57,18 @@ Language requirements:
 Use null for nutrition that cannot be estimated. Never invent foods that are not described or visible. Clearly describe uncertainty in Thai instead of presenting uncertain nutrition as exact.`;
 }
 
+/**
+ * A model response can be valid JSON that still carries no usable meal data (no
+ * foods, no nutrition) — e.g. the photo didn't clearly show food, or the model
+ * answered in an unexpected shape. Silently returning that as a "successful"
+ * analysis leaves the Review screen permanently blank with Save disabled and no
+ * explanation. Mirrors analyze-sleep's `hasSleepSignals` guard.
+ */
+export function hasMealSignals(normalized: ReturnType<typeof normalizeMealAnalysis>): boolean {
+  if (normalized.detectedFoods.length > 0) return true;
+  return Object.values(normalized.nutrition).some((value) => value != null);
+}
+
 export function normalizeMealAnalysis(value: unknown, mealType: MealType, note: string, mealText: string, imageCount: number) {
   const data = value && typeof value === 'object' ? value as Record<string, unknown> : {};
   const nutrition = data.nutrition && typeof data.nutrition === 'object' ? data.nutrition as Record<string, unknown> : {};

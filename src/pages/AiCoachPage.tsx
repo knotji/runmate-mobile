@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
-import { IonAlert, IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
+import { IonAlert, IonContent, IonFooter, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
 import { arrowBackOutline, arrowDownOutline, checkmarkCircleOutline, chevronDownOutline, chevronUpOutline, sendOutline, sparklesOutline, trashOutline, warningOutline } from 'ionicons/icons';
 import { Capacitor, type PluginListenerHandle } from '@capacitor/core';
 import { Keyboard } from '@capacitor/keyboard';
@@ -16,7 +16,15 @@ import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import { navigateBackOr } from '@/lib/navigationBack';
 import { recoveryDataStatusCopy, resolveRecoveryDataStatus } from '@/lib/recoveryDataFreshness';
 import { guardCoachContextFreshness } from '@/lib/aiCoachFreshness';
-import { clearAiCoachChatHistory, loadAiCoachChatHistory, saveAiCoachChatHistory, type AiCoachStoredMessage } from '@/lib/aiCoachChatHistory';
+import {
+  clearAiCoachChatHistory,
+  formatChatDateDivider,
+  loadAiCoachChatHistory,
+  resolveMessageDateKey,
+  saveAiCoachChatHistory,
+  type AiCoachStoredMessage,
+} from '@/lib/aiCoachChatHistory';
+import { todayBangkokDateKey } from '@/lib/date';
 import { loadCoachDraft, saveCoachDraft } from '@/lib/primaryTabState';
 import './AiCoachPage.css';
 
@@ -117,6 +125,7 @@ const AiCoachPage: React.FC = () => {
         sender: 'user',
         text: questionText,
         timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        dateKey: todayBangkokDateKey(),
       };
       setMessages((prev) => [...prev, userMsg]);
     }
@@ -134,6 +143,7 @@ const AiCoachPage: React.FC = () => {
         topicTitle: questionText,
         answer,
         timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        dateKey: todayBangkokDateKey(),
       };
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (failure) {
@@ -163,6 +173,7 @@ const AiCoachPage: React.FC = () => {
       sender: 'user',
       text: trimmed,
       timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      dateKey: todayBangkokDateKey(),
     };
     setMessages((prev) => [...prev, userMsg]);
     setAsking(true); setError(null);
@@ -179,6 +190,7 @@ const AiCoachPage: React.FC = () => {
         topicTitle: trimmed,
         answer,
         timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        dateKey: todayBangkokDateKey(),
       };
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (failure) {
@@ -255,26 +267,41 @@ const AiCoachPage: React.FC = () => {
               </div>
             </div>}
 
-            {messages.map((msg) => (
-              <div key={msg.id} className={`ai-coach-msg-bubble ${msg.sender}`}>
-                {msg.sender === 'user' ? (
-                  <div className="ai-coach-user-msg">
-                    <p>{msg.text}</p>
-                    <time>{msg.timestamp}</time>
+            {messages.map((msg, index) => {
+              const dateKey = resolveMessageDateKey(msg);
+              const previousDateKey = index > 0 ? resolveMessageDateKey(messages[index - 1]) : null;
+              return (
+                <Fragment key={msg.id}>
+                  {dateKey !== previousDateKey && (
+                    <div className="ai-coach-date-divider" role="separator"><span>{formatChatDateDivider(dateKey)}</span></div>
+                  )}
+                  <div className={`ai-coach-msg-bubble ${msg.sender}`}>
+                    {msg.sender === 'user' ? (
+                      <div className="ai-coach-user-msg">
+                        <p>{msg.text}</p>
+                        <time>{msg.timestamp}</time>
+                      </div>
+                    ) : (
+                      msg.answer && <CoachAnswer answer={msg.answer} timestamp={msg.timestamp} onFollowUp={(question) => void submitQuestion(question)} />
+                    )}
                   </div>
-                ) : (
-                  msg.answer && <CoachAnswer answer={msg.answer} timestamp={msg.timestamp} onFollowUp={(question) => void submitQuestion(question)} />
-                )}
-              </div>
-            ))}
+                </Fragment>
+              );
+            })}
 
             {asking && <section className="ai-coach-answer-loading" role="status"><IonSpinner name="crescent" /><div><strong>AI Coach is typing…</strong><span>Thinking about your question</span></div></section>}
             {!asking && error && <PageState kind="error" title="AI Coach Is Unavailable" detail={error} className="ai-coach-state" />}
             <div ref={chatEndRef} />
           </section>
-
-          {/* Freeform Chat Input Bar */}
-          <div className="ai-coach-input-container">
+        </>}
+      </main>
+    </IonContent>
+    {!loadingContext && displayContext && (
+      <IonFooter className="ai-coach-footer">
+        <IonToolbar className="ai-coach-footer-toolbar">
+          {/* IonToolbar's default (unnamed) slot is a flex *row* — a single wrapper
+              keeps that row to one item, so the stack inside can lay out as a column. */}
+          <div className="ai-coach-footer-stack">
             {!isNearBottom && (
               <button type="button" className="ai-coach-scroll-bottom-btn" onClick={scrollToBottom} aria-label="Scroll to bottom">
                 <IonIcon icon={arrowDownOutline} /> New response below
@@ -302,9 +329,9 @@ const AiCoachPage: React.FC = () => {
             </footer>
             <p className="ai-coach-privacy"><IonIcon icon={checkmarkCircleOutline} />AI Coach recommendations are advisory and do not overwrite saved records.</p>
           </div>
-        </>}
-      </main>
-    </IonContent>
+        </IonToolbar>
+      </IonFooter>
+    )}
     <IonAlert
       isOpen={clearConversationOpen}
       onDidDismiss={() => setClearConversationOpen(false)}

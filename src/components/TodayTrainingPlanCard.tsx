@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import type { CoachContext } from '@/lib/buildCoachContext';
 import { buildAdaptiveTrainingRecommendation } from '@/lib/adaptiveTrainingPlan';
+import { buildRecoveryExplainability } from '@/lib/recoveryExplainability';
+import { buildDailyRecommendation } from '@/lib/dailyRecommendation';
 import { buildSupportCards } from '@/lib/recoverySupport';
 import { getTodayPlannedWorkout, getTodayTrainingPlanStatus } from '@/lib/todayTrainingPlan';
 import { buildTodayBrief } from '@/lib/todayBrief';
@@ -10,12 +12,33 @@ export function TodayTrainingPlanCard({ context }: { context: CoachContext }) {
   const planned = getTodayPlannedWorkout(context);
   const status = planned ? getTodayTrainingPlanStatus(context, planned) : null;
   const recommendation = useMemo(() => buildAdaptiveTrainingRecommendation(context, planned), [context, planned]);
+  const explainability = useMemo(() => buildRecoveryExplainability(context.recoverySystem), [context.recoverySystem]);
+  const dailyRecommendation = useMemo(
+    () => buildDailyRecommendation(context, explainability, planned),
+    [context, explainability, planned],
+  );
   const brief = useMemo(
-    () => buildTodayBrief(context, { planned, recommendation, planStatus: status }),
-    [context, planned, recommendation, status],
+    () => buildTodayBrief(context, {
+      planned,
+      recommendation,
+      planStatus: status,
+      dailyAction: dailyRecommendation.status === 'ready' ? dailyRecommendation.action : null,
+    }),
+    [context, planned, recommendation, status, dailyRecommendation],
   );
   const supportCards = buildSupportCards(context);
+  const explainabilityItems = explainability.status === 'ready'
+    ? [
+      ...explainability.helping.slice(0, 2).map((factor) => ({ eyebrow: 'Helping Today', title: factor.label, summary: factor.detail, className: 'plan-support-helping' })),
+      ...explainability.hurting.slice(0, 2).map((factor) => ({ eyebrow: 'Hurting Today', title: factor.label, summary: factor.detail, className: 'plan-support-hurting' })),
+    ]
+    : [];
+  const plannedWorkoutItem = dailyRecommendation.status === 'ready' && dailyRecommendation.plannedWorkoutNote
+    ? [{ eyebrow: "Today's Plan", title: dailyRecommendation.plannedWorkoutNote, summary: 'From your active Race Plan.', className: 'plan-support-plan' }]
+    : [];
   const supportItems = [
+    ...plannedWorkoutItem,
+    ...explainabilityItems,
     ...brief.evidence.map((item) => ({ ...item, className: 'plan-support-data' })),
     ...supportCards.map((card) => ({ ...card, eyebrow: card.category, className: `plan-support-${card.category}` })),
   ];
@@ -31,8 +54,10 @@ export function TodayTrainingPlanCard({ context }: { context: CoachContext }) {
       <div className="plan-card-main">
         <div className="plan-card-eyebrow">
           <span>Today's Brief</span>
-          {recommendation && recommendation.action !== 'keep' && status === 'pending' && (
-            <em className={`adaptive-action adaptive-action-${recommendation.action}`}>Adaptive · {recommendation.label}</em>
+          {dailyRecommendation.status === 'ready' && (
+            <em className={`today-focus-badge today-focus-${dailyRecommendation.action}`} aria-label="Today's Focus">
+              {dailyRecommendation.label}
+            </em>
           )}
         </div>
         <div className="today-brief-context">

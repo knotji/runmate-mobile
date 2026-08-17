@@ -1,6 +1,8 @@
 import type { RaceGoal, RacePlan, WeekWorkout } from '@/types/race';
 import { translatePlanFieldToEnglish } from '@/lib/todayTrainingPlan';
 import { alignRaceWeekPlan } from '@/lib/raceWeekAlignment';
+import { isSupportiveDay } from '@/lib/trainingAdherence';
+import { normalizeWeekdayLabel as normalizeWeekday } from '@/lib/raceGoalFormatting';
 
 const DISTANCE_KM: Record<string, number> = {
   '5K': 5,
@@ -32,7 +34,7 @@ export function buildMobileRaceSummary(goal: RaceGoal, plan: RacePlan | null, to
       ? plan?.weeks?.find((week) => week.weekNumber === currentWeek)?.workouts ?? []
       : plan?.weeks?.[0]?.workouts ?? [];
   const workouts = alignRaceWeekPlan(goal, sourceWorkouts, today, today);
-  const activeWorkouts = workouts.filter((workout) => !/rest|พัก/i.test(workout.workoutType));
+  const activeWorkouts = workouts.filter((workout) => !isSupportiveDay(workout.workoutType));
 
   return {
     daysRemaining,
@@ -96,16 +98,4 @@ function dateDiffDays(from: string, to: string): number {
 
 function roundOne(value: number): number {
   return Math.round(value * 10) / 10;
-}
-
-function normalizeWeekday(value: string): number {
-  const day = value.trim().toLowerCase();
-  if (/^(sun|sunday|อาทิตย์|วันอาทิตย์)/i.test(day)) return 0;
-  if (/^(mon|monday|จันทร์|วันจันทร์)/i.test(day)) return 1;
-  if (/^(tue|tuesday|อังคาร|วันอังคาร)/i.test(day)) return 2;
-  if (/^(wed|wednesday|พุธ|วันพุธ)/i.test(day)) return 3;
-  if (/^(thu|thursday|พฤหัส|วันพฤหัส)/i.test(day)) return 4;
-  if (/^(fri|friday|ศุกร์|วันศุกร์)/i.test(day)) return 5;
-  if (/^(sat|saturday|เสาร์|วันเสาร์)/i.test(day)) return 6;
-  return -1;
 }

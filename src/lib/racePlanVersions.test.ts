@@ -22,6 +22,17 @@ describe('race plan versions', () => {
     ]);
   });
 
+  it('matches an old plan whose day field is an ISO date instead of a weekday name against the new plan\'s real weekday, instead of showing every day as "No Session" (regression: this previously used its own 4th duplicate of the weekday-matching logic that had the same blind spot as the "202" bug)', () => {
+    const diff = buildRacePlanDiff(
+      plan([workout('2026-08-17', 'Easy Run')]),
+      plan([workout('Monday', 'Tempo Run')]),
+    );
+    expect(diff).toHaveLength(1);
+    expect(diff[0]).toMatchObject({ day: 'Mon', kind: 'changed' });
+    expect(diff[0].before?.workoutType).toBe('Easy Run');
+    expect(diff[0].after?.workoutType).toBe('Tempo Run');
+  });
+
   it('creates a new active version that points to the previous active snapshot', () => {
     const next = prepareActivePlanVersion(plan([]), [{
       id: 'plan-2', version: 2, status: 'active', createdAt: null, plan: { ...plan([]), planVersion: 2 },

@@ -1,6 +1,7 @@
 import type { CoachContext } from '@/lib/buildCoachContext';
-import type { RacePlan, WeekWorkout } from '@/types/race';
+import type { RaceGoal, RacePlan, WeekWorkout } from '@/types/race';
 import { goalFromContext, raceDayWorkout } from '@/lib/raceWeekAlignment';
+import { normalizeWeekdayLabel } from '@/lib/raceGoalFormatting';
 
 /**
  * Picks today's planned workout from the active race plan's weekly schedule.
@@ -8,12 +9,26 @@ import { goalFromContext, raceDayWorkout } from '@/lib/raceWeekAlignment';
  * then a weekday-label match, then falls back to a planStartDate offset into weeklyPlan.
  */
 export function getTodayPlannedWorkout(context: CoachContext): WeekWorkout | null {
-  if (context.raceDate === context.todayDate) {
-    const goal = goalFromContext(context.raceGoal, { raceName: context.raceName, raceDate: context.raceDate, raceDistance: context.raceDistance, targetTime: context.targetTime });
-    if (goal) return raceDayWorkout(goal);
-  }
-  const plan = context.racePlan as RacePlan | null;
-  return getPlannedWorkoutForDate(plan, context.todayDate);
+  const goal = goalFromContext(context.raceGoal, { raceName: context.raceName, raceDate: context.raceDate, raceDistance: context.raceDistance, targetTime: context.targetTime });
+  return getPlannedWorkoutForDateWithRaceDay(context.racePlan as RacePlan | null, goal, context.todayDate);
+}
+
+/**
+ * Same as getPlannedWorkoutForDate(), but overrides the weekly plan's own entry for
+ * the active Race Goal's race date with a dedicated Race Day workout. The weekly plan
+ * generator does not always mark its own final day as Race Day (e.g. it can still read
+ * "Easy Run" on the taper's last day) even though the active Race Goal already knows
+ * today is race day — any caller that renders a planned-workout card for a specific
+ * date must go through this, not the plan lookup alone, or it can show a stale plan
+ * entry that contradicts the Race Goal page shown elsewhere in the app.
+ */
+export function getPlannedWorkoutForDateWithRaceDay(
+  plan: RacePlan | null,
+  goal: Pick<RaceGoal, 'raceName' | 'raceDate' | 'raceDistance' | 'targetTime'> | null,
+  date: string,
+): WeekWorkout | null {
+  if (goal?.raceDate === date) return raceDayWorkout(goal);
+  return getPlannedWorkoutForDate(plan, date);
 }
 
 export function getPlannedWorkoutForDate(plan: RacePlan | null, date: string): WeekWorkout | null {
@@ -47,18 +62,6 @@ export function getPlannedWorkoutForDate(plan: RacePlan | null, date: string): W
 function bangkokWeekdayIndex(date: string): number {
   const parsed = new Date(`${date}T12:00:00+07:00`);
   return Number.isNaN(parsed.getTime()) ? -1 : parsed.getDay();
-}
-
-function normalizeWeekdayLabel(day: string): number {
-  const value = (day ?? '').trim().toLowerCase();
-  if (/^(sun|sunday|อา\.|อาทิตย์|วันอาทิตย์)/i.test(value)) return 0;
-  if (/^(mon|monday|จ\.|จันทร์|วันจันทร์)/i.test(value)) return 1;
-  if (/^(tue|tuesday|อ\.|อังคาร|วันอังคาร)/i.test(value)) return 2;
-  if (/^(wed|wednesday|พ\.|พุธ|วันพุธ)/i.test(value)) return 3;
-  if (/^(thu|thursday|พฤ\.|พฤหัส|วันพฤหัส)/i.test(value)) return 4;
-  if (/^(fri|friday|ศ\.|ศุกร์|วันศุกร์)/i.test(value)) return 5;
-  if (/^(sat|saturday|ส\.|เสาร์|วันเสาร์)/i.test(value)) return 6;
-  return -1;
 }
 
 function isPlannedStrengthType(workoutType: string): boolean {

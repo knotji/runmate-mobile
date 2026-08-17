@@ -1,4 +1,5 @@
 import type { RacePlan, RacePlanVersion, WeekWorkout } from '@/types/race';
+import { normalizeWeekdayLabel } from '@/lib/raceGoalFormatting';
 
 export type RacePlanChange = {
   day: string;
@@ -54,7 +55,7 @@ export function prepareLegacyActivePlanVersion(plan: RacePlan): RacePlan {
 }
 
 function workoutMap(workouts: WeekWorkout[]): Map<number, WeekWorkout> {
-  return new Map(workouts.map((workout) => [weekdayIndex(workout.day), workout]));
+  return new Map(workouts.map((workout) => [normalizeWeekdayLabel(workout.day), workout]));
 }
 
 function sameWorkout(left: WeekWorkout, right: WeekWorkout): boolean {
@@ -63,18 +64,6 @@ function sameWorkout(left: WeekWorkout, right: WeekWorkout): boolean {
     && left.targetPace === right.targetPace
     && left.description === right.description
     && left.durationMin === right.durationMin;
-}
-
-function weekdayIndex(value: string): number {
-  const day = value.trim().toLowerCase();
-  if (day.startsWith('sun') || day.startsWith('อา')) return 0;
-  if (day.startsWith('mon') || day.startsWith('จ')) return 1;
-  if (day.startsWith('tue') || day.startsWith('อั')) return 2;
-  if (day.startsWith('wed') || day.startsWith('พุ')) return 3;
-  if (day.startsWith('thu') || day.startsWith('พฤ')) return 4;
-  if (day.startsWith('fri') || day.startsWith('ศ')) return 5;
-  if (day.startsWith('sat') || day.startsWith('ส')) return 6;
-  return 7;
 }
 
 function weekdayLabel(index: number): string {

@@ -17,6 +17,7 @@ import { reconciliationSourceLabel } from "@/lib/reconciliationPolicy";
 import { calculateRunMateSleepScore } from "@/lib/runMateSleepScore";
 import { formatSleepMinutesShortThai, formatSleepMinutesThai } from "@/lib/sleepDuration";
 import { workoutDurationMinutes, workoutDurationText } from "@/lib/workoutDuration";
+import { calcWeeklyTrainingLoad } from "@/lib/weeklyTrainingLoad";
 
 import type {
   CoachContext,
@@ -140,6 +141,11 @@ export function buildCoachContextFromData(input: {
   let longestRun7dKm: number | null = null;
   let lastRun: CoachContext["lastRun"] = null;
   const todayWorkouts: TodayCompletedWorkoutSummary[] = [];
+  // Tracks which history_items are already represented in todayWorkouts, so a race
+  // result linked to one of them (see raceResults.ts's automatic completion) isn't
+  // also added as a second, separate "Race {name}" entry below — otherwise the same
+  // physical run counts twice toward today's Strain/load.
+  const todayWorkoutItemIds = new Set<string>();
 
   for (const item of workoutItems) {
     const date = getHistoryItemDateKey(item);
@@ -165,6 +171,7 @@ export function buildCoachContextFromData(input: {
         pace: ext.avgPace ?? null,
         calories,
       });
+      todayWorkoutItemIds.add(item.id);
     }
     if (!durationMin) continue;
 
@@ -210,6 +217,7 @@ export function buildCoachContextFromData(input: {
         pace: null,
         calories: null,
       });
+      todayWorkoutItemIds.add(item.id);
     }
   }
 
@@ -229,7 +237,10 @@ export function buildCoachContextFromData(input: {
     .map(compactHealthCheck)
     .find((item): item is HealthCheckContext => Boolean(item)) ?? null;
   const recentRaceResults = (input.raceResults ?? []).map(compactRaceResult);
-  for (const result of recentRaceResults.filter((raceResult) => raceResult.raceDate === today)) {
+  for (const result of recentRaceResults.filter((raceResult) =>
+    raceResult.raceDate === today
+    && !(raceResult.linkedHistoryItemId && todayWorkoutItemIds.has(raceResult.linkedHistoryItemId)),
+  )) {
     todayWorkouts.push({
       date: today,
       kind: "race",
@@ -244,6 +255,7 @@ export function buildCoachContextFromData(input: {
   }
   const latestCompletedRace = recentRaceResults[0] ?? null;
   const runDays7d = workouts7d.filter((day) => day.runs.length > 0).length;
+  const weeklyTrainingLoad7d = calcWeeklyTrainingLoad(workouts7d);
   const lastWorkoutDate = workouts7d[0]?.date ?? null;
   const todayPrimaryWorkout = pickTodayPrimaryWorkout(todayWorkouts);
 
@@ -451,6 +463,7 @@ export function buildCoachContextFromData(input: {
     totalRunKm: Math.round(totalRunKm * 10) / 10,
     totalSessions,
     runDays7d,
+    weeklyTrainingLoad7d,
     longestRun7dKm,
     lastWorkoutDate,
     lastRun,

@@ -9,6 +9,7 @@ import type { WorkoutAnalysis } from '@/types/logs';
 import { acknowledgeBackgroundHealthRecords, backgroundHealthRecordKey, getFreshPreparedHealthSnapshot } from '@/lib/backgroundHealth';
 import { formatReconciliationSyncError, isReconciliationPermissionError } from '@/lib/reconciliationPolicy';
 import { createLastSyncedAtStore, stableKey } from '@/lib/healthSyncHelpers';
+import { maybeCompleteRaceFromWorkoutItem } from '@/lib/raceResults';
 
 const SAMSUNG_HEALTH_SOURCE_ID = 'com.sec.android.app.shealth';
 const DEFAULT_LOOKBACK_DAYS = 30;
@@ -101,6 +102,12 @@ async function runSync(lookbackDays: number | 'today'): Promise<SamsungWorkoutSy
     if (changedItems.length) {
       const saved = await saveHistoryItems(changedItems);
       if (!saved.ok) return { status: 'synced', imported: 0, dataSource, vo2MaxAuthorized, vo2MaxSamplesRead: vo2MaxSamples.length, workoutsWithVo2Max, added: 0, updated: 0, unchanged: 0, failed: changedItems.length, error: saved.error };
+      // A newly-synced workout may be the runner's active race, arriving with no
+      // user present to confirm (unlike the manual photo-upload flow) — check only
+      // items that did not exist before this sync, not every changed/updated one.
+      for (const item of changedItems) {
+        if (!existingMap.has(item.id)) void maybeCompleteRaceFromWorkoutItem(item);
+      }
     }
     recordSuccessfulSync();
     await acknowledgeBackgroundHealthRecords({ workoutKeys: workouts.map(backgroundHealthRecordKey) });

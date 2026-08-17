@@ -1,26 +1,23 @@
 import { loadActivityStartupEntry } from './activityStartupCache';
-import { loadBodyWeightTrendStartupSnapshot } from './bodyWeightTrendStartupCache';
 import { getPersistedTodaySyncAt } from './healthSyncMetadata';
 import { loadNutritionTrendsStartupSnapshot } from './nutritionTrendsStartupCache';
 import { loadPainTrendsStartupSnapshot } from './painTrendsStartupCache';
-import { loadRecoveryContextStartupEntry, loadRecoveryStartupEntry } from './recoveryStartupCache';
+import { loadRecoveryStartupEntry } from './recoveryStartupCache';
 import { loadRecoveryTrendsStartupSnapshot } from './recoveryTrendsStartupCache';
 
 export type HealthHubStatusTone = 'current' | 'attention' | 'empty';
 export type HealthHubStatus = { label: string; tone: HealthHubStatusTone };
 export type HealthHubSnapshot = Record<
-  'calendar' | 'recoveryTrends' | 'sleep' | 'strain' | 'nutrition' | 'weight' | 'fitnessAge' | 'pain' | 'healthConnect',
+  'calendar' | 'recoveryTrends' | 'sleep' | 'strain' | 'nutrition' | 'pain' | 'healthConnect',
   HealthHubStatus
 >;
 
 export function buildHealthHubSnapshot(now: Date | string | number = Date.now()): HealthHubSnapshot {
   const nowMs = new Date(now).getTime();
   const recoveryEntry = loadRecoveryStartupEntry(now);
-  const contextEntry = loadRecoveryContextStartupEntry(now);
   const activityEntry = loadActivityStartupEntry(now);
   const recoveryTrends = loadRecoveryTrendsStartupSnapshot(now);
   const nutrition = loadNutritionTrendsStartupSnapshot(now);
-  const weight = loadBodyWeightTrendStartupSnapshot(now);
   const pain = loadPainTrendsStartupSnapshot(now);
   const sleepMinutes = recoveryEntry?.recovery.sleepPerformance.actualSleepMinutes ?? null;
   const syncAt = getPersistedTodaySyncAt();
@@ -34,10 +31,6 @@ export function buildHealthHubSnapshot(now: Date | string | number = Date.now())
     sleep: sleepMinutes != null ? current(`${formatMinutes(sleepMinutes)} last night`) : empty('No recent sleep snapshot'),
     strain: recoveryEntry ? current(`${formatStrain(recoveryEntry.recovery.strain.score)}/21 today`) : empty('No current strain snapshot'),
     nutrition: nutrition ? current(`${nutrition.sevenDay.loggedDays}/7 days logged`) : empty('No recent nutrition summary'),
-    weight: weight?.thirtyDay.latestWeightKg != null
-      ? current(`${formatNumber(weight.thirtyDay.latestWeightKg)} kg latest`)
-      : empty('No recent weigh-in'),
-    fitnessAge: contextEntry ? current('Health signals available') : empty('Open to calculate'),
     pain: pain
       ? pain.thirtyDay.hasActivePain
         ? attention('Active report logged')
@@ -60,10 +53,6 @@ function formatMinutes(minutes: number): string {
   const hours = Math.floor(rounded / 60);
   const remainder = rounded % 60;
   return hours > 0 ? `${hours}h ${remainder}m` : `${remainder}m`;
-}
-
-function formatNumber(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
 function formatStrain(value: number): string {

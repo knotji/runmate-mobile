@@ -25,6 +25,21 @@ export function buildMealDetail(item: LocalHistoryItem) {
   };
 }
 
+export function formatFoodDetail(food: { quantity: number | null; unit: string | null; portion: string | null }): string {
+  const amount = [food.quantity, food.unit].filter((value) => value !== null && value !== '').join(' ');
+  const portion = food.portion?.trim() || null;
+  // The AI's portion estimate is a full natural-language description that typically
+  // already opens with the quantity + unit (e.g. amount "1 ชิ้น", portion "1
+  // ชิ้นสามเหลี่ยม") — showing both concatenated repeated it verbatim ("1 ชิ้น · 1
+  // ชิ้นสามเหลี่ยม"). Show the portion alone when it already carries the amount.
+  if (portion && amount && stripSpaces(portion).startsWith(stripSpaces(amount))) return portion;
+  return [amount, portion].filter(Boolean).join(' · ') || 'No Portion Details';
+}
+
+function stripSpaces(value: string): string {
+  return value.replace(/\s+/g, '');
+}
+
 export function buildHealthDetail(item: LocalHistoryItem) {
   const data = record(item.data);
   if (item.type === 'pain') {

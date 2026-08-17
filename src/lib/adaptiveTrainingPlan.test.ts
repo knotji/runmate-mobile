@@ -23,6 +23,7 @@ function context(input: {
   activePain?: boolean;
   activeSick?: boolean;
   runDays7d?: number;
+  weeklyTrainingLoad7d?: number;
   weeklyTrainingDays?: number;
 } = {}): CoachContext {
   return {
@@ -31,6 +32,7 @@ function context(input: {
     activePain: input.activePain ?? false,
     activeSick: input.activeSick ?? false,
     runDays7d: input.runDays7d ?? 3,
+    weeklyTrainingLoad7d: input.weeklyTrainingLoad7d ?? 0,
     profile: input.weeklyTrainingDays == null ? {} : { weeklyTrainingDays: input.weeklyTrainingDays },
     recoverySystem: {
       overallScore: input.score ?? 75,
@@ -85,15 +87,20 @@ describe('buildAdaptiveTrainingRecommendation', () => {
     expect(buildAdaptiveTrainingRecommendation(ctx, planned)).toBeNull();
   });
 
-  it('reduces a demanding workout when this week’s Workout Load is already heavy, even with good Recovery', () => {
-    const result = buildAdaptiveTrainingRecommendation(context({ score: 80, runDays7d: 6 }), planned);
+  it('reduces a demanding workout when this week’s training load is already heavy, even with good Recovery', () => {
+    const result = buildAdaptiveTrainingRecommendation(context({ score: 80, weeklyTrainingLoad7d: 300 }), planned);
     expect(result?.action).toBe('reduce');
-    expect(result?.reasons.join(' ')).toContain('6 of the last 7 days');
+    expect(result?.reasons.join(' ')).toContain('training load is already high');
   });
 
-  it('does not reduce a demanding workout for high weekly volume alone when few days were run', () => {
-    const result = buildAdaptiveTrainingRecommendation(context({ score: 80, runDays7d: 3 }), planned);
+  it('does not reduce a demanding workout for a genuinely light week', () => {
+    const result = buildAdaptiveTrainingRecommendation(context({ score: 80, runDays7d: 2, weeklyTrainingLoad7d: 50 }), planned);
     expect(result?.action).toBe('keep');
+  });
+
+  it('reduces a demanding workout for a heavy week driven by a few hard sessions, not just many easy ones (the runDays7d limitation this replaces)', () => {
+    const result = buildAdaptiveTrainingRecommendation(context({ score: 80, runDays7d: 3, weeklyTrainingLoad7d: 270 }), planned);
+    expect(result?.action).toBe('reduce');
   });
 
   it('notes meeting the weekly training-day target when keeping the original plan', () => {

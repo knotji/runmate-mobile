@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mealPrompt, normalizeMealAnalysis, parseMealRequestBody } from './meal-analysis';
+import { hasMealSignals, mealPrompt, normalizeMealAnalysis, parseMealRequestBody } from './meal-analysis';
 
 describe('analyze-meal request validation', () => {
   it('accepts a trimmed text meal with an allowed meal type', () => {
@@ -48,5 +48,22 @@ describe('analyze-meal output normalization', () => {
     expect(result.confidence).toBe('low');
     expect(result.unclearFields).toHaveLength(10);
     expect(result.needsReview).toBe(false);
+  });
+});
+
+describe('hasMealSignals', () => {
+  it('is true when at least one food was detected', () => {
+    const normalized = normalizeMealAnalysis({ detectedFoods: [{ name: 'ข้าวสวย' }], nutrition: {} }, 'lunch', '', 'ข้าวสวย', 0);
+    expect(hasMealSignals(normalized)).toBe(true);
+  });
+
+  it('is true when no foods were detected but at least one nutrition value was', () => {
+    const normalized = normalizeMealAnalysis({ detectedFoods: [], nutrition: { caloriesKcal: 350 } }, 'lunch', '', 'something', 0);
+    expect(hasMealSignals(normalized)).toBe(true);
+  });
+
+  it('is false when the model returned no usable foods or nutrition, even if the JSON was well-formed', () => {
+    const normalized = normalizeMealAnalysis({ detectedFoods: [], nutrition: {}, confidence: 'low', needsReview: true }, 'lunch', '', 'a blurry photo', 1);
+    expect(hasMealSignals(normalized)).toBe(false);
   });
 });

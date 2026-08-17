@@ -1,17 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadActivityStartupEntry } from './activityStartupCache';
-import { loadBodyWeightTrendStartupSnapshot } from './bodyWeightTrendStartupCache';
 import { loadNutritionTrendsStartupSnapshot } from './nutritionTrendsStartupCache';
 import { loadPainTrendsStartupSnapshot } from './painTrendsStartupCache';
-import { loadRecoveryContextStartupEntry, loadRecoveryStartupEntry } from './recoveryStartupCache';
+import { loadRecoveryStartupEntry } from './recoveryStartupCache';
 import { loadRecoveryTrendsStartupSnapshot } from './recoveryTrendsStartupCache';
 import { buildHealthHubSnapshot } from './healthHubSnapshot';
 
 vi.mock('./activityStartupCache', () => ({ loadActivityStartupEntry: vi.fn() }));
-vi.mock('./bodyWeightTrendStartupCache', () => ({ loadBodyWeightTrendStartupSnapshot: vi.fn() }));
 vi.mock('./nutritionTrendsStartupCache', () => ({ loadNutritionTrendsStartupSnapshot: vi.fn() }));
 vi.mock('./painTrendsStartupCache', () => ({ loadPainTrendsStartupSnapshot: vi.fn() }));
-vi.mock('./recoveryStartupCache', () => ({ loadRecoveryContextStartupEntry: vi.fn(), loadRecoveryStartupEntry: vi.fn() }));
+vi.mock('./recoveryStartupCache', () => ({ loadRecoveryStartupEntry: vi.fn() }));
 vi.mock('./recoveryTrendsStartupCache', () => ({ loadRecoveryTrendsStartupSnapshot: vi.fn() }));
 
 describe('Health hub snapshot', () => {
@@ -19,10 +17,8 @@ describe('Health hub snapshot', () => {
     window.localStorage.clear();
     vi.clearAllMocks();
     vi.mocked(loadActivityStartupEntry).mockReturnValue(null);
-    vi.mocked(loadBodyWeightTrendStartupSnapshot).mockReturnValue(null);
     vi.mocked(loadNutritionTrendsStartupSnapshot).mockReturnValue(null);
     vi.mocked(loadPainTrendsStartupSnapshot).mockReturnValue(null);
-    vi.mocked(loadRecoveryContextStartupEntry).mockReturnValue(null);
     vi.mocked(loadRecoveryStartupEntry).mockReturnValue(null);
     vi.mocked(loadRecoveryTrendsStartupSnapshot).mockReturnValue(null);
   });
@@ -31,7 +27,6 @@ describe('Health hub snapshot', () => {
     const snapshot = buildHealthHubSnapshot('2026-08-10T02:00:00.000Z');
 
     expect(snapshot.sleep).toEqual({ label: 'No recent sleep snapshot', tone: 'empty' });
-    expect(snapshot.weight).toEqual({ label: 'No recent weigh-in', tone: 'empty' });
     expect(snapshot.healthConnect).toEqual({ label: 'Not synced on this device', tone: 'empty' });
   });
 
@@ -49,14 +44,12 @@ describe('Health hub snapshot', () => {
       recovery: { sleepPerformance: { actualSleepMinutes: 358 }, strain: { score: 6.4 } },
     } as never);
     vi.mocked(loadNutritionTrendsStartupSnapshot).mockReturnValue({ sevenDay: { loggedDays: 5 } } as never);
-    vi.mocked(loadBodyWeightTrendStartupSnapshot).mockReturnValue({ thirtyDay: { latestWeightKg: 51.6 } } as never);
     vi.mocked(loadPainTrendsStartupSnapshot).mockReturnValue({ thirtyDay: { hasActivePain: false, logs: [] } } as never);
 
     const snapshot = buildHealthHubSnapshot('2026-08-10T02:00:00.000Z');
     expect(snapshot.sleep.label).toBe('5h 58m last night');
     expect(snapshot.strain.label).toBe('6.4/21 today');
     expect(snapshot.nutrition.label).toBe('5/7 days logged');
-    expect(snapshot.weight.label).toBe('51.6 kg latest');
     expect(snapshot.pain.label).toBe('No pain logged');
   });
 });

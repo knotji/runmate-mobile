@@ -49,7 +49,7 @@ function context(values: Partial<CoachContext> = {}): CoachContext {
   } as unknown as CoachContext;
 }
 
-const options = { planned: null, recommendation: null, planStatus: null };
+const options = { planned: null, recommendation: null, planStatus: null, dailyAction: null };
 
 describe('buildTodayBrief', () => {
   it('uses total awake minutes as a limiter without inventing an awakening count', () => {
@@ -117,6 +117,14 @@ describe('buildTodayBrief', () => {
 
     expect(brief.limiter.title).toBe('Active Pain Takes Priority');
     expect(brief.limiter.summary).not.toMatch(/diagnos|injury caused/i);
+  });
+
+  it('aligns Body Status with the Today\'s Focus badge instead of re-deriving it from overallScore alone (regression: showed "Reduce Load" badge next to "Ready For A Normal Day" body status when the trigger was sleep performance, not the composite score)', () => {
+    // overallScore alone (72) clears the >=67 "normal day" threshold, but
+    // dailyRecommendation.ts also reduces on a low sleep-performance sub-score,
+    // strain, or heavy weekly load — Body Status must follow that, not the score.
+    const brief = buildTodayBrief(context(), { ...options, dailyAction: 'reduce' });
+    expect(brief.readiness.title).toBe('Keep Today Controlled');
   });
 
   it('labels a partial baseline as calibration rather than full readiness', () => {

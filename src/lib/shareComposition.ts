@@ -1,6 +1,8 @@
 import type { CoachContext } from '@/lib/buildCoachContext';
 import { buildAdaptiveTrainingRecommendation } from '@/lib/adaptiveTrainingPlan';
+import { buildDailyRecommendation } from '@/lib/dailyRecommendation';
 import type { EnergyReserve } from '@/lib/energyReserve';
+import { buildRecoveryExplainability } from '@/lib/recoveryExplainability';
 import { buildTodayBrief } from '@/lib/todayBrief';
 import { getTodayPlannedWorkout, getTodayTrainingPlanStatus } from '@/lib/todayTrainingPlan';
 import type { WeeklyRecapHighlights } from '@/lib/weeklyRecapHighlights';
@@ -100,7 +102,17 @@ export function todayShareComposition(context: CoachContext, energy?: EnergyRese
   const planned = getTodayPlannedWorkout(context);
   const planStatus = getTodayTrainingPlanStatus(context, planned);
   const recommendation = buildAdaptiveTrainingRecommendation(context, planned);
-  const brief = buildTodayBrief(context, { planned, recommendation, planStatus });
+  // Same reconciliation as the live Today card: keep this share card's headline in
+  // step with the push/normal/reduce/recover decision, not a separately re-derived
+  // one from overallScore alone (see todayBrief.ts's dailyAction doc comment).
+  const explainability = buildRecoveryExplainability(context.recoverySystem);
+  const dailyRecommendation = buildDailyRecommendation(context, explainability, planned);
+  const brief = buildTodayBrief(context, {
+    planned,
+    recommendation,
+    planStatus,
+    dailyAction: dailyRecommendation.status === 'ready' ? dailyRecommendation.action : null,
+  });
   const metrics: ShareMetric[] = [];
   const recovery = context.recoverySystem;
   if (recovery.scoreState === 'scored' || recovery.scoreState === 'calibrating') {

@@ -7,7 +7,7 @@
 .ai-coach-clear:active { background: rgba(0, 0, 0, .05); }
 .ai-coach-clear:focus-visible { outline: 2px solid #258ab7; outline-offset: -4px; }
 
-.ai-coach-shell { width: min(100%, 600px); margin: 0 auto; padding: 24px 20px max(80px, env(safe-area-inset-bottom)); }
+.ai-coach-shell { width: min(100%, 600px); margin: 0 auto; padding: 24px 20px; }
 .ai-coach-heading { display: grid; grid-template-columns: 48px minmax(0,1fr); gap: 14px; align-items: start; margin: 0 2px 24px; }
 .ai-coach-mark { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 15px; color: #fff; background: linear-gradient(145deg,#257bb4,#27a8b0); box-shadow: 0 10px 24px rgba(35,130,168,.2); }
 .ai-coach-mark ion-icon { font-size: 22px; }
@@ -94,6 +94,9 @@
 .ai-coach-chip:focus-visible { outline: 2px solid #2085b3; outline-offset: 1px; }
 
 .ai-coach-chat-stream { display: flex; flex-direction: column; gap: 14px; min-height: 100px; margin-bottom: 14px; padding-bottom: 0; }
+.ai-coach-date-divider { display: flex; align-items: center; gap: 10px; margin: 4px 0; }
+.ai-coach-date-divider::before, .ai-coach-date-divider::after { content: ''; flex: 1; height: 1px; background: #dbe6ee; }
+.ai-coach-date-divider span { flex: 0 0 auto; color: #7c93a8; font-size: 10px; font-weight: 800; letter-spacing: .04em; }
 .ai-coach-empty-chat { text-align: center; padding: 32px 20px; color: #6f859b; border: 1px dashed #c9dce8; border-radius: 18px; background: rgba(255,255,255,.5); }
 .ai-coach-empty-chat ion-icon { font-size: 32px; color: #218fb8; margin-bottom: 8px; display: block; margin-inline: auto; }
 .ai-coach-empty-chat p { margin: 0; font-size: 12px; line-height: 1.6; color: #587087; }
@@ -119,9 +122,33 @@
 .ai-coach-chat-followups button:active { background: #def1f8; }
 .ai-coach-chat-followups button:focus-visible { outline: 2px solid #2085b3; outline-offset: 1px; }
 
-.ai-coach-input-container { position: sticky; bottom: max(12px, env(safe-area-inset-bottom)); z-index: 10; margin-top: 8px; padding-top: 8px; background: linear-gradient(180deg, rgba(247,249,252,0) 0%, rgba(247,249,252,0.95) 40%, rgba(247,249,252,1) 100%); transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
+/*
+ * A real IonFooter (fixed outside the scrollable IonContent) instead of a
+ * `position: sticky` div inside it — sticky drifted/overlapped as message
+ * content height changed (new replies, keyboard open/close) since it was
+ * still bound to the scroll container rather than truly fixed. The content
+ * sits inside an IonToolbar (Ionic's own required child for a footer's
+ * safe-area handling — `ion-footer.footer-toolbar-padding ion-toolbar:last-
+ * of-type` applies `padding-bottom: var(--ion-safe-area-bottom)` only to a
+ * real toolbar, not to arbitrary footer content) rather than a raw div, so
+ * safe-area bottom padding is applied exactly once by Ionic itself instead
+ * of being hand-rolled — a second, manual `env(safe-area-inset-bottom)`
+ * padding here previously left a visible empty gap above the true bottom
+ * edge on devices where Ionic was already reserving that space.
+ */
+.ai-coach-footer { --border-width: 0; }
+.ai-coach-footer-toolbar {
+  --background: transparent;
+  --padding-top: 8px;
+  --padding-start: 20px;
+  --padding-end: 20px;
+  --padding-bottom: 8px;
+  --min-height: auto;
+  background: linear-gradient(180deg, rgba(247,249,252,0) 0%, rgba(247,249,252,0.95) 35%, rgba(247,249,252,1) 100%);
+}
+.ai-coach-footer-stack { display: flex; flex-direction: column; width: 100%; }
 .ai-coach-scroll-bottom-btn { display: flex; align-items: center; gap: 6px; margin: 0 auto 10px; padding: 6px 14px; border: 1px solid #b7d6e6; border-radius: 999px; background: #ffffff; color: var(--rm-brand-blue, #2474b2); font-size: 11px; font-weight: 750; box-shadow: 0 4px 12px rgba(23,58,90,.1); cursor: pointer; }
-.ai-coach-input-bar { display: flex; gap: 8px; align-items: center; padding: 4px 4px 4px 16px; border: 1px solid #b7d6e6; border-radius: 999px; background: #ffffff; box-shadow: 0 10px 28px rgba(23,58,90,.12); }
+.ai-coach-input-bar { width: min(100%, 600px); display: flex; gap: 8px; align-items: center; margin-inline: auto; padding: 4px 4px 4px 16px; border: 1px solid #b7d6e6; border-radius: 999px; background: #ffffff; box-shadow: 0 10px 28px rgba(23,58,90,.12); }
 .ai-coach-chat-input { flex: 1; min-width: 0; border: 0; outline: none; padding: 7px 0; font-size: 13px; line-height: 1.45; color: var(--rm-text-primary, #172c49); background: transparent; }
 .ai-coach-chat-input::placeholder { color: #889bb0; }
 .ai-coach-send-btn { width: 44px; height: 44px; min-width: 44px; border: 0; border-radius: 50%; color: #fff; background: var(--rm-brand-blue, #2474b2); display: grid; place-items: center; font-size: 16px; transition: background-color .15s ease; cursor: pointer; }

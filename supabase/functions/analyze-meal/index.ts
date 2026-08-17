@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { mealPrompt, normalizeMealAnalysis, parseMealRequestBody } from './meal-analysis.ts';
+import { hasMealSignals, mealPrompt, normalizeMealAnalysis, parseMealRequestBody } from './meal-analysis.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -30,7 +30,9 @@ Deno.serve(async (request) => {
     const result = await response.json();
     const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (typeof text !== 'string') return json({ error: 'Meal Analysis Returned No Result' }, 502);
-    return json({ data: normalizeMealAnalysis(JSON.parse(text), mealType, note, mealText, matches.length) });
+    const normalized = normalizeMealAnalysis(JSON.parse(text), mealType, note, mealText, matches.length);
+    if (!hasMealSignals(normalized)) return json({ error: 'Could Not Identify Food In This Meal. Try A Clearer Photo Or Type What You Ate.' }, 422);
+    return json({ data: normalized });
   } catch (error) {
     console.error('[analyze-meal]', error);
     return json({ error: 'Meal Analysis Failed' }, 500);

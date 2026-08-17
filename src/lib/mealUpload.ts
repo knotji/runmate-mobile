@@ -21,7 +21,7 @@ export async function analyzeMealImages(files: File[], mealType: string, note: s
   const imageDataUrls = await prepareUploadImages(files);
   if (imageDataUrls.reduce((total, image) => total + image.length, 0) > 5_500_000) throw new Error('These Photos Are Too Large. Try Fewer Photos.');
   const { data, error } = await supabase.functions.invoke('analyze-meal', { body: { imageDataUrls, mealType, note } });
-  if (error) throw new Error(readFunctionError(error.message));
+  if (error) throw new Error(await readFunctionError(error));
   if (!data?.data) throw new Error(data?.error ?? 'Meal Analysis Returned No Result');
   return data.data as MealAnalysis;
 }
@@ -33,7 +33,7 @@ export async function analyzeMealText(mealText: string, mealType: string, note: 
   const { data, error } = await supabase.functions.invoke('analyze-meal', {
     body: { mealText: normalizedText, mealType, note },
   });
-  if (error) throw new Error(readFunctionError(error.message));
+  if (error) throw new Error(await readFunctionError(error));
   if (!data?.data) throw new Error(data?.error ?? 'Meal Analysis Returned No Result');
   return data.data as MealAnalysis;
 }
@@ -75,4 +75,21 @@ function drawImageRegion(image: HTMLImageElement, sourceTop: number, sourceHeigh
 }
 function fileToDataUrl(file: File): Promise<string> { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error('Could Not Read This Image')); reader.readAsDataURL(file); }); }
 function loadImage(url: string): Promise<HTMLImageElement> { return new Promise((resolve, reject) => { const image = new Image(); image.onload = () => resolve(image); image.onerror = () => reject(new Error('Could Not Open This Image')); image.src = url; }); }
-function readFunctionError(message: string) { return message.includes('non-2xx') ? 'Meal Analysis Failed. Please Try Again.' : message; }
+/**
+ * supabase-js collapses every non-2xx Edge Function response into the same
+ * generic "non-2xx status code" message on `error.message` — the actual
+ * `{ error: "..." }` body the function sent (e.g. "Could Not Identify Food In
+ * This Meal...") is only reachable via `error.context`, the raw failed
+ * Response. Without this, a specific, actionable server error silently
+ * degrades into "Meal Analysis Failed. Please Try Again."
+ */
+export async function readFunctionError(error: { message: string; context?: unknown }): Promise<string> {
+  const context = error.context;
+  if (context && typeof context === 'object' && typeof (context as Response).json === 'function') {
+    try {
+      const body = await (context as Response).json();
+      if (typeof body?.error === 'string' && body.error.trim()) return body.error;
+    } catch { /* response body wasn't JSON or was already consumed — fall back below */ }
+  }
+  return error.message.includes('non-2xx') ? 'Meal Analysis Failed. Please Try Again.' : error.message;
+}

@@ -29,11 +29,16 @@ export function alignRaceWeekPlan(
 
   for (let offset = 0; offset < 7; offset += 1) {
     const date = shiftDate(windowStart, offset);
+    const daysBeforeRace = dateDiff(date, goal.raceDate);
+    // Race day is a fixed calendar fact tied to the active Race Goal, not a soft
+    // taper adjustment — it must always win, even if the date is in the past or
+    // something unrelated (or the race result itself) was already logged that day.
+    // Otherwise the Weekly Plan can keep showing a stale pre-alignment entry (e.g.
+    // "Easy Run") on the actual race date once anything is logged that day.
+    if (daysBeforeRace === 0) { byDate.set(date, raceDayWorkout(goal)); continue; }
     const existing = byDate.get(date);
     if (date < today || completed.has(date)) continue;
-    const daysBeforeRace = dateDiff(date, goal.raceDate);
-    if (daysBeforeRace === 0) byDate.set(date, raceDayWorkout(goal));
-    else if (daysBeforeRace === 1) byDate.set(date, restWorkout(weekday(date), 'Rest before race day. Prepare your kit, hydrate normally, and keep the day easy.'));
+    if (daysBeforeRace === 1) byDate.set(date, restWorkout(weekday(date), 'พักก่อนวันแข่ง เตรียมอุปกรณ์ให้พร้อม ดื่มน้ำตามปกติ และใช้วันนี้แบบสบายๆ'));
     else if (daysBeforeRace === 2 && existing && !isRest(existing)) byDate.set(date, shakeoutWorkout(existing, weekday(date)));
     else if ((daysBeforeRace === 3 || daysBeforeRace === 4) && existing && isHard(existing)) byDate.set(date, racePrimerWorkout(existing, weekday(date), goal));
     else if (daysBeforeRace < 0) byDate.set(date, recoveryWorkout(weekday(date)));
@@ -52,9 +57,9 @@ export function raceDayWorkout(goal: RaceWeekGoal): WeekWorkout {
     durationMin: durationMinutes(goal.targetTime),
     targetPace,
     targetHR: 'Race effort',
-    description: `${goal.raceName} · ${goal.raceDistance}. Warm up gently, then race by controlled effort and your target pace.`,
-    purpose: 'Complete the active Race Goal.',
-    adjustment: 'Race date is locked from the active Race Goal.',
+    description: `${goal.raceName} · ${goal.raceDistance} วอร์มอัพเบาๆ แล้วแข่งด้วยความหนักที่ควบคุมได้ตามเป้าเพซ`,
+    purpose: 'ทำ Race Goal ที่ตั้งไว้ให้สำเร็จ',
+    adjustment: 'วันแข่งถูกล็อกไว้ตาม Race Goal ที่ active อยู่',
   };
 }
 
@@ -75,9 +80,9 @@ function shakeoutWorkout(existing: WeekWorkout, day: string): WeekWorkout {
     durationMin: Math.min(existing.durationMin ?? 25, 25),
     targetPace: 'Easy conversational pace',
     targetHR: 'Zone 1–2',
-    description: 'Short, relaxed shakeout. Finish feeling fresher than you started; no hard efforts.',
-    purpose: 'Stay loose without adding fatigue two days before the race.',
-    adjustment: 'Race-week volume cap applied.',
+    description: 'วิ่งเบาๆ สั้นๆ คลายกล้ามเนื้อ ให้จบแบบรู้สึกสดชื่นกว่าตอนเริ่ม ไม่ต้องออกแรงหนัก',
+    purpose: 'คงความคล่องตัวไว้โดยไม่เพิ่มความเหนื่อยล้าก่อนแข่ง 2 วัน',
+    adjustment: 'จำกัดปริมาณซ้อมสำหรับสัปดาห์แข่ง',
   };
 }
 
@@ -90,18 +95,18 @@ function racePrimerWorkout(existing: WeekWorkout, day: string, goal: RaceWeekGoa
     durationMin: Math.min(existing.durationMin ?? 30, 30),
     targetPace: targetPaceForGoal(goal),
     targetHR: 'Controlled race effort',
-    description: 'Easy warm-up, 3 × 1 minute at race effort with full easy recovery, then cool down.',
-    purpose: 'Keep race rhythm familiar without creating fatigue.',
-    adjustment: 'Hard-session volume reduced for race week.',
+    description: 'วอร์มอัพเบาๆ ตามด้วยความหนักระดับแข่ง 3 x 1 นาที สลับพักเต็มที่ แล้วคูลดาวน์',
+    purpose: 'คงความคุ้นเคยกับจังหวะแข่งไว้โดยไม่สร้างความเหนื่อยล้าเพิ่ม',
+    adjustment: 'ลดปริมาณการซ้อมหนักสำหรับสัปดาห์แข่ง',
   };
 }
 
 function restWorkout(day: string, description: string): WeekWorkout {
-  return { day, workoutType: 'Rest', distanceKm: null, durationMin: null, targetPace: null, targetHR: null, description, purpose: 'Arrive fresh for race day.', adjustment: 'Race-week safety rail applied.' };
+  return { day, workoutType: 'Rest', distanceKm: null, durationMin: null, targetPace: null, targetHR: null, description, purpose: 'เตรียมร่างกายให้สดชื่นพร้อมสำหรับวันแข่ง', adjustment: 'ใช้กฎความปลอดภัยของสัปดาห์แข่ง' };
 }
 
 function recoveryWorkout(day: string): WeekWorkout {
-  return { day, workoutType: 'Recovery', distanceKm: null, durationMin: 20, targetPace: null, targetHR: 'Easy breathing', description: 'Easy walking or mobility after the race. Do not chase training load.', purpose: 'Begin post-race recovery.', adjustment: 'Post-race recovery applied.' };
+  return { day, workoutType: 'Recovery', distanceKm: null, durationMin: 20, targetPace: null, targetHR: 'Easy breathing', description: 'เดินเบาๆ หรือขยับตัวเบาๆ หลังแข่ง ไม่ต้องเร่งโหลดซ้อมเพิ่ม', purpose: 'เริ่มต้นการฟื้นตัวหลังแข่ง', adjustment: 'ใช้แผนฟื้นตัวหลังแข่ง' };
 }
 
 function targetPaceForGoal(goal: RaceWeekGoal): string | null {

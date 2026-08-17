@@ -153,6 +153,7 @@ export type CoachContext = {
   totalRunKm: number;
   totalSessions: number;
   runDays7d: number;
+  weeklyTrainingLoad7d: number;
   longestRun7dKm: number | null;
   lastWorkoutDate: string | null;
   lastRun: { date: string; km: number; durationMin: number; avgHR: number | null; pace: string | null } | null;

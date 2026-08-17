@@ -1,6 +1,7 @@
 import type { CoachContext, TodayCompletedWorkoutSummary } from './buildCoachContext';
 import { formatSleepMinutesThai } from './sleepDuration';
 import { calculateRunMateSleepScore } from './runMateSleepScore';
+import { computeSignalBaseline } from './personalBaseline';
 
 export type RecoveryAxisStatus = 'low' | 'moderate' | 'good' | 'high';
 export type RecoveryScoreState = 'scored' | 'pending' | 'calibrating' | 'unscorable' | 'stale';
@@ -19,6 +20,19 @@ export type RecoveryAxis = {
   summary: string;
   reasons: string[];
   missing?: string[];
+  /** Structured, per-signal breakdown of what fed the Recovery axis score. Only populated on the 'recovery' axis. */
+  factors?: RecoveryFactor[];
+};
+
+export type RecoveryFactorDirection = 'helping' | 'hurting' | 'neutral' | 'unavailable';
+
+export type RecoveryFactor = {
+  key: 'hrv' | 'restingHR' | 'respiratoryRate' | 'sleepPerformance' | 'pain' | 'sick';
+  label: string;
+  direction: RecoveryFactorDirection;
+  detail: string;
+  /** The weight this signal actually carried in today's blended score, 0 when unavailable. */
+  weight: number;
 };
 
 export type StrainSummary = {
@@ -103,13 +117,6 @@ export type RunMateRecoverySystem = {
 
 const clamp = (value: number, min = 0, max = 100) => Math.max(min, Math.min(max, value));
 const round = (value: number) => Math.round(value);
-
-function median(values: number[]): number | null {
-  if (!values.length) return null;
-  const sorted = [...values].sort((a, b) => a - b);
-  const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
-}
 
 function formatClock(totalMinutes: number): string {
   const normalized = ((Math.round(totalMinutes) % 1440) + 1440) % 1440;
@@ -262,45 +269,71 @@ function buildFuelInsight(context: CoachContext): FuelInsight {
   return { status: 'ready', label: 'รองรับการฟื้นตัว', summary: 'สารอาหารที่บันทึกไว้เพียงพอกับแผนวันนี้', reasons };
 }
 
+function factorDirection(signalScore: number, neutralCenter: number, tolerance = 3): RecoveryFactorDirection {
+  if (signalScore > neutralCenter + tolerance) return 'helping';
+  if (signalScore < neutralCenter - tolerance) return 'hurting';
+  return 'neutral';
+}
+
 function buildRecovery(context: CoachContext, sleep: SleepPerformanceSummary, overrides?: RecoverySystemOverrides): RecoveryAxis {
   const nights = context.sleepBaseline30d;
   const latest = nights[0] ?? null;
-  const baseline = nights.slice(1);
-  const hrvBaseline = median(baseline.map((night) => night.hrv).filter((value): value is number => value != null));
-  const rhrBaseline = median(baseline.map((night) => night.restingHR).filter((value): value is number => value != null));
-  const respiratoryBaseline = median(baseline.map((night) => night.respiratoryRate).filter((value): value is number => value != null));
+  const hrvBaseline = computeSignalBaseline(nights.slice(1).map((night) => night.hrv));
+  const rhrBaseline = computeSignalBaseline(nights.slice(1).map((night) => night.restingHR));
+  const respiratoryBaseline = computeSignalBaseline(nights.slice(1).map((night) => night.respiratoryRate));
   const reasons: string[] = [];
   const missing: string[] = [];
+  const factors: RecoveryFactor[] = [];
   let score = sleep.score || 50;
   let signalWeight = 0;
   let signalTotal = 0;
-  if (latest?.hrv != null && hrvBaseline != null && hrvBaseline > 0) {
-    const delta = (latest.hrv - hrvBaseline) / hrvBaseline;
+  if (latest?.hrv != null && hrvBaseline.value != null && hrvBaseline.value > 0) {
+    const delta = (latest.hrv - hrvBaseline.value) / hrvBaseline.value;
     const hrvScore = clamp(65 + delta * 180);
     signalTotal += hrvScore * 0.4;
     signalWeight += 0.4;
-    reasons.push(`HRV ${latest.hrv} ms เทียบ baseline ${round(hrvBaseline)} ms (${delta >= 0 ? '+' : ''}${round(delta * 100)}%)`);
-  } else missing.push('HRV baseline ส่วนตัว');
-  if (latest?.restingHR != null && rhrBaseline != null && rhrBaseline > 0) {
-    const delta = (latest.restingHR - rhrBaseline) / rhrBaseline;
+    reasons.push(`HRV ${latest.hrv} ms เทียบ baseline ${round(hrvBaseline.value)} ms (${delta >= 0 ? '+' : ''}${round(delta * 100)}%)`);
+    const factorDetail = `HRV ${latest.hrv} ms versus your baseline of ${round(hrvBaseline.value)} ms (${delta >= 0 ? '+' : ''}${round(delta * 100)}%)`;
+    factors.push({ key: 'hrv', label: 'HRV', direction: factorDirection(hrvScore, 65), detail: factorDetail, weight: 0.4 });
+  } else {
+    missing.push('HRV baseline ส่วนตัว');
+    factors.push({ key: 'hrv', label: 'HRV', direction: 'unavailable', detail: hrvBaseline.state === 'insufficient' ? 'No HRV reading for last night or personal baseline yet.' : 'Still building your personal HRV baseline.', weight: 0 });
+  }
+  if (latest?.restingHR != null && rhrBaseline.value != null && rhrBaseline.value > 0) {
+    const delta = (latest.restingHR - rhrBaseline.value) / rhrBaseline.value;
     const rhrScore = clamp(65 - delta * 180);
     const rhrWeight = latest.restingHRSource === 'estimated_sleep_hr' ? 0.15 : 0.25;
     signalTotal += rhrScore * rhrWeight;
     signalWeight += rhrWeight;
-    reasons.push(`${latest.restingHRSource === 'estimated_sleep_hr' ? 'Estimated sleeping RHR' : 'RHR'} ${latest.restingHR} bpm เทียบ baseline ${round(rhrBaseline)} bpm (${delta >= 0 ? '+' : ''}${round(delta * 100)}%)`);
-  } else missing.push('RHR baseline ส่วนตัว');
-  if (latest?.respiratoryRate != null && respiratoryBaseline != null && respiratoryBaseline > 0) {
-    const delta = (latest.respiratoryRate - respiratoryBaseline) / respiratoryBaseline;
+    reasons.push(`${latest.restingHRSource === 'estimated_sleep_hr' ? 'Estimated sleeping RHR' : 'RHR'} ${latest.restingHR} bpm เทียบ baseline ${round(rhrBaseline.value)} bpm (${delta >= 0 ? '+' : ''}${round(delta * 100)}%)`);
+    const factorDetail = `${latest.restingHRSource === 'estimated_sleep_hr' ? 'Estimated sleeping RHR' : 'Resting HR'} ${latest.restingHR} bpm versus your baseline of ${round(rhrBaseline.value)} bpm (${delta >= 0 ? '+' : ''}${round(delta * 100)}%)`;
+    factors.push({ key: 'restingHR', label: 'Resting HR', direction: factorDirection(rhrScore, 65), detail: factorDetail, weight: rhrWeight });
+  } else {
+    missing.push('RHR baseline ส่วนตัว');
+    factors.push({ key: 'restingHR', label: 'Resting HR', direction: 'unavailable', detail: rhrBaseline.state === 'insufficient' ? 'No resting heart rate reading for last night or personal baseline yet.' : 'Still building your personal Resting HR baseline.', weight: 0 });
+  }
+  if (latest?.respiratoryRate != null && respiratoryBaseline.value != null && respiratoryBaseline.value > 0) {
+    const delta = (latest.respiratoryRate - respiratoryBaseline.value) / respiratoryBaseline.value;
     const respiratoryScore = clamp(70 - Math.abs(delta) * 300);
     signalTotal += respiratoryScore * 0.15;
     signalWeight += 0.15;
-    reasons.push(`Respiratory rate ${latest.respiratoryRate}/min versus baseline ${respiratoryBaseline.toFixed(1)}/min`);
-  } else missing.push('respiratory-rate baseline');
+    const detail = `Respiratory rate ${latest.respiratoryRate}/min versus your baseline of ${respiratoryBaseline.value.toFixed(1)}/min`;
+    reasons.push(detail);
+    factors.push({ key: 'respiratoryRate', label: 'Respiratory Rate', direction: factorDirection(respiratoryScore, 70), detail, weight: 0.15 });
+  } else {
+    missing.push('respiratory-rate baseline');
+    factors.push({ key: 'respiratoryRate', label: 'Respiratory Rate', direction: 'unavailable', detail: respiratoryBaseline.state === 'insufficient' ? 'No respiratory rate reading for last night or personal baseline yet.' : 'Still building your personal Respiratory Rate baseline.', weight: 0 });
+  }
   if (sleep.state !== 'unscorable') {
     signalTotal += sleep.score * 0.2;
     signalWeight += 0.2;
-    reasons.push(`Sleep Performance ${sleep.score}%`);
-  } else missing.push('Sleep Performance');
+    const detail = `Sleep Performance ${sleep.score}%`;
+    reasons.push(detail);
+    factors.push({ key: 'sleepPerformance', label: 'Sleep Performance', direction: factorDirection(sleep.score, 77.5, 7.5), detail, weight: 0.2 });
+  } else {
+    missing.push('Sleep Performance');
+    factors.push({ key: 'sleepPerformance', label: 'Sleep Performance', direction: 'unavailable', detail: 'No sleep data available to calculate Sleep Performance yet.', weight: 0 });
+  }
   if (signalWeight > 0) score = round(signalTotal / signalWeight);
   const activePain = overrides?.injuryFlag ?? context.activePain;
   if (overrides?.muscleSoreness === 'sore') score -= 10;
@@ -308,11 +341,13 @@ function buildRecovery(context: CoachContext, sleep: SleepPerformanceSummary, ov
   if (context.activeSick) {
     score = Math.min(score, context.sickRiskLevel === 'hard_stop' ? 25 : 45);
     reasons.push('มีบันทึกอาการป่วย จึงจำกัดคะแนนเพื่อความปลอดภัย');
+    factors.push({ key: 'sick', label: 'Sick Check-In', direction: 'hurting', detail: 'An active sick check-in is capping today\'s Recovery score for safety.', weight: 0 });
   }
   if (activePain) {
     const painLevel = context.latestPain?.painLevel ?? 4;
     score = Math.min(score, painLevel >= 7 || Boolean(context.latestPain?.redFlags.length) ? 25 : painLevel >= 4 ? 33 : 45);
     reasons.push(`มีอาการเจ็บระดับ ${painLevel}/10 จึงใช้ safety cap`);
+    factors.push({ key: 'pain', label: 'Active Pain', direction: 'hurting', detail: `Active pain (level ${painLevel}/10) is capping today's Recovery score for safety.`, weight: 0 });
   }
   score = round(clamp(score));
   return {
@@ -323,6 +358,7 @@ function buildRecovery(context: CoachContext, sleep: SleepPerformanceSummary, ov
     summary: score >= 67 ? 'ร่างกายพร้อมรับ Strain สูงขึ้น' : score >= 34 ? 'พร้อมรับ Strain ระดับปานกลาง' : 'ควรลด Strain และเน้นฟื้นตัว',
     reasons,
     missing: missing.length ? missing : undefined,
+    factors,
   };
 }
 

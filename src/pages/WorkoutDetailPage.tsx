@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useHistory, useParams } from 'react-router-dom';
 import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar } from '@ionic/react';
-import { arrowBackOutline, barbellOutline, bicycleOutline, fitnessOutline, shareSocialOutline, walkOutline, waterOutline } from 'ionicons/icons';
+import {
+  arrowBackOutline, barbellOutline, bicycleOutline, ellipseOutline, fitnessOutline, flameOutline, flashOutline,
+  footstepsOutline, heartOutline, navigateOutline, shareSocialOutline, speedometerOutline, statsChartOutline,
+  syncOutline, timeOutline, trendingUpOutline, walkOutline, waterOutline,
+} from 'ionicons/icons';
 import { SocialShareModal, type WorkoutShareData } from '@/components/SocialShareModal';
 import { loadHistoryItemById, loadHistoryItems } from '@/lib/cloudHistory';
 import type { LocalHistoryItem } from '@/lib/localHistory';
@@ -152,7 +156,7 @@ const WorkoutDetailPage: React.FC = () => {
               <section className="workout-detail-section">
                 <header><p>Workout Metrics</p><h2>Session Overview</h2></header>
                 {detail.metrics.length > 0 ? (
-                  <div className="workout-metric-grid">{detail.metrics.map((metric) => <div key={metric.label}><span>{metric.label}</span><strong>{metric.value}</strong></div>)}</div>
+                  <div className="workout-metric-grid">{detail.metrics.map((metric) => <div key={metric.label}><span><IonIcon icon={metricIcon(metric.label)} aria-hidden="true" />{metric.label}</span><strong>{metric.value}</strong></div>)}</div>
                 ) : <p className="workout-empty-card">No structured workout metrics were provided for this session.</p>}
               </section>
 
@@ -242,4 +246,19 @@ function metricDurationSeconds(metrics: Array<{ label: string; value: string }>)
 }
 function formatZoneDuration(seconds: number): string { const minutes = Math.floor(seconds / 60); const remainder = seconds % 60; return minutes > 0 ? `${minutes}m ${remainder ? `${remainder}s` : ''}`.trim() : `${remainder}s`; }
 function zoneRange(lower: number | null, upper: number | null): string { return lower == null ? `< ${upper == null ? '—' : upper + 1} bpm` : upper == null ? `${lower}+ bpm` : `${lower}–${upper} bpm`; }
+function metricIcon(label: string): string {
+  const value = label.toLowerCase();
+  if (value.includes('distance')) return navigateOutline;
+  if (value.includes('duration')) return timeOutline;
+  if (value.includes('pace')) return speedometerOutline;
+  if (value.includes('speed')) return flashOutline;
+  if (value.includes('hr') || value.includes('heart')) return heartOutline;
+  if (value.includes('calorie')) return flameOutline;
+  if (value.includes('step')) return footstepsOutline;
+  if (value.includes('cadence')) return syncOutline;
+  if (value.includes('elevation')) return trendingUpOutline;
+  if (value.includes('vo')) return statsChartOutline;
+  if (value.includes('pool') || value.includes('length') || value.includes('stroke') || value.includes('swolf') || value.includes('sweat')) return waterOutline;
+  return ellipseOutline;
+}
 function formatImportedAt(value: string | null): string { return value && Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Bangkok' }).format(new Date(value)) : 'Not Available'; }

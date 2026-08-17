@@ -42,6 +42,19 @@ describe('Daily Fuel Coach', () => {
     const coach = buildDailyFuelCoach({ date, items: [meal('meal', 30, 100), actual], profile, plannedWorkout: planned('Rest') });
     expect(coach.dayType).toBe('long');
     expect(coach.carbs).toMatchObject({ minimum: 250, maximum: 350 });
+    expect(coach.basedOnLoggedTraining).toBe(true);
+  });
+
+  it('does not flag a conflict when the logged training matches the plan', () => {
+    const actual = item('easy-run', 'workout', { extracted: { workoutKind: 'outdoor_run', workoutName: 'Easy Run' } });
+    const coach = buildDailyFuelCoach({ date, items: [meal('meal', 30, 100), actual], profile, plannedWorkout: planned('Easy Run') });
+    expect(coach.basedOnLoggedTraining).toBe(false);
+  });
+
+  it('does not flag a conflict when there is no plan to compare against', () => {
+    const actual = item('long-run', 'workout', { extracted: { workoutKind: 'outdoor_run', workoutName: 'Long Run' } });
+    const coach = buildDailyFuelCoach({ date, items: [meal('meal', 30, 100), actual], profile });
+    expect(coach.basedOnLoggedTraining).toBe(false);
   });
 
   it('honors explicit profile targets', () => {

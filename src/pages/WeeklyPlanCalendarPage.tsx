@@ -78,7 +78,9 @@ const WeeklyPlanCalendarPage: React.FC = () => {
 
 function CalendarRow({ day }: { day: WeeklyCalendarDay }) {
   const { planned } = day;
-  const description = planned ? translatePlanFieldToEnglish(planned.description || planned.workoutType) : null;
+  // planned.description/purpose/adjustment are the Coach Guidance text shown in
+  // Session Details (WorkoutPlanDetail) and are written in Thai — this page is
+  // English-only, so it shows only the type/distance/pace summary, not that text.
   const targetPace = planned?.targetPace ? translatePlanFieldToEnglish(planned.targetPace) : null;
   const hasTargetPace = targetPace && targetPace.toLowerCase() !== 'n/a';
   const showTrainingMeta = day.status !== 'rest' && ((planned?.distanceKm ?? 0) > 0 || hasTargetPace);
@@ -89,7 +91,6 @@ function CalendarRow({ day }: { day: WeeklyCalendarDay }) {
     </div>
     <div className="weekly-plan-detail">
       <p className="weekly-plan-type">{planned?.workoutType ?? 'No Plan'}</p>
-      {description && description !== planned?.workoutType && <span className="weekly-plan-description">{description}</span>}
       {showTrainingMeta && <span className="weekly-plan-meta">{(planned?.distanceKm ?? 0) > 0 ? `${planned?.distanceKm} km` : ''}{(planned?.distanceKm ?? 0) > 0 && hasTargetPace ? ' · ' : ''}{hasTargetPace ? targetPace : ''}</span>}
     </div>
     <StatusBadge status={day.status} isToday={day.isToday} />

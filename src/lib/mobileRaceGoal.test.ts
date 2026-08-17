@@ -33,6 +33,18 @@ describe('buildMobileRaceSummary', () => {
     });
   });
 
+  it('excludes Recovery days from scheduledSessions, not just Rest (regression: this must match trainingAdherence.ts\'s isSupportiveDay, or "This Week: N Sessions" and "N Of N Sessions Done" disagree)', () => {
+    const planWithRecovery: RacePlan = {
+      ...plan,
+      weeklyPlan: [
+        ...plan.weeklyPlan!,
+        { day: 'Thursday', workoutType: 'Recovery', distanceKm: null, durationMin: 30, targetPace: null, targetHR: null, description: '' },
+      ],
+    };
+    const result = buildMobileRaceSummary(goal, planWithRecovery, '2026-07-19');
+    expect(result.scheduledSessions).toBe(2);
+  });
+
   it('formats only available workout metrics', () => {
     expect(formatRaceWorkoutMetric(plan.weeklyPlan![0])).toBe('5 km · 6:00/km');
   });

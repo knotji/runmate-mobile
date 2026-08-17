@@ -1,5 +1,6 @@
 import type { CoachContext } from '@/lib/buildCoachContext';
 import { getTodayTrainingPlanStatus, isRestDayWorkout } from '@/lib/todayTrainingPlan';
+import { HEAVY_WEEKLY_TRAINING_LOAD_THRESHOLD } from '@/lib/weeklyTrainingLoad';
 import type { WeekWorkout } from '@/types/race';
 
 export type AdaptiveTrainingAction = 'keep' | 'reduce' | 'swap' | 'rest';
@@ -54,8 +55,10 @@ export function buildAdaptiveTrainingRecommendation(
   // the fuller workoutLoadTrend/trainingAdherence modules, which need raw
   // history items not available here — adding that fetch to the Recovery
   // page's critical path would reintroduce the load latency fixed earlier.
+  // heavyWeeklyLoad is intensity-aware (weeklyTrainingLoad7d), not a plain
+  // day-count, so 3 hard sessions and 6 easy ones can both correctly trigger it.
   const runDays7d = context.runDays7d ?? 0;
-  const heavyWeeklyLoad = runDays7d >= 6;
+  const heavyWeeklyLoad = (context.weeklyTrainingLoad7d ?? 0) >= HEAVY_WEEKLY_TRAINING_LOAD_THRESHOLD;
   const weeklyTrainingDaysTarget = toFiniteNumber((context.profile as Record<string, unknown> | null)?.weeklyTrainingDays);
   const metWeeklyTarget = weeklyTrainingDaysTarget != null && runDays7d >= weeklyTrainingDaysTarget;
 
@@ -76,7 +79,7 @@ export function buildAdaptiveTrainingRecommendation(
     const reasons = [`Recovery is ${Math.round(score)}/100.`];
     if (hardSession) reasons.push(`${planned.workoutType} carries more intensity than an easy session.`);
     if (lowSleep) reasons.push(`Sleep Performance is ${Math.round(sleepScore)}/100.`);
-    if (heavyWeeklyLoad) reasons.push(`You have already run ${runDays7d} of the last 7 days.`);
+    if (heavyWeeklyLoad) reasons.push('This week\'s training load is already high.');
     return recommendation('reduce', planned, reducedWorkout(planned), 'Reduce Today’s Load', 'Keep the session, but shorten it and stay at an easy effort.', reasons);
   }
 
@@ -88,7 +91,7 @@ export function buildAdaptiveTrainingRecommendation(
 
   if (hardSession && heavyWeeklyLoad) {
     return recommendation('reduce', planned, reducedWorkout(planned), 'Reduce Today’s Load', 'This week’s training volume is already high for a demanding session.', [
-      `You have already run ${runDays7d} of the last 7 days.`,
+      'This week\'s training load is already high.',
       `${planned.workoutType} carries more intensity than an easy session.`,
     ]);
   }

@@ -3,6 +3,7 @@ import type { CoachContext } from '@/lib/buildCoachContext';
 import type { RacePlan, WeekWorkout } from '@/types/race';
 import {
   buildTodayTrainingPlanGuidance,
+  getPlannedWorkoutForDateWithRaceDay,
   getTodayPlannedWorkout,
   getTodayTrainingPlanStatus,
   isRestDayWorkout,
@@ -120,6 +121,20 @@ describe('getTodayPlannedWorkout', () => {
     });
     Object.assign(context, { raceGoal: { raceName: 'Bangkok 10K', raceDate: '2026-08-16', raceDistance: '10K', targetTime: '55:00' }, raceName: 'Bangkok 10K', raceDate: '2026-08-16', raceDistance: '10K', targetTime: '55:00' });
     expect(getTodayPlannedWorkout(context)).toMatchObject({ workoutType: 'Race Day', distanceKm: 10, targetPace: '5:30/km' });
+  });
+});
+
+describe('getPlannedWorkoutForDateWithRaceDay', () => {
+  it('overrides the stored plan entry with Race Day when the date matches the active Race Goal (used by the Move page)', () => {
+    const plan: RacePlan = { raceCountdownText: '', totalWeeks: 1, currentPhase: 'Race Week', planSummary: '', phases: [], weeks: [], safetyNotes: '', weeklyPlan: [workout({ day: 'Sunday', workoutType: 'Easy Run', distanceKm: 6 })] };
+    const goal = { raceName: 'Bangkok 10K', raceDate: '2026-08-16', raceDistance: '10K' as const, targetTime: '55:00' };
+    expect(getPlannedWorkoutForDateWithRaceDay(plan, goal, '2026-08-16')).toMatchObject({ workoutType: 'Race Day', distanceKm: 10, targetPace: '5:30/km' });
+  });
+
+  it('falls back to the stored plan entry on a non-race date', () => {
+    const plan: RacePlan = { raceCountdownText: '', totalWeeks: 1, currentPhase: '', planSummary: '', phases: [], weeks: [], safetyNotes: '', weeklyPlan: [workout({ day: 'Sunday', workoutType: 'Easy Run' })] };
+    const goal = { raceName: 'Bangkok 10K', raceDate: '2026-08-23', raceDistance: '10K' as const, targetTime: '55:00' };
+    expect(getPlannedWorkoutForDateWithRaceDay(plan, goal, '2026-08-16')).toMatchObject({ workoutType: 'Easy Run' });
   });
 });
 

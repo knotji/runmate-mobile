@@ -145,6 +145,7 @@
 .meal-macro-legend span,.meal-macro-legend strong { display:block; }
 .meal-macro-legend span { color:#74899a; font-size:8px; }
 .meal-macro-legend strong { margin-top:3px; color:#294b61; font-size:12px; }
+.meal-macro-legend strong small { color:#8799a7; font-size:9px; font-weight:600; }
 .meal-fiber-row {
   min-height:42px;
   display:flex;

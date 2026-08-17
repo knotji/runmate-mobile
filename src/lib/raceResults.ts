@@ -7,6 +7,9 @@ import {
 } from "@/lib/supabase/debug";
 import type { WorkoutAnalysis } from "@/types/logs";
 import type { GoalResult, RaceGoal, RaceResult } from "@/types/race";
+import type { LocalHistoryItem } from "@/lib/localHistory";
+import { loadActiveRaceGoalAndPlan, markRaceGoalCompleted } from "@/lib/raceStorage";
+import { useRacePlanStore } from "@/lib/race/racePlanStore";
 
 type RaceResultRow = {
   id: string;
@@ -256,7 +259,7 @@ function rowToRaceResult(row: RaceResultRow): RaceResult {
 
 function calculateGoalResult(goal: RaceGoal, distanceKm: number | null, actualTime: string | null): GoalResult {
   const distanceOk = distanceMatchesGoal(distanceKm, goal.raceDistance);
-  if (goal.goalType === "จบให้ได้" && distanceOk) return "completed";
+  if (goal.goalType === "finish" && distanceOk) return "completed";
   if (!goal.targetTime || !actualTime || !distanceOk) return distanceOk ? "completed" : "unknown";
   const targetSec = parseDurationSeconds(goal.targetTime);
   const actualSec = parseDurationSeconds(actualTime);
@@ -290,9 +293,49 @@ function parseDurationSeconds(value: string): number | null {
 function buildRaceCoachSummary(goal: RaceGoal, workout: WorkoutAnalysis, goalResult: GoalResult) {
   const ext = workout.extracted;
   const resultText =
-    goalResult === "achieved" ? "ทำได้ตามเป้าหมาย"
-    : goalResult === "missed" ? "ยังช้ากว่าเป้าหมาย"
-    : goalResult === "completed" ? "จบการแข่งขันแล้ว"
-    : "บันทึกผลแข่งแล้ว";
-  return `${resultText}: ${goal.raceName} ระยะ ${goal.raceDistance}${ext.duration ? ` เวลา ${ext.duration}` : ""}${ext.avgPace ? ` pace ${ext.avgPace}/km` : ""}. หลังแข่งให้เน้น recovery, เติมน้ำ และดู HR/อาการล้า 24-48 ชม.`;
+    goalResult === "achieved" ? "Target achieved"
+    : goalResult === "missed" ? "Finished slower than target"
+    : goalResult === "completed" ? "Race completed"
+    : "Race result logged";
+  return `${resultText}: ${goal.raceName}, ${goal.raceDistance}${ext.duration ? ` in ${ext.duration}` : ""}${ext.avgPace ? ` at ${ext.avgPace}/km` : ""}. Focus on recovery, hydration, and watching HR/fatigue over the next 24-48 hours.`;
+}
+
+/**
+ * Detects whether a newly saved workout matches the active Race Goal's date, and
+ * if so, records it as the race result and marks the goal completed — no interactive
+ * confirmation, since most workouts on mobile arrive through a background Samsung
+ * Health sync with no user present to confirm (unlike runmate-ai's upload-page flow,
+ * which this was ported from). Distance is required to match the goal's distance
+ * range, not just the date, so an unrelated recovery walk logged on race day cannot
+ * silently complete the goal. Safe to call for every saved workout item — a mismatch
+ * or a missing/completed goal is a no-op, and saveRaceResult()/markRaceGoalCompleted()
+ * are both idempotent, so calling this again for the same item never double-completes.
+ */
+export async function maybeCompleteRaceFromWorkoutItem(item: LocalHistoryItem): Promise<{ completed: boolean; error?: string }> {
+  if (item.type !== "workout") return { completed: false };
+  let goal = useRacePlanStore.getState().goal;
+  if (!goal) {
+    // The race plan store is only hydrated once some race-related page has loaded
+    // this session (e.g. Move/Race Goal). A background Health Connect sync can save
+    // a new workout before that happens, so fetch fresh rather than silently missing
+    // a real race-day finish just because of load order.
+    const loaded = await loadActiveRaceGoalAndPlan();
+    if (!loaded.ok) return { completed: false, error: loaded.error };
+    goal = loaded.goal;
+  }
+  if (!goal?.id) return { completed: false };
+  const workout = item.data as WorkoutAnalysis;
+  if (!workout?.extracted) return { completed: false };
+  const match = detectRaceMatch(workout, goal, item.dateKey);
+  if (!match || !match.distanceMatches) return { completed: false };
+
+  const payload = buildRaceResultFromWorkout({ workout, goal: match.goal, linkedHistoryItemId: item.id });
+  const saved = await saveRaceResult(payload);
+  if (!saved.ok) return { completed: false, error: saved.error };
+
+  const completedGoal = await markRaceGoalCompleted(match.goal.id!);
+  if (!completedGoal.ok) return { completed: false, error: completedGoal.error };
+
+  useRacePlanStore.getState().invalidate();
+  return { completed: true };
 }
