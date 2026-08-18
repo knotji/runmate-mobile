@@ -77,7 +77,7 @@ export function refreshNotifications(context?: CoachContext, force = false): Pro
 async function performNotificationRefresh(context?: CoachContext): Promise<NotificationRefreshResult> {
   const permission = await getNotificationPermission();
   if (!Capacitor.isNativePlatform() || permission !== 'granted') return { permission, scheduled: [] };
-  await LocalNotifications.createChannel({ id: CHANNEL, name: 'RunMate Guidance', description: 'Sleep, Workout, and Recovery guidance', importance: 3, visibility: 1 });
+  await LocalNotifications.createChannel({ id: CHANNEL, name: 'WholeMate Guidance', description: 'Sleep, Workout, and Recovery guidance', importance: 3, visibility: 1 });
   const ctx = context ?? await buildCoachContextFromSupabase();
   const prefs = loadNotificationPreferences();
   const idsToCancel = [IDS.bedtime, IDS.workout, IDS.missingSleep];
@@ -93,8 +93,8 @@ async function performNotificationRefresh(context?: CoachContext): Promise<Notif
 
 export async function sendTestNotification(): Promise<boolean> {
   if (!Capacitor.isNativePlatform() || await getNotificationPermission() !== 'granted') return false;
-  await LocalNotifications.createChannel({ id: CHANNEL, name: 'RunMate Guidance', description: 'Sleep, Workout, and Recovery guidance', importance: 3, visibility: 1 });
-  await schedule(TEST_ID, 'RunMate Notifications Are Ready', 'This is a test. Your personal reminders will use the preferences you selected.', new Date(Date.now() + 1200), '/notifications');
+  await LocalNotifications.createChannel({ id: CHANNEL, name: 'WholeMate Guidance', description: 'Sleep, Workout, and Recovery guidance', importance: 3, visibility: 1 });
+  await schedule(TEST_ID, 'WholeMate Notifications Are Ready', 'This is a test. Your personal reminders will use the preferences you selected.', new Date(Date.now() + 1200), '/notifications');
   return true;
 }
 
@@ -152,7 +152,7 @@ async function scheduleWorkout(ctx: CoachContext): Promise<boolean> {
   if (!workout || isRestWorkout(workout.workoutType) || getTodayTrainingPlanStatus(ctx, workout) !== 'pending') return false;
   const at = todayLocalClock(preferredTrainingMinutes(String(ctx.profile?.preferredRunTime ?? 'flexible')));
   if (at.getTime() <= Date.now() + 60_000) return false;
-  await schedule(IDS.workout, `Today's Plan: ${workout.workoutType}`, workout.durationMin ? `${workout.durationMin} min planned. Open RunMate for today's guidance.` : 'Open RunMate for today’s training guidance.', at, '/tabs/recovery');
+  await schedule(IDS.workout, `Today's Plan: ${workout.workoutType}`, workout.durationMin ? `${workout.durationMin} min planned. Open WholeMate for today's guidance.` : 'Open WholeMate for today’s training guidance.', at, '/tabs/recovery');
   return true;
 }
 
@@ -161,13 +161,13 @@ async function scheduleMissingSleep(ctx: CoachContext): Promise<boolean> {
   const missingToday = ctx.recoverySystem?.dataFreshness.status !== 'today';
   if (now.getHours() >= 8 && missingToday && !wasSent('missing-sleep', ctx.todayDate)) {
     markSent('missing-sleep', ctx.todayDate);
-    await schedule(IDS.missingSleep, 'Sleep Data Is Missing', 'Open RunMate to sync last night’s Sleep before using today’s Recovery.', new Date(Date.now() + 1500), '/tabs/recovery');
+    await schedule(IDS.missingSleep, 'Sleep Data Is Missing', 'Open WholeMate to sync last night’s Sleep before using today’s Recovery.', new Date(Date.now() + 1500), '/tabs/recovery');
     return true;
   }
   const at = new Date(now);
   at.setHours(8, 0, 0, 0);
   if (at.getTime() <= now.getTime() || !missingToday) at.setDate(at.getDate() + 1);
-  await schedule(IDS.missingSleep, 'Check Last Night’s Sleep', 'Open RunMate to sync Sleep before using today’s Recovery guidance.', at, '/tabs/recovery');
+  await schedule(IDS.missingSleep, 'Check Last Night’s Sleep', 'Open WholeMate to sync Sleep before using today’s Recovery guidance.', at, '/tabs/recovery');
   return true;
 }
 

@@ -31,6 +31,6 @@ export function ActivityHistoryRow({ item, deleting, onDelete }: { item: LocalHi
   </>;
   return <div className="history-row-shell">
     {detailPath ? <button type="button" className="history-row history-row-button" aria-label={`Open ${presentation.title} details`} disabled={deleting} onClick={() => { if (item.type === 'meal') cacheMealDetailItem(item); history.push(detailPath); }}>{content}</button> : <article className="history-row">{content}</article>}
-    <button type="button" className="history-row-delete" disabled={deleting} aria-busy={deleting} onClick={onDelete} aria-label={deleting ? `${importedHealthRecord ? 'Hiding' : 'Deleting'} ${presentation.title}` : `${importedHealthRecord ? 'Hide From RunMate' : 'Delete'} ${presentation.title}`}>{deleting ? <IonSpinner name="crescent" aria-hidden="true" /> : <IonIcon icon={importedHealthRecord ? eyeOffOutline : trashOutline} aria-hidden="true" />}</button>
+    <button type="button" className="history-row-delete" disabled={deleting} aria-busy={deleting} onClick={onDelete} aria-label={deleting ? `${importedHealthRecord ? 'Hiding' : 'Deleting'} ${presentation.title}` : `${importedHealthRecord ? 'Hide From WholeMate' : 'Delete'} ${presentation.title}`}>{deleting ? <IonSpinner name="crescent" aria-hidden="true" /> : <IonIcon icon={importedHealthRecord ? eyeOffOutline : trashOutline} aria-hidden="true" />}</button>
   </div>;
 }

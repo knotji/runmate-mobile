@@ -166,7 +166,7 @@ function buildRecoveryCalibration(nights: SleepSignals[], todayDate: string): Re
       ? 'Your recent signals are supported by a mature personal baseline.'
       : confidence === 'medium'
         ? 'Your score uses useful personal data, but calibration can still improve.'
-        : 'Treat this score as an early trend while RunMate learns your baseline.';
+        : 'Treat this score as an early trend while WholeMate learns your baseline.';
   return {
     confidence,
     label,

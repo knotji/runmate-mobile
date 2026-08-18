@@ -119,7 +119,7 @@ class TodayPlanWidgetProvider : AppWidgetProvider() {
         }
 
         private fun metaLabel(plan: JSONObject?, status: String): String {
-            if (status == "no_plan") return "Set a Race Goal in RunMate"
+            if (status == "no_plan") return "Set a Race Goal in WholeMate"
             if (status == "rest") return "Take it easy today"
             val distance = plan?.optDouble("distanceKm")?.takeIf { !it.isNaN() }
             val pace = plan?.optString("pace")?.takeIf { it.isNotBlank() }

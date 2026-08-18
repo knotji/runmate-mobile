@@ -29,8 +29,10 @@ describe('primary tab state', () => {
   it('stores independent non-negative scroll positions', () => {
     savePrimaryTabScroll('today', 248.6);
     savePrimaryTabScroll('move', -12);
+    savePrimaryTabScroll('you', 88.4);
     expect(loadPrimaryTabScroll('today')).toBe(249);
     expect(loadPrimaryTabScroll('health')).toBe(0);
     expect(loadPrimaryTabScroll('move')).toBe(0);
+    expect(loadPrimaryTabScroll('you')).toBe(88);
   });
 });

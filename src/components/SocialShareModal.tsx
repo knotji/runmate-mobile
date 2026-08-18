@@ -189,7 +189,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
     });
   };
 
-  const fileName = () => `RunMate-${composition?.kind ?? 'Story'}-${Date.now()}.png`;
+  const fileName = () => `WholeMate-${composition?.kind ?? 'Story'}-${Date.now()}.png`;
 
   const saveImage = async () => {
     if (!imageBlob) return;
@@ -201,7 +201,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
         await saveStoryImageNatively(dataUrl, fileName());
         recordPerformanceDiagnostic('share_export', performance.now() - startedAt, 'success', 'Android MediaStore', 'live');
         void hapticNotification();
-        showToast(background === 'transparent' ? 'Transparent PNG Saved' : 'Saved To Pictures / RunMate');
+        showToast(background === 'transparent' ? 'Transparent PNG Saved' : 'Saved To Pictures / WholeMate');
       } catch (error) {
         recordPerformanceDiagnostic('share_export', performance.now() - startedAt, 'failed', error instanceof Error ? error.message : 'Save failed');
         showToast('Could Not Save Image');
@@ -223,9 +223,9 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
     void hapticImpact();
     const startedAt = performance.now();
     try {
-      const file = new File([imageBlob], 'runmate-story.png', { type: 'image/png' });
+      const file = new File([imageBlob], 'wholemate-story.png', { type: 'image/png' });
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ title: `RunMate ${composition.eyebrow}`, text: composition.accessibleDescription, files: [file] });
+        await navigator.share({ title: `WholeMate ${composition.eyebrow}`, text: composition.accessibleDescription, files: [file] });
         recordPerformanceDiagnostic('share_export', performance.now() - startedAt, 'success', 'Web Share', 'live');
         void hapticNotification();
         return;
@@ -253,7 +253,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
           <div className={`social-share-preview-container${background === 'transparent' ? ' transparent-grid' : ''}`}>
             {generating && !previewUrl && <div className="social-share-loading" role="status"><IonSpinner name="crescent" /><p>Preparing Story</p></div>}
             <canvas ref={canvasRef} hidden />
-            {previewUrl && <img src={previewUrl} alt={composition?.accessibleDescription ?? 'RunMate Story preview'} className="social-share-preview-img" draggable={false} />}
+            {previewUrl && <img src={previewUrl} alt={composition?.accessibleDescription ?? 'WholeMate Story preview'} className="social-share-preview-img" draggable={false} />}
           </div>
 
           <div className="social-share-export-note">

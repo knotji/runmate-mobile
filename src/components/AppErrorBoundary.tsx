@@ -27,10 +27,10 @@ export class AppErrorBoundary extends Component<Props, State> {
     if (!this.state.error) return this.props.children;
     return <main className="app-crash-shell" role="alert">
       <div className="app-crash-mark" aria-hidden="true">!</div>
-      <p>RunMate</p>
+      <p>WholeMate</p>
       <h1>This Screen Could Not Load</h1>
       <span>Your saved data is unchanged. Reload the app to try this screen again.</span>
-      <button type="button" onClick={() => window.location.reload()}>Reload RunMate</button>
+      <button type="button" onClick={() => window.location.reload()}>Reload WholeMate</button>
       <button type="button" className="secondary" onClick={this.handleReturnToRecovery}>Return To Recovery</button>
     </main>;
   }

@@ -32,7 +32,7 @@ export const HealthDiagnosticsPanel: React.FC<Props> = ({
   return (
     <div className="health-developer-body">
       <p className="health-test-note">
-        Raw Health Connect inspection tools. These results are for diagnostics and are not shown in the normal RunMate experience.
+        Raw Health Connect inspection tools. These results are for diagnostics and are not shown in the normal WholeMate experience.
       </p>
 
       <section className="health-test-actions">

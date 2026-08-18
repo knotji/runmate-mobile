@@ -19,11 +19,11 @@
   display: grid;
   place-items: center;
   border-radius: 15px;
-  color: #fff;
-  font-size: 25px;
-  background: linear-gradient(145deg, #2563eb, #38bdf8);
-  box-shadow: 0 16px 36px rgba(37, 99, 235, 0.22);
+  background: #17324d;
+  box-shadow: 0 16px 36px rgba(23, 50, 77, 0.2);
 }
+
+.brand-mark img { width: 35px; height: 35px; }
 
 .login-intro .eyebrow {
   margin: 16px 0 8px;

@@ -33,7 +33,7 @@ internal object BackgroundHealthNotifier {
             context,
             FIRST_SUCCESS_NOTIFICATION_ID,
             "Background Preparation Is Working",
-            "RunMate prepared Health Connect data automatically in the background. You will not see this again unless you re-enable it.",
+            "WholeMate prepared Health Connect data automatically in the background. You will not see this again unless you re-enable it.",
             "/health-connect",
         )
     }
@@ -76,7 +76,7 @@ internal object BackgroundHealthNotifier {
                     context,
                     SLEEP_NOTIFICATION_ID,
                     "Sleep Data Is Ready",
-                    "New Sleep data arrived from Samsung Health. Open RunMate to refresh Recovery.",
+                    "New Sleep data arrived from Samsung Health. Open WholeMate to refresh Recovery.",
                     "/tabs/recovery",
                 )
                 newWorkouts.isNotEmpty() -> post(
@@ -159,7 +159,7 @@ internal object BackgroundHealthNotifier {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "RunMate Guidance", NotificationManager.IMPORTANCE_DEFAULT).apply {
+            NotificationChannel(CHANNEL_ID, "WholeMate Guidance", NotificationManager.IMPORTANCE_DEFAULT).apply {
                 description = "Sleep, Workout, and Recovery guidance"
             },
         )

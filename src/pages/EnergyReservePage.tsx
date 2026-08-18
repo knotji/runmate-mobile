@@ -78,7 +78,7 @@ const EnergyReservePage: React.FC = () => {
 
           <section className="energy-action"><p>One Useful Move</p><h2>{energy.action.title}</h2><span>{energy.action.detail}</span></section>
 
-          <details className="energy-method"><summary>How RunMate estimates this</summary><p>Energy Reserve is a RunMate v1 guidance estimate, not a medical or biological energy measurement. It starts with today’s Recovery and subtracts recorded Strain plus stress or heat that you explicitly confirm. Fuel changes the guidance, not the number. Heart rate alone never creates passive Strain.</p></details>
+          <details className="energy-method"><summary>How WholeMate estimates this</summary><p>Energy Reserve is a WholeMate guidance estimate, not a medical or biological energy measurement. It starts with today’s Recovery and subtracts recorded Strain plus stress or heat that you explicitly confirm. Fuel changes the guidance, not the number. Heart rate alone never creates passive Strain.</p></details>
         </>}
       </main>
     </IonContent>

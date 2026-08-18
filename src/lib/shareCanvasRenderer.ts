@@ -66,10 +66,7 @@ function drawCompactRecovery(ctx: CanvasRenderingContext2D, palette: Palette, da
   });
 
   if (data.meta) small(ctx, data.meta, contentX, top + height - 52, palette.faint);
-  ctx.textAlign = 'right';
-  ctx.fillStyle = palette.ink;
-  ctx.font = `700 20px ${FONT}`;
-  ctx.fillText('RUNMATE', left + width - 38, top + height - 48);
+  drawBrandLockup(ctx, left + width - 38, top + height - 48, 20, palette.ink, palette.accent);
 }
 
 function drawScoreRing(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, score: number | null, palette: Palette) {
@@ -338,12 +335,40 @@ function wrapped(ctx: CanvasRenderingContext2D, value: string, x: number, y: num
 }
 
 function drawBrand(ctx: CanvasRenderingContext2D, palette: Palette) {
+  drawBrandLockup(ctx, 986, 1800, 26, palette.ink, palette.accent);
+}
+
+function drawBrandLockup(ctx: CanvasRenderingContext2D, right: number, baseline: number, fontSize: number, ink: string, accent: string) {
+  const text = 'WHOLEMATE';
+  ctx.save();
   ctx.textAlign = 'right';
-  ctx.fillStyle = palette.ink;
-  ctx.font = `700 26px ${FONT}`;
-  ctx.fillText('RUNMATE', 986, 1800);
-  ctx.fillStyle = palette.accent;
+  ctx.fillStyle = ink;
+  ctx.font = `700 ${fontSize}px ${FONT}`;
+  const textWidth = ctx.measureText(text).width;
+  ctx.fillText(text, right, baseline);
+  drawWholeMateMark(ctx, right - textWidth - fontSize * 1.55, baseline - fontSize * 1.08, fontSize * 1.25, accent);
+  ctx.restore();
+}
+
+function drawWholeMateMark(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, color: string) {
+  const scale = size / 512;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 58;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
   ctx.beginPath();
-  ctx.arc(1000, 1750, 9, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.moveTo(150, 105);
+  ctx.bezierCurveTo(90, 140, 62, 215, 76, 292);
+  ctx.bezierCurveTo(88, 360, 137, 410, 201, 423);
+  ctx.bezierCurveTo(228, 429, 244, 407, 257, 379);
+  ctx.bezierCurveTo(270, 351, 279, 331, 294, 331);
+  ctx.bezierCurveTo(309, 331, 318, 351, 331, 379);
+  ctx.bezierCurveTo(344, 407, 360, 429, 387, 423);
+  ctx.bezierCurveTo(420, 414, 454, 364, 436, 292);
+  ctx.bezierCurveTo(450, 215, 422, 140, 362, 105);
+  ctx.stroke();
+  ctx.restore();
 }

@@ -126,7 +126,7 @@ export function describeBackgroundHealthIssue(status: BackgroundHealthStatus, no
   if (!status.available) return 'This Android device does not support background Health Connect reads.';
   if (!status.authorized) return 'Background data access is not allowed. Update Health Connect permissions.';
   if (!status.enabled) return 'Background preparation is turned off.';
-  if (status.backgroundRestricted) return 'Android is restricting RunMate in the background. Allow background activity in system settings.';
+  if (status.backgroundRestricted) return 'Android is restricting WholeMate in the background. Allow background activity in system settings.';
   if (status.lastErrorCode === 'background_access_missing' || status.lastErrorCode === 'permission_changed') {
     return 'Health Connect permission changed. Reconnect Background Preparation.';
   }

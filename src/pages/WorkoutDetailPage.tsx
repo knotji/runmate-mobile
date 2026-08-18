@@ -127,7 +127,7 @@ const WorkoutDetailPage: React.FC = () => {
                   <header><p>Heart Rate Reserve</p><h2>Heart Rate Zones</h2></header>
                   <div className="workout-zone-card">
                     <div className="workout-load-summary">
-                      <div><span>RunMate Load</span><strong>{detail.heartRateZones.load ? detail.heartRateZones.load.score : '—'}<small>/100</small></strong></div>
+                      <div><span>WholeMate Load</span><strong>{detail.heartRateZones.load ? detail.heartRateZones.load.score : '—'}<small>/100</small></strong></div>
                       <div><span>HR Coverage</span><strong>{detail.heartRateZones.coveragePercentage}<small>%</small></strong></div>
                       <em>{detail.heartRateZones.load?.level ?? 'More HR Data Needed'}</em>
                     </div>

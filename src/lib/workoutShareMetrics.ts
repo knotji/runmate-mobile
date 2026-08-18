@@ -83,7 +83,7 @@ export function getAvailableWorkoutMetrics(data: {
   if (typeof data.loadScore === 'number' && Number.isFinite(data.loadScore)) {
     metrics.push({
       key: 'load',
-      label: 'RunMate Load',
+      label: 'WholeMate Load',
       value: `${Math.round(data.loadScore)}`,
       unit: '/100',
     });

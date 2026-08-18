@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 260">
+  <g transform="translate(18 -2) scale(.5)">
+    <path
+      d="M150 105C90 140 62 215 76 292C88 360 137 410 201 423C228 429 244 407 257 379C270 351 279 331 294 331C309 331 318 351 331 379C344 407 360 429 387 423C420 414 454 364 436 292C450 215 422 140 362 105"
+      fill="none"
+      stroke="#48BFAE"
+      stroke-width="58"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </g>
+  <text x="282" y="172" fill="#17324D" font-family="IBM Plex Sans, IBM Plex Sans Thai, Arial, sans-serif" font-size="112" font-weight="700" letter-spacing="-3">WholeMate</text>
+</svg>

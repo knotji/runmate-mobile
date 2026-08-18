@@ -15,10 +15,12 @@ import {
   logOutOutline,
   notificationsOutline,
   personCircleOutline,
+  sparklesOutline,
 } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { loadMorePage, type MorePagePath } from '@/lib/morePageLoaders';
+import { usePrimaryTabScroll } from '@/lib/usePrimaryTabScroll';
 import './MorePage.css';
 
 type SettingsMenuItem = {
@@ -29,6 +31,18 @@ type SettingsMenuItem = {
 };
 
 const menuGroups: Array<{ label: string; title: string; items: SettingsMenuItem[] }> = [
+  {
+    label: 'Guidance',
+    title: 'Coach & Reflection',
+    items: [
+      {
+        icon: sparklesOutline,
+        title: 'Coach History',
+        summary: 'Continue your conversation or ask about a decision using your latest context.',
+        path: '/ai-coach',
+      },
+    ],
+  },
   {
     label: 'Personalize',
     title: 'Profile & Preferences',
@@ -60,7 +74,7 @@ const menuGroups: Array<{ label: string; title: string; items: SettingsMenuItem[
       {
         icon: lockClosedOutline,
         title: 'Privacy, Export & Account',
-        summary: 'Review stored data, export a copy, or delete your RunMate account.',
+        summary: 'Review stored data, export a copy, or delete your WholeMate account.',
         path: '/privacy-data',
       },
     ],
@@ -71,7 +85,7 @@ const menuGroups: Array<{ label: string; title: string; items: SettingsMenuItem[
     items: [
       {
         icon: informationCircleOutline,
-        title: 'About RunMate',
+        title: 'About WholeMate',
         summary: 'App version, release notes, and Copy Diagnostics for support.',
         path: '/about',
       },
@@ -81,6 +95,7 @@ const menuGroups: Array<{ label: string; title: string; items: SettingsMenuItem[
 
 const MorePage: React.FC = () => {
   const history = useHistory();
+  const contentRef = usePrimaryTabScroll('you');
 
   const warmPage = (path: MorePagePath) => {
     void loadMorePage(path).catch(() => undefined);
@@ -89,14 +104,14 @@ const MorePage: React.FC = () => {
   return (
     <IonPage>
       <IonHeader translucent className="more-header">
-        <IonToolbar><IonTitle>Settings & Data</IonTitle></IonToolbar>
+        <IonToolbar><IonTitle>You</IonTitle></IonToolbar>
       </IonHeader>
-      <IonContent fullscreen className="more-content">
+      <IonContent ref={contentRef} fullscreen className="more-content">
         <main className="more-shell">
           <header className="more-heading">
-            <p>YOUR RUNMATE</p>
-            <h1>Your App, Your Data</h1>
-            <span>Manage your profile, connected health sources, privacy, exports, and support details.</span>
+            <p>YOUR SPACE</p>
+            <h1>Goals, Data & Settings</h1>
+            <span>Continue with Coach, personalize your guidance, and control your connected data.</span>
           </header>
 
           <div className="more-groups">
@@ -108,7 +123,7 @@ const MorePage: React.FC = () => {
                 </header>
                 <div className="more-menu">
                   {group.items.map((item) => (
-                    <button className="more-menu-row more-menu-button" type="button" onPointerEnter={() => warmPage(item.path)} onPointerDown={() => warmPage(item.path)} onFocus={() => warmPage(item.path)} onClick={() => history.push(item.path, { from: '/tabs/settings' })} key={item.title}>
+                    <button className="more-menu-row more-menu-button" type="button" onPointerEnter={() => warmPage(item.path)} onPointerDown={() => warmPage(item.path)} onFocus={() => warmPage(item.path)} onClick={() => history.push(item.path, { from: '/tabs/you' })} key={item.title}>
                       <div className="more-menu-icon"><IonIcon icon={item.icon} aria-hidden="true" /></div>
                       <div className="more-menu-copy">
                         <strong>{item.title}</strong>

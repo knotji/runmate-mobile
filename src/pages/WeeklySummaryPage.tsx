@@ -127,7 +127,7 @@ const WeeklySummaryPage: React.FC = () => {
     <IonContent fullscreen className="weekly-content">
       <IonRefresher slot="fixed" onIonRefresh={refresh}><IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" /></IonRefresher>
       <main className="weekly-shell">
-        <header className="weekly-heading"><p>Training History</p><h1>Week And Month At A Glance</h1><span>Calendar-aligned sleep, workouts, and meals logged in RunMate.</span></header>
+        <header className="weekly-heading"><p>Training History</p><h1>Week And Month At A Glance</h1><span>Calendar-aligned sleep, workouts, and meals logged in WholeMate.</span></header>
 
         <div className="weekly-period-toggle" role="group" aria-label="Summary period">
           <button type="button" className={requestedPeriod === 'week' ? 'active' : ''} aria-pressed={requestedPeriod === 'week'} onClick={() => selectPeriod('week')}>Week</button>

@@ -48,7 +48,7 @@ export async function buildAccountDataExport(): Promise<{ ok: true; data: Accoun
 }
 
 export function accountDataExportFileName(now = new Date()): string {
-  return `RunMate-Data-Export-${now.toISOString().slice(0, 10)}.json`;
+  return `WholeMate-Data-Export-${now.toISOString().slice(0, 10)}.json`;
 }
 
 /**

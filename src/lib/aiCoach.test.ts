@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { askAiCoach, askAiCoachChat, bangkokDayPhase, buildAiCoachContext, clearAiCoachAnswerCache } from '@/lib/aiCoach';
+import { askAiCoach, askAiCoachChat, bangkokDayPhase, buildAiCoachContext, clearAiCoachAnswerCache, coachOriginFromPath } from '@/lib/aiCoach';
 import type { CoachContext } from '@/lib/buildCoachContext';
 
 const invoke = vi.fn();
@@ -46,6 +46,15 @@ function buildContext(overrides: Partial<CoachContext> = {}): CoachContext {
 }
 
 describe('buildAiCoachContext', () => {
+  it('maps canonical navigation origins without guessing from standalone paths', () => {
+    expect(coachOriginFromPath('/tabs/today')).toBe('today');
+    expect(coachOriginFromPath('/tabs/health')).toBe('health');
+    expect(coachOriginFromPath('/tabs/move')).toBe('move');
+    expect(coachOriginFromPath('/tabs/you')).toBe('you');
+    expect(coachOriginFromPath('/nutrition-trends')).toBe('unknown');
+    expect(coachOriginFromPath()).toBe('unknown');
+  });
+
   it('sends compact coaching facts without raw records or account fields', () => {
     const source = buildContext();
 
@@ -92,6 +101,22 @@ describe('askAiCoach caching', () => {
     expect(invoke).toHaveBeenCalledTimes(1);
     expect(second).toEqual(first);
     expect(first.headline).toBe('Go Easy');
+  });
+
+  it('keeps contextual answers separate and sends the originating surface', async () => {
+    invoke.mockResolvedValue({ data: { data: { headline: 'Contextual', summary: 'Answer.' } }, error: null });
+    const context = buildContext();
+
+    await askAiCoach('today', context, undefined, { origin: 'today' });
+    await askAiCoach('today', context, undefined, { origin: 'health' });
+
+    expect(invoke).toHaveBeenCalledTimes(2);
+    expect(invoke).toHaveBeenNthCalledWith(1, 'ai-coach', expect.objectContaining({
+      body: expect.objectContaining({ origin: 'today' }),
+    }));
+    expect(invoke).toHaveBeenNthCalledWith(2, 'ai-coach', expect.objectContaining({
+      body: expect.objectContaining({ origin: 'health' }),
+    }));
   });
 
   it('refetches when the underlying Coach Context changes', async () => {

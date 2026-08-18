@@ -32,7 +32,7 @@
   width: 100%;
   height: 100%;
   border-radius: 24px;
-  box-shadow: 0 14px 34px rgba(32, 123, 181, .24);
+  box-shadow: 0 14px 34px rgba(23, 50, 77, .22);
   animation: app-boot-breathe 1.8s ease-in-out infinite;
 }
 
@@ -40,7 +40,7 @@
   position: absolute;
   inset: 12px;
   border-radius: 26px;
-  background: rgba(45, 157, 215, .4);
+  background: rgba(72, 191, 174, .34);
   filter: blur(22px);
 }
 

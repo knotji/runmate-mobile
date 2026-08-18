@@ -132,7 +132,7 @@ const StrainDetailPage: React.FC = () => {
             {isToday ? <div className={`strain-sync-note is-${heartRateDisplay.kind}`} role="status" aria-live="polite">
               <span><strong>{heartRateDisplay.title}</strong><small>{heartRateDisplay.detail}</small></span>
               {heartRateDisplay.action && <button type="button" disabled={syncingHr} onClick={() => heartRateDisplay.action === 'permissions' ? history.push('/health-connect') : void refreshHeartRate(true)}><IonIcon icon={refreshOutline} />{heartRateDisplay.actionLabel}</button>}
-            </div> : <div className={`strain-sync-note ${heartRate.buckets.length ? 'is-current' : 'is-unavailable'}`} role="status"><span><strong>{heartRate.buckets.length ? 'Saved heart-rate timeline' : 'No retained HR data for this day'}</strong><small>RunMate keeps all-day HR summaries on this device for 7 days.</small></span></div>}
+            </div> : <div className={`strain-sync-note ${heartRate.buckets.length ? 'is-current' : 'is-unavailable'}`} role="status"><span><strong>{heartRate.buckets.length ? 'Saved heart-rate timeline' : 'No retained HR data for this day'}</strong><small>WholeMate keeps all-day HR summaries on this device for 7 days.</small></span></div>}
           </section>
 
           <section className="strain-card">
@@ -144,7 +144,7 @@ const StrainDetailPage: React.FC = () => {
             <SectionTitle icon={heartOutline} eyebrow="Quick Context" title={isToday ? 'How Does Today Feel?' : 'How Did This Day Feel?'} />
             <fieldset><legend>Stress</legend><div className="strain-choice-row">{(['low', 'moderate', 'high'] as StressLevel[]).map((value) => <button type="button" aria-pressed={checkIn.stress === value} className={checkIn.stress === value ? 'is-selected' : ''} onClick={() => updateCheckIn({ stress: checkIn.stress === value ? null : value })} key={value}>{title(value)}</button>)}</div></fieldset>
             <fieldset><legend>Conditions</legend><div className="strain-choice-row">{([['normal', 'Normal'], ['hot_humid', 'Hot / Humid'], ['indoor', 'Indoor']] as Array<[EnvironmentContext, string]>).map(([value, label]) => <button type="button" aria-pressed={checkIn.environment === value} className={checkIn.environment === value ? 'is-selected' : ''} onClick={() => updateCheckIn({ environment: checkIn.environment === value ? null : value })} key={value}>{label}</button>)}</div></fieldset>
-            <p><IonIcon icon={informationCircleOutline} />Stress and weather are user-confirmed context. RunMate never diagnoses either from HR alone.</p>
+            <p><IonIcon icon={informationCircleOutline} />Stress and weather are user-confirmed context. WholeMate never diagnoses either from HR alone.</p>
           </section>
 
           <section className="strain-card">

@@ -334,7 +334,7 @@ const RecoveryPage: React.FC = () => {
               />
               {visibleEnergy && <EnergyReserveCard energy={visibleEnergy} onOpen={() => history.push('/energy', { from: '/tabs/today' })} />}
               {secondaryLoading && !visibleContext ? <RecoverySecondaryLoading /> : secondaryError && !visibleContext ? <RecoverySecondaryError message={secondaryError} onRetry={() => void loadSecondaryRecovery(true)} /> : !visibleContext ? <RecoverySecondaryLoading /> : <>
-                <TodayTrainingPlanCard context={visibleContext} />
+                <TodayTrainingPlanCard context={visibleContext} onAskCoach={() => history.push('/ai-coach', { from: '/tabs/today', initialTopic: 'today' })} />
                 <RecoveryPlan recovery={visibleRecovery} wakeOverrideMinutes={wakeOverrideMinutes} sleepCycleOverride={sleepCycleOverride} onOpen={() => history.push('/sleep-window')} />
               </>}
             </>

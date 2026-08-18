@@ -44,7 +44,7 @@ Deno.serve(async (request) => {
 type Goal = { raceName: string; raceDate: string; raceDistance: string; goalType: string; targetTime: string | null; currentLongestRunKm: number | null; trainingDaysPerWeek: number; preferredLongRunDay: string };
 type Workout = { day: string; workoutType: string; distanceKm: number | null; durationMin: number | null; targetPace: string | null; targetHR: string | null; description: string; purpose: string | null; adjustment: string | null };
 
-function prompt(goal: Goal, context: unknown, today: string) { return `You are RunMate's cautious running coach. Create a practical seven-day race training plan in English.
+function prompt(goal: Goal, context: unknown, today: string) { return `You are WholeMate's cautious running coach. Create a practical seven-day race training plan in English.
 Today: ${today}
 Race Goal: ${JSON.stringify(goal)}
 Recent runner context: ${JSON.stringify(compactContext(context))}

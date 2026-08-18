@@ -142,5 +142,7 @@
   .health-hub-shell { width: min(100%, 560px); }
   .health-hub-grid { display: grid; grid-template-columns: 1fr 1fr; }
   .health-hub-card:nth-child(odd) { border-right: 1px solid rgba(210, 224, 235, .74); }
-  .health-hub-card:nth-last-child(-n + 2) { border-bottom: 0; }
+  .health-hub-card:last-child,
+  .health-hub-card:nth-last-child(2):nth-child(odd) { border-bottom: 0; }
+  .health-hub-card:last-child:nth-child(odd) { border-right: 0; }
 }

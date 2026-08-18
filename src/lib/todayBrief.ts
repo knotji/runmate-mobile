@@ -60,7 +60,7 @@ function readinessItem(context: CoachContext, dailyAction: DailyRecommendationAc
     return {
       eyebrow: 'Body Readiness',
       title: 'Recovery Is Still Calibrating',
-      summary: 'Use today as early guidance while RunMate builds your personal baseline.',
+      summary: 'Use today as early guidance while WholeMate builds your personal baseline.',
     };
   }
   if (dailyAction === 'recover') {
@@ -143,7 +143,7 @@ function limiterItem(context: CoachContext, latest: WeekSleepRow | null, baselin
     return {
       eyebrow: 'Likely Limiter',
       title: 'Latest Sleep Is Missing',
-      summary: 'RunMate cannot identify a trustworthy limiter until the newest sleep record is synced.',
+      summary: 'WholeMate cannot identify a trustworthy limiter until the newest sleep record is synced.',
     };
   }
 

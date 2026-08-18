@@ -143,7 +143,7 @@ export function SleepHeartRate({ night }: { night: WeekSleepRow }) {
 }
 
 export function RecordReliability({ night }: { night: WeekSleepRow }) {
-  const sources = night.sources?.length ? night.sources : ['RunMate'];
+  const sources = night.sources?.length ? night.sources : ['WholeMate'];
   const correctedCount = Object.values(night.fieldSources ?? {}).filter((source) => source === 'User Corrected').length;
   const status = sources.length > 1 ? 'Reconciled' : 'Single Source';
   return (

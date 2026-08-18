@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { IonIcon } from '@ionic/react';
+import { sparklesOutline } from 'ionicons/icons';
 import type { CoachContext } from '@/lib/buildCoachContext';
 import { buildAdaptiveTrainingRecommendation } from '@/lib/adaptiveTrainingPlan';
 import { buildRecoveryExplainability } from '@/lib/recoveryExplainability';
@@ -8,7 +10,7 @@ import { getTodayPlannedWorkout, getTodayTrainingPlanStatus } from '@/lib/todayT
 import { buildTodayBrief } from '@/lib/todayBrief';
 import './TodayTrainingPlanCard.css';
 
-export function TodayTrainingPlanCard({ context }: { context: CoachContext }) {
+export function TodayTrainingPlanCard({ context, onAskCoach }: { context: CoachContext; onAskCoach?: () => void }) {
   const planned = getTodayPlannedWorkout(context);
   const status = planned ? getTodayTrainingPlanStatus(context, planned) : null;
   const recommendation = useMemo(() => buildAdaptiveTrainingRecommendation(context, planned), [context, planned]);
@@ -70,10 +72,16 @@ export function TodayTrainingPlanCard({ context }: { context: CoachContext }) {
             <strong>{brief.limiter.title}</strong>
           </div>
         </div>
-        <div className="today-brief-focus" aria-label="One Useful Action">
-          <small>{brief.action.eyebrow}</small>
-          <strong>{brief.action.title}</strong>
-          <p>{brief.action.summary}</p>
+        <div className={`today-brief-focus${onAskCoach ? ' has-coach-action' : ''}`} aria-label="One Useful Action">
+          <div className="today-brief-focus-copy">
+            <small>{brief.action.eyebrow}</small>
+            <strong>{brief.action.title}</strong>
+            <p>{brief.action.summary}</p>
+          </div>
+          {onAskCoach && <button type="button" className="today-brief-coach" aria-label="Ask Coach About Today" onClick={onAskCoach}>
+            <IonIcon icon={sparklesOutline} aria-hidden="true" />
+            <span>Coach</span>
+          </button>}
         </div>
       </div>
       {supportCount > 0 && (

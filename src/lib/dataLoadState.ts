@@ -7,7 +7,7 @@ export function healthDataErrorCopy(message: string | null | undefined, fallback
   if (isHealthConnectPermissionError(message)) {
     return {
       title: 'Health Connect Access Is Required',
-      detail: 'RunMate could not read the health records needed for this page. Review Health Connect permissions, then try again.',
+      detail: 'WholeMate could not read the health records needed for this page. Review Health Connect permissions, then try again.',
       actionLabel: 'Check Health Connect',
     };
   }

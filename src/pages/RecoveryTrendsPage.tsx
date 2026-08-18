@@ -59,7 +59,7 @@ const RecoveryTrendsPage: React.FC = () => {
     <IonContent fullscreen className="recovery-trends-content">
       <IonRefresher slot="fixed" onIonRefresh={refresh}><IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" /></IonRefresher>
       <main className="recovery-trends-shell">
-        <header className="recovery-trends-heading"><p>Your Baseline</p><h1>See What Is Changing</h1><span>Recovery, Sleep, and Strain from the records available in RunMate.</span></header>
+        <header className="recovery-trends-heading"><p>Your Baseline</p><h1>See What Is Changing</h1><span>Recovery, Sleep, and Strain from the records available in WholeMate.</span></header>
         <div className="recovery-range" role="group" aria-label="Trend range">
           <button type="button" className={days === 7 ? 'active' : ''} aria-pressed={days === 7} onClick={() => setDays(7)}>7 Days</button>
           <button type="button" className={days === 30 ? 'active' : ''} aria-pressed={days === 30} onClick={() => setDays(30)}>30 Days</button>
@@ -154,7 +154,7 @@ function TrendHistory({ points, days }: { points: RecoveryTrendPoint[]; days: 7 
       <summary><div><p>Daily Detail</p><h2>Recent Scores</h2></div><span>{visiblePoints.length} Days</span></summary>
       <div className="trend-history-columns" aria-hidden="true"><span>Date</span><span>Recovery</span><span>Sleep</span><span>Strain</span></div>
       <div className="trend-history-list">{visiblePoints.map((point) => <TrendRow key={point.date} point={point} />)}</div>
-      <p className="trend-method-note"><IonIcon icon={informationCircleOutline} />Historical Recovery uses available physiological signals and personal-baseline weighting. Sleep Score uses RunMate's calculation for every night. Missing physiological data stays blank.</p>
+      <p className="trend-method-note"><IonIcon icon={informationCircleOutline} />Historical Recovery uses available physiological signals and personal-baseline weighting. Sleep Score uses WholeMate's calculation for every night. Missing physiological data stays blank.</p>
     </details>
   </section>;
 }

@@ -1,6 +1,6 @@
 const PRIMARY_TAB_STATE_KEY = 'runmate:primary-tab-state';
 
-export type PrimaryTabKey = 'today' | 'health' | 'move';
+export type PrimaryTabKey = 'today' | 'health' | 'move' | 'you';
 
 type PrimaryTabState = {
   moveDate?: string;

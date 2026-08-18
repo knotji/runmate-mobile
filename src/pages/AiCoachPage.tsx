@@ -7,7 +7,7 @@ import { Keyboard } from '@capacitor/keyboard';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import { DataFreshnessStatus } from '@/components/DataFreshnessStatus';
-import { AI_COACH_TOPICS, askAiCoach, askAiCoachChat, type AiCoachAnswer, type AiCoachChatTurn, type AiCoachTopic } from '@/lib/aiCoach';
+import { AI_COACH_TOPICS, askAiCoach, askAiCoachChat, coachOriginFromPath, type AiCoachAnswer, type AiCoachChatTurn, type AiCoachTopic } from '@/lib/aiCoach';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
 import { hapticImpact } from '@/lib/haptics';
@@ -32,8 +32,8 @@ type ChatMessage = AiCoachStoredMessage;
 
 const AiCoachPage: React.FC = () => {
   const history = useHistory();
-  const location = useLocation<{ initialTopic?: AiCoachTopic }>();
-  const isPrimaryCoachTab = location.pathname === '/tabs/coach';
+  const location = useLocation<{ initialTopic?: AiCoachTopic; from?: string }>();
+  const coachOrigin = coachOriginFromPath(location.state?.from);
   const context = useCoachContextStore((state) => state.context);
   const [startupEntry] = useState(() => loadRecoveryContextStartupEntry());
   const startupContext = startupEntry?.context ?? null;
@@ -68,7 +68,7 @@ const AiCoachPage: React.FC = () => {
         setContextRefreshFailed(false);
       } catch (failure) {
         setContextRefreshFailed(true);
-        setError(message(failure, 'Your RunMate data could not be loaded.'));
+        setError(message(failure, 'Your WholeMate data could not be loaded.'));
       } finally {
         setLoadingContext(false);
       }
@@ -134,7 +134,7 @@ const AiCoachPage: React.FC = () => {
     try {
       const answer = await measurePerformanceDiagnostic(
         'ai_coach_answer',
-        () => askAiCoach(topicId, requestContext, undefined, { force, conversation }),
+        () => askAiCoach(topicId, requestContext, undefined, { force, conversation, origin: coachOrigin }),
         () => ({ detail: force ? 'Topic answer refreshed' : 'Topic answer prepared' }),
       );
       const assistantMsg: ChatMessage = {
@@ -151,13 +151,13 @@ const AiCoachPage: React.FC = () => {
     } finally {
       setAsking(false);
     }
-  }, [asking, messages, requestContext]);
+  }, [asking, coachOrigin, messages, requestContext]);
 
   useEffect(() => {
     const initialTopic = location.state?.initialTopic;
     if (!initialTopic || initialTopicHandledRef.current || !requestContext || asking) return;
     initialTopicHandledRef.current = true;
-    history.replace(location.pathname);
+    history.replace(location.pathname, location.state?.from ? { from: location.state.from } : undefined);
     void askTopic(initialTopic);
   }, [askTopic, asking, history, location.pathname, location.state, requestContext]);
 
@@ -181,7 +181,7 @@ const AiCoachPage: React.FC = () => {
     try {
       const answer = await measurePerformanceDiagnostic(
         'ai_coach_answer',
-        () => askAiCoachChat(trimmed, requestContext, conversation),
+        () => askAiCoachChat(trimmed, requestContext, conversation, coachOrigin),
         () => ({ detail: 'Custom question answered' }),
       );
       const assistantMsg: ChatMessage = {
@@ -198,13 +198,13 @@ const AiCoachPage: React.FC = () => {
     } finally {
       setAsking(false);
     }
-  }, [asking, messages, requestContext]);
+  }, [asking, coachOrigin, messages, requestContext]);
 
   const submitCustomQuery = useCallback(() => submitQuestion(inputQuery), [inputQuery, submitQuestion]);
 
   return <IonPage>
     <IonHeader translucent className="ai-coach-header"><IonToolbar>
-      {!isPrimaryCoachTab && <button type="button" className="ai-coach-back" aria-label="Back To Coach" onClick={() => navigateBackOr(history, '/tabs/coach')}><IonIcon icon={arrowBackOutline} /></button>}
+      <button type="button" className="ai-coach-back" aria-label="Back" onClick={() => navigateBackOr(history, '/tabs/you')}><IonIcon icon={arrowBackOutline} /></button>
       <IonTitle>Coach</IonTitle>
       {messages.length > 0 && <button type="button" className="ai-coach-clear" aria-label="Clear Conversation" onClick={() => setClearConversationOpen(true)}><IonIcon icon={trashOutline} /></button>}
     </IonToolbar></IonHeader>
@@ -244,7 +244,7 @@ const AiCoachPage: React.FC = () => {
             {messages.length === 0 && <div className="ai-coach-welcome-hero">
               <div className="ai-coach-hero-mark"><IonIcon icon={sparklesOutline} /></div>
               <h2>What would you like to talk about?</h2>
-              <p>Ask about training, recovery, food—or anything else. I’ll use your RunMate data only when it helps.</p>
+              <p>Ask about training, recovery, food—or anything else. I’ll use your WholeMate data only when it helps.</p>
               
               <div className="ai-coach-prompt-grid">
                 {AI_COACH_TOPICS.map((topic, index) => (

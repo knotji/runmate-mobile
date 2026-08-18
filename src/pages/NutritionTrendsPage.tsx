@@ -66,7 +66,7 @@ const NutritionTrendsPage: React.FC = () => {
     <IonContent fullscreen className="nutrition-trends-content">
       <IonRefresher slot="fixed" onIonRefresh={refresh}><IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" /></IonRefresher>
       <main className="nutrition-trends-shell">
-        <header className="nutrition-trends-heading"><p>LOGGED NUTRITION</p><h1>See Your Eating Patterns</h1><span>Calories and macros from meals recorded in RunMate. Missing days remain blank.</span></header>
+        <header className="nutrition-trends-heading"><p>LOGGED NUTRITION</p><h1>See Your Eating Patterns</h1><span>Calories and macros from meals recorded in WholeMate. Missing days remain blank.</span></header>
         <div className="nutrition-range" role="group" aria-label="Nutrition trend range">
           <button type="button" className={range === 7 ? 'active' : ''} aria-pressed={range === 7} onClick={() => setRange(7)}>7 Days</button>
           <button type="button" className={range === 30 ? 'active' : ''} aria-pressed={range === 30} onClick={() => setRange(30)}>30 Days</button>
@@ -76,8 +76,8 @@ const NutritionTrendsPage: React.FC = () => {
         {trend && loading && <DataFreshnessStatus status="refreshing" detail="Refreshing nutrition records…" />}
         {trend && !loading && error && <DataFreshnessStatus status="fallback" label="Saved Data" detail="Refresh unavailable · Showing your last loaded nutrition trend" onRetry={() => void load()} variant="panel" />}
         {!loading && error && !trend && <PageState kind="error" title="Nutrition Trends Are Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="nutrition-trends-state" />}
-        {trend && trend.loggedDays === 0 && <PageState kind="empty" icon={restaurantOutline} title="No Meals In This Range" detail="RunMate loaded this range successfully, but no meals were logged. Add a meal to start building nutrition trends." actionLabel="Log A Meal" onAction={() => history.push('/tabs/log?type=meal')} className="nutrition-trends-state" />}
-        {trend && trend.loggedDays > 0 && <TrendContent trend={trend} onAskCoach={() => history.push('/tabs/coach')} />}
+        {trend && trend.loggedDays === 0 && <PageState kind="empty" icon={restaurantOutline} title="No Meals In This Range" detail="WholeMate loaded this range successfully, but no meals were logged. Add a meal to start building nutrition trends." actionLabel="Log A Meal" onAction={() => history.push('/tabs/log?type=meal')} className="nutrition-trends-state" />}
+        {trend && trend.loggedDays > 0 && <TrendContent trend={trend} onAskCoach={() => history.push('/ai-coach', { from: '/tabs/health' })} />}
       </main>
     </IonContent>
   </IonPage>;
@@ -126,7 +126,7 @@ function TrendContent({ trend, onAskCoach }: { trend: NutritionTrend; onAskCoach
     </section>
 
     <button type="button" className="nutrition-coach-button" onClick={onAskCoach}><IonIcon icon={sparklesOutline} /><span><strong>Ask AI Coach</strong><small>Get a practical suggestion for your next meal.</small></span></button>
-    <p className="nutrition-trends-note">RunMate reports only meals you logged. It does not treat a missing day as zero intake.</p>
+    <p className="nutrition-trends-note">WholeMate reports only meals you logged. It does not treat a missing day as zero intake.</p>
   </>;
 }
 

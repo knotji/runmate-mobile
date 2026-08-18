@@ -119,11 +119,11 @@ const ProfileSettingsPage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="profile-settings-header"><IonToolbar>
-      <button type="button" className="profile-settings-back" aria-label="Back To Settings And Data" onClick={() => history.push('/tabs/settings')}><IonIcon icon={arrowBackOutline} /></button>
+      <button type="button" className="profile-settings-back" aria-label="Back To You" onClick={() => history.push('/tabs/you')}><IonIcon icon={arrowBackOutline} /></button>
       <IonTitle>Profile & Settings</IonTitle>
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="profile-settings-content"><main className="profile-settings-shell">
-      <header className="profile-settings-intro"><p>Your RunMate</p><h1>Essential Profile</h1><span>Only settings that directly improve Recovery and training guidance are shown here.</span></header>
+      <header className="profile-settings-intro"><p>Your WholeMate</p><h1>Essential Profile</h1><span>Only settings that directly improve Recovery and training guidance are shown here.</span></header>
       {loading && <PageDataSkeleton variant="profile" label="Loading Your Profile" />}
       {!loading && profile && <>
         <section className="profile-settings-card">
@@ -159,7 +159,7 @@ const ProfileSettingsPage: React.FC = () => {
             <p className="profile-hr-zone-empty">
               {!draft.maxHr
                 ? 'Add your Max Heart Rate above to see your personal HR Zones.'
-                : 'RunMate needs a few recent nights of Sleep with Heart Rate data to calibrate your Resting HR before showing Zones.'}
+                : 'WholeMate needs a few recent nights of Sleep with Heart Rate data to calibrate your Resting HR before showing Zones.'}
             </p>
           )}
         </section>
@@ -168,7 +168,7 @@ const ProfileSettingsPage: React.FC = () => {
           <div className="profile-settings-grid">
             <label><span>Training Days Per Week</span><input type="number" inputMode="numeric" min="1" max="7" value={draft.weeklyTrainingDays} onChange={(event) => update('weeklyTrainingDays', event.target.value)} placeholder="Example: 4" /><em>Default for new Race Goals.</em></label>
             <label><span>Preferred Long Run Day</span><select value={draft.preferredLongRunDay} onChange={(event) => update('preferredLongRunDay', event.target.value)}><option value="">Not Set</option>{DAYS.map((day) => <option value={day} key={day}>{day}</option>)}</select><em>Default for new Race Goals.</em></label>
-            <label className="profile-settings-wide"><span>Preferred Training Time</span><select value={draft.preferredRunTime} onChange={(event) => update('preferredRunTime', event.target.value)}><option value="">Not Set</option><option value="morning">Morning</option><option value="evening">Evening</option><option value="night">Night</option><option value="flexible">Flexible</option></select><em>Helps RunMate place training guidance at a realistic time.</em></label>
+            <label className="profile-settings-wide"><span>Preferred Training Time</span><select value={draft.preferredRunTime} onChange={(event) => update('preferredRunTime', event.target.value)}><option value="">Not Set</option><option value="morning">Morning</option><option value="evening">Evening</option><option value="night">Night</option><option value="flexible">Flexible</option></select><em>Helps WholeMate place training guidance at a realistic time.</em></label>
           </div>
           <p className="profile-impact-note"><strong>Used By</strong><span>New Race Goals And Training Plans</span></p>
         </section>
@@ -179,13 +179,13 @@ const ProfileSettingsPage: React.FC = () => {
           </div>
           <p className="profile-impact-note"><strong>Used By</strong><span>Sleep Window And Bedtime Guidance</span></p>
         </section>
-        <section className="profile-timezone-card"><IonIcon icon={globeOutline} /><div><span>Timezone</span><strong>Asia/Bangkok</strong><small>RunMate currently uses Bangkok dates for Sleep and Activity.</small></div></section>
+        <section className="profile-timezone-card"><IonIcon icon={globeOutline} /><div><span>Timezone</span><strong>Asia/Bangkok</strong><small>WholeMate currently uses Bangkok dates for Sleep and Activity.</small></div></section>
         {error && <p className="profile-settings-error">{error}</p>}
         <button type="button" className={`profile-settings-save${saved ? ' saved' : ''}`} disabled={saving || !hasChanges} onClick={() => void save()}>{saving ? <IonSpinner name="crescent" /> : saved ? <IonIcon icon={checkmarkCircleOutline} /> : <IonIcon icon={scaleOutline} />}{saving ? 'Saving…' : saved ? 'Profile Saved' : hasChanges ? 'Save Profile' : 'No Changes'}</button>
       </>}
       {!loading && !profile && <PageState kind="error" title="Profile Is Unavailable" detail={error ?? 'Could Not Load Your Profile.'} actionLabel="Try Again" onAction={() => void load()} className="profile-settings-state profile-settings-failed" />}
     </main></IonContent>
-    <IonAlert isOpen={discardOpen} onDidDismiss={() => setDiscardOpen(false)} header="Discard Unsaved Changes?" message="Your latest Profile changes have not been saved." buttons={[{ text: 'Keep Editing', role: 'cancel' }, { text: 'Discard', role: 'destructive', handler: () => { setSavedDraft(draft); window.setTimeout(() => history.push('/tabs/settings'), 0); } }]} />
+    <IonAlert isOpen={discardOpen} onDidDismiss={() => setDiscardOpen(false)} header="Discard Unsaved Changes?" message="Your latest Profile changes have not been saved." buttons={[{ text: 'Keep Editing', role: 'cancel' }, { text: 'Discard', role: 'destructive', handler: () => { setSavedDraft(draft); window.setTimeout(() => history.push('/tabs/you'), 0); } }]} />
   </IonPage>;
 };
 

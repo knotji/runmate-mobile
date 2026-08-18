@@ -51,7 +51,7 @@ describe('buildAccountDataExport', () => {
 
 describe('accountDataExportFileName', () => {
   it('names the export file by date', () => {
-    expect(accountDataExportFileName(new Date('2026-07-24T09:00:00Z'))).toBe('RunMate-Data-Export-2026-07-24.json');
+    expect(accountDataExportFileName(new Date('2026-07-24T09:00:00Z'))).toBe('WholeMate-Data-Export-2026-07-24.json');
   });
 });
 

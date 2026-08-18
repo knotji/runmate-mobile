@@ -3,6 +3,7 @@ const ALLOWED_NOTIFICATION_ROUTES = new Set([
   '/tabs/today',
   '/tabs/health',
   '/tabs/move',
+  '/tabs/you',
   '/tabs/coach',
   '/tabs/recovery',
   '/tabs/activity',

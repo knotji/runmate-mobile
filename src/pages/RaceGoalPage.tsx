@@ -226,7 +226,7 @@ const RaceGoalPage: React.FC = () => {
               <div><IonIcon icon={flagOutline} /></div>
               <p>Race Planning</p>
               <h1>No Active Race Goal</h1>
-              <span>Set your race details and RunMate will build a fresh training plan from your latest data.</span>
+              <span>Set your race details and WholeMate will build a fresh training plan from your latest data.</span>
               <IonButton onClick={() => setEditorOpen(true)}>Create Race Goal</IonButton>
             </section>
           )}

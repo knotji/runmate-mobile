@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Redirect, Route, useLocation } from 'react-router-dom';
 import { IonIcon, IonLabel, IonRouterOutlet, IonTabBar, IonTabButton, IonTabs } from '@ionic/react';
-import { fitnessOutline, heartOutline, homeOutline, sparklesOutline } from 'ionicons/icons';
+import { fitnessOutline, heartOutline, homeOutline, personCircleOutline } from 'ionicons/icons';
 import { RouteLoadingScreen } from '@/components/RouteLoadingScreen';
 import { hapticSelection } from '@/lib/haptics';
 import { beginTabNavigation, completeTabNavigation } from '@/lib/tabNavigationPerformance';
@@ -11,20 +11,20 @@ const loadActivityPage = () => import('@/pages/ActivityPage');
 const loadHealthPage = () => import('@/pages/HealthPage');
 const loadCoachPage = () => import('@/pages/AiCoachPage');
 const loadUploadPage = () => import('@/pages/UploadPage');
-const loadMorePage = () => import('@/pages/MorePage');
+const loadYouPage = () => import('@/pages/MorePage');
 
 const RecoveryPage = lazy(loadRecoveryPage);
 const ActivityPage = lazy(loadActivityPage);
 const HealthPage = lazy(loadHealthPage);
 const CoachPage = lazy(loadCoachPage);
 const UploadPage = lazy(loadUploadPage);
-const MorePage = lazy(loadMorePage);
+const YouPage = lazy(loadYouPage);
 
 const tabPageLoaders = [
   { path: '/tabs/today', load: loadRecoveryPage },
   { path: '/tabs/health', load: loadHealthPage },
   { path: '/tabs/move', load: loadActivityPage },
-  { path: '/tabs/coach', load: loadCoachPage },
+  { path: '/tabs/you', load: loadYouPage },
 ];
 
 const MainTabs: React.FC = () => {
@@ -64,11 +64,12 @@ const MainTabs: React.FC = () => {
         <Route exact path="/tabs/today"><Suspense fallback={<RouteLoadingScreen />}><RecoveryPage /></Suspense></Route>
         <Route exact path="/tabs/health"><Suspense fallback={<RouteLoadingScreen />}><HealthPage /></Suspense></Route>
         <Route exact path="/tabs/move"><Suspense fallback={<RouteLoadingScreen />}><ActivityPage /></Suspense></Route>
+        <Route exact path="/tabs/you"><Suspense fallback={<RouteLoadingScreen />}><YouPage /></Suspense></Route>
         <Route exact path="/tabs/coach"><Suspense fallback={<RouteLoadingScreen />}><CoachPage /></Suspense></Route>
         <Route exact path="/tabs/log"><Suspense fallback={<RouteLoadingScreen />}><UploadPage /></Suspense></Route>
         <Route exact path="/tabs/upload"><Suspense fallback={<RouteLoadingScreen />}><UploadPage /></Suspense></Route>
-        <Route exact path="/tabs/settings"><Suspense fallback={<RouteLoadingScreen />}><MorePage /></Suspense></Route>
-        <Route exact path="/tabs/more"><Suspense fallback={<RouteLoadingScreen />}><MorePage /></Suspense></Route>
+        <Route exact path="/tabs/settings"><Redirect to="/tabs/you" /></Route>
+        <Route exact path="/tabs/more"><Redirect to="/tabs/you" /></Route>
         <Route exact path="/tabs/recovery"><Redirect to="/tabs/today" /></Route>
         <Route exact path="/tabs/activity"><Redirect to="/tabs/move" /></Route>
         <Route exact path="/tabs/history"><Redirect to="/tabs/move" /></Route>
@@ -78,7 +79,7 @@ const MainTabs: React.FC = () => {
         <IonTabButton tab="today" href="/tabs/today" onClick={() => startTabNavigation('/tabs/today')}><IonIcon icon={homeOutline} /><IonLabel>Today</IonLabel></IonTabButton>
         <IonTabButton tab="health" href="/tabs/health" onClick={() => startTabNavigation('/tabs/health')}><IonIcon icon={heartOutline} /><IonLabel>Health</IonLabel></IonTabButton>
         <IonTabButton tab="move" href="/tabs/move" onClick={() => startTabNavigation('/tabs/move')}><IonIcon icon={fitnessOutline} /><IonLabel>Move</IonLabel></IonTabButton>
-        <IonTabButton tab="coach" href="/tabs/coach" onClick={() => startTabNavigation('/tabs/coach')}><IonIcon icon={sparklesOutline} /><IonLabel>Coach</IonLabel></IonTabButton>
+        <IonTabButton tab="you" href="/tabs/you" onClick={() => startTabNavigation('/tabs/you')}><IonIcon icon={personCircleOutline} /><IonLabel>You</IonLabel></IonTabButton>
       </IonTabBar>
     </IonTabs>
   );

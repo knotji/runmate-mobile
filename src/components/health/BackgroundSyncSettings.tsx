@@ -32,7 +32,7 @@ export const BackgroundSyncSettings: React.FC<Props> = ({
           {!backgroundStatus.available ? 'Unavailable' : backgroundStatus.enabled && backgroundStatus.authorized ? 'On' : 'Off'}
         </strong>
       </header>
-      <p>Android prepares a small 36-hour Health Connect snapshot while RunMate is closed. Timing is approximate; account reconciliation still completes when RunMate opens.</p>
+      <p>Android prepares a small 36-hour Health Connect snapshot while WholeMate is closed. Timing is approximate; account reconciliation still completes when WholeMate opens.</p>
       <div className="health-background-schedule">
         <div><span>Last Prepared</span><b>{formatLastSynced(backgroundStatus.preparedAt)}</b></div>
         <div><span>Next Expected Run</span><b>{formatNextExpected(backgroundStatus)}</b></div>
@@ -54,7 +54,7 @@ export const BackgroundSyncSettings: React.FC<Props> = ({
           {backgroundTesting ? <IonSpinner name="crescent" /> : <><IonIcon slot="start" icon={syncOutline} />Run Background Test</>}
         </IonButton>
       )}
-      <small>After a force-stop, Android will not restart background work until RunMate is opened again.</small>
+      <small>After a force-stop, Android will not restart background work until WholeMate is opened again.</small>
     </section>
   );
 };

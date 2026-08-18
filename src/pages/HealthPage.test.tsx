@@ -8,11 +8,11 @@ describe('Health hub', () => {
   it('makes core health destinations discoverable without loading their data', () => {
     render(<IonApp><MemoryRouter><HealthPage /></MemoryRouter></IonApp>);
 
-    for (const name of ['Health Calendar', 'Recovery Trends', 'Sleep', 'Strain', 'Nutrition', 'Pain & Injury', 'Health Connect']) {
+    for (const name of ['Health Calendar', 'Recovery Trends', 'Sleep', 'Strain', 'Nutrition', 'Body Weight', 'Fitness Age', 'Pain & Injury', 'Health Connect']) {
       expect(screen.getByText(name)).toBeInTheDocument();
     }
     expect(screen.getByRole('button', { name: 'Log Health Data' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Open Settings And Data' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open You' })).toBeInTheDocument();
     for (const group of ['Your Body At A Glance', 'See What Is Changing', 'Connected Health Data']) {
       expect(screen.getByRole('heading', { name: group })).toBeInTheDocument();
     }

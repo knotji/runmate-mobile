@@ -148,7 +148,7 @@ const SleepDetailPage: React.FC = () => {
               {!selectedNight && <PageState
                 kind="empty"
                 title="No Sleep Session Found"
-                detail="RunMate loaded your account successfully, but no sleep session is available for this date. Check Health Connect sleep access, then refresh."
+                detail="WholeMate loaded your account successfully, but no sleep session is available for this date. Check Health Connect sleep access, then refresh."
                 actionLabel="Review Health Access"
                 onAction={() => history.push('/health-connect')}
                 className="sleep-detail-loading"

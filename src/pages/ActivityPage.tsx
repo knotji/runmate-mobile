@@ -25,7 +25,6 @@ import { deleteMealNutritionRecord } from '@/lib/nutritionSync';
 import { getHistoryItemDateKey, todayBangkokDateKey } from '@/lib/date';
 import { isHealthConnectImportedItem, type LocalHistoryItem } from '@/lib/localHistory';
 import { describeTodayHealthSyncPerformance, syncTodayHealth } from '@/lib/healthSyncService';
-import { buildDailyNutritionSummary } from '@/lib/activityNutritionSummary';
 import { activityHistoryItemsMatch, activityRecentHistoryOptions, mergeActivityHistoryItems, prepareActivityHistoryItems, sortHistoryItemsByEventTimeDesc, uploadedActivityDateFromEvent } from '@/lib/activityHistoryLoad';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
@@ -43,6 +42,7 @@ import { formatRaceWorkoutMetric } from '@/lib/mobileRaceGoal';
 import { getPlannedWorkoutForDateWithRaceDay, isRestDayWorkout } from '@/lib/todayTrainingPlan';
 import { loadMoveSelectedDate, saveMoveSelectedDate } from '@/lib/primaryTabState';
 import { usePrimaryTabScroll } from '@/lib/usePrimaryTabScroll';
+import { isMovementRecord } from '@/lib/moveRecordOwnership';
 import type { WeekWorkout } from '@/types/race';
 import './ActivityPage.css';
 
@@ -218,8 +218,12 @@ const ActivityPage: React.FC = () => {
     }
   };
 
+  const movementItems = useMemo(
+    () => items.filter(isMovementRecord),
+    [items],
+  );
   const groupedItems = useMemo(() => {
-    const visible = items.filter((item) => getHistoryItemDateKey(item) === selectedDate);
+    const visible = movementItems.filter((item) => getHistoryItemDateKey(item) === selectedDate);
     const groups = new Map<string, LocalHistoryItem[]>();
     for (const item of visible) {
       const date = getHistoryItemDateKey(item);
@@ -228,31 +232,30 @@ const ActivityPage: React.FC = () => {
     return [...groups.entries()]
       .map(([date, dateItems]): [string, LocalHistoryItem[]] => [date, sortHistoryItemsByEventTimeDesc(dateItems)])
       .sort(([a], [b]) => b.localeCompare(a));
-  }, [items, selectedDate]);
+  }, [movementItems, selectedDate]);
   const selectedItems = useMemo(() => groupedItems.flatMap(([, dateItems]) => dateItems), [groupedItems]);
   const recordGroups = useMemo(() => groupActivityRecords(selectedItems), [selectedItems]);
-  const availableDates = useMemo(() => new Set([...items.map(getHistoryItemDateKey), todayDate]), [items, todayDate]);
-  const nutritionMeasurement = useMemo(() => {
-    const startedAt = performance.now();
-    const value = buildDailyNutritionSummary(items, selectedDate);
-    return { value, durationMs: performance.now() - startedAt };
-  }, [items, selectedDate]);
-  const nutritionSummary = nutritionMeasurement.value;
+  const availableDates = useMemo(() => new Set([...movementItems.map(getHistoryItemDateKey), todayDate]), [movementItems, todayDate]);
   const plannedWorkout = useMemo(() => selectedDate === todayDate ? getPlannedWorkoutForDateWithRaceDay(racePlan, raceGoal, selectedDate) : null, [racePlan, raceGoal, selectedDate, todayDate]);
-  const fuelCoach = useMemo(() => buildDailyFuelCoach({
-    date: selectedDate,
-    items,
-    profile,
-    plannedWorkout,
-  }), [items, profile, plannedWorkout, selectedDate]);
+  const fuelMeasurement = useMemo(() => {
+    const startedAt = performance.now();
+    const value = buildDailyFuelCoach({
+      date: selectedDate,
+      items,
+      profile,
+      plannedWorkout,
+    });
+    return { value, durationMs: performance.now() - startedAt };
+  }, [items, profile, plannedWorkout, selectedDate]);
+  const fuelCoach = fuelMeasurement.value;
   useEffect(() => {
     recordPerformanceDiagnostic(
       'activity_nutrition',
-      nutritionMeasurement.durationMs,
+      fuelMeasurement.durationMs,
       'success',
-      nutritionSummary ? `${nutritionSummary.mealCount} meals summarized` : 'No meals for selected date',
+      fuelCoach.mealCount ? `${fuelCoach.mealCount} meals prepared for fuel guidance` : 'No meals for selected date',
     );
-  }, [nutritionMeasurement.durationMs, nutritionSummary, selectedDate]);
+  }, [fuelCoach.mealCount, fuelMeasurement.durationMs, selectedDate]);
   const sortedDates = useMemo(() => [...availableDates].sort(), [availableDates]);
   const selectedDateIndex = sortedDates.indexOf(selectedDate);
 
@@ -325,36 +328,19 @@ const ActivityPage: React.FC = () => {
             <PlannedTrainingCard workout={plannedWorkout} onOpen={() => history.push('/weekly-plan', { from: '/tabs/move' })} />
           )}
 
-          {!loading && !error && nutritionSummary && (
-            <section className="daily-nutrition-summary" aria-labelledby="daily-nutrition-heading">
-              <header>
-                <div><p>Logged Nutrition</p><h2 id="daily-nutrition-heading">Daily Meal Total</h2></div>
-                <span>{nutritionSummary.mealCount} {nutritionSummary.mealCount === 1 ? 'Meal' : 'Meals'}</span>
-              </header>
-              <div className="daily-nutrition-metrics">
-                <div><span>Calories</span><strong>{formatMetric(nutritionSummary.caloriesKcal)}<small> kcal</small></strong></div>
-                <NutritionMetric label="Protein" value={nutritionSummary.proteinG} />
-                <NutritionMetric label="Carbs" value={nutritionSummary.carbsG} />
-                <NutritionMetric label="Fat" value={nutritionSummary.fatG} />
-              </div>
-              <small>Based only on meals logged for this date.</small>
-              <button type="button" className="daily-nutrition-trends-link" onClick={() => history.push('/nutrition-trends', { from: '/tabs/move' })}>View Nutrition Trends<IonIcon icon={chevronForwardOutline} /></button>
-            </section>
-          )}
-
-          {!loading && !error && <DailyFuelCoachCard coach={fuelCoach} preparing={fuelContextLoading && !profile} onProfile={() => history.push('/profile-settings')} onLogMeal={() => history.push('/tabs/log?type=meal')} onAskCoach={() => history.push('/tabs/coach', { initialTopic: 'fuel' })} />}
+          {!loading && !error && <DailyFuelCoachCard coach={fuelCoach} preparing={fuelContextLoading && !profile} onProfile={() => history.push('/profile-settings')} onNutrition={() => history.push('/nutrition-trends', { from: '/tabs/move' })} onLogMeal={() => history.push('/tabs/log?type=meal')} onAskCoach={() => history.push('/ai-coach', { from: '/tabs/move', initialTopic: 'fuel' })} />}
 
           {loading && <PageDataSkeleton variant="activity" label="Loading Your Activity" />}
           {!loading && error && <PageState kind="error" title="Activity Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void loadRecent()} className="history-state history-error" />}
           {refreshError && <div className="history-delete-error" role="status"><span>{refreshError}</span><button type="button" onClick={() => setRefreshError(null)}>Dismiss</button></div>}
           {!loading && !error && groupedItems.length === 0 && (
-            <PageState kind="empty" icon={fitnessOutline} title="No Activity On This Date" detail="Choose another date to review previous activity." className="history-empty" />
+            <PageState kind="empty" icon={fitnessOutline} title="No Movement On This Date" detail="Choose another date to review recorded workouts and movement." className="history-empty" />
           )}
           {deleteError && <div className="history-delete-error" role="alert"><span>{deleteError}</span><button type="button" onClick={() => setDeleteError(null)}>Dismiss</button></div>}
           {!loading && !error && groupedItems.map(([date, dateItems]) => (
             <section className="history-day" key={date}>
               <header>
-                <div><p>Recorded Data</p><h2>{selectedDate === todayDate ? "Today's Records" : 'Daily Records'}</h2></div>
+                <div><p>Recorded Movement</p><h2>{selectedDate === todayDate ? "Today's Sessions" : 'Daily Sessions'}</h2></div>
                 <span>{dateItems.length} {dateItems.length === 1 ? 'Record' : 'Records'}</span>
               </header>
               <div className="activity-record-groups">
@@ -396,19 +382,15 @@ const ActivityPage: React.FC = () => {
       <IonAlert
         isOpen={Boolean(pendingDelete)}
         onDidDismiss={() => setPendingDelete(null)}
-        header={pendingDelete && isHealthConnectImportedItem(pendingDelete) ? 'Hide From RunMate?' : 'Delete RunMate Record?'}
+        header={pendingDelete && isHealthConnectImportedItem(pendingDelete) ? 'Hide From WholeMate?' : 'Delete WholeMate Record?'}
         message={pendingDelete ? isHealthConnectImportedItem(pendingDelete)
-          ? `Hide ${describeHistoryItem(pendingDelete).title} from RunMate and prevent it from being imported again? Samsung Health and Health Connect will not be changed.`
-          : `Permanently delete ${describeHistoryItem(pendingDelete).title} from RunMate? Samsung Health and Health Connect will not be changed.` : ''}
+          ? `Hide ${describeHistoryItem(pendingDelete).title} from WholeMate and prevent it from being imported again? Samsung Health and Health Connect will not be changed.`
+          : `Permanently delete ${describeHistoryItem(pendingDelete).title} from WholeMate? Samsung Health and Health Connect will not be changed.` : ''}
         buttons={[{ text: 'Cancel', role: 'cancel' }, { text: pendingDelete && isHealthConnectImportedItem(pendingDelete) ? 'Hide' : 'Delete', role: 'destructive', handler: () => { void confirmDelete(); } }]}
       />
     </IonPage>
   );
 };
-
-function NutritionMetric({ label, value }: { label: string; value: number | null }) {
-  return <div><span>{label}</span><strong>{formatMetric(value)}{value !== null ? ' g' : ''}</strong></div>;
-}
 
 export function PlannedTrainingCard({ workout, onOpen }: { workout: WeekWorkout; onOpen: () => void }) {
   const restDay = isRestDayWorkout(workout);
@@ -445,7 +427,7 @@ function plannedWorkoutIcon(workout: WeekWorkout): string {
   return fitnessOutline;
 }
 
-function DailyFuelCoachCard({ coach, preparing, onProfile, onLogMeal, onAskCoach }: { coach: DailyFuelCoach; preparing: boolean; onProfile: () => void; onLogMeal: () => void; onAskCoach: () => void }) {
+function DailyFuelCoachCard({ coach, preparing, onProfile, onNutrition, onLogMeal, onAskCoach }: { coach: DailyFuelCoach; preparing: boolean; onProfile: () => void; onNutrition: () => void; onLogMeal: () => void; onAskCoach: () => void }) {
   if (preparing) return <section className="daily-fuel-card is-preparing" aria-busy="true"><IonSpinner name="crescent" /><div><p>Daily Fuel Coach</p><h2>Preparing Your Targets</h2><span>Loading your current weight and training plan.</span></div></section>;
   return <section className="daily-fuel-card" aria-labelledby="daily-fuel-heading">
     <header><div><p>Daily Fuel Coach</p><h2 id="daily-fuel-heading">Fuel For This Day</h2></div><span>{coach.dayLabel}</span></header>
@@ -456,7 +438,7 @@ function DailyFuelCoachCard({ coach, preparing, onProfile, onLogMeal, onAskCoach
         <FuelStatus label="Carbs" target={coach.carbs!} />
       </div>
       <div className="daily-fuel-guidance"><IonIcon icon={sparklesOutline} /><div><strong>{coach.recommendation.title}</strong><span>{coach.recommendation.detail}</span></div></div>
-      <div className="daily-fuel-footer"><span>{coach.note}</span>{coach.mealCount === 0 ? <button type="button" onClick={onLogMeal}>Log A Meal</button> : <button type="button" onClick={onAskCoach}>Ask AI Coach</button>}</div>
+      <div className="daily-fuel-footer"><span>{coach.note}</span><div className="daily-fuel-actions"><button type="button" className="is-secondary" onClick={onNutrition}>Nutrition</button>{coach.mealCount === 0 ? <button type="button" onClick={onLogMeal}>Log A Meal</button> : <button type="button" onClick={onAskCoach}>Ask Coach</button>}</div></div>
     </>}
   </section>;
 }
@@ -468,6 +450,5 @@ function FuelStatus({ label, target }: { label: string; target: NonNullable<Dail
 
 function formatSelectedDate(date: string): string { return new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(`${date}T12:00:00`)); }
 function formatMonthDay(date: string): string { return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(`${date}T12:00:00`)); }
-function formatMetric(value: number | null): string { return value === null ? '—' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(value); }
 
 export default ActivityPage;

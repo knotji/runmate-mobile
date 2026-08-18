@@ -44,8 +44,8 @@ export function buildDailyFuelCoach(options: {
     return {
       status: 'needs_weight', dayType, dayLabel, basedOnLoggedTraining, mealCount, completeMacroMeals, coverage,
       protein: null, carbs: null,
-      recommendation: { title: 'Add Your Body Weight', detail: 'RunMate needs a current weight to calculate personal protein and carbohydrate ranges.' },
-      note: 'Meal totals remain available, but RunMate will not guess a personal target.',
+      recommendation: { title: 'Add Your Body Weight', detail: 'WholeMate needs a current weight to calculate personal protein and carbohydrate ranges.' },
+      note: 'Meal totals remain available, but WholeMate will not guess a personal target.',
     };
   }
 
@@ -115,7 +115,7 @@ function macro(logged: number | null, range: number[], overridden: boolean): Fue
   return { logged, minimum, maximum, remainingToMinimum: logged == null ? null : Math.max(0, Math.round(minimum - logged)), source: overridden ? 'profile' : 'calculated' };
 }
 function recommendation(type: FuelDayType, mealCount: number, protein: FuelMacroTarget, carbs: FuelMacroTarget): DailyFuelCoach['recommendation'] {
-  if (mealCount === 0) return { title: 'Log Your First Meal', detail: `Start with one meal so RunMate can compare today's ${label(type).toLowerCase()} targets with what you actually ate.` };
+  if (mealCount === 0) return { title: 'Log Your First Meal', detail: `Start with one meal so WholeMate can compare today's ${label(type).toLowerCase()} targets with what you actually ate.` };
   if (protein.logged == null || carbs.logged == null) return { title: 'Complete The Macro Picture', detail: 'At least one logged meal is missing protein or carbohydrate values. Add or review those values before relying on the remaining target.' };
   const proteinRemaining = protein.remainingToMinimum ?? 0;
   const carbRemaining = carbs.remainingToMinimum ?? 0;

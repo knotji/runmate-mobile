@@ -70,7 +70,7 @@ function number(value: unknown): string | null { return typeof value === 'number
 function unit(value: unknown, suffix: string): string | null { const result = number(value); return result ? `${result} ${suffix}` : null; }
 function titleCase(value: string): string { return value.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()); }
 function compact(values: Array<[string, string | null]>): Array<{ label: string; value: string }> { return values.filter((value): value is [string, string] => Boolean(value[1])).map(([label, value]) => ({ label, value })); }
-function source(item: LocalHistoryItem): string { return item.source?.provider ? titleCase(item.source.provider) : 'RunMate'; }
+function source(item: LocalHistoryItem): string { return item.source?.provider ? titleCase(item.source.provider) : 'WholeMate'; }
 function displayDate(item: LocalHistoryItem): string { return new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).format(new Date(`${getHistoryItemDateKey(item)}T12:00:00`)); }
 function trainingDecisionCopy(value: string | null): string | null { return value === 'rest_only' ? 'Rest and avoid training until symptoms improve.' : value === 'light_movement_only' ? 'Keep activity limited to light movement while recovering.' : value === 'normal_training_allowed' ? 'Normal training is allowed if symptoms remain stable.' : null; }
 function painStatus(data: Record<string, unknown>): string {

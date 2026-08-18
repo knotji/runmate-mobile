@@ -1,4 +1,5 @@
 import { loadActivityStartupEntry } from './activityStartupCache';
+import { loadBodyWeightTrendStartupSnapshot } from './bodyWeightTrendStartupCache';
 import { getPersistedTodaySyncAt } from './healthSyncMetadata';
 import { loadNutritionTrendsStartupSnapshot } from './nutritionTrendsStartupCache';
 import { loadPainTrendsStartupSnapshot } from './painTrendsStartupCache';
@@ -8,7 +9,7 @@ import { loadRecoveryTrendsStartupSnapshot } from './recoveryTrendsStartupCache'
 export type HealthHubStatusTone = 'current' | 'attention' | 'empty';
 export type HealthHubStatus = { label: string; tone: HealthHubStatusTone };
 export type HealthHubSnapshot = Record<
-  'calendar' | 'recoveryTrends' | 'sleep' | 'strain' | 'nutrition' | 'pain' | 'healthConnect',
+  'calendar' | 'recoveryTrends' | 'sleep' | 'strain' | 'nutrition' | 'weight' | 'fitnessAge' | 'pain' | 'healthConnect',
   HealthHubStatus
 >;
 
@@ -18,6 +19,7 @@ export function buildHealthHubSnapshot(now: Date | string | number = Date.now())
   const activityEntry = loadActivityStartupEntry(now);
   const recoveryTrends = loadRecoveryTrendsStartupSnapshot(now);
   const nutrition = loadNutritionTrendsStartupSnapshot(now);
+  const weight = loadBodyWeightTrendStartupSnapshot(now);
   const pain = loadPainTrendsStartupSnapshot(now);
   const sleepMinutes = recoveryEntry?.recovery.sleepPerformance.actualSleepMinutes ?? null;
   const syncAt = getPersistedTodaySyncAt();
@@ -31,6 +33,10 @@ export function buildHealthHubSnapshot(now: Date | string | number = Date.now())
     sleep: sleepMinutes != null ? current(`${formatMinutes(sleepMinutes)} last night`) : empty('No recent sleep snapshot'),
     strain: recoveryEntry ? current(`${formatStrain(recoveryEntry.recovery.strain.score)}/21 today`) : empty('No current strain snapshot'),
     nutrition: nutrition ? current(`${nutrition.sevenDay.loggedDays}/7 days logged`) : empty('No recent nutrition summary'),
+    weight: weight?.thirtyDay.latestWeightKg != null
+      ? current(`${weight.thirtyDay.latestWeightKg.toFixed(1)} kg latest`)
+      : empty('No recent weight snapshot'),
+    fitnessAge: empty('Open to estimate'),
     pain: pain
       ? pain.thirtyDay.hasActivePain
         ? attention('Active report logged')

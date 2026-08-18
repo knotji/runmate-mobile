@@ -9,7 +9,7 @@ vi.mock('@/pages/HealthPage', () => ({ default: () => <h1>Health Fixture</h1> })
 vi.mock('@/pages/ActivityPage', () => ({ default: () => <h1>Move Fixture</h1> }));
 vi.mock('@/pages/AiCoachPage', () => ({ default: () => <h1>Coach Fixture</h1> }));
 vi.mock('@/pages/UploadPage', () => ({ default: () => <h1>Log Fixture</h1> }));
-vi.mock('@/pages/MorePage', () => ({ default: () => <h1>Settings Fixture</h1> }));
+vi.mock('@/pages/MorePage', () => ({ default: () => <h1>You Fixture</h1> }));
 vi.mock('@/lib/haptics', () => ({ hapticSelection: vi.fn() }));
 
 describe('primary information architecture', () => {
@@ -19,7 +19,8 @@ describe('primary information architecture', () => {
     expect(await screen.findByRole('heading', { name: 'Today Fixture' })).toBeInTheDocument();
     const tabBar = screen.getByRole('tablist');
     expect(tabBar.querySelectorAll('ion-tab-button')).toHaveLength(4);
-    expect(screen.getAllByText(/^(Today|Health|Move|Coach)$/).map((node) => node.textContent)).toEqual(['Today', 'Health', 'Move', 'Coach']);
+    expect(screen.getAllByText(/^(Today|Health|Move|You)$/).map((node) => node.textContent)).toEqual(['Today', 'Health', 'Move', 'You']);
+    expect(screen.queryByRole('tab', { name: 'Coach' })).not.toBeInTheDocument();
     expect(screen.queryByText('Upload')).not.toBeInTheDocument();
     expect(screen.queryByText('More')).not.toBeInTheDocument();
   });
@@ -29,8 +30,10 @@ describe('primary information architecture', () => {
     ['/tabs/activity', 'Move Fixture'],
     ['/tabs/upload', 'Log Fixture'],
     ['/tabs/log', 'Log Fixture'],
-    ['/tabs/more', 'Settings Fixture'],
-    ['/tabs/settings', 'Settings Fixture'],
+    ['/tabs/you', 'You Fixture'],
+    ['/tabs/more', 'You Fixture'],
+    ['/tabs/settings', 'You Fixture'],
+    ['/tabs/coach', 'Coach Fixture'],
   ])('keeps legacy tab route %s working', async (route, heading) => {
     render(<IonApp><MemoryRouter initialEntries={[route]}><MainTabs /></MemoryRouter></IonApp>);
     expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument();

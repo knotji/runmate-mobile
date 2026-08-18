@@ -287,7 +287,7 @@ const HealthTestPage: React.FC = () => {
     <IonPage>
       <IonHeader translucent className="health-connect-header">
         <IonToolbar>
-          <IonButton slot="start" fill="clear" aria-label="Back" onClick={() => navigateBackOr(history, '/tabs/settings')}>
+          <IonButton slot="start" fill="clear" aria-label="Back" onClick={() => navigateBackOr(history, '/tabs/you')}>
             <IonIcon slot="icon-only" icon={arrowBackOutline} />
           </IonButton>
           <IonTitle>Health Connect</IonTitle>
@@ -298,7 +298,7 @@ const HealthTestPage: React.FC = () => {
           <header className="health-connect-heading">
             <p>Connected Health</p>
             <h1>Samsung Health Sync</h1>
-            <span>Bring trusted Sleep, Workout, and Body Weight data into RunMate through Health Connect.</span>
+            <span>Bring trusted Sleep, Workout, and Body Weight data into WholeMate through Health Connect.</span>
           </header>
 
           {connectionBusy === 'status' && !connection ? <PageDataSkeleton variant="health" label="Checking Health Connect" /> : <>
@@ -327,7 +327,7 @@ const HealthTestPage: React.FC = () => {
             <NutritionSyncSettings />
 
             <p className="health-connect-source-note">
-              RunMate imports records shared by Samsung Health through Health Connect. A workout visible in Samsung Health may not appear here if Samsung Health has not shared that record.
+              WholeMate imports records shared by Samsung Health through Health Connect. A workout visible in Samsung Health may not appear here if Samsung Health has not shared that record.
             </p>
 
             <details className="health-developer-details">

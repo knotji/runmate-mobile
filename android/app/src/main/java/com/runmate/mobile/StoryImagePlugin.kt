@@ -55,7 +55,7 @@ class StoryImagePlugin : Plugin() {
         val values = ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
             put(MediaStore.Images.Media.MIME_TYPE, "image/png")
-            put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/RunMate")
+            put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/WholeMate")
             put(MediaStore.Images.Media.IS_PENDING, 1)
         }
         val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
@@ -77,7 +77,7 @@ class StoryImagePlugin : Plugin() {
     private fun saveLegacy(call: PluginCall, fileName: String, bytes: ByteArray) {
         val root = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
             ?: throw IllegalStateException("Pictures storage is unavailable.")
-        val directory = File(root, "RunMate").apply { mkdirs() }
+        val directory = File(root, "WholeMate").apply { mkdirs() }
         val file = File(directory, fileName)
         FileOutputStream(file).use { output -> output.write(bytes) }
         MediaScannerConnection.scanFile(

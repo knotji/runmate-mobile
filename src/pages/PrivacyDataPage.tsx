@@ -46,7 +46,7 @@ const PrivacyDataPage: React.FC = () => {
         // manager inside the Capacitor WebView, so write the file to disk and
         // hand it to the native share sheet instead.
         const written = await Filesystem.writeFile({ path: fileName, data: json, directory: Directory.Cache, encoding: Encoding.UTF8 });
-        await Share.share({ title: 'RunMate Data Export', url: written.uri });
+        await Share.share({ title: 'WholeMate Data Export', url: written.uri });
         setExportStatus({ kind: 'success', text: 'Export ready. Choose where to save it.' });
         return;
       }
@@ -87,7 +87,7 @@ const PrivacyDataPage: React.FC = () => {
     <IonPage>
       <IonHeader translucent className="privacy-data-header">
         <IonToolbar>
-          <button type="button" className="privacy-data-back" aria-label="Back To Settings And Data" onClick={() => navigateBackOr(history, '/tabs/settings')}>
+          <button type="button" className="privacy-data-back" aria-label="Back To You" onClick={() => navigateBackOr(history, '/tabs/you')}>
             <IonIcon icon={arrowBackOutline} />
           </button>
           <IonTitle>Privacy & Data</IonTitle>
@@ -98,7 +98,7 @@ const PrivacyDataPage: React.FC = () => {
           <header className="privacy-data-intro">
             <p>Your Data</p>
             <h1>Privacy & Health Data</h1>
-            <span>What RunMate collects, how it is used, and how to export or delete it.</span>
+            <span>What WholeMate collects, how it is used, and how to export or delete it.</span>
           </header>
 
           <section className="privacy-data-card privacy-data-info">
@@ -121,12 +121,12 @@ const PrivacyDataPage: React.FC = () => {
             <details>
               <summary><IonIcon icon={lockClosedOutline} /><div><p>Storage</p><h2>How It Is Used And Stored</h2></div><span className="privacy-data-summary-badge">Private Account</span></summary>
               <div className="privacy-data-info-body"><p className="privacy-data-paragraph">
-              RunMate uses this data to calculate Recovery, Sleep, and Strain scores and to power AI Coach guidance. Your durable
-              account records are stored in your own RunMate account (Supabase) and are never sold or shared with third parties.
+              WholeMate uses this data to calculate Recovery, Sleep, and Strain scores and to power AI Coach guidance. Your durable
+              account records are stored in your own WholeMate account (Supabase) and are never sold or shared with third parties.
             </p>
             <p className="privacy-data-paragraph">For responsive insights, five-minute Heart Rate summaries are retained on this device for up to 7 days, confirmed Strain check-ins for up to 90 days, and up to 100 AI Coach messages. Raw all-day samples and AI Coach history are not uploaded to Supabase.</p>
             <p className="privacy-data-paragraph">
-              An uploaded photo is sent once to Google Gemini to extract the visible numbers, then discarded — RunMate keeps only
+              An uploaded photo is sent once to Google Gemini to extract the visible numbers, then discarded — WholeMate keeps only
               the extracted data (distance, duration, calories, and so on), never the original image, its raw text, or a copy of it.
             </p></div>
             </details>
@@ -134,7 +134,7 @@ const PrivacyDataPage: React.FC = () => {
 
           <section className="privacy-data-card">
             <header><IonIcon icon={cloudDownloadOutline} /><div><p>Your Data</p><h2>Export</h2></div></header>
-            <p className="privacy-data-paragraph">Download every Sleep, Workout, Meal, Profile, Race, device Heart Rate summary, Strain check-in, and on-device AI Coach message available to RunMate as a single JSON file.</p>
+            <p className="privacy-data-paragraph">Download every Sleep, Workout, Meal, Profile, Race, device Heart Rate summary, Strain check-in, and on-device AI Coach message available to WholeMate as a single JSON file.</p>
             <button type="button" className="privacy-data-export-btn" disabled={exporting} onClick={() => void exportData()}>
               {exporting ? <IonSpinner name="crescent" /> : <IonIcon icon={cloudDownloadOutline} />}
               {exporting ? 'Preparing Export…' : 'Export My Data'}
@@ -145,7 +145,7 @@ const PrivacyDataPage: React.FC = () => {
           <section className="privacy-data-card privacy-data-danger">
             <header><IonIcon icon={trashOutline} /><div><p>Irreversible</p><h2>Delete My Account</h2></div></header>
             <p className="privacy-data-paragraph">
-              Permanently deletes every Sleep, Workout, Meal, Profile, and Race record RunMate has stored for this account, along
+              Permanently deletes every Sleep, Workout, Meal, Profile, and Race record WholeMate has stored for this account, along
               with your sign-in itself. This cannot be undone. Export your data first if you want to keep a copy.
             </p>
             {!confirmDeleteOpen ? (

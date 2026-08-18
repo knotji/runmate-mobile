@@ -39,7 +39,7 @@ describe('background health', () => {
     };
 
     expect(describeBackgroundHealthIssue(status, Date.parse('2026-07-22T11:30:00.000Z'))).toBeNull();
-    expect(describeBackgroundHealthIssue({ ...status, backgroundRestricted: true })).toContain('restricting RunMate');
+    expect(describeBackgroundHealthIssue({ ...status, backgroundRestricted: true })).toContain('restricting WholeMate');
     expect(describeBackgroundHealthIssue({ ...status, authorized: false })).toContain('not allowed');
   });
 });

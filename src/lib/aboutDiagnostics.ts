@@ -96,7 +96,7 @@ export function buildSupportDiagnostics(info: RunMateBuildInfo): string {
     .map((entry) => ({ phase: entry.phase, at: entry.at }));
   const todaySyncAt = getPersistedTodaySyncAt();
   return JSON.stringify({
-    app: 'RunMate',
+    app: 'WholeMate',
     version: info.version,
     build: info.build,
     builtAt: info.builtAt,

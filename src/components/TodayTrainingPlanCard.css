@@ -37,14 +37,21 @@
 .today-brief-context > div { display: grid; min-width: 0; min-height: 40px; grid-template-columns: 82px minmax(0, 1fr); align-items: center; gap: 8px; padding: 7px 0; }
 .today-brief-context > div + div { border-top: 1px solid #e4ecee; }
 .today-brief-context small,
-.today-brief-focus > small { display: block; color: #73899a; font-size: 9px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+.today-brief-focus-copy > small { display: block; color: #73899a; font-size: 9px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
 .today-brief-context > div:first-child small { color: #3b8781; }
 .today-brief-context > div:last-child small { color: #9b702d; }
-.today-brief-focus > small { color: #3b8781; }
+.today-brief-focus-copy > small { color: #3b8781; }
 .today-brief-context strong { display: block; color: #24475d; font-size: 12px; line-height: 1.35; }
 .today-brief-focus { display: grid; gap: 4px; margin-top: 7px; padding: 11px 12px; border: 1px solid rgba(87, 177, 151, .12); border-radius: 15px; background: #edf8f4; }
-.today-brief-focus > strong { color: #176655; font-size: 17px; line-height: 1.25; }
-.today-brief-focus > p { display: -webkit-box; overflow: hidden; margin: 0; color: #687f90; font-size: 10px; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.today-brief-focus.has-coach-action { grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 10px; }
+.today-brief-focus-copy { min-width: 0; display: grid; gap: 4px; }
+.today-brief-focus-copy > strong { color: #176655; font-size: 17px; line-height: 1.25; }
+.today-brief-focus-copy > p { display: -webkit-box; overflow: hidden; margin: 0; color: #687f90; font-size: 10px; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.today-brief-coach { min-width: 58px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 9px; border: 0; border-radius: 12px; color: #207766; background: #dff3ed; font: inherit; cursor: pointer; }
+.today-brief-coach ion-icon { width: 17px; height: 17px; margin: 0 auto; }
+.today-brief-coach span { font-size: 9px; font-weight: 800; line-height: 1; }
+.today-brief-coach:active { background: #cfeae1; }
+.today-brief-coach:focus-visible { outline: 2px solid #2a89b8; outline-offset: 2px; }
 
 .plan-metrics-line { color: #2e5e85; font-weight: 650; }
 .plan-guidance-line { margin-top: 4px; }
@@ -120,9 +127,10 @@
 .today-brief-context > div { padding: 6px 0; }
 .today-brief-context strong { font-size: 12px; }
 .today-brief-focus { gap: 2px; margin-top: 5px; padding: 9px 10px; }
-.today-brief-focus > small { font-size: 8px; }
-.today-brief-focus > strong { font-size: 16px; }
-.today-brief-focus > p { font-size: 9px; line-height: 1.35; }
+.today-brief-focus-copy { gap: 2px; }
+.today-brief-focus-copy > small { font-size: 8px; }
+.today-brief-focus-copy > strong { font-size: 16px; }
+.today-brief-focus-copy > p { font-size: 9px; line-height: 1.35; }
 .adaptive-guidance { margin-top: 4px; padding: 10px 12px; }
 .adaptive-guidance-keep { padding: 9px 12px; }
 .adaptive-guidance-keep ul { display: none; }
@@ -132,9 +140,14 @@
 /* Compact, but still legible with Android font scaling. */
 .plan-card-eyebrow > span,
 .today-brief-context small,
-.today-brief-focus > small,
+.today-brief-focus-copy > small,
 .plan-support-details > summary small { font-size: 9px; }
-.today-brief-focus > p { font-size: 10px; }
+.today-brief-focus-copy > p { font-size: 10px; }
+
+@media (max-width: 340px) {
+  .today-brief-focus.has-coach-action { grid-template-columns: 1fr; }
+  .today-brief-coach { justify-self: end; }
+}
 
 @media (min-width: 520px) {
   .today-brief-context { grid-template-columns: 1fr 1fr; padding: 0; }

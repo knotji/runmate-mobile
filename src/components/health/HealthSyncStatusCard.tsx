@@ -46,7 +46,7 @@ export const HealthSyncStatusCard: React.FC<Props> = ({
         <div>
           <span>Connection Status</span>
           <h2>{connectionBusy === 'status' ? 'Checking Health Connect…' : connection?.sleepAuthorized ? 'Connected' : connection?.available ? 'Ready To Connect' : 'Unavailable'}</h2>
-          <p>{connection?.sleepAuthorized ? 'Samsung Health Sleep and Workouts can sync securely to RunMate.' : connection?.available ? 'Connect to start importing Samsung Health data.' : 'Health Connect is available on supported Android devices.'}</p>
+          <p>{connection?.sleepAuthorized ? 'Samsung Health Sleep and Workouts can sync securely to WholeMate.' : connection?.available ? 'Connect to start importing Samsung Health data.' : 'Health Connect is available on supported Android devices.'}</p>
         </div>
       </div>
 
@@ -55,7 +55,7 @@ export const HealthSyncStatusCard: React.FC<Props> = ({
           <span>Permissions</span>
           <span className="health-connect-permissions-badge">Read-only access</span>
         </summary>
-        <p className="health-connect-read-only-note">RunMate can read shared health records but cannot edit or delete data in Samsung Health.</p>
+        <p className="health-connect-read-only-note">WholeMate can read shared health records but cannot edit or delete data in Samsung Health.</p>
         <div className="health-permission-list">
           <PermissionRow icon={moonOutline} title="Sleep" detail="Duration, schedule, and Sleep Stages" authorized={connection?.sleepAuthorized === true} note="Automatic Sync" />
           <PermissionRow icon={heartOutline} title="Recovery Signals" detail="HRV, Resting HR, and Respiratory Rate" authorized={connection?.recoverySignalsAuthorized === true} note="Matched To Your Sleep Window" />

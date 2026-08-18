@@ -9,7 +9,7 @@ import {
   IonSpinner,
   IonText,
 } from '@ionic/react';
-import { logoGoogle, pulseOutline } from 'ionicons/icons';
+import { logoGoogle } from 'ionicons/icons';
 import { supabase } from '@/lib/supabaseClient';
 import { signInWithGoogle } from '@/lib/googleAuth';
 import './LoginPage.css';
@@ -55,8 +55,8 @@ const LoginPage: React.FC = () => {
       <IonContent fullscreen className="login-content">
         <main className="login-shell">
           <section className="login-intro">
-            <div className="brand-mark" aria-hidden="true"><IonIcon icon={pulseOutline} /></div>
-            <p className="eyebrow">RunMate</p>
+            <div className="brand-mark" aria-hidden="true"><img src="/wholemate-mark.svg" alt="" /></div>
+            <p className="eyebrow">WholeMate</p>
             <h1>Know Your Body<br />Before You Train</h1>
             <p>See your Recovery, Strain, and Sleep metrics.</p>
           </section>

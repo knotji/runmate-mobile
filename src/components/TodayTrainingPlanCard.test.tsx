@@ -1,5 +1,5 @@
-import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import type { CoachContext } from '@/lib/buildCoachContext';
 import { TodayTrainingPlanCard } from '@/components/TodayTrainingPlanCard';
 import type { RacePlan } from '@/types/race';
@@ -112,5 +112,15 @@ describe('TodayTrainingPlanCard adaptive flow', () => {
     expect(within(screen.getByLabelText('Main Reason')).getByText('Latest Sleep Is Missing')).toBeInTheDocument();
     expect(screen.queryByText(/respiratory|stress caused|HRV below/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Today's Focus")).not.toBeInTheDocument();
+  });
+
+  it('opens contextual Coach from the existing one-action panel without adding another card', () => {
+    const onAskCoach = vi.fn();
+    const { container } = render(<TodayTrainingPlanCard context={moderateContext()} onAskCoach={onAskCoach} />);
+
+    expect(container.querySelectorAll('.plan-card')).toHaveLength(1);
+    const coachButton = within(screen.getByLabelText('One Useful Action')).getByRole('button', { name: 'Ask Coach About Today' });
+    fireEvent.click(coachButton);
+    expect(onAskCoach).toHaveBeenCalledTimes(1);
   });
 });

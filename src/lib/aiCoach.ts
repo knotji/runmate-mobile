@@ -5,6 +5,7 @@ import { getTodayPlannedWorkout, getTodayTrainingPlanStatus } from '@/lib/todayT
 import type { WeekWorkout } from '@/types/race';
 
 export type AiCoachTopic = 'today' | 'recovery' | 'adjust' | 'fuel' | 'race' | 'chat';
+export type AiCoachOrigin = 'today' | 'health' | 'move' | 'you' | 'unknown';
 
 export const AI_COACH_TOPICS: Array<{ id: AiCoachTopic; title: string; summary: string }> = [
   { id: 'today', title: 'What Should I Do Today?', summary: 'Turn today\'s Recovery, plan, and recent logs into one clear priority.' },
@@ -129,15 +130,25 @@ export function clearAiCoachAnswerCache(): void {
   answerCache.clear();
 }
 
+export function coachOriginFromPath(path?: string | null): AiCoachOrigin {
+  if (!path) return 'unknown';
+  if (path.startsWith('/tabs/today')) return 'today';
+  if (path.startsWith('/tabs/health')) return 'health';
+  if (path.startsWith('/tabs/move')) return 'move';
+  if (path.startsWith('/tabs/you')) return 'you';
+  return 'unknown';
+}
+
 export async function askAiCoach(
   topic: AiCoachTopic,
   context: CoachContext,
   userQuery?: string,
-  options: { force?: boolean; conversation?: AiCoachChatTurn[] } = {},
+  options: { force?: boolean; conversation?: AiCoachChatTurn[]; origin?: AiCoachOrigin } = {},
 ): Promise<AiCoachAnswer> {
   const trimmedQuery = userQuery?.trim();
   const conversation = (options.conversation ?? []).filter((turn) => turn.content.trim()).slice(-8);
-  const cacheKey = trimmedQuery || conversation.length ? null : `${topic}::${JSON.stringify(buildAiCoachContext(context))}`;
+  const origin = options.origin ?? 'unknown';
+  const cacheKey = trimmedQuery || conversation.length ? null : `${origin}::${topic}::${JSON.stringify(buildAiCoachContext(context))}`;
   if (cacheKey && !options.force) {
     const cached = answerCache.get(cacheKey);
     if (cached) return cached;
@@ -145,7 +156,7 @@ export async function askAiCoach(
 
   try {
     const { data, error } = await supabase.functions.invoke('ai-coach', {
-      body: { topic, userQuery: trimmedQuery || undefined, context: buildAiCoachContext(context), history: conversation },
+      body: { topic, origin, userQuery: trimmedQuery || undefined, context: buildAiCoachContext(context), history: conversation },
     });
     if (error) throw error;
     const payload = record(data);
@@ -161,8 +172,8 @@ export async function askAiCoach(
   }
 }
 
-export async function askAiCoachChat(userQuery: string, context: CoachContext, conversation: AiCoachChatTurn[] = []): Promise<AiCoachAnswer> {
-  return askAiCoach('chat', context, userQuery, { conversation });
+export async function askAiCoachChat(userQuery: string, context: CoachContext, conversation: AiCoachChatTurn[] = [], origin: AiCoachOrigin = 'unknown'): Promise<AiCoachAnswer> {
+  return askAiCoach('chat', context, userQuery, { conversation, origin });
 }
 
 function buildLocalFallbackAnswer(topic: AiCoachTopic, context: CoachContext, userQuery?: string): AiCoachAnswer {
@@ -170,7 +181,7 @@ function buildLocalFallbackAnswer(topic: AiCoachTopic, context: CoachContext, us
   const q = (userQuery || '').toLowerCase();
   
   let headline = 'คำแนะนำปรับการซ้อมสำหรับวันนี้';
-  let summary = `จากข้อมูลการฟื้นตัว Recovery Score ${recScore}% และภาระการซ้อมล่าสุดของคุณ RunMate AI Coach ขอแนะนำการซ้อมที่เหมาะสมดังนี้`;
+  let summary = `จากข้อมูลการฟื้นตัว Recovery Score ${recScore}% และภาระการซ้อมล่าสุดของคุณ WholeMate AI Coach ขอแนะนำการซ้อมที่เหมาะสมดังนี้`;
   let actions = [
     'วิ่งหรือออกกำลังกายในระดับเบาถึงปานกลาง (Zone 2)',
     'จิ๊บน้ำสม่ำเสมอและพักผ่อนให้เพียงพอ',

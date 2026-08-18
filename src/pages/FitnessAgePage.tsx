@@ -48,7 +48,7 @@ const FitnessAgePage: React.FC = () => {
     <IonContent fullscreen className="fitness-age-content">
       <IonRefresher slot="fixed" onIonRefresh={refresh}><IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" /></IonRefresher>
       <main className="fitness-age-shell">
-        <header className="fitness-age-intro"><p>Long-Term Fitness</p><h1>Your Fitness, Made Easier To Read</h1><span>A transparent RunMate estimate from your recent cardio fitness, sleep, recovery, and training consistency.</span></header>
+        <header className="fitness-age-intro"><p>Long-Term Fitness</p><h1>Your Fitness, Made Easier To Read</h1><span>A transparent WholeMate estimate from your recent cardio fitness, sleep, recovery, and training consistency.</span></header>
         {loading && !result && <PageDataSkeleton variant="trends" label="Building Your Fitness Age" />}
         {!loading && error && !result && <PageState kind="error" title="Fitness Age Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} />}
         {result && <FitnessAgeBody result={result} onProfile={() => history.push('/profile-settings')} />}
@@ -61,7 +61,7 @@ function FitnessAgeBody({ result, onProfile }: { result: FitnessAgeResult; onPro
   if (result.status === 'building') return <>
     <section className="fitness-age-hero is-building" aria-labelledby="fitness-age-building-title">
       <div className="fitness-age-ring"><IonIcon icon={fitnessOutline} /><strong>{result.coveragePercent}%</strong><span>coverage</span></div>
-      <div><p>Building Your Baseline</p><h2 id="fitness-age-building-title">Fitness Age Is Not Ready Yet</h2><span>RunMate waits for enough trustworthy history instead of guessing an age.</span></div>
+      <div><p>Building Your Baseline</p><h2 id="fitness-age-building-title">Fitness Age Is Not Ready Yet</h2><span>WholeMate waits for enough trustworthy history instead of guessing an age.</span></div>
     </section>
     <section className="fitness-age-card"><header><IonIcon icon={warningOutline} /><div><p>Still Needed</p><h2>Complete Your Baseline</h2></div></header><ul className="fitness-age-missing">{result.missing.map((item) => <li key={item}>{item}</li>)}</ul>{result.missing.some((item) => /Birth date|VO₂ Max/.test(item)) && <button type="button" className="fitness-age-action" onClick={onProfile}>Review Profile</button>}</section>
     {result.signals.length > 0 && <Signals signals={result.signals} />}
@@ -84,6 +84,6 @@ function Signals({ signals }: { signals: FitnessAgeSignal[] }) {
   return <section className="fitness-age-card"><header><IonIcon icon={pulseOutline} /><div><p>Your Signals</p><h2>What Shapes This Estimate</h2></div></header><div className="fitness-age-signals">{signals.map((signal) => <article className={`is-${signal.direction}`} key={signal.key}><IonIcon icon={signal.direction === 'helping' ? checkmarkCircleOutline : signal.direction === 'holding' ? trendingDownOutline : signal.key === 'sleep' ? moonOutline : informationCircleOutline} /><div><strong>{signal.label}</strong><span>{signal.value}</span><small>{signal.detail}</small></div></article>)}</div></section>;
 }
 
-function MethodNote() { return <section className="fitness-age-method"><IonIcon icon={informationCircleOutline} /><div><strong>RunMate Estimate · Beta</strong><span>This is a fitness and lifestyle trend, not biological age or medical advice. It updates as your long-term data improves.</span></div></section>; }
+function MethodNote() { return <section className="fitness-age-method"><IonIcon icon={informationCircleOutline} /><div><strong>WholeMate Estimate · Beta</strong><span>This is a fitness and lifestyle trend, not biological age or medical advice. It updates as your long-term data improves.</span></div></section>; }
 
 export default FitnessAgePage;

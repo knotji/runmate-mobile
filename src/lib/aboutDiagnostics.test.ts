@@ -17,7 +17,7 @@ describe('About diagnostics', () => {
       builtAt: '2026-07-29T00:00:00.000Z',
     })) as Record<string, unknown>;
 
-    expect(result).toMatchObject({ app: 'RunMate', version: '1.0.0', build: '1178' });
+    expect(result).toMatchObject({ app: 'WholeMate', version: '1.0.0', build: '1178' });
     expect(JSON.stringify(result)).not.toContain('314 recent records');
     expect(result.performance).toEqual([expect.objectContaining({
       phase: 'activity_records',

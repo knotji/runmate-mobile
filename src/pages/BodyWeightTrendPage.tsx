@@ -76,7 +76,7 @@ const BodyWeightTrendPage: React.FC = () => {
         {trend && !loading && error && <DataFreshnessStatus status="fallback" label="Saved Data" detail="Refresh unavailable · Showing your last loaded weight trend" onRetry={() => void load()} variant="panel" />}
         {!loading && error && !trend && <PageState kind="error" title="Trend Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="body-trend-state" />}
         {trend && trend.logs.length === 0 && (
-          <PageState kind="empty" icon={scaleOutline} title="No Weigh-Ins Yet" detail="RunMate loaded this range successfully, but found no weight readings. Check Health Connect access or add Body Weight in Profile & Settings." actionLabel="Check Health Connect" onAction={() => history.push('/health-connect')} className="body-trend-state" />
+          <PageState kind="empty" icon={scaleOutline} title="No Weigh-Ins Yet" detail="WholeMate loaded this range successfully, but found no weight readings. Check Health Connect access or add Body Weight in Profile & Settings." actionLabel="Check Health Connect" onAction={() => history.push('/health-connect')} className="body-trend-state" />
         )}
         {trend && trend.logs.length > 0 && <>
           <section className="body-trend-chart-card" aria-labelledby="body-trend-chart-heading">

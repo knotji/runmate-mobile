@@ -102,7 +102,7 @@ export function buildWorkoutDetail(item: LocalHistoryItem, physiology?: { maxHr?
   const fieldSources = (item as LocalHistoryItem & { fieldSources?: Record<string, string> }).fieldSources ?? {};
   const source = reconciledSources.length
     ? reconciledSources.join(' + ')
-    : item.source?.provider ? titleCase(item.source.provider) : 'RunMate';
+    : item.source?.provider ? titleCase(item.source.provider) : 'WholeMate';
   return {
     isStrength,
     isSwim,

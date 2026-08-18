@@ -221,105 +221,6 @@
 .move-plan-card > button span { font-size: 8px; font-weight: 800; }
 .move-plan-card > button ion-icon { width: 15px; height: 15px; }
 .move-plan-card > button:focus-visible { outline: 2px solid #2a89b8; outline-offset: 2px; }
-.daily-nutrition-summary {
-  margin: -2px 0 20px;
-  padding: 16px;
-  border: 1px solid #d4e9e3;
-  border-radius: 18px;
-  background: linear-gradient(145deg, #fff 0%, #f3fbf8 100%);
-  box-shadow: 0 8px 20px rgba(46, 77, 111, 0.04);
-}
-.daily-nutrition-summary > header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-.daily-nutrition-summary header p {
-  margin: 0 0 3px;
-  color: #33816e;
-  font-size: 9px;
-  font-weight: 850;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-.daily-nutrition-summary h2 {
-  margin: 0;
-  color: #193b50;
-  font-size: 16px;
-  line-height: 1.25;
-}
-.daily-nutrition-summary header > span {
-  padding: 5px 8px;
-  border-radius: 999px;
-  color: #377966;
-  background: #e5f5ef;
-  font-size: 9px;
-  font-weight: 750;
-  white-space: nowrap;
-}
-.daily-nutrition-summary > small {
-  display: block;
-  margin-top: 10px;
-  color: #8799a8;
-  font-size: 9px;
-  line-height: 1.45;
-}
-.daily-nutrition-metrics {
-  display: grid;
-  grid-template-columns: 1.15fr repeat(3, 1fr);
-  margin-top: 12px;
-  border-block: 1px solid #dfede8;
-}
-.daily-nutrition-metrics > div {
-  min-width: 0;
-  display: grid;
-  gap: 4px;
-  padding: 9px 8px;
-}
-.daily-nutrition-metrics > div:first-child {
-  padding-left: 0;
-}
-.daily-nutrition-metrics > div + div {
-  border-left: 1px solid #dfede8;
-}
-.daily-nutrition-metrics span {
-  color: #71889b;
-  font-size: 9px;
-}
-.daily-nutrition-metrics strong {
-  color: #275069;
-  font-size: 13px;
-  white-space: nowrap;
-}
-.daily-nutrition-metrics strong small {
-  font-size: 8px;
-  font-weight: 650;
-}
-.daily-nutrition-trends-link {
-  width: 100%;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 12px 0 -5px;
-  padding: 9px 0 5px;
-  border: 0;
-  border-top: 1px solid #dfede8;
-  color: #287c78;
-  background: transparent;
-  font: inherit;
-  font-size: 10px;
-  font-weight: 750;
-  text-align: left;
-}
-.daily-nutrition-trends-link ion-icon {
-  font-size: 15px;
-}
-.daily-nutrition-trends-link:focus-visible {
-  outline: 2px solid #2a8d88;
-  outline-offset: 2px;
-}
 .daily-fuel-card {
   margin: 0 0 24px;
   padding: 15px;
@@ -842,25 +743,6 @@
 }
 
 /* Quiet premium Activity hierarchy */
-.daily-nutrition-summary {
-  margin-bottom: 24px;
-  padding: 14px;
-  border-radius: 20px;
-  box-shadow: 0 12px 30px rgba(35, 61, 76, 0.055);
-}
-
-.daily-nutrition-summary h2 {
-  font-size: 15px;
-}
-.daily-nutrition-summary > small {
-  margin-top: 8px;
-}
-.daily-nutrition-trends-link {
-  min-height: 38px;
-  margin-top: 8px;
-  padding-bottom: 1px;
-}
-
 .history-day {
   margin-bottom: 26px;
 }
@@ -1029,13 +911,32 @@
   transform: translateY(1px);
   box-shadow: none;
 }
+.daily-fuel-actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.daily-fuel-actions button {
+  min-width: 0;
+  padding-inline: 10px;
+}
+.daily-fuel-actions button.is-secondary {
+  border: 1px solid #c9e2e7;
+  color: #31798d;
+  background: #f7fbfc;
+  box-shadow: none;
+}
+.daily-fuel-actions button.is-secondary:active { background: #eaf4f6; }
+
+@media (max-width: 380px) {
+  .daily-fuel-footer { display: grid; }
+  .daily-fuel-footer > span { max-width: none; }
+  .daily-fuel-actions { width: 100%; }
+}
 
 /* Shared premium rhythm and readable metadata */
-.daily-nutrition-summary {
-  margin-bottom: var(--rm-space-section);
-  border-color: var(--rm-card-border);
-  box-shadow: var(--rm-card-shadow-primary);
-}
 .history-day {
   margin-bottom: var(--rm-space-section);
 }
@@ -1050,9 +951,6 @@
 .history-day > header span,
 .history-copy-eyebrow > span,
 .history-copy-eyebrow > small,
-.history-copy > p,
-.daily-nutrition-summary header p,
-.daily-nutrition-summary header > span,
-.daily-nutrition-summary > small {
+.history-copy > p {
   font-size: 10px;
 }

@@ -76,7 +76,7 @@ export default function RaceGoalEditor({ isOpen, goal, onClose, onSaved }: Props
     <IonModal isOpen={isOpen} onDidDismiss={onClose} className="race-editor-modal">
       <IonHeader className="race-editor-header"><IonToolbar><IonTitle>{goal ? 'Edit Race Goal' : 'Create Race Goal'}</IonTitle><IonButton slot="end" fill="clear" aria-label="Close Race Goal Editor" disabled={saving} onClick={onClose}><IonIcon slot="icon-only" icon={closeOutline} /></IonButton></IonToolbar></IonHeader>
       <form className="race-editor-form" onSubmit={submit}>
-        <header><p>RACE DETAILS</p><h2>{goal ? 'Update Your Goal' : 'Set Your Next Goal'}</h2><span>Saving will build a fresh training plan from your latest RunMate data.</span></header>
+        <header><p>RACE DETAILS</p><h2>{goal ? 'Update Your Goal' : 'Set Your Next Goal'}</h2><span>Saving will build a fresh training plan from your latest WholeMate data.</span></header>
 
         <label><span>Race Name</span><input required maxLength={100} value={draft.raceName} placeholder="Example: Bangkok 10K" onChange={(event) => update('raceName', event.target.value)} /></label>
         <div className="race-editor-grid">

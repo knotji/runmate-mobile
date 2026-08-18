@@ -63,7 +63,7 @@ export function NutritionSyncSettings() {
           <IonToggle aria-label="Share Logged Nutrition With Health Connect" checked={enabled} disabled={busy} onIonChange={(event) => void toggle(event.detail.checked)} />
         )}
       </header>
-      <p>When on, each saved meal&apos;s calories, protein, carbs, and fat are written to Health Connect as a Nutrition record, so other Health Connect apps (like Samsung Health) can see it. This is the only data RunMate writes to Health Connect; everything else stays read-only.</p>
+      <p>When on, each saved meal&apos;s calories, protein, carbs, and fat are written to Health Connect as a Nutrition record, so other Health Connect apps (like Samsung Health) can see it. This is the only data WholeMate writes to Health Connect; everything else stays read-only.</p>
       {authorization === 'denied' && <small role="status">Health Connect denied write access. Open Health Connect settings to allow it.</small>}
       {authorization === 'unavailable' && <small role="status">Health Connect is not available on this device.</small>}
       {lastAttempt && (

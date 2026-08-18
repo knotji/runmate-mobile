@@ -47,7 +47,7 @@ export function describeHistoryItem(item: LocalHistoryItem): { label: string; ti
   if (item.type === 'pain') return { label: 'Pain', title: text(data.painLocation) ?? 'Pain Check-In', detail: numberUnit(data.painLevel, '/10') ?? 'Health record', icon: heartOutline, tone: 'health' };
   if (item.type === 'sick') return { label: 'Health', title: 'Sick Check-In', detail: arrayText(data.symptoms) ?? 'Symptoms recorded', icon: heartOutline, tone: 'health' };
   if (item.type === 'body') return { label: 'Body', title: numberUnit(extracted.weightKg, 'kg') ?? 'Body Composition', detail: numberUnit(extracted.bodyFatPercent, '% body fat') ?? 'Body record', icon: bodyOutline, tone: 'body' };
-  return { label: titleFromKey(item.type), title: 'RunMate Record', detail: 'Health activity recorded', icon: fitnessOutline, tone: 'other' };
+  return { label: titleFromKey(item.type), title: 'WholeMate Record', detail: 'Health activity recorded', icon: fitnessOutline, tone: 'other' };
 }
 
 export function activitySourceLabel(item: LocalHistoryItem): string {

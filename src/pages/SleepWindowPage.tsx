@@ -204,7 +204,7 @@ const SleepWindowPage: React.FC = () => {
             </div>
           </details>
         </>}
-        {!loading && !loadError && !window && <PageState kind="empty" title="Wake Time Needed" detail="Add a consistent wake time before RunMate builds your Sleep Window." className="sleep-window-state" />}
+        {!loading && !loadError && !window && <PageState kind="empty" title="Wake Time Needed" detail="Add a consistent wake time before WholeMate builds your Sleep Window." className="sleep-window-state" />}
       </main></IonContent>
     </IonPage>
   );

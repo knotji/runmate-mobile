@@ -1,5 +1,7 @@
 # RunMate Information Architecture Refactor Roadmap
 
+> Historical implementation record: the canonical future target now replaces Coach with You and makes Coach contextual. See `PRODUCT_REPOSITIONING_ROADMAP.md` and `SCREEN_OWNERSHIP_MAP.md`. The completed phases below are retained as migration history.
+
 Status: Phase 7 code complete; Phase 8 tester validation pending
 Working product name: RunMate
 Target positioning: Personal health and recovery companion
@@ -86,9 +88,9 @@ Do not change stored health records, Supabase schemas, Health Connect permission
 - [x] Rename More to Settings and Data.
 - [x] Move profile, notifications, Health Connect, privacy, export, diagnostics, and About into it.
 - [x] Keep RunMate as the working name until store, domain, social, and preliminary trademark checks produce a viable shortlist.
-- [ ] Rebrand app name, icon, package-facing copy, and store listing together; do not partially rename the product.
+- [x] Rebrand the user-facing app name, logo/icon artwork, and brand copy together while keeping `com.runmate.mobile` unchanged. Store-listing publication remains a separate release-channel task.
 
-The final rebrand remains intentionally gated. Phase 5 changes the product structure and settings language only; it does not partially rename the installed app or Android package.
+The final rebrand remains intentionally gated. Phase 5 changes the product structure and settings language only. The future brand release changes the display name and artwork, but preserves the existing Android application ID, package/namespace, signing identity, installed-app upgrade path, and stored data. See `PRODUCT_REPOSITIONING_ROADMAP.md`.
 
 ### Phase 6 — Navigation hardening and migration closure
 
@@ -129,7 +131,7 @@ Phase 8 exits only after tester-device evidence is recorded. A successful APK bu
 
 ### Next product decision gate — Brand transition
 
-Do not schedule another feature phase immediately after Phase 8. First decide whether RunMate remains the product name or moves to a broader health identity. If a new name is selected, update the app name, icon, package-facing copy, privacy copy, diagnostics, and store listing together as one coordinated release.
+Do not schedule another feature phase immediately after Phase 8. First decide whether RunMate remains the product name or moves to a broader health identity. If a new name is selected, update the display name, logo/icon artwork, user-facing brand copy, privacy copy, diagnostics, and store listing together as one coordinated release. Keep `com.runmate.mobile` and the existing Android upgrade path unchanged.
 
 ## Performance requirements
 

@@ -6,10 +6,12 @@ import {
   calendarOutline,
   chevronForwardOutline,
   heartOutline,
+  fitnessOutline,
   moonOutline,
   nutritionOutline,
   pulseOutline,
   settingsOutline,
+  scaleOutline,
   statsChartOutline,
 } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
@@ -35,6 +37,8 @@ const overview: HealthDestination[] = [
 const trends: HealthDestination[] = [
   { icon: statsChartOutline, title: 'Recovery Trends', summary: 'See how Recovery, Sleep, and Strain are changing.', path: '/recovery-trends', tone: 'blue', statusKey: 'recoveryTrends' },
   { icon: nutritionOutline, title: 'Nutrition', summary: 'Calories, protein, carbohydrates, and logged patterns.', path: '/nutrition-trends', tone: 'teal', statusKey: 'nutrition' },
+  { icon: scaleOutline, title: 'Body Weight', summary: 'Review weigh-ins and body-weight changes over time.', path: '/body-weight-trend', tone: 'blue', statusKey: 'weight' },
+  { icon: fitnessOutline, title: 'Fitness Age', summary: 'See the long-term estimate shaped by your available signals.', path: '/fitness-age', tone: 'teal', statusKey: 'fitnessAge' },
   { icon: bandageOutline, title: 'Pain & Injury', summary: 'Review changes in your logged pain reports.', path: '/pain-trends', tone: 'amber', statusKey: 'pain' },
 ];
 
@@ -51,7 +55,7 @@ const HealthPage: React.FC = () => {
         <IonTitle>Health</IonTitle>
         <div slot="end" className="health-hub-actions">
           <button type="button" aria-label="Log Health Data" onClick={() => history.push('/tabs/log')}><IonIcon icon={addOutline} /></button>
-          <button type="button" aria-label="Open Settings And Data" onClick={() => history.push('/tabs/settings')}><IonIcon icon={settingsOutline} /></button>
+          <button type="button" aria-label="Open You" onClick={() => history.push('/tabs/you')}><IonIcon icon={settingsOutline} /></button>
         </div>
       </IonToolbar>
     </IonHeader>

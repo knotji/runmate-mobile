@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.runmate.mobile',
-  appName: 'RunMate',
+  appName: 'WholeMate',
   webDir: 'dist',
   server: {
     androidScheme: 'https',

@@ -9,10 +9,10 @@ import { navigateBackOr } from '@/lib/navigationBack';
 import './AboutPage.css';
 
 const releaseNotes = [
-  'Adaptive Sleep Coach with wake-time and sleep-cycle planning.',
-  'Transparent Month Share card with integrated RunMate branding.',
-  'Consistent Health Connect workout duration across Activity, Recovery, and summaries.',
-  'Faster interactions, performance budgets, and improved accessibility semantics.',
+  'RunMate is now WholeMate, with a coordinated launcher, splash, notification, in-app, and share identity.',
+  'Today, Health, Move, and You make recovery, health context, movement, and settings easier to find.',
+  'Coach now follows the screen and question you came from instead of assuming every conversation is race-focused.',
+  'Movement records, nutrition guidance, loading behavior, and accessibility remain consistent across the new structure.',
 ];
 
 const AboutPage: React.FC = () => {
@@ -50,13 +50,13 @@ const AboutPage: React.FC = () => {
 
   return <IonPage>
     <IonHeader translucent className="about-header"><IonToolbar>
-      <button type="button" className="about-back" aria-label="Back To Settings And Data" onClick={() => navigateBackOr(history, '/tabs/settings')}><IonIcon icon={arrowBackOutline} /></button>
-      <IonTitle>About RunMate</IonTitle>
+      <button type="button" className="about-back" aria-label="Back To You" onClick={() => navigateBackOr(history, '/tabs/you')}><IonIcon icon={arrowBackOutline} /></button>
+      <IonTitle>About WholeMate</IonTitle>
     </IonToolbar></IonHeader>
     <IonContent fullscreen className="about-content">
       <main className="about-shell">
         <header className="about-heading">
-          <p>Your RunMate</p>
+          <p>Your WholeMate</p>
           <h1>Built To Support Your Training</h1>
           <span>Version details, release highlights, and privacy-safe support diagnostics.</span>
         </header>
@@ -103,7 +103,7 @@ const AboutPage: React.FC = () => {
             <IonIcon icon={cacheCleared ? checkmarkCircleOutline : refreshOutline} aria-hidden="true" />
             {cacheCleared ? 'Cached Data Cleared' : 'Clear Cached Data'}
           </button>
-          {cacheCleared && <p className="about-copy-status" role="status">RunMate will load fresh data the next time each page opens.</p>}
+          {cacheCleared && <p className="about-copy-status" role="status">WholeMate will load fresh data the next time each page opens.</p>}
         </section>
       </main>
     </IonContent>
