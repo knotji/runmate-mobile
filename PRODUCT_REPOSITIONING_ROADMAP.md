@@ -1,8 +1,8 @@
 # RunMate Product Repositioning Roadmap
 
-Status: Phase 5 WholeMate identity and artwork implementation complete; function deployment, update-install validation, and release pending
-Current product: RunMate
-Approved future display name: WholeMate
+Status: WholeMate 1.0.0 (1221) distributed to testers; physical update-install validation pending
+Previous display name: RunMate
+Current display name: WholeMate
 Target positioning: Personal health and recovery companion
 
 ## Product promise
@@ -158,11 +158,21 @@ Exit criteria:
 
 Estimated effort: 3-5 working days
 
-- [ ] Run unit tests, lint, production web build, Capacitor sync, Android tests, signed APK build, signature verification, and permission inspection.
+- [x] Run unit tests, lint, production web build, Capacitor sync, signed APK build, signature verification, and permission inspection.
 - [ ] Validate upgrade install, cold start, auth restore, Health Connect sync, Today refresh, tab switching, contextual Coach, manual Log, notifications, widget, export, and logout on the Samsung tester device.
 - [ ] Validate Android Back, cold deep links, 200% font scaling, TalkBack order, touch targets, keyboard behavior, and scroll restoration.
 - [ ] Compare release-like startup, first actionable Today content, tab response, and refresh feedback with the Phase 0 baseline.
-- [ ] Distribute to the existing Firebase App Distribution application and tester group.
+- [x] Distribute to the existing Firebase App Distribution application and tester group.
+
+Release evidence, 2026-08-19:
+
+- Source commit: `98620ca0b3eb7bd28f80fe9305c50617fb25b99c` on `origin/master`.
+- Supabase functions deployed: `ai-coach` and `generate-race-plan` in project `frczilqwvlketeplafoi`.
+- Automated gates: 125 test files and 622 tests passed; ESLint, production build, Capacitor sync, and signed Android release build passed.
+- Android identity: `WholeMate` 1.0.0 (1221), package `com.runmate.mobile`, existing signer, APK Signature Scheme v2 verified.
+- Health Connect inspection: read permissions unchanged; `WRITE_NUTRITION` remains the single documented opt-in write permission.
+- APK SHA-256: `364EF4E99B85092E56F02096F412C1198B0560F9DD1E483CAF4698071CF696FE`.
+- Firebase App Distribution release: `1kep1t2vo8qv0`, delivered to the existing tester account.
 
 Exit criteria:
 

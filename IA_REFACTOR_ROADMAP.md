@@ -116,11 +116,12 @@ Phase 7 code is complete when automated gates pass. Physical-device validation r
 
 ### Phase 8 — Physical-device validation and IA stabilization
 
-Release candidate: RunMate `1.0.0 (1219)`; Firebase App Distribution upload pending.
+Release candidate: WholeMate `1.0.0 (1221)`; Firebase App Distribution release `1kep1t2vo8qv0` delivered on 2026-08-19.
 
-- [x] Produce a signed, v2-verified APK with read-only Health Connect permissions.
-- [x] Pass 498 unit tests, lint, production web build, Capacitor sync, and Android release build.
-- [ ] Smoke-test Today, Health, Move, Coach, Log, and Settings on the physical tester device.
+- [x] Produce a signed, v2-verified APK with read-only Health Connect access except the documented opt-in `WRITE_NUTRITION` permission.
+- [x] Pass 622 unit tests across 125 files, lint, production web build, Capacitor sync, and Android release build.
+- [ ] Install WholeMate over the latest RunMate tester build and verify the existing session, Health Connect permissions, local state, and account data remain intact.
+- [ ] Smoke-test Today, Health, Move, You, contextual Coach, and manual Log on the physical tester device.
 - [ ] Verify Android Back and cold deep links return to the correct originating pillar.
 - [ ] Verify Move date continuity, Today/Health/Move scroll restoration, Coach draft restoration, and the next-day Move reset.
 - [ ] Capture at least five real tab-navigation samples and confirm the rolling average remains within the 250 ms budget.

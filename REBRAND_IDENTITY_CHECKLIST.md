@@ -1,6 +1,6 @@
 # Rebrand Identity and Upgrade Checklist
 
-Status: WholeMate display name and artwork implemented; release validation pending
+Status: WholeMate tester release distributed; physical update-install validation pending
 Baseline branch: `master`
 Baseline commit: `fefdf61`
 
@@ -16,10 +16,20 @@ Baseline commit: `fefdf61`
 
 - Capacitor, Android, web/PWA, widget, notifications, About, privacy/export, accessibility copy, share pictures, and local AI prompts now use `WholeMate`.
 - Compatibility identifiers remain `com.runmate.mobile` and `runmate:*` where changing them would break upgrades or stored state.
-- Unit tests: 125 files, 621 tests passed.
+- Unit tests: 125 files, 622 tests passed after the final identity contract was added.
 - ESLint and production web build passed; the existing Ionic chunk-size warning remains unchanged.
 - Capacitor Android sync and `:app:assembleDebug` passed.
-- AI function deployment, signed update-install validation, and tester distribution remain pending.
+- Signed update-install and physical-device validation remain pending.
+
+## Tester release - 2026-08-19
+
+- Source commit `98620ca0b3eb7bd28f80fe9305c50617fb25b99c` is on `origin/master`.
+- Supabase `ai-coach` and `generate-race-plan` functions were deployed to the linked production project.
+- WholeMate 1.0.0 (1221) was built with package `com.runmate.mobile` and the existing signing certificate.
+- APK Signature Scheme v2 verification passed; the merged manifest has no unexpected Health Connect write permission beyond the documented opt-in `WRITE_NUTRITION`.
+- Release APK SHA-256: `364EF4E99B85092E56F02096F412C1198B0560F9DD1E483CAF4698071CF696FE`.
+- Firebase App Distribution release `1kep1t2vo8qv0` was delivered to the existing tester account.
+- Distribution proves artifact delivery only. The update-install, retained data, launcher masking, splash, notification, widget, and accessibility checks below still require the Samsung tester device.
 
 ## Permanent Android identity
 
