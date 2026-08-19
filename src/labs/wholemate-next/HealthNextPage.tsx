@@ -67,7 +67,12 @@ const HealthNextPage: React.FC = () => {
                     {tile.value}
                     {tile.unit && <small>{tile.unit}</small>}
                   </p>
-                  <span className={`wmn-stat-delta${positive ? ' positive' : ''}`}>{tile.deltaLabel}</span>
+                  <span className={`wmn-stat-delta${positive ? ' positive' : ''}`}>
+                    {tile.deltaDirection !== 'flat' && (
+                      <i className={`wmn-stat-delta-arrow wmn-stat-delta-arrow-${tile.deltaDirection}`} aria-hidden="true" />
+                    )}
+                    {tile.deltaLabel}
+                  </span>
                 </div>
               );
             })}
