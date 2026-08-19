@@ -1,0 +1,145 @@
+.wmn-you {
+  min-height: 100%;
+  padding: max(16px, env(safe-area-inset-top)) 18px calc(120px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: var(--wmn-space-4);
+}
+
+/* Your Context — label/value rows, some navigable, some plain */
+.wmn-you-context-list {
+  list-style: none;
+  margin: var(--wmn-space-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.wmn-you-context-row {
+  border-top: 1px solid var(--wmn-hairline);
+}
+
+.wmn-you-context-row:first-child {
+  border-top: none;
+}
+
+.wmn-you-context-button,
+.wmn-you-context-static {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--wmn-space-3);
+  width: 100%;
+  padding: var(--wmn-space-3) 0;
+}
+
+.wmn-you-context-button {
+  border: none;
+  background: transparent;
+  text-align: left;
+}
+
+.wmn-you-context-label {
+  font-size: 13.5px;
+  font-weight: 650;
+  color: var(--wmn-text-primary);
+}
+
+.wmn-you-context-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wmn-you-context-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--wmn-text-secondary);
+}
+
+.wmn-you-context-value.caution {
+  color: var(--wmn-status-caution);
+}
+
+.wmn-you-context-chevron {
+  font-size: 13px;
+  color: var(--wmn-text-muted);
+}
+
+/* Today's Check-In — honest empty state when nothing's been logged */
+.wmn-you-checkin-body {
+  margin-top: var(--wmn-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wmn-you-checkin-line {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13.5px;
+  color: var(--wmn-text-primary);
+}
+
+.wmn-you-checkin-line strong {
+  font-weight: 650;
+}
+
+.wmn-you-checkin-line span {
+  color: var(--wmn-text-secondary);
+  font-weight: 600;
+}
+
+.wmn-you-checkin-empty {
+  margin: var(--wmn-space-3) 0 0;
+  font-size: var(--wmn-text-body);
+  color: var(--wmn-text-secondary);
+  line-height: 1.5;
+}
+
+/* Personal controls — compact rows, deliberately quieter than Your Focus/
+   Your Context above so they don't compete for attention. */
+.wmn-you-controls-list {
+  list-style: none;
+  margin: var(--wmn-space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.wmn-you-controls-row {
+  display: flex;
+  align-items: center;
+  gap: var(--wmn-space-3);
+  width: 100%;
+  padding: 11px 0;
+  border: none;
+  border-top: 1px solid var(--wmn-hairline);
+  background: transparent;
+  text-align: left;
+}
+
+.wmn-you-controls-row:first-child {
+  border-top: none;
+}
+
+.wmn-you-controls-icon {
+  flex: none;
+  font-size: 17px;
+  color: var(--wmn-text-muted);
+}
+
+.wmn-you-controls-label {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--wmn-text-primary);
+}
+
+.wmn-you-controls-chevron {
+  flex: none;
+  font-size: 13px;
+  color: var(--wmn-text-muted);
+}
