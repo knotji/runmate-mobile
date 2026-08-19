@@ -43,5 +43,5 @@ export const HEALTH_STAT_TILES: StatTile[] = [
 export const DATA_SOURCES: DataSourceRow[] = [
   { label: 'Health Connect', detail: 'Synced 12 min ago', state: 'ok' },
   { label: 'Manual weight log', detail: 'Last entry 3 days ago', state: 'stale' },
-  { label: 'Respiratory rate', detail: 'No reading the last 3 nights — shown as missing, not estimated', state: 'missing' },
+  { label: 'Respiratory rate', detail: 'Not reported by this device’s Health Connect source — shown as missing, never estimated', state: 'missing' },
 ];
