@@ -4,7 +4,9 @@
 
 .wmn-today {
   min-height: 100%;
-  padding: max(16px, env(safe-area-inset-top)) 18px calc(48px + env(safe-area-inset-bottom));
+  /* Bottom padding clears the fixed Coach FAB (52px + 24px offset) with
+     room to spare, so the action card's button never sits under it. */
+  padding: max(16px, env(safe-area-inset-top)) 18px calc(108px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   gap: var(--wmn-space-4);
@@ -173,20 +175,20 @@
 }
 
 .wmn-ring-label {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 650;
   color: var(--wmn-text-muted);
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 .wmn-ring-value {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--wmn-text-primary);
 }
 
 .wmn-ring-value small {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 650;
   color: var(--wmn-text-muted);
   margin-left: 1px;
