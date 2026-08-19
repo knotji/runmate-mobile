@@ -62,3 +62,85 @@
   text-transform: uppercase;
   color: var(--wmn-teal-deep);
 }
+
+/* Primary pill button — used inside cards across every lab page (state
+   panels, the action card, the coach sheet). */
+.wmn-action-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: var(--wmn-navy);
+  color: var(--wmn-text-on-dark);
+  font-size: var(--wmn-text-body);
+  font-weight: 650;
+  padding: 12px 18px;
+  border-radius: var(--wmn-radius-pill);
+  transition: transform var(--wmn-duration-fast) var(--wmn-ease), background-color var(--wmn-duration-fast) var(--wmn-ease);
+}
+
+.wmn-action-button:active {
+  transform: scale(.97);
+}
+
+.wmn-action-button ion-icon {
+  font-size: 14px;
+}
+
+/* Real-data mode — the "My Real Data" toggle + its loading/unauthenticated/
+   error state panel. Shared because every lab page that gets a real-data
+   mode (Today, Health, ...) uses the identical control and message shell. */
+.wmn-data-mode-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wmn-real-data-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--wmn-hairline-strong);
+  background: var(--wmn-surface);
+  color: var(--wmn-text-secondary);
+  font-size: var(--wmn-text-caption);
+  font-weight: 700;
+  padding: 9px 4px;
+  border-radius: var(--wmn-radius-pill);
+  transition: background-color var(--wmn-duration-fast) var(--wmn-ease), color var(--wmn-duration-fast) var(--wmn-ease), border-color var(--wmn-duration-fast) var(--wmn-ease);
+}
+
+.wmn-real-data-toggle ion-icon {
+  font-size: 15px;
+}
+
+.wmn-real-data-toggle.active {
+  background: var(--wmn-navy);
+  border-color: var(--wmn-navy);
+  color: var(--wmn-text-on-dark);
+}
+
+.wmn-state-panel {
+  text-align: center;
+}
+
+.wmn-state-panel-title {
+  margin: 8px 0 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--wmn-text-primary);
+  text-wrap: balance;
+}
+
+.wmn-state-panel-detail {
+  margin: 6px 0 0;
+  font-size: var(--wmn-text-body);
+  line-height: 1.5;
+  color: var(--wmn-text-secondary);
+}
+
+.wmn-state-panel .wmn-action-button {
+  margin-top: var(--wmn-space-4);
+}
