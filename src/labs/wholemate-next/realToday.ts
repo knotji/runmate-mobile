@@ -40,6 +40,16 @@ function scoreStatus(score: number, good: number, steady: number, caution: numbe
   return 'low';
 }
 
+// Real freshness, not the mock's fixed "Updated 12 min ago" — this data mode
+// exists specifically to sanity-check the design against live data, so the
+// timestamp should be live too.
+function describeFreshness(sleepDataFreshness: 'today' | 'stale' | 'missing', fetchedAt: Date): string {
+  const time = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Bangkok' }).format(fetchedAt);
+  if (sleepDataFreshness === 'today') return `Live from your account · fetched ${time}`;
+  if (sleepDataFreshness === 'stale') return `Live from your account · last night's data is stale, fetched ${time}`;
+  return `Live from your account · fetched ${time}`;
+}
+
 export type RealTodayResult =
   | { status: 'unauthenticated' }
   | { status: 'unavailable'; reason: string }
@@ -133,7 +143,7 @@ export async function loadRealTodayScenario(): Promise<RealTodayResult> {
           actionLabel: ACTION_LABEL_FOR_ACTION[dailyRecommendation.action],
         },
         metrics,
-        freshness: 'Live from your account',
+        freshness: describeFreshness(recovery.dataFreshness.status, new Date()),
       },
     };
   } catch (error) {
