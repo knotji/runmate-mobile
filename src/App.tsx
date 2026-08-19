@@ -48,6 +48,7 @@ const AppNavigationListener: React.FC = () => {
 
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
 const MainTabs = lazy(() => import('@/components/MainTabs'));
+const TodayNextPage = lazy(() => import('@/labs/wholemate-next/TodayNextPage'));
 const SleepDetailPage = lazy(() => import('@/pages/SleepDetailPage'));
 const WorkoutDetailPage = lazy(() => import('@/pages/WorkoutDetailPage'));
 const MealDetailPage = lazy(() => import('@/pages/MealDetailPage'));
@@ -176,6 +177,12 @@ const App: React.FC = () => {
             </Route>
             <Route path="/tabs">
               {session ? <MainTabs /> : <Redirect to="/login" />}
+            </Route>
+            {/* Design-exploration prototype, not linked from any nav — see
+                src/labs/wholemate-next. Mock data only, session-independent,
+                kept out of the shipped tab shell on purpose. */}
+            <Route exact path="/labs/today-next">
+              <TodayNextPage />
             </Route>
             <Route exact path="/recovery"><Redirect to="/tabs/today" /></Route>
             <Route exact path="/sleep">

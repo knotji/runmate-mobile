@@ -1,0 +1,87 @@
+/*
+ * WholeMate Next design tokens — scoped under .wm-next so nothing here
+ * leaks into the shipped app. Extends the existing Navy + Teal brand
+ * (see src/theme/variables.css) with calmer neutral surfaces and
+ * non-clinical status colors, per the 2026-08-19 prototype direction.
+ */
+
+.wm-next {
+  /* Brand — unchanged hues, reused from the shipped palette */
+  --wmn-navy: #172c49;
+  --wmn-navy-soft: #2c4568;
+  --wmn-teal: #1c839b;
+  --wmn-teal-bright: #239db0;
+  --wmn-teal-deep: #155f79;
+
+  /* Neutral surfaces — calmer, fewer hard borders than the shipped cards */
+  --wmn-bg: #f6f8fb;
+  --wmn-surface: #ffffff;
+  --wmn-surface-sunken: #eef2f7;
+  --wmn-surface-raised: #ffffff;
+  --wmn-hairline: rgba(23, 44, 73, 0.08);
+  --wmn-hairline-strong: rgba(23, 44, 73, 0.14);
+
+  /* Text */
+  --wmn-text-primary: #17233a;
+  --wmn-text-secondary: #55677f;
+  --wmn-text-muted: #8794a6;
+  --wmn-text-on-dark: #eef4fa;
+  --wmn-text-on-dark-muted: rgba(238, 244, 250, 0.72);
+
+  /* Status — desaturated, non-clinical. No pure red/green. */
+  --wmn-status-good: #2f8f76;
+  --wmn-status-good-bg: #e7f3ef;
+  --wmn-status-steady: #2474b2;
+  --wmn-status-steady-bg: #e8f1fa;
+  --wmn-status-caution: #b9812f;
+  --wmn-status-caution-bg: #faf1e3;
+  --wmn-status-low: #b0596b;
+  --wmn-status-low-bg: #f8ebee;
+
+  /* Elevation — soft, no hard drop shadows */
+  --wmn-shadow-card: 0 1px 2px rgba(23, 44, 73, 0.04), 0 8px 20px rgba(23, 44, 73, 0.05);
+  --wmn-shadow-hero: 0 12px 32px rgba(21, 95, 121, 0.18);
+
+  /* Radius */
+  --wmn-radius-lg: 24px;
+  --wmn-radius-md: 18px;
+  --wmn-radius-sm: 12px;
+  --wmn-radius-pill: 999px;
+
+  /* Spacing scale */
+  --wmn-space-1: 4px;
+  --wmn-space-2: 8px;
+  --wmn-space-3: 12px;
+  --wmn-space-4: 16px;
+  --wmn-space-5: 20px;
+  --wmn-space-6: 28px;
+  --wmn-space-7: 36px;
+
+  /* Type scale — fewer sizes than the shipped app, on purpose */
+  --wmn-text-hero: 40px;
+  --wmn-text-title: 20px;
+  --wmn-text-body: 14px;
+  --wmn-text-caption: 12px;
+  --wmn-text-eyebrow: 11px;
+
+  /* Motion — short and purposeful only */
+  --wmn-ease: cubic-bezier(.22, .8, .3, 1);
+  --wmn-duration-fast: 160ms;
+  --wmn-duration-base: 320ms;
+  --wmn-duration-slow: 620ms;
+
+  background: var(--wmn-bg);
+  color: var(--wmn-text-primary);
+  font-feature-settings: "cv11" 1;
+}
+
+.wm-next * {
+  box-sizing: border-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wm-next * {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
