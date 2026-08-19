@@ -70,6 +70,9 @@ export async function loadRealTodayScenario(): Promise<RealTodayResult> {
     });
 
     const topFactor = explainability.status === 'ready' ? explainability.hurting[0] ?? explainability.helping[0] ?? null : null;
+    const secondaryFactor = explainability.status === 'ready'
+      ? (explainability.hurting.find((factor) => factor.key !== topFactor?.key) ?? explainability.helping.find((factor) => factor.key !== topFactor?.key) ?? null)
+      : null;
     const recoveryScore = recovery.scoreState === 'scored' || recovery.scoreState === 'calibrating' ? Math.round(recovery.overallScore) : null;
     const sleepScore = recovery.sleepPerformance.state !== 'unscorable' ? recovery.sleepPerformance.score : null;
     const sleepMinutes = recovery.sleepPerformance.actualSleepMinutes;
@@ -119,13 +122,14 @@ export async function loadRealTodayScenario(): Promise<RealTodayResult> {
         mainReason: {
           eyebrow: 'Why',
           title: topFactor?.detail ?? dailyRecommendation.reason,
-          detail: dailyRecommendation.plannedWorkoutNote
-            ? `Today's plan: ${dailyRecommendation.plannedWorkoutNote}.`
-            : 'Based on your most recent overnight signals and this week\'s training load.',
+          // Deliberately not the planned-workout note here — that already
+          // has its own line in "One Useful Move" below, and repeating it
+          // in both places reads as the app not having anything more to say.
+          detail: secondaryFactor?.detail ?? 'Based on your most recent overnight signals and this week\'s training load.',
         },
         oneThing: {
           title: dailyRecommendation.label,
-          detail: dailyRecommendation.plannedWorkoutNote ?? dailyRecommendation.reason,
+          detail: dailyRecommendation.plannedWorkoutNote ? `Today's plan: ${dailyRecommendation.plannedWorkoutNote}.` : dailyRecommendation.reason,
           actionLabel: ACTION_LABEL_FOR_ACTION[dailyRecommendation.action],
         },
         metrics,
