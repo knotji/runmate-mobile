@@ -20,6 +20,15 @@ function trendStatus(score: number | null): TrendDay['status'] {
   return 'low';
 }
 
+function nightsOfBaseline(sampleCount: number): string {
+  return `${sampleCount} night${sampleCount === 1 ? '' : 's'} of baseline so far`;
+}
+
+function deltaVsBaseline(delta: number, unit: string): string {
+  if (delta === 0) return 'In line with your baseline';
+  return `${delta > 0 ? '+' : ''}${delta} ${unit} vs your baseline`;
+}
+
 function weekdayLabel(dateKey: string): string {
   return new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: 'Asia/Bangkok' }).format(new Date(`${dateKey}T12:00:00+07:00`));
 }
@@ -113,7 +122,7 @@ export async function loadRealHealthData(): Promise<RealHealthResult> {
         eyebrow: 'HRV vs Baseline',
         value: latestNight?.hrv != null ? `${Math.round(latestNight.hrv)}` : '—',
         unit: 'ms',
-        deltaLabel: hrvDelta != null ? `${hrvDelta >= 0 ? '+' : ''}${Math.round(hrvDelta)} ms vs your baseline` : `${baseline.hrv.sampleCount} nights of baseline so far`,
+        deltaLabel: hrvDelta != null ? deltaVsBaseline(Math.round(hrvDelta), 'ms') : nightsOfBaseline(baseline.hrv.sampleCount),
         deltaDirection: hrvDelta == null ? 'flat' : hrvDelta > 0 ? 'up' : hrvDelta < 0 ? 'down' : 'flat',
         goodDirection: 'up',
       },
@@ -122,7 +131,7 @@ export async function loadRealHealthData(): Promise<RealHealthResult> {
         eyebrow: 'Resting HR vs Baseline',
         value: latestNight?.restingHR != null ? `${Math.round(latestNight.restingHR)}` : '—',
         unit: 'bpm',
-        deltaLabel: rhrDelta != null ? `${rhrDelta >= 0 ? '+' : ''}${Math.round(rhrDelta)} bpm vs your baseline` : `${baseline.restingHR.sampleCount} nights of baseline so far`,
+        deltaLabel: rhrDelta != null ? deltaVsBaseline(Math.round(rhrDelta), 'bpm') : nightsOfBaseline(baseline.restingHR.sampleCount),
         deltaDirection: rhrDelta == null ? 'flat' : rhrDelta > 0 ? 'up' : rhrDelta < 0 ? 'down' : 'flat',
         goodDirection: 'down',
       },
@@ -130,7 +139,7 @@ export async function loadRealHealthData(): Promise<RealHealthResult> {
         key: 'sleep',
         eyebrow: 'Sleep · 7 Day Avg',
         value: sleepAvgMinutes != null ? formatMinutes(Math.round(sleepAvgMinutes)) : '—',
-        deltaLabel: sleepDeltaMinutes != null ? `${sleepDeltaMinutes >= 0 ? '+' : ''}${sleepDeltaMinutes} min vs your baseline` : 'Not enough nights logged yet',
+        deltaLabel: sleepDeltaMinutes != null ? deltaVsBaseline(sleepDeltaMinutes, 'min') : 'Not enough nights logged yet',
         deltaDirection: sleepDeltaMinutes == null ? 'flat' : sleepDeltaMinutes > 0 ? 'up' : sleepDeltaMinutes < 0 ? 'down' : 'flat',
         goodDirection: 'up',
       },

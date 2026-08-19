@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { getTodayPlannedWorkout, isRestDayWorkout } from '@/lib/todayTrainingPlan';
 import { loadHistoryItems } from '@/lib/cloudHistory';
-import { activityRecentHistoryOptions, sortHistoryItemsByEventTimeDesc } from '@/lib/activityHistoryLoad';
+import { activityRecentHistoryOptions, prepareActivityHistoryItems, sortHistoryItemsByEventTimeDesc } from '@/lib/activityHistoryLoad';
 import { describeHistoryItem, activitySourceLabel } from '@/lib/activityHistoryPresentation';
 import { getHistoryItemDateKey } from '@/lib/date';
 import type { MoveTimelineItem, MoveTodayPlan } from './mockMove';
@@ -57,7 +57,10 @@ export async function loadRealMoveData(): Promise<RealMoveResult> {
           isRestDay: false,
         };
 
-    const items = sortHistoryItemsByEventTimeDesc(historyResult.items).slice(0, TIMELINE_ROW_LIMIT);
+    // Matches ActivityPage.tsx: dedupe multi-source syncs (e.g. a workout
+    // that landed from both a watch and a phone) before anything else
+    // touches the list, or the timeline shows the same session twice.
+    const items = sortHistoryItemsByEventTimeDesc(prepareActivityHistoryItems(historyResult.items)).slice(0, TIMELINE_ROW_LIMIT);
     const today = context.todayDate;
     const timeline: MoveTimelineItem[] = items.map((item) => {
       const described = describeHistoryItem(item);
