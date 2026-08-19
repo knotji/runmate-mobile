@@ -91,7 +91,7 @@ const TodayNextPage: React.FC = () => {
               <p className="wmn-state-panel-title">{statePanel.title}</p>
               {statePanel.detail && <p className="wmn-state-panel-detail">{statePanel.detail}</p>}
               <button type="button" className="wmn-action-button" onClick={switchToMockData}>
-                Back To Mock Scenarios
+                Back To Mock Data
               </button>
             </div>
           )}

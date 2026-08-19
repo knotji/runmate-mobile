@@ -54,7 +54,7 @@
 
 .wmn-hero-title {
   margin: 6px 0 var(--wmn-space-3);
-  font-size: 34px;
+  font-size: var(--wmn-text-hero);
   line-height: 1.16;
   font-weight: 750;
   letter-spacing: -.02em;

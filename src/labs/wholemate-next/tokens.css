@@ -57,8 +57,11 @@
   --wmn-space-6: 28px;
   --wmn-space-7: 36px;
 
-  /* Type scale — fewer sizes than the shipped app, on purpose */
-  --wmn-text-hero: 40px;
+  /* Type scale — fewer sizes than the shipped app, on purpose.
+     --wmn-text-hero was 40px originally; iteration on real hero copy
+     ("Ready To Push Today" etc.) landed on 34px as the size that breaks
+     cleanly at this card width, so the token follows that decision. */
+  --wmn-text-hero: 34px;
   --wmn-text-title: 20px;
   --wmn-text-body: 14px;
   --wmn-text-caption: 12px;
