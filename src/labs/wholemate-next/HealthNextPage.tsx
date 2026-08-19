@@ -93,9 +93,14 @@ const HealthNextPage: React.FC = () => {
 
           {!realLoading && !statePanel && (
             <>
+              {/* Shared heading over both the trend and the stat grid below it —
+                  frames Recovery as one tracked signal among several, not the
+                  page's identity. */}
+              <p className="wmn-health-section-label">This Week’s Signals</p>
+
               {/* Anchor module — the one trend worth seeing before anything else */}
               <section className="wmn-card wmn-trend-card">
-                <span className="wmn-eyebrow">Recovery · 7 Days</span>
+                <span className="wmn-eyebrow">Recovery</span>
                 <p className="wmn-trend-value">{anchorValue}<small>/100 today</small></p>
                 <div className="wmn-trend-bars" role="img" aria-label="Recovery over the last 7 days">
                   {trend.map((day, index) => (

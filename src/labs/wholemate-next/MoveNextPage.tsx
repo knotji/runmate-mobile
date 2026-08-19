@@ -30,6 +30,13 @@ const MoveNextPage: React.FC = () => {
 
   const plan: MoveTodayPlan = dataMode === 'real' && realResult?.status === 'ready' ? realResult.plan : MOVE_TODAY_PLAN;
   const timeline: MoveTimelineItem[] = dataMode === 'real' && realResult?.status === 'ready' ? realResult.timeline : MOVE_TIMELINE;
+  // Today's Plan is meant to stay the visual anchor of this page — capping
+  // the preview here (not in realMove.ts, which keeps fetching/deduping its
+  // full row limit) keeps the timeline from reading as an activity-history
+  // screen without touching real-data behavior.
+  const VISIBLE_TIMELINE_LIMIT = 5;
+  const visibleTimeline = timeline.slice(0, VISIBLE_TIMELINE_LIMIT);
+  const hasMoreTimeline = timeline.length > visibleTimeline.length;
   const statePanel = dataMode === 'real' && realResult && realResult.status !== 'ready' ? STATE_PANEL_COPY[realResult.status] : null;
   const statePanelDetail = statePanel && realResult && 'message' in realResult ? realResult.message : statePanel?.detail;
 
@@ -90,14 +97,16 @@ const MoveNextPage: React.FC = () => {
                 </button>
               </section>
 
-              {/* Movement timeline — what actually happened, most recent first */}
+              {/* Movement timeline — what actually happened, most recent first.
+                  Capped so it previews recent history rather than competing
+                  with Today's Plan as the page's anchor. */}
               <section className="wmn-card wmn-timeline-card">
                 <span className="wmn-eyebrow">Movement Timeline</span>
-                {timeline.length === 0 ? (
+                {visibleTimeline.length === 0 ? (
                   <p className="wmn-timeline-empty">Nothing logged yet — recorded workouts and strength sessions will show up here.</p>
                 ) : (
                   <ul className="wmn-timeline-list">
-                    {timeline.map((item) => (
+                    {visibleTimeline.map((item) => (
                       <li key={item.id} className="wmn-timeline-row">
                         <span className="wmn-timeline-icon">
                           <IonIcon icon={item.icon} />
@@ -113,6 +122,13 @@ const MoveNextPage: React.FC = () => {
                       </li>
                     ))}
                   </ul>
+                )}
+                {hasMoreTimeline && (
+                  // Plain text, not a link — there's no "all activity" screen
+                  // in this prototype yet, so this stays honest about being
+                  // a preview instead of pointing at a destination that
+                  // doesn't exist.
+                  <p className="wmn-timeline-more-note">Showing your {visibleTimeline.length} most recent.</p>
                 )}
               </section>
             </>

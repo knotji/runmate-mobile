@@ -6,6 +6,19 @@
   gap: var(--wmn-space-4);
 }
 
+/* Groups the trend card and the stat grid under one shared identity —
+   quieter than .wmn-eyebrow on purpose, this is a section label, not a
+   card label, so it shouldn't out-compete either module beneath it. */
+.wmn-health-section-label {
+  margin: 0;
+  padding: 0 var(--wmn-space-1);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--wmn-text-muted);
+}
+
 /* Anchor trend module */
 .wmn-trend-card {
   animation: wmn-hero-arrive var(--wmn-duration-slow) var(--wmn-ease) both;
@@ -13,7 +26,10 @@
 
 .wmn-trend-value {
   margin: 6px 0 var(--wmn-space-4);
-  font-size: 30px;
+  /* Deliberately smaller than .wmn-page-title (30px) — this number is one
+     tracked signal, not the identity of the page, so it shouldn't read at
+     the same weight as "Health" above it. */
+  font-size: 26px;
   font-weight: 750;
   letter-spacing: -.01em;
   color: var(--wmn-text-primary);

@@ -96,29 +96,36 @@
   gap: 8px;
 }
 
+/* A lab/dev control, not a page action — kept auto-width and visually
+   quiet (no navy fill, which is reserved for real CTAs like the action
+   button) so it never competes with hero/card content for attention.
+   align-self overrides the row's stretch so this shrinks to its content
+   instead of matching a full-width sibling like the scenario picker. */
 .wmn-real-data-toggle {
-  display: flex;
+  align-self: flex-start;
+  width: fit-content;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
+  gap: 5px;
   border: 1px solid var(--wmn-hairline-strong);
   background: var(--wmn-surface);
-  color: var(--wmn-text-secondary);
-  font-size: var(--wmn-text-caption);
+  color: var(--wmn-text-muted);
+  font-size: 11px;
   font-weight: 700;
-  padding: 9px 4px;
+  letter-spacing: .01em;
+  padding: 7px 14px 7px 12px;
   border-radius: var(--wmn-radius-pill);
   transition: background-color var(--wmn-duration-fast) var(--wmn-ease), color var(--wmn-duration-fast) var(--wmn-ease), border-color var(--wmn-duration-fast) var(--wmn-ease);
 }
 
 .wmn-real-data-toggle ion-icon {
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .wmn-real-data-toggle.active {
-  background: var(--wmn-navy);
-  border-color: var(--wmn-navy);
-  color: var(--wmn-text-on-dark);
+  background: var(--wmn-status-steady-bg);
+  border-color: transparent;
+  color: var(--wmn-teal-deep);
 }
 
 .wmn-state-panel {
