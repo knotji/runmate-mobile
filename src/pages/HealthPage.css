@@ -271,10 +271,29 @@
   color: var(--health-text-muted);
 }
 
+.health-signals-empty {
+  margin: 0;
+  padding: 16px 4px;
+  color: var(--health-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+
 .health-stat-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+/* Adaptive layout: 2/4 signals fill the natural 2-col grid; 1 signal spans
+   full width instead of sitting as a half-width orphan; 3 signals keep a
+   balanced top pair with the third spanning full width below, rather than
+   stranding it at 50%. */
+.health-stat-grid.count-1 .health-stat-tile {
+  grid-column: 1 / -1;
+}
+.health-stat-grid.count-3 .health-stat-tile:last-child {
+  grid-column: 1 / -1;
 }
 .health-stat-tile {
   display: flex;

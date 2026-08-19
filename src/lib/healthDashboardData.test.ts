@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { CoachContext, WeekSleepRow } from '@/lib/buildCoachContext';
 import type { RecoveryTrend } from '@/lib/recoveryTrends';
 import type { NutritionTrend } from '@/lib/nutritionTrends';
-import { assembleHealthDashboard } from './healthDashboardData';
+import { assembleHealthDashboard, selectVisibleHealthSignals, type HealthStatTile } from './healthDashboardData';
 
 const night = (date: string, overrides: Partial<WeekSleepRow> = {}): WeekSleepRow => ({
   date,
@@ -59,6 +59,10 @@ function nutritionTrend(overrides: Partial<NutritionTrend> = {}): NutritionTrend
   return { rangeDays: 7, days: [], loggedDays: 6, mealCount: 14, averageCalories: 2200, averageProtein: 120, averageCarbs: 260, averageFat: 70, proteinDataDays: 6, training: {} as never, rest: {} as never, insight: {} as never, ...overrides };
 }
 
+function statTile(overrides: Partial<HealthStatTile> = {}): HealthStatTile {
+  return { key: 'x', eyebrow: 'X', value: '10', deltaLabel: '', deltaDirection: 'flat', goodDirection: 'up', ...overrides };
+}
+
 describe('assembleHealthDashboard', () => {
   it('builds a full 7-day trend, HRV/RHR/Sleep/Nutrition tiles, and Data Sources from a ready context', () => {
     const dashboard = assembleHealthDashboard(context(), recoveryTrend(), nutritionTrend());
@@ -71,7 +75,30 @@ describe('assembleHealthDashboard', () => {
     expect(dashboard.sources[0]).toEqual({ label: 'Health Connect', detail: 'Synced with today\'s data', state: 'ok' });
   });
 
-  it('falls back to a baseline-sample-count label instead of a fabricated delta when HRV baseline is insufficient', () => {
+  it('shows the current HRV value with a real delta when the baseline is ready (>=4 nights)', () => {
+    const dashboard = assembleHealthDashboard(context(), recoveryTrend(), nutritionTrend());
+
+    const hrvTile = dashboard.tiles.find((tile) => tile.key === 'hrv')!;
+    expect(hrvTile.value).toBe('60');
+    expect(hrvTile.deltaLabel).toMatch(/vs your baseline$/);
+    expect(hrvTile.deltaDirection).not.toBe('flat');
+  });
+
+  it('shows the current HRV value with an honest "calibrating" label instead of a delta computed from 1-3 nights', () => {
+    // Only 2 nights precede the latest one -> baseline.hrv.state === 'calibrating', not 'ready'.
+    const dashboard = assembleHealthDashboard(
+      context({ sleepBaseline30d: [night('2026-08-19', { hrv: 60 }), night('2026-08-18', { hrv: 58 }), night('2026-08-17', { hrv: 61 })] }),
+      recoveryTrend(),
+      nutritionTrend(),
+    );
+
+    const hrvTile = dashboard.tiles.find((tile) => tile.key === 'hrv')!;
+    expect(hrvTile.value).toBe('60');
+    expect(hrvTile.deltaLabel).toBe('Baseline calibrating (2/4 nights)');
+    expect(hrvTile.deltaDirection).toBe('flat');
+  });
+
+  it('shows the current HRV value with a "not enough nights" label (never a fabricated delta) when the baseline is insufficient', () => {
     const dashboard = assembleHealthDashboard(
       context({ sleepBaseline30d: [night('2026-08-19', { hrv: 60, restingHR: 52 })] }),
       recoveryTrend(),
@@ -79,7 +106,8 @@ describe('assembleHealthDashboard', () => {
     );
 
     const hrvTile = dashboard.tiles.find((tile) => tile.key === 'hrv')!;
-    expect(hrvTile.deltaLabel).toBe('0 nights of baseline so far');
+    expect(hrvTile.value).toBe('60');
+    expect(hrvTile.deltaLabel).toBe('Not enough nights yet for a baseline');
     expect(hrvTile.deltaDirection).toBe('flat');
   });
 
@@ -112,5 +140,47 @@ describe('assembleHealthDashboard', () => {
     expect(nutritionTile.value).toBe('—');
     expect(nutritionTile.unit).toBeUndefined();
     expect(nutritionTile.deltaLabel).toBe('Logged 0 of 7 days');
+  });
+
+  it('does not surface an HRV-specific warning in Data Sources when the HRV tile is hidden — no duplicate provenance', () => {
+    // No HRV/RHR readings anywhere -> both tiles resolve to "—" and get
+    // filtered out of the summary grid, but Data Sources only ever tracks
+    // Health Connect + Respiratory rate; it never grows an HRV row.
+    const contextWithoutHrv = context();
+    contextWithoutHrv.sleepBaseline30d = contextWithoutHrv.sleepBaseline30d.map((n) => ({ ...n, hrv: null, restingHR: null }));
+    const dashboard = assembleHealthDashboard(contextWithoutHrv, recoveryTrend(), nutritionTrend());
+
+    expect(dashboard.sources).toHaveLength(2);
+    expect(dashboard.sources.map((source) => source.label)).toEqual(['Health Connect', 'Respiratory rate']);
+    expect(dashboard.sources.some((source) => /hrv/i.test(source.label) || /hrv/i.test(source.detail))).toBe(false);
+  });
+});
+
+describe('selectVisibleHealthSignals', () => {
+  it('omits a tile whose value is "—" (HRV completely absent)', () => {
+    const tiles = [statTile({ key: 'hrv', value: '—' }), statTile({ key: 'rhr', value: '54' })];
+    expect(selectVisibleHealthSignals(tiles).map((tile) => tile.key)).toEqual(['rhr']);
+  });
+
+  it('keeps a tile with a real current value even when its delta is a calibrating/insufficient-baseline message', () => {
+    const tiles = [statTile({ key: 'hrv', value: '60', deltaLabel: 'Baseline calibrating (2/4 nights)' })];
+    expect(selectVisibleHealthSignals(tiles)).toHaveLength(1);
+  });
+
+  it('returns exactly 3 tiles when only 3 of 4 signals are displayable — no placeholder fourth tile', () => {
+    const tiles = [statTile({ key: 'hrv', value: '—' }), statTile({ key: 'rhr', value: '54' }), statTile({ key: 'sleep', value: '7h 12m' }), statTile({ key: 'nutrition', value: '2,200' })];
+    const visible = selectVisibleHealthSignals(tiles);
+    expect(visible).toHaveLength(3);
+    expect(visible.map((tile) => tile.key)).toEqual(['rhr', 'sleep', 'nutrition']);
+  });
+
+  it('returns exactly 1 tile when only 1 of 4 signals is displayable', () => {
+    const tiles = [statTile({ key: 'hrv', value: '—' }), statTile({ key: 'rhr', value: '—' }), statTile({ key: 'sleep', value: '7h 12m' }), statTile({ key: 'nutrition', value: '—' })];
+    expect(selectVisibleHealthSignals(tiles).map((tile) => tile.key)).toEqual(['sleep']);
+  });
+
+  it('returns an empty array when every signal is "—" — the page shows an honest empty state, not four blank tiles', () => {
+    const tiles = [statTile({ key: 'hrv', value: '—' }), statTile({ key: 'rhr', value: '—' }), statTile({ key: 'sleep', value: '—' }), statTile({ key: 'nutrition', value: '—' })];
+    expect(selectVisibleHealthSignals(tiles)).toEqual([]);
   });
 });

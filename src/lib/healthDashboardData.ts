@@ -14,6 +14,7 @@ import { buildNutritionTrend, nutritionTrendHistoryOptions, type NutritionTrend 
 import { formatMinutes } from './sleepDetailFormatting';
 import { getBangkokDateKey } from './date';
 import type { CoachContext } from './buildCoachContext';
+import type { SignalBaseline } from './personalBaseline';
 
 export type HealthTrendStatus = 'good' | 'steady' | 'caution' | 'low';
 export interface HealthTrendDay { label: string; value: number; status: HealthTrendStatus; }
@@ -45,13 +46,27 @@ function trendStatus(score: number | null): HealthTrendStatus {
   return 'low';
 }
 
-function nightsOfBaseline(sampleCount: number): string {
-  return `${sampleCount} night${sampleCount === 1 ? '' : 's'} of baseline so far`;
-}
-
 function deltaVsBaseline(delta: number, unit: string): string {
   if (delta === 0) return 'In line with your baseline';
   return `${delta > 0 ? '+' : ''}${delta} ${unit} vs your baseline`;
+}
+
+/**
+ * A "vs baseline" tile is only honest when the baseline is actually
+ * trustworthy (`state === 'ready'`) — a median of 1-3 nights is real but too
+ * thin to compare against, so calibrating/insufficient baselines get a
+ * plain status line instead of a fabricated-looking delta number, even
+ * though `baseline.value` may technically be non-null for 'calibrating'.
+ */
+function baselineAwareDelta(current: number | null, baseline: SignalBaseline, unit: string): { deltaLabel: string; deltaDirection: 'up' | 'down' | 'flat' } {
+  if (current != null && baseline.state === 'ready' && baseline.value != null) {
+    const delta = Math.round(current - baseline.value);
+    return { deltaLabel: deltaVsBaseline(delta, unit), deltaDirection: delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat' };
+  }
+  if (baseline.state === 'calibrating') {
+    return { deltaLabel: `Baseline calibrating (${baseline.sampleCount}/4 nights)`, deltaDirection: 'flat' };
+  }
+  return { deltaLabel: 'Not enough nights yet for a baseline', deltaDirection: 'flat' };
 }
 
 function weekdayLabel(dateKey: string): string {
@@ -96,16 +111,15 @@ export function assembleHealthDashboard(context: CoachContext, recoveryTrend: Re
   const anchorPoint = recoveryTrend.points[recoveryTrend.points.length - 1] ?? null;
 
   const latestNight = context.sleepBaseline30d?.[0] ?? null;
-  const hrvDelta = latestNight?.hrv != null && baseline.hrv.value != null ? latestNight.hrv - baseline.hrv.value : null;
-  const rhrDelta = latestNight?.restingHR != null && baseline.restingHR.value != null ? latestNight.restingHR - baseline.restingHR.value : null;
 
   const sleep7dMinutes = context.sleep7d
     .map((night) => night.durationMinutes)
     .filter((value): value is number => value != null);
   const sleepAvgMinutes = sleep7dMinutes.length ? sleep7dMinutes.reduce((sum, value) => sum + value, 0) / sleep7dMinutes.length : null;
-  const sleepDeltaMinutes = sleepAvgMinutes != null && baseline.sleepDurationMinutes.value != null
-    ? Math.round(sleepAvgMinutes - baseline.sleepDurationMinutes.value)
-    : null;
+
+  const hrvResult = baselineAwareDelta(latestNight?.hrv ?? null, baseline.hrv, 'ms');
+  const rhrResult = baselineAwareDelta(latestNight?.restingHR ?? null, baseline.restingHR, 'bpm');
+  const sleepResult = baselineAwareDelta(sleepAvgMinutes != null ? Math.round(sleepAvgMinutes) : null, baseline.sleepDurationMinutes, 'min');
 
   const tiles: HealthStatTile[] = [
     {
@@ -113,8 +127,8 @@ export function assembleHealthDashboard(context: CoachContext, recoveryTrend: Re
       eyebrow: 'HRV vs Baseline',
       value: latestNight?.hrv != null ? `${Math.round(latestNight.hrv)}` : '—',
       unit: 'ms',
-      deltaLabel: hrvDelta != null ? deltaVsBaseline(Math.round(hrvDelta), 'ms') : nightsOfBaseline(baseline.hrv.sampleCount),
-      deltaDirection: hrvDelta == null ? 'flat' : hrvDelta > 0 ? 'up' : hrvDelta < 0 ? 'down' : 'flat',
+      deltaLabel: hrvResult.deltaLabel,
+      deltaDirection: hrvResult.deltaDirection,
       goodDirection: 'up',
     },
     {
@@ -122,16 +136,16 @@ export function assembleHealthDashboard(context: CoachContext, recoveryTrend: Re
       eyebrow: 'Resting HR vs Baseline',
       value: latestNight?.restingHR != null ? `${Math.round(latestNight.restingHR)}` : '—',
       unit: 'bpm',
-      deltaLabel: rhrDelta != null ? deltaVsBaseline(Math.round(rhrDelta), 'bpm') : nightsOfBaseline(baseline.restingHR.sampleCount),
-      deltaDirection: rhrDelta == null ? 'flat' : rhrDelta > 0 ? 'up' : rhrDelta < 0 ? 'down' : 'flat',
+      deltaLabel: rhrResult.deltaLabel,
+      deltaDirection: rhrResult.deltaDirection,
       goodDirection: 'down',
     },
     {
       key: 'sleep',
       eyebrow: 'Sleep · 7 Day Avg',
       value: sleepAvgMinutes != null ? formatMinutes(Math.round(sleepAvgMinutes)) : '—',
-      deltaLabel: sleepDeltaMinutes != null ? deltaVsBaseline(sleepDeltaMinutes, 'min') : 'Not enough nights logged yet',
-      deltaDirection: sleepDeltaMinutes == null ? 'flat' : sleepDeltaMinutes > 0 ? 'up' : sleepDeltaMinutes < 0 ? 'down' : 'flat',
+      deltaLabel: sleepResult.deltaLabel,
+      deltaDirection: sleepResult.deltaDirection,
       goodDirection: 'up',
     },
     {
@@ -160,6 +174,20 @@ export function assembleHealthDashboard(context: CoachContext, recoveryTrend: Re
     tiles,
     sources,
   };
+}
+
+/**
+ * Summary-layer visibility rule: a tile earns a place in the stat grid only
+ * when it has a real current value — "—" means WholeMate has nothing to
+ * summarize, and a tile whose whole content is "no data" belongs in Data
+ * Sources & Freshness (provenance), not the summary grid. This is the only
+ * check needed because every tile above already resolves to "—" exactly
+ * when there's no current reading to show (see the `value:` lines in
+ * assembleHealthDashboard) — baseline-calibrating/insufficient states still
+ * carry a real current value and so remain visible, honestly labeled.
+ */
+export function selectVisibleHealthSignals(tiles: HealthStatTile[]): HealthStatTile[] {
+  return tiles.filter((tile) => tile.value !== '—');
 }
 
 export type HealthDashboardResult =

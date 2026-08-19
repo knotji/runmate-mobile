@@ -16,7 +16,7 @@ import {
 } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { buildHealthHubSnapshot, type HealthHubSnapshot, type HealthHubStatus } from '@/lib/healthHubSnapshot';
-import { loadFreshHealthDashboardData, type HealthDashboardData, type HealthDataSourceRow } from '@/lib/healthDashboardData';
+import { loadFreshHealthDashboardData, selectVisibleHealthSignals, type HealthDashboardData, type HealthDataSourceRow } from '@/lib/healthDashboardData';
 import { loadHealthDashboardStartupSnapshot, saveHealthDashboardStartupSnapshot } from '@/lib/healthDashboardStartupCache';
 import { usePrimaryTabScroll } from '@/lib/usePrimaryTabScroll';
 import './HealthPage.css';
@@ -108,6 +108,7 @@ const HealthPage: React.FC = () => {
 // stat tiles, framed as a family of signals rather than the page's identity.
 // Same design language validated in src/labs/wholemate-next/HealthNextPage.tsx.
 function HealthSignalsSection({ dashboard }: { dashboard: HealthDashboardData }) {
+  const visibleTiles = selectVisibleHealthSignals(dashboard.tiles);
   return <section className="health-signals-section" aria-label="This week's signals">
     <p className="health-signals-label">THIS WEEK&apos;S SIGNALS</p>
 
@@ -122,19 +123,23 @@ function HealthSignalsSection({ dashboard }: { dashboard: HealthDashboardData })
       </div>
     </div>
 
-    <div className="health-stat-grid">
-      {dashboard.tiles.map((tile) => {
-        const positive = tile.deltaDirection === 'flat' ? true : tile.deltaDirection === tile.goodDirection;
-        return <div key={tile.key} className="health-card health-stat-tile">
-          <span className="health-card-eyebrow health-stat-eyebrow">{tile.eyebrow}</span>
-          <p className="health-stat-value">{tile.value}{tile.unit && <small>{tile.unit}</small>}</p>
-          <span className={`health-stat-delta${positive ? ' is-positive' : ''}`}>
-            {tile.deltaDirection !== 'flat' && <i className={`health-stat-delta-arrow is-${tile.deltaDirection}`} aria-hidden="true" />}
-            {tile.deltaLabel}
-          </span>
-        </div>;
-      })}
-    </div>
+    {visibleTiles.length > 0 ? (
+      <div className={`health-stat-grid count-${visibleTiles.length}`}>
+        {visibleTiles.map((tile) => {
+          const positive = tile.deltaDirection === 'flat' ? true : tile.deltaDirection === tile.goodDirection;
+          return <div key={tile.key} className="health-card health-stat-tile">
+            <span className="health-card-eyebrow health-stat-eyebrow">{tile.eyebrow}</span>
+            <p className="health-stat-value">{tile.value}{tile.unit && <small>{tile.unit}</small>}</p>
+            <span className={`health-stat-delta${positive ? ' is-positive' : ''}`}>
+              {tile.deltaDirection !== 'flat' && <i className={`health-stat-delta-arrow is-${tile.deltaDirection}`} aria-hidden="true" />}
+              {tile.deltaLabel}
+            </span>
+          </div>;
+        })}
+      </div>
+    ) : (
+      <p className="health-signals-empty">No current signals to summarize yet — check back after your next sync.</p>
+    )}
 
     <div className="health-card health-sources-card">
       <span className="health-card-eyebrow">Data Sources &amp; Freshness</span>
