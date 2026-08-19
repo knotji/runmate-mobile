@@ -24,6 +24,32 @@ function weekdayLabel(dateKey: string): string {
   return new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: 'Asia/Bangkok' }).format(new Date(`${dateKey}T12:00:00+07:00`));
 }
 
+// 'insufficient' (zero samples) really is missing; 'calibrating' (a handful
+// of samples, not enough to trust as a baseline yet) is not the same claim
+// as 'ready' — showing both as a flat "Synced" would overstate how solid a
+//2-night reading is, so this gets its own in-between state.
+function respiratoryRateSourceRow(respiratoryRate: ReturnType<typeof buildPersonalBaseline>['respiratoryRate']): DataSourceRow {
+  if (respiratoryRate.state === 'insufficient') {
+    return {
+      label: 'Respiratory rate',
+      detail: 'Not reported by this device\'s Health Connect source — shown as missing, never estimated',
+      state: 'missing',
+    };
+  }
+  if (respiratoryRate.state === 'calibrating') {
+    return {
+      label: 'Respiratory rate',
+      detail: `Only ${respiratoryRate.sampleCount} night${respiratoryRate.sampleCount === 1 ? '' : 's'} recorded in the last 30 days — not enough yet to trust as a baseline`,
+      state: 'stale',
+    };
+  }
+  return {
+    label: 'Respiratory rate',
+    detail: `${respiratoryRate.sampleCount} nights recorded in the last 30 days`,
+    state: 'ok',
+  };
+}
+
 export type RealHealthResult =
   | { status: 'unauthenticated' }
   | { status: 'error'; message: string }
@@ -125,13 +151,7 @@ export async function loadRealHealthData(): Promise<RealHealthResult> {
         detail: context.recoverySystem.dataFreshness.status === 'today' ? 'Synced with today\'s data' : 'Last sync did not include today',
         state: context.recoverySystem.dataFreshness.status === 'today' ? 'ok' : 'stale',
       },
-      {
-        label: 'Respiratory rate',
-        detail: baseline.respiratoryRate.state === 'insufficient'
-          ? 'Not reported by this device\'s Health Connect source — shown as missing, never estimated'
-          : `${baseline.respiratoryRate.sampleCount} nights recorded in the last 30 days`,
-        state: baseline.respiratoryRate.state === 'insufficient' ? 'missing' : 'ok',
-      },
+      respiratoryRateSourceRow(baseline.respiratoryRate),
     ];
 
     return {
