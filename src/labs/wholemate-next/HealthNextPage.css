@@ -6,25 +6,6 @@
   gap: var(--wmn-space-4);
 }
 
-.wmn-health-header {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 2px var(--wmn-space-1) var(--wmn-space-1);
-}
-
-.wmn-health-eyebrow-dark {
-  color: var(--wmn-teal-deep);
-}
-
-.wmn-health-title {
-  margin: 0;
-  font-size: 30px;
-  font-weight: 750;
-  letter-spacing: -.01em;
-  color: var(--wmn-text-primary);
-}
-
 /* Anchor trend module */
 .wmn-trend-card {
   animation: wmn-hero-arrive var(--wmn-duration-slow) var(--wmn-ease) both;

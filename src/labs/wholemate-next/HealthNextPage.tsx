@@ -56,9 +56,9 @@ const HealthNextPage: React.FC = () => {
             <span className="wmn-lab-banner-tag">not shipped</span>
           </div>
 
-          <header className="wmn-health-header">
-            <span className="wmn-hero-eyebrow wmn-health-eyebrow-dark">What’s Changing Over Time</span>
-            <h1 className="wmn-health-title">Health</h1>
+          <header className="wmn-page-header">
+            <span className="wmn-hero-eyebrow wmn-page-eyebrow-accent">What’s Changing Over Time</span>
+            <h1 className="wmn-page-title">Health</h1>
           </header>
 
           <div className="wmn-data-mode-row">

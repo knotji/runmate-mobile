@@ -144,3 +144,46 @@
 .wmn-state-panel .wmn-action-button {
   margin-top: var(--wmn-space-4);
 }
+
+/* Plain page header — eyebrow + big title, used by every non-Today lab
+   page (Health, Move, ...; Today's hero is its own thing). */
+.wmn-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px var(--wmn-space-1) var(--wmn-space-1);
+}
+
+.wmn-page-eyebrow-accent {
+  color: var(--wmn-teal-deep);
+}
+
+.wmn-page-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 750;
+  letter-spacing: -.01em;
+  color: var(--wmn-text-primary);
+}
+
+/* "Action card" shell — a raised card with a title/detail/CTA button, used
+   for Today's "One Useful Move" and Move's "Today's Plan". */
+.wmn-action-card {
+  background: var(--wmn-surface-raised);
+  border: 1px solid var(--wmn-hairline);
+}
+
+.wmn-action-title {
+  margin: var(--wmn-space-2) 0 4px;
+  font-size: var(--wmn-text-title);
+  font-weight: 650;
+  color: var(--wmn-text-primary);
+  line-height: 1.3;
+}
+
+.wmn-action-detail {
+  margin: 0 0 var(--wmn-space-4);
+  font-size: var(--wmn-text-body);
+  color: var(--wmn-text-secondary);
+  line-height: 1.5;
+}
