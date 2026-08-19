@@ -1,34 +1,12 @@
-.wmn-content {
-  --background: var(--wmn-bg, #f6f8fb);
-}
-
 .wmn-today {
   min-height: 100%;
-  /* Bottom padding clears the fixed Coach FAB (52px + 24px offset) with
-     room to spare, so the action card's button never sits under it. */
-  padding: max(16px, env(safe-area-inset-top)) 18px calc(108px + env(safe-area-inset-bottom));
+  /* Bottom padding clears both the fixed Coach FAB and the LabNav tab
+     bar beneath it, with room to spare, so the action card's button
+     never sits under either. */
+  padding: max(16px, env(safe-area-inset-top)) 18px calc(168px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   gap: var(--wmn-space-4);
-}
-
-.wmn-lab-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: var(--wmn-text-eyebrow);
-  font-weight: 650;
-  letter-spacing: .04em;
-  color: var(--wmn-text-muted);
-  padding: var(--wmn-space-1) var(--wmn-space-1) 0;
-}
-
-.wmn-lab-banner-tag {
-  padding: 2px 8px;
-  border-radius: var(--wmn-radius-pill);
-  background: var(--wmn-status-caution-bg);
-  color: var(--wmn-status-caution);
-  font-weight: 700;
 }
 
 /* Scenario picker — dev-only affordance to preview each body-status state */
@@ -69,25 +47,10 @@
   animation: wmn-hero-arrive var(--wmn-duration-slow) var(--wmn-ease) both;
 }
 
-@keyframes wmn-hero-arrive {
-  from { opacity: 0; transform: translateY(6px) scale(.99); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
 .wmn-hero-ready { background: linear-gradient(150deg, var(--wmn-teal-deep) 0%, var(--wmn-teal) 55%, var(--wmn-teal-bright) 100%); }
 .wmn-hero-steady { background: linear-gradient(150deg, var(--wmn-navy) 0%, var(--wmn-navy-soft) 60%, var(--wmn-teal-deep) 100%); }
 .wmn-hero-reduce { background: linear-gradient(150deg, var(--wmn-navy) 0%, #3a5170 55%, #6a5a45 130%); }
 .wmn-hero-recover { background: linear-gradient(150deg, var(--wmn-navy) 0%, #4a3f52 60%, #6b4a54 130%); }
-
-.wmn-hero-eyebrow {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--wmn-text-on-dark-muted);
-  opacity: .92;
-}
 
 .wmn-hero-title {
   margin: 6px 0 var(--wmn-space-3);
@@ -225,26 +188,6 @@
   color: var(--wmn-text-muted);
 }
 
-/* Shared card shell */
-.wmn-card {
-  display: block;
-  width: 100%;
-  text-align: left;
-  border: none;
-  background: var(--wmn-surface);
-  border-radius: var(--wmn-radius-lg);
-  padding: var(--wmn-space-5);
-  box-shadow: var(--wmn-shadow-card);
-}
-
-.wmn-eyebrow {
-  font-size: 11px;
-  font-weight: 750;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--wmn-teal-deep);
-}
-
 /* Level 2 — main reason, expandable */
 .wmn-reason-head {
   display: flex;
@@ -345,7 +288,8 @@
 .wmn-coach-fab {
   position: fixed;
   right: max(18px, env(safe-area-inset-right));
-  bottom: calc(24px + env(safe-area-inset-bottom));
+  /* Clears the LabNav tab bar beneath it (~64px) plus a gap. */
+  bottom: calc(84px + env(safe-area-inset-bottom));
   width: 52px;
   height: 52px;
   border-radius: 50%;

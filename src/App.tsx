@@ -49,6 +49,9 @@ const AppNavigationListener: React.FC = () => {
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
 const MainTabs = lazy(() => import('@/components/MainTabs'));
 const TodayNextPage = lazy(() => import('@/labs/wholemate-next/TodayNextPage'));
+const HealthNextPage = lazy(() => import('@/labs/wholemate-next/HealthNextPage'));
+const MoveNextPage = lazy(() => import('@/labs/wholemate-next/MoveNextPage'));
+const YouNextPage = lazy(() => import('@/labs/wholemate-next/YouNextPage'));
 const SleepDetailPage = lazy(() => import('@/pages/SleepDetailPage'));
 const WorkoutDetailPage = lazy(() => import('@/pages/WorkoutDetailPage'));
 const MealDetailPage = lazy(() => import('@/pages/MealDetailPage'));
@@ -183,6 +186,15 @@ const App: React.FC = () => {
                 kept out of the shipped tab shell on purpose. */}
             <Route exact path="/labs/today-next">
               <TodayNextPage />
+            </Route>
+            <Route exact path="/labs/health-next">
+              <HealthNextPage />
+            </Route>
+            <Route exact path="/labs/move-next">
+              <MoveNextPage />
+            </Route>
+            <Route exact path="/labs/you-next">
+              <YouNextPage />
             </Route>
             <Route exact path="/recovery"><Redirect to="/tabs/today" /></Route>
             <Route exact path="/sleep">

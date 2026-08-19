@@ -1,0 +1,35 @@
+.wmn-coming-soon {
+  min-height: 100%;
+  padding: max(16px, env(safe-area-inset-top)) 18px 120px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--wmn-space-6);
+}
+
+.wmn-coming-soon-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--wmn-space-2);
+  padding-bottom: 80px;
+}
+
+.wmn-coming-soon-title {
+  margin: 4px 0 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  line-height: 1.3;
+  color: var(--wmn-text-primary);
+  text-wrap: balance;
+}
+
+.wmn-coming-soon-note {
+  margin: 0;
+  font-size: var(--wmn-text-body);
+  line-height: 1.5;
+  color: var(--wmn-text-secondary);
+  max-width: 36ch;
+}

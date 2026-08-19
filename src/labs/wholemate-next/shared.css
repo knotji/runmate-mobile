@@ -1,0 +1,64 @@
+/*
+ * Rules shared by every page under src/labs/wholemate-next — the lab
+ * banner, the base card shell, and eyebrow labels. Each page still owns
+ * its own CSS file for page-specific layout; import this one first.
+ */
+
+.wmn-content {
+  --background: var(--wmn-bg, #f6f8fb);
+}
+
+.wmn-lab-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--wmn-text-eyebrow);
+  font-weight: 650;
+  letter-spacing: .04em;
+  color: var(--wmn-text-muted);
+  padding: var(--wmn-space-1) var(--wmn-space-1) 0;
+}
+
+.wmn-lab-banner-tag {
+  padding: 2px 8px;
+  border-radius: var(--wmn-radius-pill);
+  background: var(--wmn-status-caution-bg);
+  color: var(--wmn-status-caution);
+  font-weight: 700;
+}
+
+@keyframes wmn-hero-arrive {
+  from { opacity: 0; transform: translateY(6px) scale(.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Base label used above a hero title or a card's title */
+.wmn-hero-eyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--wmn-text-on-dark-muted);
+  opacity: .92;
+}
+
+/* Base card shell — every module/card on every lab page starts here */
+.wmn-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: var(--wmn-surface);
+  border-radius: var(--wmn-radius-lg);
+  padding: var(--wmn-space-5);
+  box-shadow: var(--wmn-shadow-card);
+}
+
+.wmn-eyebrow {
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--wmn-teal-deep);
+}

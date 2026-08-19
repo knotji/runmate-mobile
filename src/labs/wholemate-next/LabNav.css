@@ -1,0 +1,38 @@
+.wmn-lab-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 15;
+  display: flex;
+  padding: 8px max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(18px);
+  border-top: 1px solid var(--wmn-hairline);
+}
+
+.wmn-lab-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 2px;
+  border: none;
+  background: transparent;
+  border-radius: var(--wmn-radius-sm);
+  color: var(--wmn-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  transition: color var(--wmn-duration-fast) var(--wmn-ease), background-color var(--wmn-duration-fast) var(--wmn-ease);
+}
+
+.wmn-lab-nav-item ion-icon {
+  font-size: 20px;
+}
+
+.wmn-lab-nav-item.active {
+  color: var(--wmn-teal-deep);
+  background: var(--wmn-status-steady-bg);
+}

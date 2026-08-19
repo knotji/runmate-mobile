@@ -3,7 +3,9 @@ import { IonContent, IonIcon, IonPage } from '@ionic/react';
 import { chevronForward, sparklesOutline } from 'ionicons/icons';
 import { TODAY_SCENARIOS } from './mockToday';
 import { MetricRing } from './MetricRing';
+import { LabNav } from './LabNav';
 import './tokens.css';
+import './shared.css';
 import './TodayNextPage.css';
 
 const TodayNextPage: React.FC = () => {
@@ -102,6 +104,7 @@ const TodayNextPage: React.FC = () => {
           </div>
         </div>
       </IonContent>
+      <LabNav active="today" />
     </IonPage>
   );
 };
