@@ -10,6 +10,12 @@
 }
 
 /* Scenario picker — dev-only affordance to preview each body-status state */
+.wmn-data-mode-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .wmn-scenario-picker {
   display: flex;
   gap: 6px;
@@ -34,6 +40,56 @@
   background: var(--wmn-surface);
   color: var(--wmn-navy);
   box-shadow: var(--wmn-shadow-card);
+}
+
+.wmn-real-data-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--wmn-hairline-strong);
+  background: var(--wmn-surface);
+  color: var(--wmn-text-secondary);
+  font-size: var(--wmn-text-caption);
+  font-weight: 700;
+  padding: 9px 4px;
+  border-radius: var(--wmn-radius-pill);
+  transition: background-color var(--wmn-duration-fast) var(--wmn-ease), color var(--wmn-duration-fast) var(--wmn-ease), border-color var(--wmn-duration-fast) var(--wmn-ease);
+}
+
+.wmn-real-data-toggle ion-icon {
+  font-size: 15px;
+}
+
+.wmn-real-data-toggle.active {
+  background: var(--wmn-navy);
+  border-color: var(--wmn-navy);
+  color: var(--wmn-text-on-dark);
+}
+
+/* Loading / unauthenticated / unavailable states for real-data mode */
+.wmn-state-panel {
+  text-align: center;
+}
+
+.wmn-state-panel-title {
+  margin: 8px 0 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--wmn-text-primary);
+  text-wrap: balance;
+}
+
+.wmn-state-panel-detail {
+  margin: 6px 0 0;
+  font-size: var(--wmn-text-body);
+  line-height: 1.5;
+  color: var(--wmn-text-secondary);
+}
+
+.wmn-state-panel .wmn-action-button {
+  margin-top: var(--wmn-space-4);
 }
 
 /* Level 1 — body status hero */

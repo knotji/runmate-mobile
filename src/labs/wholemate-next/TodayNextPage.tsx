@@ -1,18 +1,47 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { IonContent, IonIcon, IonPage } from '@ionic/react';
-import { chevronForward, sparklesOutline } from 'ionicons/icons';
+import { chevronForward, personCircleOutline, sparklesOutline } from 'ionicons/icons';
 import { TODAY_SCENARIOS } from './mockToday';
+import { loadRealTodayScenario, type RealTodayResult } from './realToday';
 import { MetricRing } from './MetricRing';
 import { LabNav } from './LabNav';
 import './tokens.css';
 import './shared.css';
 import './TodayNextPage.css';
 
+const STATE_PANEL_COPY: Record<Exclude<RealTodayResult['status'], 'ready'>, { title: string; detail: string }> = {
+  unauthenticated: { title: 'Log In To Preview Real Data', detail: 'This device isn’t signed in, so there’s no account context to load. Mock scenarios still work without one.' },
+  unavailable: { title: 'Not Enough Data Yet', detail: '' },
+  error: { title: 'Couldn’t Load Your Data', detail: '' },
+};
+
 const TodayNextPage: React.FC = () => {
+  const [dataMode, setDataMode] = useState<'mock' | 'real'>('mock');
   const [scenarioId, setScenarioId] = useState(TODAY_SCENARIOS[0].id);
   const [reasonOpen, setReasonOpen] = useState(false);
   const [coachOpen, setCoachOpen] = useState(false);
-  const scenario = TODAY_SCENARIOS.find((s) => s.id === scenarioId) ?? TODAY_SCENARIOS[0];
+  const [realLoading, setRealLoading] = useState(false);
+  const [realResult, setRealResult] = useState<RealTodayResult | null>(null);
+
+  const switchToRealData = useCallback(async () => {
+    setDataMode('real');
+    setReasonOpen(false);
+    setRealLoading(true);
+    const result = await loadRealTodayScenario();
+    setRealResult(result);
+    setRealLoading(false);
+  }, []);
+
+  const switchToMockData = () => {
+    setDataMode('mock');
+    setReasonOpen(false);
+  };
+
+  const mockScenario = TODAY_SCENARIOS.find((s) => s.id === scenarioId) ?? TODAY_SCENARIOS[0];
+  const scenario = dataMode === 'real' && realResult?.status === 'ready' ? realResult.scenario : mockScenario;
+  const statePanel = dataMode === 'real' && realResult && realResult.status !== 'ready'
+    ? { ...STATE_PANEL_COPY[realResult.status], detail: 'reason' in realResult ? realResult.reason : 'message' in realResult ? realResult.message : STATE_PANEL_COPY[realResult.status].detail }
+    : null;
 
   return (
     <IonPage>
@@ -23,63 +52,96 @@ const TodayNextPage: React.FC = () => {
             <span className="wmn-lab-banner-tag">not shipped</span>
           </div>
 
-          <div className="wmn-scenario-picker" role="tablist" aria-label="Preview body status">
-            {TODAY_SCENARIOS.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                role="tab"
-                aria-selected={s.id === scenarioId}
-                className={`wmn-scenario-tab${s.id === scenarioId ? ' active' : ''}`}
-                onClick={() => { setScenarioId(s.id); setReasonOpen(false); }}
-              >
-                {s.label}
-              </button>
-            ))}
+          <div className="wmn-data-mode-row">
+            <div className="wmn-scenario-picker" role="tablist" aria-label="Preview body status">
+              {TODAY_SCENARIOS.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={dataMode === 'mock' && s.id === scenarioId}
+                  className={`wmn-scenario-tab${dataMode === 'mock' && s.id === scenarioId ? ' active' : ''}`}
+                  onClick={() => { switchToMockData(); setScenarioId(s.id); }}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              className={`wmn-real-data-toggle${dataMode === 'real' ? ' active' : ''}`}
+              onClick={() => { if (dataMode === 'real') { switchToMockData(); } else { void switchToRealData(); } }}
+              aria-pressed={dataMode === 'real'}
+            >
+              <IonIcon icon={personCircleOutline} />
+              My Real Data
+            </button>
           </div>
 
-          {/* Level 1 — body status */}
-          <section key={scenario.id} className={`wmn-hero wmn-hero-${scenario.status}`}>
-            <span className="wmn-hero-eyebrow">Body Status Today</span>
-            <h1 className="wmn-hero-title">{scenario.statusTitle}</h1>
-            <p className="wmn-hero-summary">{scenario.statusSummary}</p>
-            <span className="wmn-hero-freshness">{scenario.freshness}</span>
-          </section>
-
-          {/* Scannable evidence row */}
-          <section className="wmn-rings-row" aria-label="Today's key signals">
-            {scenario.metrics.map((metric, index) => (
-              <MetricRing key={metric.key} metric={metric} delayMs={index * 70} onOpen={() => setReasonOpen(true)} />
-            ))}
-          </section>
-
-          {/* Level 2 — main reason */}
-          <button
-            type="button"
-            className={`wmn-card wmn-reason-card${reasonOpen ? ' open' : ''}`}
-            onClick={() => setReasonOpen((v) => !v)}
-            aria-expanded={reasonOpen}
-          >
-            <div className="wmn-reason-head">
-              <span className="wmn-eyebrow">{scenario.mainReason.eyebrow}</span>
-              <IonIcon icon={chevronForward} className="wmn-reason-chevron" />
+          {realLoading && (
+            <div className="wmn-card wmn-state-panel">
+              <span className="wmn-eyebrow">Loading</span>
+              <p className="wmn-state-panel-title">Reading your account’s current Recovery, Sleep, and Strain…</p>
             </div>
-            <p className="wmn-reason-title">{scenario.mainReason.title}</p>
-            <div className="wmn-reason-detail-wrap">
-              <p className="wmn-reason-detail">{scenario.mainReason.detail}</p>
-            </div>
-          </button>
+          )}
 
-          {/* Level 3 — the one thing to do */}
-          <section className="wmn-card wmn-action-card">
-            <span className="wmn-eyebrow">One Useful Move</span>
-            <p className="wmn-action-title">{scenario.oneThing.title}</p>
-            <p className="wmn-action-detail">{scenario.oneThing.detail}</p>
-            <button type="button" className="wmn-action-button">
-              {scenario.oneThing.actionLabel}
-              <IonIcon icon={chevronForward} />
-            </button>
-          </section>
+          {!realLoading && statePanel && (
+            <div className="wmn-card wmn-state-panel">
+              <span className="wmn-eyebrow">My Real Data</span>
+              <p className="wmn-state-panel-title">{statePanel.title}</p>
+              {statePanel.detail && <p className="wmn-state-panel-detail">{statePanel.detail}</p>}
+              <button type="button" className="wmn-action-button" onClick={switchToMockData}>
+                Back To Mock Scenarios
+              </button>
+            </div>
+          )}
+
+          {!realLoading && !statePanel && (
+            <>
+              {/* Level 1 — body status */}
+              <section key={scenario.id} className={`wmn-hero wmn-hero-${scenario.status}`}>
+                <span className="wmn-hero-eyebrow">Body Status Today</span>
+                <h1 className="wmn-hero-title">{scenario.statusTitle}</h1>
+                <p className="wmn-hero-summary">{scenario.statusSummary}</p>
+                <span className="wmn-hero-freshness">{scenario.freshness}</span>
+              </section>
+
+              {/* Scannable evidence row */}
+              <section className="wmn-rings-row" aria-label="Today's key signals">
+                {scenario.metrics.map((metric, index) => (
+                  <MetricRing key={metric.key} metric={metric} delayMs={index * 70} onOpen={() => setReasonOpen(true)} />
+                ))}
+              </section>
+
+              {/* Level 2 — main reason */}
+              <button
+                type="button"
+                className={`wmn-card wmn-reason-card${reasonOpen ? ' open' : ''}`}
+                onClick={() => setReasonOpen((v) => !v)}
+                aria-expanded={reasonOpen}
+              >
+                <div className="wmn-reason-head">
+                  <span className="wmn-eyebrow">{scenario.mainReason.eyebrow}</span>
+                  <IonIcon icon={chevronForward} className="wmn-reason-chevron" />
+                </div>
+                <p className="wmn-reason-title">{scenario.mainReason.title}</p>
+                <div className="wmn-reason-detail-wrap">
+                  <p className="wmn-reason-detail">{scenario.mainReason.detail}</p>
+                </div>
+              </button>
+
+              {/* Level 3 — the one thing to do */}
+              <section className="wmn-card wmn-action-card">
+                <span className="wmn-eyebrow">One Useful Move</span>
+                <p className="wmn-action-title">{scenario.oneThing.title}</p>
+                <p className="wmn-action-detail">{scenario.oneThing.detail}</p>
+                <button type="button" className="wmn-action-button">
+                  {scenario.oneThing.actionLabel}
+                  <IonIcon icon={chevronForward} />
+                </button>
+              </section>
+            </>
+          )}
 
           <div className="wmn-bottom-spacer" />
         </div>
