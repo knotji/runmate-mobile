@@ -147,8 +147,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: var(--wmn-space-3) var(--wmn-space-1);
+  gap: 8px;
+  padding: var(--wmn-space-3) var(--wmn-space-1) 11px;
   border: none;
   background: var(--wmn-surface);
   border-radius: var(--wmn-radius-md);
@@ -162,8 +162,16 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Dial — the ring with its value centered inside, like a single glanceable gauge */
+.wmn-ring-dial {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
 .wmn-ring-svg {
   transform: rotate(-90deg);
+  filter: drop-shadow(0 1px 1px rgba(23, 44, 73, 0.05));
 }
 
 .wmn-ring-track {
@@ -179,24 +187,42 @@
   transition: stroke-dashoffset var(--wmn-duration-slow) var(--wmn-ease);
 }
 
-.wmn-ring-label {
-  font-size: 11px;
-  font-weight: 650;
-  color: var(--wmn-text-muted);
-  margin-top: 3px;
+.wmn-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.05;
 }
 
 .wmn-ring-value {
-  font-size: 14px;
-  font-weight: 700;
+  font-weight: 750;
   color: var(--wmn-text-primary);
+  letter-spacing: -.01em;
 }
 
-.wmn-ring-value small {
-  font-size: 10px;
+.wmn-ring-unit {
+  font-size: 8.5px;
   font-weight: 650;
   color: var(--wmn-text-muted);
-  margin-left: 1px;
+  margin-top: 1px;
+}
+
+.wmn-ring-center-roomy .wmn-ring-value {
+  font-size: 16px;
+}
+
+.wmn-ring-center-compact .wmn-ring-value {
+  font-size: 10.5px;
+}
+
+.wmn-ring-label {
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: .01em;
+  color: var(--wmn-text-muted);
 }
 
 /* Shared card shell */

@@ -8,10 +8,14 @@ const STATUS_COLOR: Record<RingMetric['status'], string> = {
   low: 'var(--wmn-status-low)',
 };
 
-const SIZE = 72;
+const SIZE = 74;
 const STROKE = 6;
 const RADIUS = (SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+
+// Longer strings (sleep duration, "7h 42m") need a smaller center size
+// than short scores ("86") to stay legible inside a fixed-size ring.
+const centerSizeClass = (displayValue: string) => (displayValue.length > 5 ? 'wmn-ring-center-compact' : 'wmn-ring-center-roomy');
 
 export const MetricRing: React.FC<{ metric: RingMetric; onOpen?: () => void; delayMs?: number }> = ({ metric, onOpen, delayMs = 0 }) => {
   const [filled, setFilled] = useState(false);
@@ -28,22 +32,27 @@ export const MetricRing: React.FC<{ metric: RingMetric; onOpen?: () => void; del
 
   return (
     <button type="button" className="wmn-ring" onClick={onOpen} style={{ '--wmn-ring-delay': `${delayMs}ms` } as React.CSSProperties}>
-      <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} className="wmn-ring-svg">
-        <circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} className="wmn-ring-track" />
-        <circle
-          cx={SIZE / 2}
-          cy={SIZE / 2}
-          r={RADIUS}
-          className="wmn-ring-fill"
-          style={{
-            stroke: color,
-            strokeDasharray: CIRCUMFERENCE,
-            strokeDashoffset: offset,
-          }}
-        />
-      </svg>
+      <span className="wmn-ring-dial">
+        <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} className="wmn-ring-svg">
+          <circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} className="wmn-ring-track" />
+          <circle
+            cx={SIZE / 2}
+            cy={SIZE / 2}
+            r={RADIUS}
+            className="wmn-ring-fill"
+            style={{
+              stroke: color,
+              strokeDasharray: CIRCUMFERENCE,
+              strokeDashoffset: offset,
+            }}
+          />
+        </svg>
+        <span className={`wmn-ring-center ${centerSizeClass(metric.displayValue)}`}>
+          <span className="wmn-ring-value">{metric.displayValue}</span>
+          {metric.unit && <span className="wmn-ring-unit">{metric.unit}</span>}
+        </span>
+      </span>
       <span className="wmn-ring-label">{metric.label}</span>
-      <span className="wmn-ring-value">{metric.displayValue}{metric.unit ? <small>{metric.unit}</small> : null}</span>
     </button>
   );
 };
