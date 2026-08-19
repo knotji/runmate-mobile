@@ -81,26 +81,31 @@
 
 .wmn-hero-eyebrow {
   display: block;
-  font-size: var(--wmn-text-eyebrow);
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: .08em;
+  letter-spacing: .12em;
   text-transform: uppercase;
   color: var(--wmn-text-on-dark-muted);
+  opacity: .92;
 }
 
 .wmn-hero-title {
-  margin: var(--wmn-space-2) 0 var(--wmn-space-2);
-  font-size: var(--wmn-text-hero);
-  line-height: 1.08;
-  font-weight: 700;
-  letter-spacing: -.01em;
+  margin: 6px 0 var(--wmn-space-3);
+  font-size: 34px;
+  line-height: 1.16;
+  font-weight: 750;
+  letter-spacing: -.02em;
+  text-wrap: balance;
+  text-shadow: 0 1px 2px rgba(9, 30, 43, 0.1);
 }
 
 .wmn-hero-summary {
   margin: 0;
-  font-size: var(--wmn-text-body);
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 450;
   color: var(--wmn-text-on-dark-muted);
-  max-width: 34ch;
+  max-width: 32ch;
 }
 
 .wmn-hero-freshness {
