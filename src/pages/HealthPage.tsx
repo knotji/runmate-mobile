@@ -16,8 +16,16 @@ import {
 } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { buildHealthHubSnapshot, type HealthHubSnapshot, type HealthHubStatus } from '@/lib/healthHubSnapshot';
+import { loadFreshHealthDashboardData, type HealthDashboardData, type HealthDataSourceRow } from '@/lib/healthDashboardData';
+import { loadHealthDashboardStartupSnapshot, saveHealthDashboardStartupSnapshot } from '@/lib/healthDashboardStartupCache';
 import { usePrimaryTabScroll } from '@/lib/usePrimaryTabScroll';
 import './HealthPage.css';
+
+const SOURCE_STATE_LABEL: Record<HealthDataSourceRow['state'], string> = {
+  ok: 'Synced',
+  stale: 'Stale',
+  missing: 'Missing',
+};
 
 type HealthDestination = {
   icon: string;
@@ -46,8 +54,20 @@ const HealthPage: React.FC = () => {
   const history = useHistory();
   const contentRef = usePrimaryTabScroll('health');
   const [snapshot, setSnapshot] = useState(() => buildHealthHubSnapshot());
+  const [dashboard, setDashboard] = useState<HealthDashboardData | null>(() => loadHealthDashboardStartupSnapshot());
 
-  useIonViewWillEnter(() => setSnapshot(buildHealthHubSnapshot()));
+  useIonViewWillEnter(() => {
+    setSnapshot(buildHealthHubSnapshot());
+    // Instant-paint from cache above, then a background refresh — same
+    // pattern as RecoveryPage (Today) and ActivityPage (Move). Silent: this
+    // section only ever gains data or updates it, never shows its own
+    // loading spinner over already-visible content.
+    void loadFreshHealthDashboardData().then((result) => {
+      if (result.status !== 'ready') return;
+      setDashboard(result.data);
+      saveHealthDashboardStartupSnapshot(result.data);
+    });
+  });
 
   return <IonPage>
     <IonHeader translucent className="health-hub-header">
@@ -67,6 +87,8 @@ const HealthPage: React.FC = () => {
           <span>Start with the signals that matter today, then explore changes over time.</span>
         </header>
 
+        {dashboard && <HealthSignalsSection dashboard={dashboard} />}
+
         <HealthGroup label="OVERVIEW" title="Your Body At A Glance" items={overview} snapshot={snapshot} onOpen={(path) => history.push(path, { from: '/tabs/health' })} />
         <HealthGroup label="TRENDS" title="See What Is Changing" items={trends} snapshot={snapshot} onOpen={(path) => history.push(path, { from: '/tabs/health' })} />
 
@@ -81,6 +103,50 @@ const HealthPage: React.FC = () => {
     </IonContent>
   </IonPage>;
 };
+
+// "This Week's Signals" — one tracked trend (Recovery) plus a handful of
+// stat tiles, framed as a family of signals rather than the page's identity.
+// Same design language validated in src/labs/wholemate-next/HealthNextPage.tsx.
+function HealthSignalsSection({ dashboard }: { dashboard: HealthDashboardData }) {
+  return <section className="health-signals-section" aria-label="This week's signals">
+    <p className="health-signals-label">THIS WEEK&apos;S SIGNALS</p>
+
+    <div className="health-card health-trend-card">
+      <span className="health-card-eyebrow">Recovery</span>
+      <p className="health-trend-value">{dashboard.anchorValue}<small>/100 today</small></p>
+      <div className="health-trend-bars" role="img" aria-label="Recovery over the last 7 days">
+        {dashboard.trend.map((day, index) => <div key={`${day.label}-${index}`} className="health-trend-bar-col">
+          <div className="health-trend-bar-track"><div className={`health-trend-bar-fill is-${day.status}`} style={{ height: `${day.value}%` }} /></div>
+          <span className="health-trend-bar-label">{day.label}</span>
+        </div>)}
+      </div>
+    </div>
+
+    <div className="health-stat-grid">
+      {dashboard.tiles.map((tile) => {
+        const positive = tile.deltaDirection === 'flat' ? true : tile.deltaDirection === tile.goodDirection;
+        return <div key={tile.key} className="health-card health-stat-tile">
+          <span className="health-card-eyebrow health-stat-eyebrow">{tile.eyebrow}</span>
+          <p className="health-stat-value">{tile.value}{tile.unit && <small>{tile.unit}</small>}</p>
+          <span className={`health-stat-delta${positive ? ' is-positive' : ''}`}>
+            {tile.deltaDirection !== 'flat' && <i className={`health-stat-delta-arrow is-${tile.deltaDirection}`} aria-hidden="true" />}
+            {tile.deltaLabel}
+          </span>
+        </div>;
+      })}
+    </div>
+
+    <div className="health-card health-sources-card">
+      <span className="health-card-eyebrow">Data Sources &amp; Freshness</span>
+      <ul className="health-sources-list">
+        {dashboard.sources.map((source) => <li key={source.label} className="health-sources-row">
+          <div><p className="health-sources-label">{source.label}</p><p className="health-sources-detail">{source.detail}</p></div>
+          <span className={`health-sources-tag is-${source.state}`}>{SOURCE_STATE_LABEL[source.state]}</span>
+        </li>)}
+      </ul>
+    </div>
+  </section>;
+}
 
 function HealthGroup({ label, title, items, snapshot, onOpen }: { label: string; title: string; items: HealthDestination[]; snapshot: HealthHubSnapshot; onOpen: (path: string) => void }) {
   return <section className="health-hub-group">
