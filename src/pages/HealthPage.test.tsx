@@ -13,7 +13,7 @@ describe('Health hub', () => {
     }
     expect(screen.getByRole('button', { name: 'Log Health Data' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Open You' })).toBeInTheDocument();
-    for (const group of ['Your Body At A Glance', 'See What Is Changing', 'Connected Health Data']) {
+    for (const group of ['More About Your Health', 'Connected Health Data']) {
       expect(screen.getByRole('heading', { name: group })).toBeInTheDocument();
     }
     expect(screen.getByText('Not synced on this device')).toBeInTheDocument();

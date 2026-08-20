@@ -103,10 +103,10 @@
 .health-hub-card {
   position: relative;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 20px;
+  grid-template-columns: 36px minmax(0, 1fr) 20px;
   width: 100%;
-  min-height: 82px;
-  padding: 15px 14px;
+  min-height: 60px;
+  padding: 10px 14px;
   align-items: center;
   gap: 12px;
   border: 0;
@@ -121,8 +121,8 @@
 .health-hub-card-icon,
 .health-connect-entry > span > i {
   display: grid;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   place-items: center;
   border-radius: var(--health-radius-sm);
   background: var(--health-status-good-bg);
@@ -130,14 +130,23 @@
 }
 .health-hub-card.is-blue .health-hub-card-icon { background: var(--health-status-steady-bg); color: var(--health-status-steady); }
 .health-hub-card.is-amber .health-hub-card-icon { background: var(--health-status-caution-bg); color: var(--health-status-caution); }
-.health-hub-card-icon ion-icon { width: 22px; height: 22px; }
+.health-hub-card-icon ion-icon { width: 18px; height: 18px; }
 
 .health-hub-card-copy { min-width: 0; }
 .health-hub-card-copy b { display: block; color: var(--health-navy); font-size: 14px; line-height: 1.25; }
-.health-hub-card-copy small { display: block; margin-top: 4px; color: var(--health-text-secondary); font-size: 10px; line-height: 1.4; }
+.health-hub-card-copy small {
+  display: block;
+  overflow: hidden;
+  margin-top: 2px;
+  color: var(--health-text-secondary);
+  font-size: 10px;
+  line-height: 1.4;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
 .health-hub-status {
   display: flex;
-  margin-top: 7px;
+  margin-top: 3px;
   align-items: center;
   gap: 5px;
   color: var(--health-text-secondary);

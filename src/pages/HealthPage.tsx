@@ -36,13 +36,15 @@ type HealthDestination = {
   statusKey: keyof HealthHubSnapshot;
 };
 
-const overview: HealthDestination[] = [
+// Was two separate lists (OVERVIEW, then TRENDS) with their own headings —
+// merged into one so the page reads as a single compact list of 8
+// destinations instead of two visually repeated sections. Same 8
+// destinations, same order (overview items first, trend items after),
+// nothing dropped.
+const explore: HealthDestination[] = [
   { icon: calendarOutline, title: 'Health Calendar', summary: 'Sleep, training, meals, and check-ins by day.', path: '/health-calendar', tone: 'teal', statusKey: 'calendar' },
   { icon: moonOutline, title: 'Sleep', summary: 'Review last night and the signals behind your score.', path: '/sleep', tone: 'blue', statusKey: 'sleep' },
   { icon: pulseOutline, title: 'Strain', summary: "Understand today's load and heart-rate context.", path: '/strain', tone: 'amber', statusKey: 'strain' },
-];
-
-const trends: HealthDestination[] = [
   { icon: statsChartOutline, title: 'Recovery Trends', summary: 'See how Recovery, Sleep, and Strain are changing.', path: '/recovery-trends', tone: 'blue', statusKey: 'recoveryTrends' },
   { icon: nutritionOutline, title: 'Nutrition', summary: 'Calories, protein, carbohydrates, and logged patterns.', path: '/nutrition-trends', tone: 'teal', statusKey: 'nutrition' },
   { icon: scaleOutline, title: 'Body Weight', summary: 'Review weigh-ins and body-weight changes over time.', path: '/body-weight-trend', tone: 'blue', statusKey: 'weight' },
@@ -89,8 +91,7 @@ const HealthPage: React.FC = () => {
 
         {dashboard && <HealthSignalsSection dashboard={dashboard} />}
 
-        <HealthGroup label="OVERVIEW" title="Your Body At A Glance" items={overview} snapshot={snapshot} onOpen={(path) => history.push(path, { from: '/tabs/health' })} />
-        <HealthGroup label="TRENDS" title="See What Is Changing" items={trends} snapshot={snapshot} onOpen={(path) => history.push(path, { from: '/tabs/health' })} />
+        <HealthGroup label="EXPLORE" title="More About Your Health" items={explore} snapshot={snapshot} onOpen={(path) => history.push(path, { from: '/tabs/health' })} />
 
         <section className="health-hub-group" aria-labelledby="health-data-sources">
           <div className="health-hub-section-heading"><p>DATA SOURCES</p><h2 id="health-data-sources">Connected Health Data</h2></div>
