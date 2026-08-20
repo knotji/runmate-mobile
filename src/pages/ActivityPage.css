@@ -214,8 +214,8 @@
   grid-template-columns: 40px minmax(0, 1fr) auto;
   align-items: center;
   gap: 11px;
-  margin: -2px 0 16px;
-  padding: 13px 12px;
+  margin: -2px 0 12px;
+  padding: 11px 12px;
   border: 1px solid var(--move-hairline);
   border-radius: var(--move-radius-lg);
   background: var(--move-surface);
@@ -256,8 +256,8 @@
 .move-plan-card > button ion-icon { width: 15px; height: 15px; }
 .move-plan-card > button:focus-visible { outline: 2px solid var(--move-teal); outline-offset: 2px; }
 .daily-fuel-card {
-  margin: 0 0 24px;
-  padding: 15px;
+  margin: 0 0 18px;
+  padding: 14px;
   border: 1px solid var(--move-hairline);
   border-radius: var(--move-radius-lg);
   background: var(--move-surface);
@@ -481,7 +481,6 @@
 }
 .history-state,
 .history-empty {
-  min-height: 300px;
   display: grid;
   place-content: center;
   justify-items: center;
@@ -489,6 +488,13 @@
   color: var(--move-text-secondary);
   text-align: center;
 }
+.history-state { min-height: 300px; }
+/* Unlike .history-state (Activity failed to load, usually the only content
+   on the page), an empty day still sits below the date nav, tools row,
+   planned-training card, and Daily Fuel Coach card — reserving a
+   near-full-screen block just to center a short message made an already
+   tall page read as even longer. */
+.history-empty { min-height: 140px; }
 .history-state p,
 .history-empty p {
   margin: 0;
