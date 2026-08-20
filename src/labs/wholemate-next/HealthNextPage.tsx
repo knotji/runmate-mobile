@@ -53,7 +53,7 @@ const HealthNextPage: React.FC = () => {
         <div className="wm-next wmn-health">
           <div className="wmn-lab-banner">
             <span>WholeMate Next — Health prototype</span>
-            <span className="wmn-lab-banner-tag">not shipped</span>
+            <span className="wmn-lab-banner-tag">frozen · reference only</span>
           </div>
 
           <header className="wmn-page-header">

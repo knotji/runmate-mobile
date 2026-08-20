@@ -21,8 +21,8 @@ describe('You information architecture', () => {
     expect(screen.getByText('Health Connect')).toBeInTheDocument();
     expect(screen.getByText('Privacy, Export & Account')).toBeInTheDocument();
     expect(screen.getByText('About WholeMate')).toBeInTheDocument();
-    expect(screen.getByText('WholeMate Next')).toBeInTheDocument();
     expect(screen.getByText('Sign Out')).toBeInTheDocument();
+    expect(screen.queryByText('WholeMate Next')).not.toBeInTheDocument();
     expect(screen.queryByText('Race Goal')).not.toBeInTheDocument();
     expect(screen.queryByText('Weekly Plan')).not.toBeInTheDocument();
     expect(screen.queryByText('Training Summary')).not.toBeInTheDocument();

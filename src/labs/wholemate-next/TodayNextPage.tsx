@@ -49,7 +49,7 @@ const TodayNextPage: React.FC = () => {
         <div className="wm-next wmn-today">
           <div className="wmn-lab-banner">
             <span>WholeMate Next — Today prototype</span>
-            <span className="wmn-lab-banner-tag">not shipped</span>
+            <span className="wmn-lab-banner-tag">frozen · reference only</span>
           </div>
 
           <div className="wmn-data-mode-row">

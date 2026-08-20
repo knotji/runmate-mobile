@@ -12,7 +12,6 @@ import {
 import {
   chevronForwardOutline,
   fitnessOutline,
-  flaskOutline,
   informationCircleOutline,
   lockClosedOutline,
   logOutOutline,
@@ -149,35 +148,6 @@ const MorePage: React.FC = () => {
                   <IonIcon className="more-chevron" icon={chevronForwardOutline} aria-hidden="true" />
                 </button>
               ))}
-            </div>
-          </section>
-
-          {/* Dev-only entry point into the isolated WholeMate Next prototype
-              (src/labs/wholemate-next). Not a MorePagePath — it's a
-              separate lazy-loaded route, not part of this page's own
-              lazy-load registry — so it's wired directly rather than
-              through PERSONAL_CONTROLS/warmPage. Intentionally not a
-              redirect: /tabs/* keeps shipping the current app so the two
-              can be compared side by side until WholeMate Next is ready to
-              replace it. */}
-          <section className="more-group" aria-labelledby="labs-heading">
-            <header className="more-group-heading">
-              <p>Experimental</p>
-              <h2 id="labs-heading">Preview</h2>
-            </header>
-            <div className="more-menu">
-              <button
-                className="more-menu-row more-menu-button"
-                type="button"
-                onClick={() => goTo('/labs/today-next')}
-              >
-                <div className="more-menu-icon"><IonIcon icon={flaskOutline} aria-hidden="true" /></div>
-                <div className="more-menu-copy">
-                  <strong>WholeMate Next</strong>
-                  <span>Early prototype of a redesigned Today, Health, and Move — separate from this app, mock data by default.</span>
-                </div>
-                <IonIcon className="more-chevron" icon={chevronForwardOutline} aria-hidden="true" />
-              </button>
             </div>
           </section>
 

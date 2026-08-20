@@ -181,9 +181,16 @@ const App: React.FC = () => {
             <Route path="/tabs">
               {session ? <MainTabs /> : <Redirect to="/login" />}
             </Route>
-            {/* Design-exploration prototype, not linked from any nav — see
-                src/labs/wholemate-next. Mock data only, session-independent,
-                kept out of the shipped tab shell on purpose. */}
+            {/* FROZEN — reference only, do not extend. All four /tabs/* pages
+                (Today/Health/Move/You) now carry the WholeMate visual
+                language this prototype explored; see
+                src/labs/wholemate-next/README.md. Kept only so a regression
+                on a real device can be compared against the design this was
+                proven against — not linked from any nav, mock data only,
+                session-independent. Delete this route block + the whole
+                src/labs/wholemate-next directory once real-device QA is
+                clean across all four promoted tabs and one full release has
+                shipped. */}
             <Route exact path="/labs/today-next">
               <TodayNextPage />
             </Route>

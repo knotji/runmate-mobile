@@ -46,7 +46,7 @@ const MoveNextPage: React.FC = () => {
         <div className="wm-next wmn-move">
           <div className="wmn-lab-banner">
             <span>WholeMate Next — Move prototype</span>
-            <span className="wmn-lab-banner-tag">not shipped</span>
+            <span className="wmn-lab-banner-tag">frozen · reference only</span>
           </div>
 
           <header className="wmn-page-header">

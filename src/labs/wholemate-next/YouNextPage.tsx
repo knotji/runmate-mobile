@@ -41,7 +41,7 @@ const YouNextPage: React.FC = () => {
         <div className="wm-next wmn-you">
           <div className="wmn-lab-banner">
             <span>WholeMate Next — You prototype</span>
-            <span className="wmn-lab-banner-tag">not shipped</span>
+            <span className="wmn-lab-banner-tag">frozen · reference only</span>
           </div>
 
           <header className="wmn-page-header">
