@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonAlert, IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
-import { arrowBackOutline, barbellOutline, checkmarkCircleOutline, globeOutline, heartOutline, moonOutline, scaleOutline } from 'ionicons/icons';
+import { arrowBackOutline, barbellOutline, checkmarkCircleOutline, flagOutline, globeOutline, heartOutline, moonOutline, scaleOutline } from 'ionicons/icons';
 import { defaultProfile, type UserProfile } from '@/types/profile';
 import { loadProfileFromSupabase, saveProfileToSupabase } from '@/lib/profileStorage';
 import { applyProfileSettings, birthDateBounds, DAYS, profileToSettingsDraft, validateProfileSettings, type ProfileSettingsDraft } from '@/lib/profileSettings';
+import { GOAL_LABEL_TH, GOAL_TYPES, SECONDARY_GOAL_OPTIONS, type GoalType } from '@/lib/goals/goalTypes';
 import { loadHistoryItems } from '@/lib/cloudHistory';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { findHighestObservedHeartRate, type ObservedHeartRate } from '@/lib/observedHeartRate';
@@ -17,7 +18,7 @@ import { loadProfileSettingsStartupSnapshot, saveProfileSettingsStartupSnapshot 
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import './ProfileSettingsPage.css';
 
-const emptyDraft: ProfileSettingsDraft = { birthDate: '', vo2max: '', maxHr: '', weightKg: '', weeklyTrainingDays: '', preferredLongRunDay: '', preferredRunTime: '', defaultWakeTime: '' };
+const emptyDraft: ProfileSettingsDraft = { birthDate: '', vo2max: '', maxHr: '', weightKg: '', weeklyTrainingDays: '', preferredLongRunDay: '', preferredRunTime: '', defaultWakeTime: '', primaryGoal: '', secondaryGoals: [] };
 
 const ProfileSettingsPage: React.FC = () => {
   const history = useHistory();
@@ -78,6 +79,17 @@ const ProfileSettingsPage: React.FC = () => {
   useEffect(() => { void load(); }, [load]);
 
   const update = (key: keyof ProfileSettingsDraft, value: string) => { hasUserEditedRef.current = true; setDraft((current) => ({ ...current, [key]: value })); setSaved(false); setError(null); };
+  const updatePrimaryGoal = (value: string) => {
+    const nextPrimary = value === '' || (GOAL_TYPES as string[]).includes(value) ? value as GoalType | '' : '';
+    hasUserEditedRef.current = true;
+    setDraft((current) => ({ ...current, primaryGoal: nextPrimary, secondaryGoals: current.secondaryGoals.filter((goal) => goal !== nextPrimary) }));
+    setSaved(false); setError(null);
+  };
+  const toggleSecondaryGoal = (goal: GoalType) => {
+    hasUserEditedRef.current = true;
+    setDraft((current) => ({ ...current, secondaryGoals: current.secondaryGoals.includes(goal) ? current.secondaryGoals.filter((item) => item !== goal) : [...current.secondaryGoals, goal] }));
+    setSaved(false); setError(null);
+  };
   const save = async () => {
     if (!profile || saving) return;
     const validation = validateProfileSettings(draft);
@@ -171,6 +183,25 @@ const ProfileSettingsPage: React.FC = () => {
             <label className="profile-settings-wide"><span>Preferred Training Time</span><select value={draft.preferredRunTime} onChange={(event) => update('preferredRunTime', event.target.value)}><option value="">Not Set</option><option value="morning">Morning</option><option value="evening">Evening</option><option value="night">Night</option><option value="flexible">Flexible</option></select><em>Helps WholeMate place training guidance at a realistic time.</em></label>
           </div>
           <p className="profile-impact-note"><strong>Used By</strong><span>New Race Goals And Training Plans</span></p>
+        </section>
+        <section className="profile-settings-card">
+          <header><IonIcon icon={flagOutline} /><div><p>Focus</p><h2>Your Goals</h2></div></header>
+          <div className="profile-settings-grid">
+            <label className="profile-settings-wide"><span>Primary Goal</span><select value={draft.primaryGoal} onChange={(event) => updatePrimaryGoal(event.target.value)}><option value="">Not Set</option>{GOAL_TYPES.map((goal) => <option value={goal} key={goal}>{GOAL_LABEL_TH[goal]}</option>)}</select><em>The goal WholeMate prioritizes when guidance would otherwise conflict.</em></label>
+          </div>
+          <div className="profile-goal-secondary">
+            <span>Secondary Goals</span>
+            <div className="profile-goal-checkbox-list">
+              {SECONDARY_GOAL_OPTIONS.filter((goal) => goal !== draft.primaryGoal).map((goal) => (
+                <label className="profile-goal-checkbox" key={goal}>
+                  <input type="checkbox" checked={draft.secondaryGoals.includes(goal)} onChange={() => toggleSecondaryGoal(goal)} />
+                  <span>{GOAL_LABEL_TH[goal]}</span>
+                </label>
+              ))}
+            </div>
+            <em>Secondary goals shape trade-offs and supporting recommendations — they never override safety, recovery, or your primary goal.</em>
+          </div>
+          <p className="profile-impact-note"><strong>Used By</strong><span>Training Plans, Daily Fuel Coach, Sleep Guidance, AI Coach</span></p>
         </section>
         <section className="profile-settings-card">
           <header><IonIcon icon={moonOutline} /><div><p>Sleep</p><h2>Default Schedule</h2></div></header>

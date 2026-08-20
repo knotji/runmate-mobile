@@ -1,4 +1,5 @@
 import { getHistoryItemDateKey } from '@/lib/date';
+import { hasBodyRecompositionGoal } from '@/lib/goals/goalContext';
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import type { UserProfile } from '@/types/profile';
 import type { WeekWorkout } from '@/types/race';
@@ -49,16 +50,23 @@ export function buildDailyFuelCoach(options: {
     };
   }
 
+  // Guardrail: a body-recomposition goal (six_pack/fat_loss/muscle_gain) is
+  // only ever allowed to nudge the protein range up. carbFactors() has no
+  // parameter to receive this goal at all, so training fuel/carbohydrate
+  // availability can never be reduced because of it — do not reduce carbs
+  // "solely because six_pack or fat_loss is present"; carbRange stays
+  // whatever the day's actual training load calls for.
+  const bodyRecompositionGoalActive = hasBodyRecompositionGoal(options.profile?.goalProfile ?? null);
   const proteinOverride = positive(options.profile?.proteinTargetG);
   const carbOverride = carbProfileTarget(options.profile, dayType);
-  const proteinRange = proteinOverride != null ? [proteinOverride, proteinOverride] : scale(weight, proteinFactors(dayType));
+  const proteinRange = proteinOverride != null ? [proteinOverride, proteinOverride] : scale(weight, proteinFactors(dayType, bodyRecompositionGoalActive));
   const carbRange = carbOverride != null ? [carbOverride, carbOverride] : scale(weight, carbFactors(dayType));
   const protein = macro(proteinLogged, proteinRange, proteinOverride != null);
   const carbs = macro(carbsLogged, carbRange, carbOverride != null);
   return {
     status: 'ready', dayType, dayLabel, basedOnLoggedTraining, mealCount, completeMacroMeals, coverage,
     protein, carbs,
-    recommendation: recommendation(dayType, mealCount, protein, carbs),
+    recommendation: recommendation(dayType, mealCount, protein, carbs, bodyRecompositionGoalActive),
     note: coverage === 'stronger'
       ? `${mealCount} meals logged. Targets are guidance ranges, not a medical prescription.`
       : `${mealCount} ${mealCount === 1 ? 'meal' : 'meals'} logged. Remaining amounts may be overstated until the day is fully logged.`,
@@ -93,10 +101,12 @@ function trainingText(workouts: LocalHistoryItem[], planned: WeekWorkout | null)
   return actual || `${planned?.workoutType ?? ''} ${planned?.description ?? ''}`.toLowerCase();
 }
 
-function proteinFactors(type: FuelDayType): [number, number] {
-  if (type === 'hard' || type === 'long' || type === 'strength') return [1.6, 2];
-  if (type === 'easy') return [1.4, 1.8];
-  return [1.4, 1.6];
+function proteinFactors(type: FuelDayType, bodyRecompositionGoalActive: boolean): [number, number] {
+  const [minimum, maximum] = type === 'hard' || type === 'long' || type === 'strength' ? [1.6, 2] : type === 'easy' ? [1.4, 1.8] : [1.4, 1.6];
+  // Tighten toward the top of the existing range rather than inventing a new
+  // formula — never below the existing minimum, so this can only raise the
+  // protein target, never lower it.
+  return bodyRecompositionGoalActive ? [Math.round((minimum + maximum) / 2 * 10) / 10, maximum] : [minimum, maximum];
 }
 function carbFactors(type: FuelDayType): [number, number] {
   if (type === 'long') return [5, 7];
@@ -114,13 +124,14 @@ function macro(logged: number | null, range: number[], overridden: boolean): Fue
   const minimum = range[0]; const maximum = range[1];
   return { logged, minimum, maximum, remainingToMinimum: logged == null ? null : Math.max(0, Math.round(minimum - logged)), source: overridden ? 'profile' : 'calculated' };
 }
-function recommendation(type: FuelDayType, mealCount: number, protein: FuelMacroTarget, carbs: FuelMacroTarget): DailyFuelCoach['recommendation'] {
+function recommendation(type: FuelDayType, mealCount: number, protein: FuelMacroTarget, carbs: FuelMacroTarget, bodyRecompositionGoalActive: boolean): DailyFuelCoach['recommendation'] {
   if (mealCount === 0) return { title: 'Log Your First Meal', detail: `Start with one meal so WholeMate can compare today's ${label(type).toLowerCase()} targets with what you actually ate.` };
   if (protein.logged == null || carbs.logged == null) return { title: 'Complete The Macro Picture', detail: 'At least one logged meal is missing protein or carbohydrate values. Add or review those values before relying on the remaining target.' };
   const proteinRemaining = protein.remainingToMinimum ?? 0;
   const carbRemaining = carbs.remainingToMinimum ?? 0;
-  if ((type === 'hard' || type === 'long') && carbRemaining > 0) return { title: 'Prioritize Carbohydrate', detail: `About ${carbRemaining} g remains to reach the lower end of today's carbohydrate range. Pair it with protein across your next meals.` };
-  if (proteinRemaining > 0) return { title: 'Spread Protein Across The Day', detail: `About ${proteinRemaining} g remains to reach the lower end of today's protein range. Add a practical protein source to the next meal.` };
+  const bodyGoalNote = bodyRecompositionGoalActive ? ' Protein also supports your body-composition goal, but training fuel still comes first — this never means eating less overall.' : '';
+  if ((type === 'hard' || type === 'long') && carbRemaining > 0) return { title: 'Prioritize Carbohydrate', detail: `About ${carbRemaining} g remains to reach the lower end of today's carbohydrate range. Pair it with protein across your next meals.${bodyGoalNote}` };
+  if (proteinRemaining > 0) return { title: 'Spread Protein Across The Day', detail: `About ${proteinRemaining} g remains to reach the lower end of today's protein range. Add a practical protein source to the next meal.${bodyGoalNote}` };
   if (carbRemaining > 0) return { title: 'Add Training Fuel', detail: `About ${carbRemaining} g remains to reach the lower end of today's carbohydrate range.` };
   return { title: 'Lower Targets Reached', detail: 'Your logged meals have reached the lower end of both guidance ranges. Continue eating to appetite and recovery needs.' };
 }

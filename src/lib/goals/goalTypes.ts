@@ -43,6 +43,21 @@ export type UserGoalProfile = {
   updatedAt?: string;
 };
 
+// Every valid GoalType value, for validating an unknown/legacy stored value
+// (e.g. a Supabase row) before trusting it as a GoalType.
+export const GOAL_TYPES: GoalType[] = [
+  "race_performance",
+  "running_consistency",
+  "general_health",
+  "fat_loss",
+  "six_pack",
+  "muscle_gain",
+  "injury_prevention",
+  "injury_recovery",
+  "sleep_better",
+  "stress_balance",
+];
+
 // Display helpers
 export const GOAL_LABEL_TH: Record<GoalType, string> = {
   race_performance: "แข่งให้ได้เวลาเป้าหมาย",

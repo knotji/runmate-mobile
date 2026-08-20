@@ -438,6 +438,7 @@
 .loop-card span { color: #71849a; font-size: 9px; font-weight: 850; letter-spacing: 0.04em; }
 .loop-card h3 { margin: 5px 0 6px; color: #183451; font-size: 17px; line-height: 1.25; letter-spacing: -0.015em; }
 .loop-card p { max-width: 32rem; margin: 0; color: #687c92; font-size: 11px; line-height: 1.6; }
+.loop-card-goal-note { margin-top: 4px !important; color: #3b8781 !important; font-weight: 650; }
 
 .sleep-schedule { min-width: 0; }
 .sleep-plan-eyebrow { display: flex; align-items: center; gap: 6px; color: #748995 !important; font-style: normal; letter-spacing: .03em !important; }

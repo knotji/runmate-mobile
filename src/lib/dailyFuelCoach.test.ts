@@ -76,4 +76,33 @@ describe('Daily Fuel Coach', () => {
     expect(coach.recommendation.title).toBe('Complete The Macro Picture');
     expect(coach.protein?.logged).toBeNull();
   });
+
+  it('raises the protein target when a body-recomposition goal is active, without changing carbs at all', () => {
+    const withGoal: UserProfile = { ...profile, goalProfile: { primaryGoal: 'running_consistency', secondaryGoals: ['six_pack'], guardrailGoals: [] } };
+    const withoutGoal = buildDailyFuelCoach({ date, items: [meal('breakfast', 20, 45)], profile });
+    const withGoalCoach = buildDailyFuelCoach({ date, items: [meal('breakfast', 20, 45)], profile: withGoal });
+
+    // Protein minimum rises toward the top of the existing range...
+    expect(withoutGoal.protein).toMatchObject({ minimum: 70, maximum: 80 });
+    expect(withGoalCoach.protein).toMatchObject({ minimum: 75, maximum: 80 });
+    // ...but carbs are byte-for-byte identical either way - a body-recomposition
+    // goal must never reduce training fuel/carbohydrate availability.
+    expect(withGoalCoach.carbs).toEqual(withoutGoal.carbs);
+  });
+
+  it('never lowers the protein target for a body-recomposition goal, only raises it', () => {
+    const withGoal: UserProfile = { ...profile, goalProfile: { primaryGoal: 'six_pack', secondaryGoals: [], guardrailGoals: [] } };
+    const withoutGoal = buildDailyFuelCoach({ date, items: [meal('breakfast', 20, 45)], profile, plannedWorkout: planned('Intervals') });
+    const withGoalCoach = buildDailyFuelCoach({ date, items: [meal('breakfast', 20, 45)], profile: withGoal, plannedWorkout: planned('Intervals') });
+    expect(withGoalCoach.protein!.minimum).toBeGreaterThanOrEqual(withoutGoal.protein!.minimum);
+    expect(withGoalCoach.protein!.maximum).toBe(withoutGoal.protein!.maximum);
+    expect(withGoalCoach.carbs).toEqual(withoutGoal.carbs);
+  });
+
+  it('does not nudge protein for a goal profile with no body-recomposition goal', () => {
+    const withGoal: UserProfile = { ...profile, goalProfile: { primaryGoal: 'running_consistency', secondaryGoals: ['sleep_better'], guardrailGoals: [] } };
+    const withoutGoal = buildDailyFuelCoach({ date, items: [meal('breakfast', 20, 45)], profile });
+    const withGoalCoach = buildDailyFuelCoach({ date, items: [meal('breakfast', 20, 45)], profile: withGoal });
+    expect(withGoalCoach.protein).toEqual(withoutGoal.protein);
+  });
 });

@@ -1,5 +1,6 @@
 import type { UserProfile } from '@/types/profile';
 import { shiftDate, todayBangkokDateKey } from '@/lib/date';
+import type { GoalType } from '@/lib/goals/goalTypes';
 
 export type ProfileSettingsDraft = {
   birthDate: string;
@@ -10,6 +11,8 @@ export type ProfileSettingsDraft = {
   preferredLongRunDay: string;
   preferredRunTime: string;
   defaultWakeTime: string;
+  primaryGoal: GoalType | '';
+  secondaryGoals: GoalType[];
 };
 
 export function profileToSettingsDraft(profile: UserProfile): ProfileSettingsDraft {
@@ -22,6 +25,8 @@ export function profileToSettingsDraft(profile: UserProfile): ProfileSettingsDra
     preferredLongRunDay: normalizeDay(profile.preferredLongRunDay),
     preferredRunTime: profile.preferredRunTime ?? '',
     defaultWakeTime: '',
+    primaryGoal: profile.goalProfile?.primaryGoal ?? '',
+    secondaryGoals: profile.goalProfile?.secondaryGoals ?? [],
   };
 }
 
@@ -39,6 +44,15 @@ export function applyProfileSettings(profile: UserProfile, draft: ProfileSetting
     preferredRunTime: isPreferredRunTime(draft.preferredRunTime) ? draft.preferredRunTime : undefined,
     timezone: 'Asia/Bangkok',
     fieldSources: changedSources(profile, draft),
+    // guardrailGoals/raceGoal/bodyGoal/lifestyleGoal have no editor yet — keep
+    // whatever the profile already had for them, only primaryGoal/
+    // secondaryGoals are editable from this page.
+    goalProfile: draft.primaryGoal ? {
+      ...profile.goalProfile,
+      primaryGoal: draft.primaryGoal,
+      secondaryGoals: draft.secondaryGoals,
+      guardrailGoals: profile.goalProfile?.guardrailGoals ?? [],
+    } : profile.goalProfile,
   };
 }
 

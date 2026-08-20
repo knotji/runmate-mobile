@@ -1,5 +1,7 @@
 import { supabase } from '@/lib/supabaseClient';
 import type { CoachContext } from '@/lib/buildCoachContext';
+import { extractGoalProfile } from '@/lib/goals/goalContext';
+import type { UserGoalProfile } from '@/lib/goals/goalTypes';
 import type { RaceGoal, RacePlan } from '@/types/race';
 
 export type RacePlanGenerationContext = {
@@ -13,6 +15,7 @@ export type RacePlanGenerationContext = {
   recentWorkouts: CoachContext['workouts7d'];
   completedWorkoutDates: string[];
   currentWeeklyPlan: unknown[];
+  goalProfile: UserGoalProfile | null;
 };
 
 export function buildRacePlanGenerationContext(context: CoachContext): RacePlanGenerationContext {
@@ -30,6 +33,7 @@ export function buildRacePlanGenerationContext(context: CoachContext): RacePlanG
     recentWorkouts: context.workouts7d,
     completedWorkoutDates: context.workouts7d.filter(hasRecordedWorkout).map((day) => day.date),
     currentWeeklyPlan: weeklyPlan,
+    goalProfile: extractGoalProfile(context),
   };
 }
 

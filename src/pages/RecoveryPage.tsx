@@ -20,6 +20,7 @@ import { SocialShareModal } from '@/components/SocialShareModal';
 import { buildRecoveryCoreContextFromSupabase, buildRecoveryPageContextFromSupabase } from '@/lib/coachContextService';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
 import { useHealthSyncStore } from '@/lib/health/healthSyncStore';
+import { extractGoalProfile } from '@/lib/goals/goalContext';
 import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
 import { TodayTrainingPlanCard } from '@/components/TodayTrainingPlanCard';
 import { EnergyReserveCard } from '@/components/EnergyReserveCard';
@@ -335,7 +336,7 @@ const RecoveryPage: React.FC = () => {
               {visibleEnergy && <EnergyReserveCard energy={visibleEnergy} onOpen={() => history.push('/energy', { from: '/tabs/today' })} />}
               {secondaryLoading && !visibleContext ? <RecoverySecondaryLoading /> : secondaryError && !visibleContext ? <RecoverySecondaryError message={secondaryError} onRetry={() => void loadSecondaryRecovery(true)} /> : !visibleContext ? <RecoverySecondaryLoading /> : <>
                 <TodayTrainingPlanCard context={visibleContext} onAskCoach={() => history.push('/ai-coach', { from: '/tabs/today', initialTopic: 'today' })} />
-                <RecoveryPlan recovery={visibleRecovery} wakeOverrideMinutes={wakeOverrideMinutes} sleepCycleOverride={sleepCycleOverride} onOpen={() => history.push('/sleep-window')} />
+                <RecoveryPlan recovery={visibleRecovery} wakeOverrideMinutes={wakeOverrideMinutes} sleepCycleOverride={sleepCycleOverride} goalProfile={extractGoalProfile(visibleContext)} onOpen={() => history.push('/sleep-window')} />
               </>}
             </>
           )}

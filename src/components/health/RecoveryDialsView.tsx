@@ -1,6 +1,8 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { IonCard, IonCardContent, IonIcon } from '@ionic/react';
 import { chevronForwardOutline, moonOutline, sunnyOutline } from 'ionicons/icons';
+import { hasBodyRecompositionGoal } from '@/lib/goals/goalContext';
+import type { UserGoalProfile } from '@/lib/goals/goalTypes';
 import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
 import { formatClockMinutes, parseClockMinutes, sleepCyclePlanForWake, sleepWindowForWake, type SleepCycleCount } from '@/lib/sleepWindow';
 
@@ -150,7 +152,7 @@ export function TrainingGuidance({ recovery }: { recovery: RunMateRecoverySystem
   );
 }
 
-export function RecoveryPlan({ recovery, wakeOverrideMinutes, sleepCycleOverride, onOpen }: { recovery: RunMateRecoverySystem; wakeOverrideMinutes: number | null; sleepCycleOverride: SleepCycleCount | null; onOpen: () => void }) {
+export function RecoveryPlan({ recovery, wakeOverrideMinutes, sleepCycleOverride, goalProfile = null, onOpen }: { recovery: RunMateRecoverySystem; wakeOverrideMinutes: number | null; sleepCycleOverride: SleepCycleCount | null; goalProfile?: UserGoalProfile | null; onOpen: () => void }) {
   const sleep = recovery.sleepPerformance;
   const sleepNeedHours = Math.floor(sleep.sleepNeedMinutes / 60);
   const sleepNeedMinutes = sleep.sleepNeedMinutes % 60;
@@ -170,6 +172,15 @@ export function RecoveryPlan({ recovery, wakeOverrideMinutes, sleepCycleOverride
       : recovery.overallScore >= 34
         ? { tomorrowHeadline: 'Sleep Is The Lever', tomorrowSummary: 'Meeting your Sleep Need tonight is the fastest way to lift tomorrow’s Recovery.' }
         : { tomorrowHeadline: 'Prioritize Sleep Tonight', tomorrowSummary: 'Recovery is low — tonight’s sleep matters more than usual before adding any intensity tomorrow.' };
+  // Goals are supporting rationale here, never a reason to change the
+  // recovery-driven headline/summary above — sleep_better and a
+  // body-recomposition goal both lean on the same lever (consistent sleep),
+  // so one shared additive note covers both without a decision branch.
+  const goalNote = goalProfile && (goalProfile.primaryGoal === 'sleep_better' || goalProfile.secondaryGoals.includes('sleep_better'))
+    ? 'This also supports your sleep goal directly.'
+    : hasBodyRecompositionGoal(goalProfile)
+      ? 'Consistent sleep supports recovery and your body-composition goal too.'
+      : null;
   return (
     <section aria-labelledby="plan-heading" className="loop-section">
       <button
@@ -197,7 +208,7 @@ export function RecoveryPlan({ recovery, wakeOverrideMinutes, sleepCycleOverride
         <summary>Tomorrow And Load</summary>
       <div className="loop-card">
         <IonIcon icon={sunnyOutline} />
-        <div><span>Tomorrow</span><h3>{tomorrowHeadline}</h3><p>{tomorrowSummary}</p></div>
+        <div><span>Tomorrow</span><h3>{tomorrowHeadline}</h3><p>{tomorrowSummary}</p>{goalNote && <p className="loop-card-goal-note">{goalNote}</p>}</div>
       </div>
       <div className="day-load-line"><span>Today’s Strain</span><strong>{recovery.strain.score.toFixed(1)}/21 · {strainLabel(recovery.strain.level)}</strong></div>
       </details>

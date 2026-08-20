@@ -1,5 +1,6 @@
 import type { CoachContext, TodayCompletedWorkoutSummary } from '@/lib/buildCoachContext';
 import { buildAdaptiveTrainingRecommendation } from '@/lib/adaptiveTrainingPlan';
+import { extractGoalProfile } from '@/lib/goals/goalContext';
 import { supabase } from '@/lib/supabaseClient';
 import { getTodayPlannedWorkout, getTodayTrainingPlanStatus } from '@/lib/todayTrainingPlan';
 import type { WeekWorkout } from '@/types/race';
@@ -41,11 +42,13 @@ export function buildAiCoachContext(context: CoachContext) {
   const currentSleepGapMinutes = sleepPerformance.actualSleepMinutes == null
     ? null
     : Math.max(0, sleepPerformance.sleepNeedMinutes - sleepPerformance.actualSleepMinutes);
+  const goalProfile = extractGoalProfile(context);
 
   return {
     date: context.todayDate,
     timeBangkok: bangkokTime(),
     dayPhaseBangkok: bangkokDayPhase(),
+    goals: goalProfile ? { primary: goalProfile.primaryGoal, secondary: goalProfile.secondaryGoals.slice(0, 3) } : null,
     recovery: {
       state: context.recoverySystem.scoreState,
       freshness: context.recoverySystem.dataFreshness.status,

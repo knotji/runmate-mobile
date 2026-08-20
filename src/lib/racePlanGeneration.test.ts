@@ -23,5 +23,24 @@ describe('buildRacePlanGenerationContext', () => {
     expect(result.completedWorkoutDates).toEqual(['2026-08-05', '2026-08-03']);
     expect(result.recentWorkouts).toEqual(context.workouts7d);
     expect(result.currentWeeklyPlan).toEqual([{ day: 'Thursday', workoutType: 'Tempo Run', distanceKm: 7 }]);
+    expect(result.goalProfile).toBeNull();
+  });
+
+  it('extracts the goal profile from the raw Supabase profile row when present', () => {
+    const context = {
+      todayDate: '2026-08-05',
+      recoverySystem: { overallScore: 72, scoreState: 'good' },
+      totalRunKm: 18,
+      longestRun7dKm: 10,
+      activePain: false,
+      activeSick: false,
+      workouts7d: [],
+      racePlan: {},
+      profile: { goal_profile: { primaryGoal: 'running_consistency', secondaryGoals: ['six_pack'], guardrailGoals: [] } },
+    } as unknown as CoachContext;
+
+    const result = buildRacePlanGenerationContext(context);
+
+    expect(result.goalProfile).toEqual({ primaryGoal: 'running_consistency', secondaryGoals: ['six_pack'], guardrailGoals: [] });
   });
 });
