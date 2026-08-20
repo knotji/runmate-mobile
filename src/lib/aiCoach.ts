@@ -248,7 +248,7 @@ function normalizeAnswer(topic: AiCoachTopic, value: Record<string, unknown>): A
   const nextMeal = normalizeNextMeal(value.nextMeal);
   return {
     topic,
-    message: stringOrNull(value.message) ?? legacyConversationalMessage(topic, {
+    message: longString(value.message) ?? legacyConversationalMessage(topic, {
       headline,
       summary,
       actions,
@@ -327,6 +327,14 @@ function requiredString(value: unknown, fallback: string): string {
 
 function stringOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim().slice(0, 1_000) : null;
+}
+
+// The primary displayed reply can legitimately run much longer than the
+// short supporting fields (headline/summary/actions) below, now that the
+// prompt is allowed to give a thorough, detailed answer instead of a
+// 140-Thai-word summary.
+function longString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim().slice(0, 4_800) : null;
 }
 
 function stringArray(value: unknown, max: number): string[] {
