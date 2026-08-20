@@ -222,6 +222,10 @@ const ActivityPage: React.FC = () => {
     () => items.filter(isMovementRecord),
     [items],
   );
+  const todaysMeals = useMemo(
+    () => sortHistoryItemsByEventTimeDesc(items.filter((item) => item.type === 'meal' && getHistoryItemDateKey(item) === selectedDate)),
+    [items, selectedDate],
+  );
   const groupedItems = useMemo(() => {
     const visible = movementItems.filter((item) => getHistoryItemDateKey(item) === selectedDate);
     const groups = new Map<string, LocalHistoryItem[]>();
@@ -328,7 +332,7 @@ const ActivityPage: React.FC = () => {
             <PlannedTrainingCard workout={plannedWorkout} onOpen={() => history.push('/weekly-plan', { from: '/tabs/move' })} />
           )}
 
-          {!loading && !error && <DailyFuelCoachCard coach={fuelCoach} preparing={fuelContextLoading && !profile} onProfile={() => history.push('/profile-settings')} onNutrition={() => history.push('/nutrition-trends', { from: '/tabs/move' })} onLogMeal={() => history.push('/tabs/log?type=meal')} onAskCoach={() => history.push('/ai-coach', { from: '/tabs/move', initialTopic: 'fuel' })} />}
+          {!loading && !error && <DailyFuelCoachCard coach={fuelCoach} meals={todaysMeals} deletingId={deletingId} preparing={fuelContextLoading && !profile} onProfile={() => history.push('/profile-settings')} onNutrition={() => history.push('/nutrition-trends', { from: '/tabs/move' })} onLogMeal={() => history.push('/tabs/log?type=meal')} onAskCoach={() => history.push('/ai-coach', { from: '/tabs/move', initialTopic: 'fuel' })} onDeleteMeal={(meal) => setPendingDelete(meal)} />}
 
           {loading && <PageDataSkeleton variant="activity" label="Loading Your Activity" />}
           {!loading && error && <PageState kind="error" title="Activity Is Unavailable" detail={error} actionLabel="Try Again" onAction={() => void loadRecent()} className="history-state history-error" />}
@@ -427,7 +431,7 @@ function plannedWorkoutIcon(workout: WeekWorkout): string {
   return fitnessOutline;
 }
 
-function DailyFuelCoachCard({ coach, preparing, onProfile, onNutrition, onLogMeal, onAskCoach }: { coach: DailyFuelCoach; preparing: boolean; onProfile: () => void; onNutrition: () => void; onLogMeal: () => void; onAskCoach: () => void }) {
+function DailyFuelCoachCard({ coach, meals, deletingId, preparing, onProfile, onNutrition, onLogMeal, onAskCoach, onDeleteMeal }: { coach: DailyFuelCoach; meals: LocalHistoryItem[]; deletingId: string | null; preparing: boolean; onProfile: () => void; onNutrition: () => void; onLogMeal: () => void; onAskCoach: () => void; onDeleteMeal: (meal: LocalHistoryItem) => void }) {
   if (preparing) return <section className="daily-fuel-card is-preparing" aria-busy="true"><IonSpinner name="crescent" /><div><p>Daily Fuel Coach</p><h2>Preparing Your Targets</h2><span>Loading your current weight and training plan.</span></div></section>;
   return <section className="daily-fuel-card" aria-labelledby="daily-fuel-heading">
     <header><div><p>Daily Fuel Coach</p><h2 id="daily-fuel-heading">Fuel For This Day</h2></div><span>{coach.dayLabel}</span></header>
@@ -440,6 +444,14 @@ function DailyFuelCoachCard({ coach, preparing, onProfile, onNutrition, onLogMea
       <div className="daily-fuel-guidance"><IonIcon icon={sparklesOutline} /><div><strong>{coach.recommendation.title}</strong><span>{coach.recommendation.detail}</span></div></div>
       <div className="daily-fuel-footer"><span>{coach.note}</span><div className="daily-fuel-actions"><button type="button" className="is-secondary" onClick={onNutrition}>Nutrition</button>{coach.mealCount === 0 ? <button type="button" onClick={onLogMeal}>Log A Meal</button> : <button type="button" onClick={onAskCoach}>Ask Coach</button>}</div></div>
     </>}
+    {meals.length > 0 && (
+      <div className="daily-fuel-meals">
+        <p className="daily-fuel-meals-heading">Logged Meals <span>{meals.length}</span></p>
+        <div className="history-list">
+          {meals.map((meal) => <ActivityHistoryRow item={meal} deleting={deletingId === meal.id} onDelete={() => onDeleteMeal(meal)} key={meal.id} />)}
+        </div>
+      </div>
+    )}
   </section>;
 }
 

@@ -446,6 +446,46 @@
   grid-column: 1/-1;
   width: 100%;
 }
+/* Today's logged meals, reusing ActivityHistoryRow as-is (same navigation,
+   delete, and meal-detail caching as the main record list) - just
+   right-sized for sitting inside an already-tall card instead of its own
+   full-width section. */
+.daily-fuel-meals {
+  margin-top: 13px;
+  padding-top: 12px;
+  border-top: 1px solid var(--move-hairline);
+}
+.daily-fuel-meals-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  color: var(--move-teal-deep);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.daily-fuel-meals-heading span {
+  padding: 2px 6px;
+  border-radius: var(--move-radius-pill);
+  color: var(--move-text-secondary);
+  background: var(--move-surface-sunken);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.daily-fuel-meals .history-list { gap: 6px; }
+.daily-fuel-meals .history-row-shell { border-color: var(--move-hairline); box-shadow: none; }
+.daily-fuel-meals .history-row { min-height: 56px; grid-template-columns: 34px minmax(0, 1fr); gap: 9px; padding: 8px 6px 8px 10px; }
+.daily-fuel-meals .history-row-button { grid-template-columns: 34px minmax(0, 1fr) 14px; }
+.daily-fuel-meals .history-icon { width: 34px; height: 34px; }
+.daily-fuel-meals .history-icon ion-icon { width: 15px; height: 15px; }
+.daily-fuel-meals .history-copy h3 { font-size: 12px; -webkit-line-clamp: 1; }
+.daily-fuel-meals .history-copy > p { font-size: 9px; }
+.daily-fuel-meals .history-row-delete { min-width: 36px; }
+
 .daily-fuel-card.is-preparing {
   display: flex;
   align-items: center;
