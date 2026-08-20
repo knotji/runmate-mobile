@@ -27,6 +27,14 @@ const tabPageLoaders = [
   { path: '/tabs/you', load: loadYouPage },
 ];
 
+// Not a tab-bar destination, so it's outside tabPageLoaders' active-tab
+// filtering — but Today/Health/Move all link to it via a "+" button with no
+// warm-on-hover of their own, so without this it's the one route in the tab
+// shell that's never prefetched: the first tap anywhere always pays for a
+// real lazy-chunk fetch, and the Suspense fallback swapping to real content
+// mid-transition reads as a layout jump.
+const alwaysPrefetchLoaders = [loadUploadPage];
+
 const MainTabs: React.FC = () => {
   const location = useLocation();
 
@@ -42,9 +50,10 @@ const MainTabs: React.FC = () => {
       const connection = Reflect.get(navigator, 'connection') as { effectiveType?: string; saveData?: boolean } | undefined;
       if (connection?.saveData || connection?.effectiveType === 'slow-2g' || connection?.effectiveType === '2g') return;
       const activePath = window.location.pathname;
-      const loaders = tabPageLoaders
-        .filter(({ path }) => path !== activePath)
-        .map(({ load }) => load());
+      const loaders = [
+        ...tabPageLoaders.filter(({ path }) => path !== activePath).map(({ load }) => load()),
+        ...alwaysPrefetchLoaders.map((load) => load()),
+      ];
       void Promise.allSettled(loaders);
     };
 
