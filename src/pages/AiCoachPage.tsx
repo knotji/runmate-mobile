@@ -349,7 +349,7 @@ function CoachAnswer({ answer, timestamp, onFollowUp }: { answer: AiCoachAnswer;
   return <article className="ai-coach-assistant-message" aria-live="polite">
     <div className="ai-coach-assistant-mark" aria-hidden="true"><IonIcon icon={sparklesOutline} /></div>
     <div className="ai-coach-assistant-body">
-      <p className="ai-coach-conversation-text">{answer.message}</p>
+      <div className="ai-coach-conversation-text">{formatCoachMessage(answer.message)}</div>
       {answer.caution && <div className="ai-coach-chat-caution"><IonIcon icon={warningOutline} /><span>{answer.caution}</span></div>}
       {answer.missingData.length > 0 && <details className="ai-coach-chat-missing">
         <summary>ข้อมูลที่ยังไม่มี ({answer.missingData.length})</summary>
@@ -361,6 +361,52 @@ function CoachAnswer({ answer, timestamp, onFollowUp }: { answer: AiCoachAnswer;
       <time>{timestamp}</time>
     </div>
   </article>;
+}
+
+// Renders the light Markdown the prompt asks for (**bold**, "- " bullet
+// lines, blank-line-separated paragraphs) without pulling in a Markdown
+// library — the model only ever produces this small, fixed subset. A line
+// scanner rather than a blank-line block split, since a bullet list is
+// often introduced by a line directly above it with no blank line between
+// ("สิ่งที่ควรทำวันนี้:\n- ...") — a block-level split would keep that intro
+// line and its bullets in one paragraph-shaped block and miss the list.
+function formatCoachMessage(message: string): React.ReactNode {
+  const nodes: React.ReactNode[] = [];
+  let paragraphLines: string[] = [];
+  let listItems: string[] = [];
+  let key = 0;
+
+  const flushParagraph = () => {
+    if (paragraphLines.length === 0) return;
+    nodes.push(<p className="ai-coach-message-paragraph" key={key++}>
+      {paragraphLines.map((line, index) => <Fragment key={index}>{index > 0 && <br />}{formatInlineBold(line)}</Fragment>)}
+    </p>);
+    paragraphLines = [];
+  };
+  const flushList = () => {
+    if (listItems.length === 0) return;
+    nodes.push(<ul className="ai-coach-message-list" key={key++}>
+      {listItems.map((item, index) => <li key={index}>{formatInlineBold(item)}</li>)}
+    </ul>);
+    listItems = [];
+  };
+
+  for (const rawLine of message.split('\n')) {
+    const line = rawLine.trim();
+    if (!line) { flushParagraph(); flushList(); continue; }
+    const bullet = /^[-•]\s+(.*)$/.exec(line);
+    if (bullet) { flushParagraph(); listItems.push(bullet[1]); }
+    else { flushList(); paragraphLines.push(line); }
+  }
+  flushParagraph();
+  flushList();
+  return nodes;
+}
+
+function formatInlineBold(text: string): React.ReactNode {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, index) => part.startsWith('**') && part.endsWith('**')
+    ? <strong key={index}>{part.slice(2, -2)}</strong>
+    : <Fragment key={index}>{part}</Fragment>);
 }
 
 function conversationFromMessages(messages: ChatMessage[]): AiCoachChatTurn[] {

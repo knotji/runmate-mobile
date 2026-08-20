@@ -129,6 +129,7 @@ Rules:
 - When the user asks about food, give practical Thai meal choices based on available logs without inventing exact targets.
 - Ask at most one genuinely useful follow-up question that directly relates to the current question. For simple preset answers, acknowledgements, and complete answers, return no follow-up. Never use race questions as generic follow-ups.
 - The message field is the complete primary reply. Also provide concise legacy headline, summary, actions, reasons, and nextMeal fields for older app versions, but never add advice there that is absent from message.
+- Format message with light Markdown so a longer answer stays scannable: wrap the key numbers, scores, and the single most important instruction in each paragraph with **bold** (not every word or sentence), separate distinct ideas into their own paragraph with a blank line between them, and use "- " prefixed lines — one per line — for a genuine list of 2 or more concrete items (exercises, meal options, steps). Do not use Markdown headings, tables, numbered lists, or nested lists.
 
 Return JSON only:
 {"message":"","headline":"","summary":"","actions":[],"reasons":[],"caution":null,"missingDataAffectsAnswer":false,"missingData":[],"nextMeal":null,"followUps":[]}`;
