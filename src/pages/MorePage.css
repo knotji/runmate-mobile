@@ -1,3 +1,25 @@
+/*
+ * WholeMate visual language for the You tab. Self-contained tokens, same
+ * pattern as ActivityPage.css's --move-* / HealthPage.css's --health-*, but
+ * scoped to the page rather than :root — IonHeader and IonContent are
+ * siblings under IonPage, so the tokens live on IonPage itself (via the
+ * "you-page" className) as their nearest common ancestor.
+ */
+.you-page {
+  --you-navy: #172c49;
+  --you-teal: #1c839b;
+  --you-teal-deep: #155f79;
+  --you-surface: #ffffff;
+  --you-hairline: rgba(23, 44, 73, 0.08);
+  --you-text-primary: #17233a;
+  --you-text-secondary: #55677f;
+  --you-text-muted: #8794a6;
+  --you-caution: #b9812f;
+  --you-radius-lg: 24px;
+  --you-radius-pill: 999px;
+  --you-shadow-card: 0 1px 2px rgba(23, 44, 73, 0.04), 0 8px 20px rgba(23, 44, 73, 0.05);
+}
+
 .more-content {
   --background: radial-gradient(circle at 50% -12%, #e5f4ff 0, #f3f8fc 34%, #f7f9fc 72%);
 }
@@ -32,8 +54,72 @@
   letter-spacing: 0.1em;
 }
 .more-heading h1 { margin: 0 0 7px; color: #193654; font-size: clamp(21px, 5.6vw, 23px); line-height: 1.2; letter-spacing: -.015em; }
-.more-heading span { display: block; color: #667b92; font-size: 11px; line-height: 1.5; }
 .more-groups { display: grid; gap: 20px; }
+
+/* Your Focus / Your Context / Today's Check-In — the personal-context
+   section, rendered above Personal Controls once real data has loaded. */
+.you-focus-card,
+.you-context-card,
+.you-checkin-card {
+  margin: 0 0 16px;
+  padding: 20px;
+  border: 1px solid var(--you-hairline);
+  border-radius: var(--you-radius-lg);
+  background: var(--you-surface);
+  box-shadow: var(--you-shadow-card);
+}
+
+.you-eyebrow {
+  margin: 0 0 10px;
+  color: var(--you-teal-deep);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.you-focus-title { margin: 0 0 4px; color: var(--you-navy); font-size: 18px; font-weight: 750; line-height: 1.25; }
+.you-focus-detail { margin: 0 0 14px; color: var(--you-text-secondary); font-size: 12px; line-height: 1.5; }
+.you-focus-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: var(--you-radius-pill);
+  background: var(--you-teal);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+.you-focus-cta ion-icon { width: 15px; height: 15px; }
+
+.you-context-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.you-context-row + .you-context-row { border-top: 1px solid var(--you-hairline); }
+.you-context-button,
+.you-context-static {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 0;
+  align-items: center;
+  justify-content: space-between;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+}
+.you-context-label { color: var(--you-text-secondary); font-size: 12.5px; }
+.you-context-right { display: flex; align-items: center; gap: 6px; }
+.you-context-value { color: var(--you-text-primary); font-size: 13px; font-weight: 650; }
+.you-context-value.is-caution { color: var(--you-caution); }
+.you-context-chevron { width: 14px; height: 14px; color: var(--you-text-muted); }
+
+.you-checkin-body { display: flex; flex-direction: column; gap: 8px; }
+.you-checkin-line { display: flex; justify-content: space-between; margin: 0; font-size: 13px; color: var(--you-text-primary); }
+.you-checkin-line strong { font-weight: 650; color: var(--you-text-secondary); }
+.you-checkin-empty { margin: 0; color: var(--you-text-muted); font-size: 12.5px; }
 .more-group-heading { margin: 0 3px 8px; }
 .more-group-heading p { margin-bottom: 3px; color: #328a85; font-size: 9px; text-transform: uppercase; }
 .more-group-heading h2 { margin: 0; color: #24425f; font-size: 14px; line-height: 1.3; }
