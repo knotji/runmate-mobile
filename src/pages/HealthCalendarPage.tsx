@@ -13,6 +13,7 @@ import { loadHealthCalendarSnapshot, saveHealthCalendarSnapshot } from '@/lib/he
 import type { LocalHistoryItem } from '@/lib/localHistory';
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import { navigateBackOr } from '@/lib/navigationBack';
+import { saveMoveSelectedDate } from '@/lib/primaryTabState';
 import { exportStrainCheckIns } from '@/lib/strainContext';
 import './HealthCalendarPage.css';
 
@@ -168,6 +169,10 @@ const HealthCalendarPage: React.FC = () => {
     setSelectedDate(next === startOfMonth(today) ? today : next);
   };
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(true); event.detail.complete(); };
+  const openMealsForSelectedDate = () => {
+    saveMoveSelectedDate(selectedDate, todayBangkokDateKey());
+    history.push('/tabs/move', { from: '/health-calendar' });
+  };
 
   return <IonPage>
     <IonHeader translucent className="health-calendar-header"><IonToolbar>
@@ -201,7 +206,7 @@ const HealthCalendarPage: React.FC = () => {
             <div className="health-day-metrics">
               <Metric icon={moonOutline} label="Sleep" value={selected?.sleepMinutes == null ? 'Not recorded' : duration(selected.sleepMinutes)} detail={sleepDetail(selected)} tone="sleep" />
               <Metric icon={fitnessOutline} label="Training" value={selected?.workoutCount ? `${selected.workoutCount} session${selected.workoutCount === 1 ? '' : 's'}` : 'No session'} detail={selected?.workoutMinutes ? `${selected.workoutMinutes} min${selected.distanceKm ? ` · ${selected.distanceKm} km` : ''}` : null} tone="workout" />
-              <Metric icon={nutritionOutline} label="Meals" value={selected?.mealCount ? `${selected.mealCount} logged` : 'Not logged'} detail={selected?.lateCaffeineLogged ? 'Late caffeine log' : selected?.caffeineLogged ? 'Caffeine logged' : null} tone="meal" />
+              <Metric icon={nutritionOutline} label="Meals" value={selected?.mealCount ? `${selected.mealCount} logged` : 'Not logged'} detail={selected?.lateCaffeineLogged ? 'Late caffeine log' : selected?.caffeineLogged ? 'Caffeine logged' : null} tone="meal" onClick={selected?.mealCount ? openMealsForSelectedDate : undefined} />
               <Metric icon={pulseOutline} label="Stress" value={selected?.stress ? title(selected.stress) : 'No check-in'} detail={null} tone="stress" />
             </div>
           </section>
@@ -216,7 +221,11 @@ const HealthCalendarPage: React.FC = () => {
   </IonPage>;
 };
 
-function Metric({ icon, label, value, detail, tone }: { icon: string; label: string; value: string; detail: string | null; tone: string }) { return <div className={`health-day-metric ${tone}`}><header><span><IonIcon icon={icon} /></span><small>{label}</small></header><strong>{value}</strong>{detail && <em>{detail}</em>}</div>; }
+function Metric({ icon, label, value, detail, tone, onClick }: { icon: string; label: string; value: string; detail: string | null; tone: string; onClick?: () => void }) {
+  const content = <><header><span><IonIcon icon={icon} /></span><small>{label}</small></header><strong>{value}</strong>{detail && <em>{detail}</em>}</>;
+  if (!onClick) return <div className={`health-day-metric ${tone}`}>{content}</div>;
+  return <button type="button" className={`health-day-metric ${tone} health-day-metric-button`} aria-label={`${label}: ${value}. Open in Move.`} onClick={onClick}>{content}<IonIcon className="health-day-metric-chevron" icon={chevronForwardOutline} aria-hidden="true" /></button>;
+}
 function hasRecordedData(day: ReturnType<typeof buildHealthCalendarDays>[number]): boolean { return day.sleepMinutes != null || day.workoutCount > 0 || day.mealCount > 0 || day.stress != null; }
 function sleepDetail(day: ReturnType<typeof buildHealthCalendarDays>[number] | undefined): string | null {
   if (!day || day.sleepMinutes == null) return null;
