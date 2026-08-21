@@ -24,7 +24,7 @@ import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
 import { extractGoalProfile } from '@/lib/goals/goalContext';
 import { useRacePlanStore } from '@/lib/race/racePlanStore';
 import { generateRacePlan } from '@/lib/racePlanGeneration';
-import { mergeRefreshedRacePlanWithOptions } from '@/lib/racePlanRefresh';
+import { heavyTrainingDates, mergeRefreshedRacePlanWithOptions } from '@/lib/racePlanRefresh';
 import { buildRacePlanDiff, prepareActivePlanVersion, prepareLegacyActivePlanVersion, type RacePlanChange } from '@/lib/racePlanVersions';
 import { applyProfilePreferencesToRaceGoal } from '@/lib/raceProfilePreferences';
 import { loadHistoryItems } from '@/lib/cloudHistory';
@@ -154,6 +154,7 @@ const RaceGoalPage: React.FC = () => {
         dynamicUpcoming: true,
         completedWorkoutDates: context.workouts7d.map((day) => day.date),
         goalProfile: extractGoalProfile(context),
+        heavyTrainingDates: heavyTrainingDates(context.workouts7d),
       }) : generatedPlan;
       setPlanPreview({ goal: nextGoal, plan: nextPlan, changes: plan ? buildRacePlanDiff(plan, nextPlan) : [], mode: 'refresh' });
     } catch (refreshFailure) {

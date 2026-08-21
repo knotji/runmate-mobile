@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeRefreshedRacePlan, mergeRefreshedRacePlanWithOptions, reconcileRacePlanSnapshots } from './racePlanRefresh';
+import { heavyTrainingDates, mergeRefreshedRacePlan, mergeRefreshedRacePlanWithOptions, reconcileRacePlanSnapshots } from './racePlanRefresh';
 import type { RacePlan, WeekWorkout } from '@/types/race';
 
 const workout = (day: string, workoutType: string, distanceKm: number | null, description = ''): WeekWorkout => ({
@@ -183,6 +183,56 @@ describe('mergeRefreshedRacePlan', () => {
     expect(result.weeklyPlan?.[0].workoutType).toBe('Rest');
   });
 
+  it('does not claim a day next to actually-heavy training, even when that day was only planned as Easy Run', () => {
+    // The neighbor's plan says "Easy Run" (soft), but the runner actually
+    // logged a heavy session there - the real load must still block it,
+    // matching generate-race-plan's own recentHeavyDay guardrail.
+    const previous = plan([
+      workout('Sunday', 'Rest', null),
+      workout('Monday', 'Easy Run', 5),
+      workout('Tuesday', 'Rest', null),
+    ], { planStartDate: '2026-08-16' });
+    const generated = plan([
+      workout('Sunday', 'Rest', null),
+      workout('Monday', 'Easy Run', 5),
+      workout('Tuesday', 'Rest', null),
+    ]);
+
+    const result = mergeRefreshedRacePlanWithOptions(previous, generated, '2026-08-16', {
+      dynamicUpcoming: true,
+      completedWorkoutDates: [],
+      goalProfile: { primaryGoal: 'six_pack', secondaryGoals: [], guardrailGoals: [] },
+      heavyTrainingDates: new Set(['2026-08-17']), // Monday actually ran long/hard
+    });
+
+    // Sunday (before the heavy Monday) and Tuesday (after it) are both
+    // adjacent to the actually-heavy day, so neither can take Strength
+    // Training - the plan must stay exactly as generated.
+    expect(result.weeklyPlan?.map(({ workoutType }) => workoutType)).toEqual(['Rest', 'Easy Run', 'Rest']);
+  });
+
+  it('still claims a day whose neighbor was actually light, even though a later day in the week was heavy', () => {
+    const previous = plan([
+      workout('Sunday', 'Rest', null),
+      workout('Monday', 'Easy Run', 5),
+      workout('Tuesday', 'Rest', null),
+    ], { planStartDate: '2026-08-16' });
+    const generated = plan([
+      workout('Sunday', 'Rest', null),
+      workout('Monday', 'Easy Run', 5),
+      workout('Tuesday', 'Rest', null),
+    ]);
+
+    const result = mergeRefreshedRacePlanWithOptions(previous, generated, '2026-08-16', {
+      dynamicUpcoming: true,
+      completedWorkoutDates: [],
+      goalProfile: { primaryGoal: 'six_pack', secondaryGoals: [], guardrailGoals: [] },
+      heavyTrainingDates: new Set(['2026-08-20']), // Thursday, unrelated to this window
+    });
+
+    expect(result.weeklyPlan?.[0].workoutType).toBe('Strength Training');
+  });
+
   it('applies the rolling schedule to the actual current training week, not generated week one', () => {
     const currentWeek = { weekNumber: 3, phase: 'Build', weeklyFocus: '', targetWeeklyDistanceKm: 12, longRunDistanceKm: 7, workouts: [workout('Wednesday', 'Recovery', null), workout('Thursday', 'Tempo Run', 7)] };
     const previous = plan(currentWeek.workouts, { planStartDate: '2026-07-12', weeks: [currentWeek] });
@@ -192,6 +242,28 @@ describe('mergeRefreshedRacePlan', () => {
 
     expect(result.weeks.find((week) => week.weekNumber === 3)?.workouts.map(({ workoutType }) => workoutType))
       .toEqual(['Easy Run', 'Rest']);
+  });
+});
+
+describe('heavyTrainingDates', () => {
+  it('flags a day with 8km+ of actual running as heavy', () => {
+    const result = heavyTrainingDates([{ date: '2026-08-17', runs: [{ km: 8.2, durationMin: 45 }] }]);
+    expect(result.has('2026-08-17')).toBe(true);
+  });
+
+  it('flags a day with 60+ total minutes across runs/walks/other as heavy, even with low distance', () => {
+    const result = heavyTrainingDates([{
+      date: '2026-08-17',
+      runs: [{ km: 3, durationMin: 25 }],
+      walks: [{ durationMin: 20 }],
+      other: [{ durationMin: 20 }],
+    }]);
+    expect(result.has('2026-08-17')).toBe(true);
+  });
+
+  it('does not flag a genuinely easy/short day', () => {
+    const result = heavyTrainingDates([{ date: '2026-08-17', runs: [{ km: 4, durationMin: 25 }] }]);
+    expect(result.has('2026-08-17')).toBe(false);
   });
 });
 

@@ -20,6 +20,13 @@ export type RacePlanRefreshOptions = {
   completedWorkoutDates?: string[];
   /** See applyStrengthPreferenceToUnlockedDays() below. */
   goalProfile?: UserGoalProfile | null;
+  /**
+   * Dates (YYYY-MM-DD) where the runner's ACTUAL logged training was heavy
+   * (>=8km run or >=60min total), regardless of what that day's plan said.
+   * Same threshold generate-race-plan/index.ts's buildFallbackPlan() already
+   * uses for recentHeavyDay. See applyStrengthPreferenceToUnlockedDays().
+   */
+  heavyTrainingDates?: Set<string>;
 };
 
 export function mergeRefreshedRacePlanWithOptions(previous: RacePlan, generated: RacePlan, today: string, options: RacePlanRefreshOptions = {}): RacePlan {
@@ -29,6 +36,8 @@ export function mergeRefreshedRacePlanWithOptions(previous: RacePlan, generated:
     mergeCurrentWeek(previous.weeklyPlan ?? [], generated.weeklyPlan ?? [], lockedDays),
     options.goalProfile ?? null,
     lockedDays,
+    today,
+    options.heavyTrainingDates ?? new Set(),
   );
   return {
     ...generated,
@@ -55,16 +64,34 @@ const SOFT_WORKOUT_PATTERN = /rest|recovery|easy/i;
  * preview, even after the server-side fix. Re-applies the same policy here,
  * restricted to genuinely open (unlocked) days only, so a mid-week refresh
  * doesn't silently drop the preference.
+ *
+ * The "not adjacent to a hard session" check also considers what the runner
+ * ACTUALLY logged (heavyTrainingDates), not just each neighbor day's
+ * planned workoutType label - a day planned as "Easy Run" that was actually
+ * run hard/long still shouldn't get Strength Training stacked next to it.
  */
-function applyStrengthPreferenceToUnlockedDays(weeklyPlan: WeekWorkout[], goalProfile: UserGoalProfile | null, lockedDays: Set<number> | null): WeekWorkout[] {
+function applyStrengthPreferenceToUnlockedDays(
+  weeklyPlan: WeekWorkout[],
+  goalProfile: UserGoalProfile | null,
+  lockedDays: Set<number> | null,
+  today: string,
+  heavyTrainingDates: Set<string>,
+): WeekWorkout[] {
   if (!hasBodyRecompositionGoal(goalProfile)) return weeklyPlan;
   if (weeklyPlan.some((item) => item.workoutType === 'Strength Training')) return weeklyPlan;
+  const isHardOrActuallyHeavy = (candidate: WeekWorkout | undefined): boolean => {
+    if (!candidate) return false;
+    if (HARD_WORKOUT_PATTERN.test(candidate.workoutType)) return true;
+    const date = dateForWeekday(today, weekdayIndex(candidate.day));
+    return date != null && heavyTrainingDates.has(date);
+  };
   const eligible = weeklyPlan
     .map((item, index) => ({ item, index }))
     .filter(({ item, index }) => !lockedDays?.has(weekdayIndex(item.day))
       && SOFT_WORKOUT_PATTERN.test(item.workoutType)
-      && !HARD_WORKOUT_PATTERN.test(weeklyPlan[index - 1]?.workoutType ?? '')
-      && !HARD_WORKOUT_PATTERN.test(weeklyPlan[index + 1]?.workoutType ?? ''))
+      && !isHardOrActuallyHeavy(item)
+      && !isHardOrActuallyHeavy(weeklyPlan[index - 1])
+      && !isHardOrActuallyHeavy(weeklyPlan[index + 1]))
     .map(({ index }) => index)
     .slice(0, 2);
   if (eligible.length === 0) return weeklyPlan;
@@ -79,6 +106,30 @@ function applyStrengthPreferenceToUnlockedDays(weeklyPlan: WeekWorkout[], goalPr
     purpose: 'ฝึกความแข็งแรงของกล้ามเนื้อขาและแกนกลางลำตัว เสริมความมั่นคงให้การวิ่ง',
     adjustment: 'หยุดหรือลดความหนักทันทีถ้ารู้สึกเจ็บหรือรู้สึกผิดปกติ',
   } : item));
+}
+
+type LoggedDaySummary = {
+  date: string;
+  runs: { km: number; durationMin: number }[];
+  walks?: { durationMin: number }[];
+  other?: { durationMin: number }[];
+};
+
+/**
+ * Same "heavy" threshold generate-race-plan/index.ts's buildFallbackPlan()
+ * already uses for recentHeavyDay (runKm>=8 or total durationMin>=60) -
+ * reused here so the client-side Strength Training placement and the
+ * server's own recent-load guardrail agree on what counts as heavy.
+ */
+export function heavyTrainingDates(workouts: LoggedDaySummary[]): Set<string> {
+  const dates = new Set<string>();
+  for (const day of workouts) {
+    const runKm = day.runs.reduce((sum, run) => sum + run.km, 0);
+    const durationMin = [...day.runs, ...(day.walks ?? []), ...(day.other ?? [])]
+      .reduce((sum, item) => sum + item.durationMin, 0);
+    if (runKm >= 8 || durationMin >= 60) dates.add(day.date.slice(0, 10));
+  }
+  return dates;
 }
 
 /**
@@ -200,6 +251,13 @@ function currentPlanWeek(planStartDate: string | null | undefined, today: string
   const current = startOfWeek(today);
   const difference = Math.round((Date.parse(`${current}T12:00:00Z`) - Date.parse(`${start}T12:00:00Z`)) / 86_400_000);
   return difference < 0 ? null : Math.floor(difference / 7) + 1;
+}
+
+function dateForWeekday(today: string, weekday: number): string | null {
+  if (weekday < 0) return null;
+  const start = new Date(`${startOfWeek(today)}T12:00:00Z`);
+  start.setUTCDate(start.getUTCDate() + weekday);
+  return start.toISOString().slice(0, 10);
 }
 
 function startOfWeek(dateKey: string): string {
