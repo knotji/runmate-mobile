@@ -26,37 +26,30 @@ const layouts: Record<PageDataSkeletonVariant, readonly SkeletonBlock[]> = {
 
 export function PageDataSkeleton({ variant, label }: PageDataSkeletonProps) {
   if (variant === 'recovery') {
+    // Mirrors Today's actual hierarchy (RecoveryPage.tsx): hero, 4-ring row,
+    // WHY card, action card - no big single ring, no "tonight" sleep-plan
+    // card (removed from Today; its entry point lives in Health now).
     return <section className="page-data-skeleton page-data-skeleton-recovery" role="status" aria-live="polite" aria-busy="true" aria-label={label}>
       <p className="page-data-skeleton-status recovery-skeleton-status"><span aria-hidden="true" />{label}</p>
       <div className="page-data-skeleton-block recovery-skeleton-hero" aria-hidden="true">
-        <div className="recovery-skeleton-readiness">
-          <i className="recovery-skeleton-ring recovery-skeleton-ring-large" />
-          <div className="recovery-skeleton-copy">
-            <i className="page-data-skeleton-kicker" />
-            <i className="page-data-skeleton-title" />
-            <i className="recovery-skeleton-line" />
-            <i className="recovery-skeleton-line is-short" />
-          </div>
-        </div>
-        <div className="recovery-skeleton-support">
-          <div><i className="recovery-skeleton-ring" /><i className="recovery-skeleton-label" /></div>
-          <div><i className="recovery-skeleton-ring is-strain" /><i className="recovery-skeleton-label" /></div>
-        </div>
-      </div>
-      <div className="page-data-skeleton-block recovery-skeleton-focus" aria-hidden="true">
-        <div className="recovery-skeleton-heading"><i className="page-data-skeleton-kicker" /><i className="recovery-skeleton-pill" /></div>
-        <i className="page-data-skeleton-title" />
-        <div className="recovery-skeleton-guidance"><i /><i /></div>
-        <i className="recovery-skeleton-footer" />
-      </div>
-      <div className="recovery-skeleton-tonight" aria-hidden="true">
         <i className="page-data-skeleton-kicker" />
         <i className="page-data-skeleton-title" />
-        <div className="page-data-skeleton-block recovery-skeleton-sleep-card">
-          <i className="recovery-skeleton-icon" />
-          <div><i className="recovery-skeleton-label" /><i className="recovery-skeleton-sleep-title" /><i className="recovery-skeleton-line" /></div>
-          <i className="recovery-skeleton-action" />
-        </div>
+        <i className="recovery-skeleton-line" />
+        <i className="recovery-skeleton-line is-short" />
+      </div>
+      <div className="page-data-skeleton-block recovery-skeleton-rings" aria-hidden="true">
+        {Array.from({ length: 4 }).map((_, ringIndex) => (
+          <div key={ringIndex}><i className="recovery-skeleton-ring" /><i className="recovery-skeleton-label" /></div>
+        ))}
+      </div>
+      <div className="page-data-skeleton-block recovery-skeleton-why" aria-hidden="true">
+        <i className="page-data-skeleton-kicker" />
+        <i className="page-data-skeleton-title" />
+      </div>
+      <div className="page-data-skeleton-block recovery-skeleton-action" aria-hidden="true">
+        <i className="page-data-skeleton-kicker" />
+        <i className="page-data-skeleton-title" />
+        <i className="recovery-skeleton-line" />
       </div>
     </section>;
   }
