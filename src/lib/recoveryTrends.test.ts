@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { LocalHistoryItem } from './localHistory';
 import { buildRecoveryTrend, recoveryTrendHistoryOptions } from './recoveryTrends';
+import { buildCoachContextFromData } from './context/buildCoachContextCore';
+import { buildRunMateRecoverySystem } from './recoverySystem';
+import { todayBangkokDateKey } from './date';
 
 function sleep(date: string, score: number, hrv: number, restingHR: number): LocalHistoryItem {
   return { id: `sleep-${date}`, type: 'sleep', createdAt: `${date}T00:00:00Z`, dateKey: date, data: { extracted: { sleepScore: score, sleepDuration: '7h 0m', timeInBedMinutes: 450, sleepStartTime: `${date}T16:00:00Z`, sleepEndTime: `${date}T23:00:00Z`, sleepStageMinutes: { rem: 80, light: 260, deep: 80 }, hrv, restingHR, avgRespiratoryRate: 15 } } };
@@ -175,5 +178,27 @@ describe('recovery trends', () => {
     expect(lowStrain).not.toBeNull();
     expect(highStrain).not.toBeNull();
     expect(lowStrain!).not.toBe(highStrain!);
+  });
+
+  it('scores today\'s point identically to the central Recovery engine, even when older sleep logging has gaps', () => {
+    // `buildCoachContextFromData` (the source of Today's engine input) bounds its
+    // personal baseline to the last 30 calendar days. If sleep logging has gaps,
+    // "the 30 most recent prior nights" can span far more than 30 calendar days —
+    // so the trend adapter must apply the same calendar-day bound, not a plain count.
+    const today = todayBangkokDateKey();
+    const shift = (days: number) => {
+      const value = new Date(`${today}T00:00:00Z`);
+      value.setUTCDate(value.getUTCDate() - days);
+      return value.toISOString().slice(0, 10);
+    };
+    const items: LocalHistoryItem[] = [sleep(today, 82, 70, 50)];
+    for (let day = 2; day <= 30; day += 2) items.push(sleep(shift(day), 82, 60, 55));
+    for (let day = 32; day <= 60; day += 2) items.push(sleep(shift(day), 82, 40, 70));
+
+    const context = buildCoachContextFromData({ items, profile: null, raceGoal: null, racePlan: null });
+    const todayRecovery = buildRunMateRecoverySystem(context);
+    const trend = buildRecoveryTrend(items, null, 1, context.todayDate);
+
+    expect(trend.points.at(-1)?.recovery).toBe(todayRecovery.overallScore);
   });
 });

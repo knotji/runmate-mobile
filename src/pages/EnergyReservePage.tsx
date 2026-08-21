@@ -71,8 +71,8 @@ const EnergyReservePage: React.FC = () => {
             <header className="energy-card-heading"><div><p>Transparent Estimate</p><h2>How Today Changed</h2></div><span><small>Remaining</small><strong>{energy.score ?? '—'}</strong></span></header>
             <div className="energy-breakdown" aria-label="Energy calculation breakdown">
               <Breakdown icon={partlySunnyOutline} label="Start" detail="Recovery" value={energy.startingRecovery == null ? '—' : `+${energy.startingRecovery}`} />
-              <button type="button" aria-label={`Recorded Strain used ${energy.strainDrain} points. Open Strain Detail.`} onClick={() => history.push('/strain')}><Breakdown icon={fitnessOutline} label="Used" detail="Strain" value={`−${energy.strainDrain}`} /></button>
-              <Breakdown icon={informationCircleOutline} label="Context" detail="Stress + Heat" value={`−${energy.contextDrain}`} />
+              <button type="button" aria-label={`Recorded Strain used ${energy.strainDrain} points. Open Strain Detail.`} onClick={() => history.push('/strain')}><Breakdown icon={fitnessOutline} label="Used" detail="Strain" value={formatDrain(energy.strainDrain)} /></button>
+              <Breakdown icon={informationCircleOutline} label="Context" detail="Stress + Heat" value={formatDrain(energy.contextDrain)} />
             </div>
             <p className={`energy-context-note ${energy.context.length ? 'has-context' : ''}`}>{energy.context.length ? energy.context.join(' · ') : 'No confirmed stress or heat drain today.'}</p>
           </section>}
@@ -89,6 +89,11 @@ const EnergyReservePage: React.FC = () => {
     </IonContent>
   </IonPage>;
 };
+
+// A genuine zero drain is meaningful ("nothing was used") and must read as "0",
+// never as "−0" — prefixing a bare minus sign onto a real zero looks like a
+// formatting glitch (or fabricated negative-zero) rather than an honest amount.
+function formatDrain(value: number): string { return value === 0 ? '0' : `−${value}`; }
 
 function Breakdown({ icon, label, detail, value }: { icon: string; label: string; detail: string; value: string }) {
   return <div className="energy-breakdown-item"><span><IonIcon icon={icon} /></span><strong>{value}</strong><small>{label}</small><em>{detail}</em></div>;

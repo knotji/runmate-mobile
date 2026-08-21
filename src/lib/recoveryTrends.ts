@@ -109,7 +109,13 @@ export function buildRecoveryTrend(
   for (let offset = 0; offset < days; offset++) {
     const date = shiftDate(startDate, offset);
     const night = scoredSleepByDate.get(date) ?? null;
-    const olderNights = scoredSleep.filter((candidate) => candidate.date < date).slice(0, 30);
+    // Bounded to the same 30-calendar-day window `sleepBaseline30d` uses for Today
+    // (date >= date-30, excluding the night itself), not merely "the 30 most recent
+    // prior nights" — with gaps in sleep logging those aren't the same set, and an
+    // unbounded lookback can pull in nights older than Today's engine would ever see,
+    // producing a different baseline (and therefore a different score) for the same date.
+    const baselineWindowStart = shiftDate(date, -30);
+    const olderNights = scoredSleep.filter((candidate) => candidate.date < date && candidate.date >= baselineWindowStart);
     const safety = {
       pain: derivePainSafetyState(painItems, date),
       sick: deriveSickSafetyState(sickItems, date),

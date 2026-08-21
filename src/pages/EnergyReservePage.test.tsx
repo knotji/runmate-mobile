@@ -83,6 +83,22 @@ describe('EnergyReservePage', () => {
     expect(screen.getByLabelText(/Recorded Strain used/)).toBeInTheDocument();
   });
 
+  it('shows a genuine zero drain as "0", never as a fabricated-looking "−0"', () => {
+    mockedSharedContext = context(recovery({
+      scoreState: 'scored',
+      dataFreshness: { status: 'today', latestSleepDate: '2026-08-21', ageDays: 0 },
+      overallScore: 82,
+      strain: { score: 0, scaleMax: 21, level: 'light', label: '', summary: '', estimated: false, reasons: [], weeklyTrend: { sessions: 0, distanceKm: 0 } },
+    }));
+    const { container } = render(<IonApp><MemoryRouter><EnergyReservePage /></MemoryRouter></IonApp>);
+
+    expect(screen.getByText('How Today Changed')).toBeInTheDocument();
+    expect(screen.queryByText(/−0/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/-0/)).not.toBeInTheDocument();
+    const values = Array.from(container.querySelectorAll('.energy-breakdown-item strong')).map((node) => node.textContent);
+    expect(values).toEqual(['+82', '0', '0']);
+  });
+
   it('surfaces a failed pull-to-refresh instead of silently keeping the stale view with zero feedback', async () => {
     mockedSharedContext = context(recovery({
       scoreState: 'scored',
