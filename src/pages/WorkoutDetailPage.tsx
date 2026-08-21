@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory, useParams } from 'react-router-dom';
 import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar } from '@ionic/react';
 import {
@@ -59,7 +59,15 @@ const WorkoutDetailPage: React.FC = () => {
   useEffect(() => { void load(); }, [load]);
 
   const [showShareModal, setShowShareModal] = useState(false);
-  const detail = item ? buildWorkoutDetail(item, { maxHr: profile?.maxHr, restingHr }) : null;
+  // buildWorkoutDetail runs calculateHeartRateZones over this workout's full
+  // HR sample timeline (potentially thousands of points for a long run).
+  // Without memoizing, that recomputes on every render, including ones
+  // triggered by state that has nothing to do with the workout itself, like
+  // opening/closing the Share modal.
+  const detail = useMemo(
+    () => item ? buildWorkoutDetail(item, { maxHr: profile?.maxHr, restingHr }) : null,
+    [item, profile?.maxHr, restingHr],
+  );
 
   const getSportType = (): 'running' | 'walking' | 'cycling' | 'strength' | 'swimming' | 'workout' => {
     if (detail?.isStrength) return 'strength';

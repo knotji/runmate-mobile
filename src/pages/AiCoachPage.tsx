@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { IonAlert, IonContent, IonFooter, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
 import { arrowBackOutline, arrowDownOutline, checkmarkCircleOutline, chevronDownOutline, chevronUpOutline, sendOutline, sparklesOutline, trashOutline, warningOutline } from 'ionicons/icons';
@@ -26,6 +26,7 @@ import {
 } from '@/lib/aiCoachChatHistory';
 import { todayBangkokDateKey } from '@/lib/date';
 import { loadCoachDraft, saveCoachDraft } from '@/lib/primaryTabState';
+import { formatCoachMessage } from '@/lib/coachMessageFormatting';
 import './AiCoachPage.css';
 
 type ChatMessage = AiCoachStoredMessage;
@@ -153,13 +154,23 @@ const AiCoachPage: React.FC = () => {
     }
   }, [asking, coachOrigin, messages, requestContext]);
 
+  // Entry points on Today/Health/Move seed Coach with a relevant topic
+  // (e.g. the sparkle "Ask Coach" button) — this must only stage context,
+  // never fire the question itself. Auto-sending here would mean an AI
+  // answer starts generating before the user has seen or confirmed
+  // anything, violating the product rule that Coach opens with context but
+  // never automatically sends a question. Instead: open the context drawer
+  // and, if the input is empty, pre-fill it with the topic's question so
+  // one explicit tap (Send, or the same topic chip) completes it.
   useEffect(() => {
     const initialTopic = location.state?.initialTopic;
-    if (!initialTopic || initialTopicHandledRef.current || !requestContext || asking) return;
+    if (!initialTopic || initialTopicHandledRef.current || !requestContext) return;
     initialTopicHandledRef.current = true;
     history.replace(location.pathname, location.state?.from ? { from: location.state.from } : undefined);
-    void askTopic(initialTopic);
-  }, [askTopic, asking, history, location.pathname, location.state, requestContext]);
+    setShowContextDrawer(true);
+    const topicInfo = AI_COACH_TOPICS.find((topic) => topic.id === initialTopic);
+    if (topicInfo) setInputQuery((current) => (current.trim() ? current : topicInfo.title));
+  }, [history, location.pathname, location.state, requestContext]);
 
   const submitQuestion = useCallback(async (question: string) => {
     const trimmed = question.trim();
@@ -345,11 +356,18 @@ const AiCoachPage: React.FC = () => {
   </IonPage>;
 };
 
-function CoachAnswer({ answer, timestamp, onFollowUp }: { answer: AiCoachAnswer; timestamp: string; onFollowUp: (question: string) => void }) {
+export function CoachAnswer({ answer, timestamp, onFollowUp }: { answer: AiCoachAnswer; timestamp: string; onFollowUp: (question: string) => void }) {
+  // AiCoachPage re-renders on every keystroke in the chat input (inputQuery
+  // state) and on every scroll-position update, which re-renders every
+  // already-sent message in the conversation, not just the one being typed.
+  // formatCoachMessage re-parses the full Markdown-lite response (now often
+  // multi-paragraph, per the "longer, more detailed answers" change) on each
+  // of those unrelated renders unless the parsed result is cached per message.
+  const formattedMessage = useMemo(() => formatCoachMessage(answer.message), [answer.message]);
   return <article className="ai-coach-assistant-message" aria-live="polite">
     <div className="ai-coach-assistant-mark" aria-hidden="true"><IonIcon icon={sparklesOutline} /></div>
     <div className="ai-coach-assistant-body">
-      <div className="ai-coach-conversation-text">{formatCoachMessage(answer.message)}</div>
+      <div className="ai-coach-conversation-text">{formattedMessage}</div>
       {answer.caution && <div className="ai-coach-chat-caution"><IonIcon icon={warningOutline} /><span>{answer.caution}</span></div>}
       {answer.missingData.length > 0 && <details className="ai-coach-chat-missing">
         <summary>ข้อมูลที่ยังไม่มี ({answer.missingData.length})</summary>
@@ -361,52 +379,6 @@ function CoachAnswer({ answer, timestamp, onFollowUp }: { answer: AiCoachAnswer;
       <time>{timestamp}</time>
     </div>
   </article>;
-}
-
-// Renders the light Markdown the prompt asks for (**bold**, "- " bullet
-// lines, blank-line-separated paragraphs) without pulling in a Markdown
-// library — the model only ever produces this small, fixed subset. A line
-// scanner rather than a blank-line block split, since a bullet list is
-// often introduced by a line directly above it with no blank line between
-// ("สิ่งที่ควรทำวันนี้:\n- ...") — a block-level split would keep that intro
-// line and its bullets in one paragraph-shaped block and miss the list.
-function formatCoachMessage(message: string): React.ReactNode {
-  const nodes: React.ReactNode[] = [];
-  let paragraphLines: string[] = [];
-  let listItems: string[] = [];
-  let key = 0;
-
-  const flushParagraph = () => {
-    if (paragraphLines.length === 0) return;
-    nodes.push(<p className="ai-coach-message-paragraph" key={key++}>
-      {paragraphLines.map((line, index) => <Fragment key={index}>{index > 0 && <br />}{formatInlineBold(line)}</Fragment>)}
-    </p>);
-    paragraphLines = [];
-  };
-  const flushList = () => {
-    if (listItems.length === 0) return;
-    nodes.push(<ul className="ai-coach-message-list" key={key++}>
-      {listItems.map((item, index) => <li key={index}>{formatInlineBold(item)}</li>)}
-    </ul>);
-    listItems = [];
-  };
-
-  for (const rawLine of message.split('\n')) {
-    const line = rawLine.trim();
-    if (!line) { flushParagraph(); flushList(); continue; }
-    const bullet = /^[-•]\s+(.*)$/.exec(line);
-    if (bullet) { flushParagraph(); listItems.push(bullet[1]); }
-    else { flushList(); paragraphLines.push(line); }
-  }
-  flushParagraph();
-  flushList();
-  return nodes;
-}
-
-function formatInlineBold(text: string): React.ReactNode {
-  return text.split(/(\*\*[^*]+\*\*)/g).map((part, index) => part.startsWith('**') && part.endsWith('**')
-    ? <strong key={index}>{part.slice(2, -2)}</strong>
-    : <Fragment key={index}>{part}</Fragment>);
 }
 
 function conversationFromMessages(messages: ChatMessage[]): AiCoachChatTurn[] {

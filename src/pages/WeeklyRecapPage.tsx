@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonContent, IonHeader, IonIcon, IonPage, IonRefresher, IonRefresherContent, IonSpinner, IonTitle, IonToolbar, type RefresherEventDetail } from '@ionic/react';
 import { arrowBackOutline, chevronBackOutline, chevronForwardOutline, shareSocialOutline } from 'ionicons/icons';
@@ -38,14 +38,14 @@ const WeeklyRecapPage: React.FC = () => {
   const visibleContext = context ?? startupContext;
   const [startupHistory] = useState(() => loadWeeklySummaryHistorySnapshot());
   const [period, setPeriod] = useState<RecapPeriod>('week');
+  const [requestedPeriod, setRequestedPeriod] = useState<RecapPeriod>('week');
   const [offset, setOffset] = useState(0);
   const [items, setItems] = useState<LocalHistoryItem[]>(startupHistory ?? []);
   const [racePlan, setRacePlan] = useState<RacePlan | null>(() => visibleContext?.racePlan as RacePlan | null ?? null);
   const [profile, setProfile] = useState(() => visibleContext?.profile ?? null);
   const [dataReady, setDataReady] = useState(startupHistory !== null && visibleContext !== null);
   const [shareOpen, setShareOpen] = useState(false);
-  const [periodChanging, setPeriodChanging] = useState(false);
-  const periodMounted = useRef(false);
+  const [periodChanging, startPeriodTransition] = useTransition();
   const todayDate = visibleContext?.todayDate ?? todayBangkokDateKey();
 
   const { loading, error, reload: load } = useAsyncLoad(async (force) => {
@@ -64,15 +64,6 @@ const WeeklyRecapPage: React.FC = () => {
     if (profileResult) setProfile(profileResult.ok ? profileResult.profile ?? null : null);
     setDataReady(true);
   }, 'Could Not Load Your Recap.');
-
-  useEffect(() => {
-    if (!periodMounted.current) {
-      periodMounted.current = true;
-      return;
-    }
-    const timer = window.setTimeout(() => setPeriodChanging(false), 220);
-    return () => window.clearTimeout(timer);
-  }, [period, offset]);
 
   const highlights = useMemo<WeeklyRecapHighlights | null>(() => {
     if (!dataReady) return null;
@@ -96,15 +87,16 @@ const WeeklyRecapPage: React.FC = () => {
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(true); event.detail.complete(); };
 
   const changePeriod = (next: RecapPeriod) => {
-    if (next === period) return;
-    setPeriodChanging(true);
-    setPeriod(next);
-    setOffset(0);
+    if (next === requestedPeriod) return;
+    setRequestedPeriod(next);
+    startPeriodTransition(() => {
+      setPeriod(next);
+      setOffset(0);
+    });
   };
   const movePeriod = (nextOffset: number) => {
     if (nextOffset === offset) return;
-    setPeriodChanging(true);
-    setOffset(nextOffset);
+    startPeriodTransition(() => setOffset(nextOffset));
   };
 
   return (
@@ -119,8 +111,8 @@ const WeeklyRecapPage: React.FC = () => {
         <IonRefresher slot="fixed" onIonRefresh={refresh}><IonRefresherContent pullingText="Pull to refresh" refreshingText="Refreshing…" /></IonRefresher>
         <main className="recap-shell">
           <div className="recap-period-toggle" role="group" aria-label="Recap period">
-            <button type="button" className={period === 'week' ? 'active' : ''} aria-pressed={period === 'week'} onClick={() => changePeriod('week')}>Week</button>
-            <button type="button" className={period === 'month' ? 'active' : ''} aria-pressed={period === 'month'} onClick={() => changePeriod('month')}>Month</button>
+            <button type="button" className={requestedPeriod === 'week' ? 'active' : ''} aria-pressed={requestedPeriod === 'week'} onClick={() => changePeriod('week')}>Week</button>
+            <button type="button" className={requestedPeriod === 'month' ? 'active' : ''} aria-pressed={requestedPeriod === 'month'} onClick={() => changePeriod('month')}>Month</button>
           </div>
 
           <nav className="recap-period-nav" aria-label={`Choose ${period}`}>
@@ -133,7 +125,7 @@ const WeeklyRecapPage: React.FC = () => {
             </button>
           </nav>
           <div className={`recap-period-loading${periodChanging ? ' visible' : ''}`} role="status" aria-live="polite">
-            {periodChanging && <><IonSpinner name="crescent" /><span>Updating {period === 'week' ? 'Week' : 'Month'}</span></>}
+            {periodChanging && <><IonSpinner name="crescent" /><span>Updating {requestedPeriod === 'week' ? 'Week' : 'Month'}</span></>}
           </div>
 
           {loading && !dataReady && <PageDataSkeleton variant="summary" label="Building Your Recap" />}
