@@ -22,6 +22,15 @@
 .sleep-inline-current:disabled { opacity: .5; cursor: wait; }
 .sleep-date-modal { --width: min(84vw, 330px); --height: auto; --border-radius: 20px; }
 .sleep-date-modal ion-datetime { width: 100%; max-width: 330px; margin: 0 auto; --background: #fff; }
+.sleep-plan-link { width: 100%; margin-bottom: 18px; display: grid; grid-template-columns: 36px 1fr 20px; align-items: center; gap: 12px; padding: 13px 14px; border: 1px solid #c6e1f6; border-radius: 16px; background: linear-gradient(135deg, #edf7ff, #f7fbff); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.sleep-plan-link:focus-visible { outline: 2px solid #2a89b8; outline-offset: 2px; }
+.sleep-plan-link-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; color: #27879a; background: #eaf7f6; }
+.sleep-plan-link-icon ion-icon { width: 18px; height: 18px; }
+.sleep-plan-link-copy { min-width: 0; display: grid; gap: 1px; }
+.sleep-plan-link-copy small { color: #748995; font-size: 9px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.sleep-plan-link-copy strong { color: #183451; font-size: 14px; font-weight: 750; }
+.sleep-plan-link-chevron { color: #43889a; }
+
 .freshness-card { margin-bottom: 26px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 18px; border: 1px solid #cde6f4; border-radius: 18px; background: linear-gradient(145deg, #edf8ff, #f9fcff); }
 .freshness-card-copy { min-width: 0; }
 .freshness-card p, .sleep-detail-section header p { margin: 0 0 6px; color: #2474b2; font-size: 9px; font-weight: 850; letter-spacing: .05em; }

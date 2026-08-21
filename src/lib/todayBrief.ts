@@ -1,6 +1,7 @@
 import type { CoachContext, MealContextSummary, WeekSleepRow } from '@/lib/buildCoachContext';
 import type { AdaptiveTrainingRecommendation } from '@/lib/adaptiveTrainingPlan';
-import type { DailyRecommendationAction } from '@/lib/dailyRecommendation';
+import { describePlannedWorkout, type DailyRecommendationAction } from '@/lib/dailyRecommendation';
+import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
 import type { WeekWorkout } from '@/types/race';
 import type { TodayTrainingPlanStatus } from '@/lib/todayTrainingPlan';
 
@@ -10,8 +11,11 @@ export type TodayBriefItem = {
   summary: string;
 };
 
+export type TodayReadinessStatus = 'ready' | 'steady' | 'reduce' | 'recover';
+export type TodayReadiness = TodayBriefItem & { status: TodayReadinessStatus };
+
 export type TodayBrief = {
-  readiness: TodayBriefItem;
+  readiness: TodayReadiness;
   limiter: TodayBriefItem;
   action: TodayBriefItem;
   evidence: TodayBriefItem[];
@@ -40,17 +44,25 @@ export function buildTodayBrief(context: CoachContext, options: BriefOptions): T
   const latest = context.sleep7d?.[0] ?? context.sleepHistory?.[0] ?? null;
   const baseline = (context.sleepBaseline30d ?? []).filter((night) => night.date !== latest?.date);
   const caffeine = latestCaffeine(context.mealsToday ?? []);
-  const readiness = readinessItem(context, options.dailyAction ?? null);
+  const readiness = buildTodayReadiness(context.recoverySystem, options.dailyAction ?? null);
   const limiter = limiterItem(context, latest, baseline);
   const action = actionItem(context, options, caffeine, limiter);
   const evidence = evidenceItems(context, latest, baseline, caffeine);
   return { readiness, limiter, action, evidence };
 }
 
-function readinessItem(context: CoachContext, dailyAction: DailyRecommendationAction | null): TodayBriefItem {
-  const recovery = context.recoverySystem;
+/**
+ * Takes RunMateRecoverySystem directly (not the full CoachContext) so the
+ * Today hero card can render this as soon as Recovery is ready, before the
+ * rest of CoachContext (sleep7d, meals, etc. - needed by limiter/action/
+ * evidence below) has finished loading. dailyAction is still optional/null
+ * during that same early window; it sharpens the same thresholds once the
+ * daily recommendation resolves, it never changes them.
+ */
+export function buildTodayReadiness(recovery: RunMateRecoverySystem, dailyAction: DailyRecommendationAction | null): TodayReadiness {
   if (recovery.scoreState === 'stale' || recovery.scoreState === 'unscorable' || recovery.scoreState === 'pending') {
     return {
+      status: 'steady',
       eyebrow: 'Body Readiness',
       title: 'Waiting For Fresh Sleep Data',
       summary: 'Use the saved plan cautiously until the latest overnight record is available.',
@@ -58,6 +70,7 @@ function readinessItem(context: CoachContext, dailyAction: DailyRecommendationAc
   }
   if (recovery.scoreState === 'calibrating') {
     return {
+      status: 'steady',
       eyebrow: 'Body Readiness',
       title: 'Recovery Is Still Calibrating',
       summary: 'Use today as early guidance while WholeMate builds your personal baseline.',
@@ -65,6 +78,7 @@ function readinessItem(context: CoachContext, dailyAction: DailyRecommendationAc
   }
   if (dailyAction === 'recover') {
     return {
+      status: 'recover',
       eyebrow: 'Body Readiness',
       title: 'Recovery Comes First',
       summary: 'Your current signals favor recovery over demanding training.',
@@ -72,6 +86,7 @@ function readinessItem(context: CoachContext, dailyAction: DailyRecommendationAc
   }
   if (dailyAction === 'reduce') {
     return {
+      status: 'reduce',
       eyebrow: 'Body Readiness',
       title: 'Keep Today Controlled',
       summary: 'You can stay active, but today is better suited to controlled effort.',
@@ -79,6 +94,7 @@ function readinessItem(context: CoachContext, dailyAction: DailyRecommendationAc
   }
   if (dailyAction === 'push') {
     return {
+      status: 'ready',
       eyebrow: 'Body Readiness',
       title: 'Ready To Push Today',
       summary: 'Your current signals support a strong training day.',
@@ -86,16 +102,18 @@ function readinessItem(context: CoachContext, dailyAction: DailyRecommendationAc
   }
   if (dailyAction === 'normal') {
     return {
+      status: 'steady',
       eyebrow: 'Body Readiness',
       title: 'Ready For A Normal Day',
       summary: 'Your current recovery signals support a normal day without adding extra load.',
     };
   }
   // dailyAction unavailable (e.g. the daily recommendation itself reports
-  // insufficient_data for a reason readinessItem's own state checks above don't
-  // cover) — fall back to the composite score alone rather than showing nothing.
+  // insufficient_data for a reason the state checks above don't cover) —
+  // fall back to the composite score alone rather than showing nothing.
   if (recovery.overallScore >= 67) {
     return {
+      status: 'steady',
       eyebrow: 'Body Readiness',
       title: 'Ready For A Normal Day',
       summary: 'Your current recovery signals support a normal day without adding extra load.',
@@ -103,12 +121,14 @@ function readinessItem(context: CoachContext, dailyAction: DailyRecommendationAc
   }
   if (recovery.overallScore >= 34) {
     return {
+      status: 'reduce',
       eyebrow: 'Body Readiness',
       title: 'Keep Today Controlled',
       summary: 'You can stay active, but today is better suited to controlled effort.',
     };
   }
   return {
+    status: 'recover',
     eyebrow: 'Body Readiness',
     title: 'Recovery Comes First',
     summary: 'Your current signals favor recovery over demanding training.',
@@ -242,10 +262,23 @@ function actionItem(
   }
 
   if (options.planned) {
+    // By this point recommendation is either absent or action === 'keep' (a
+    // non-'keep' recommendation already returned above) - its own headline
+    // for 'keep' is always the same generic "Keep The Original Plan" text
+    // (adaptiveTrainingPlan.ts), so it's deliberately not used here.
+    // describePlannedWorkout() (dailyRecommendation.ts) only formats fields
+    // WeekWorkout already has (workoutType/distanceKm/durationMin) - never a
+    // new number - so "keep the plan" states the actual concrete session
+    // ("Easy Run · 5 km · 40 min") instead of a generic instruction with the
+    // details hidden in a collapsed accordion.
+    const planDetail = describePlannedWorkout(options.planned);
+    const isRest = planDetail === 'Rest Day';
     return {
       eyebrow: 'One Adjustment',
-      title: recommendation?.headline ?? 'Keep The Original Plan',
-      summary: recommendation?.summary ?? `Complete ${options.planned.workoutType} as written, without adding extra distance or intensity.`,
+      title: planDetail ?? 'Keep The Original Plan',
+      summary: isRest
+        ? 'Today is a scheduled rest day — no training planned.'
+        : `Complete ${planDetail} as written, without adding extra distance or intensity.`,
     };
   }
 

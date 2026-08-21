@@ -29,7 +29,7 @@ export function renderShareComposition(canvas: HTMLCanvasElement, composition: S
   const palette = makePalette(composition.accent, options.treatment);
   if (options.background === 'soft') drawSoftBackground(ctx, palette, options.treatment);
   if (composition.kind === 'recovery') {
-    drawCompactRecovery(ctx, palette, composition, options.layout);
+    drawCompactRecovery(ctx, palette, composition);
     return;
   }
   drawBodyFlow(ctx, palette, composition.flow, options.layout);
@@ -39,39 +39,43 @@ export function renderShareComposition(canvas: HTMLCanvasElement, composition: S
   drawBrand(ctx, palette);
 }
 
-function drawCompactRecovery(ctx: CanvasRenderingContext2D, palette: Palette, data: ShareComposition, layout: ShareLayout) {
+/**
+ * Ultra-minimal Recovery share: no card panel, no supporting metrics, no
+ * explanation text - just one ring, the score, a small "Recovery" label, and
+ * an optional tiny date/brand mark. Deliberately not the full Today card
+ * treatment (drawBodyFlow/drawStack/etc. below) so it stays legible when
+ * overlaid on a photo or an Instagram Story background.
+ */
+function drawCompactRecovery(ctx: CanvasRenderingContext2D, palette: Palette, data: ShareComposition) {
   const heroScore = data.hero ? Number(data.hero.value) : null;
-  const width = layout === 'minimal' ? 690 : layout === 'stack' ? 790 : 850;
-  const height = layout === 'minimal' ? 430 : 500;
-  const left = (STORY_WIDTH - width) / 2;
-  const top = layout === 'stack' ? 1040 : 1110;
-  const centerY = top + height / 2;
-  surface(ctx, left, top, width, height, 58, palette.surfaceStrong);
+  const centerX = STORY_WIDTH / 2;
+  const centerY = 900;
+  const radius = 200;
 
-  const ringX = layout === 'minimal' ? left + 184 : left + 190;
-  const ringY = centerY - 18;
-  const radius = layout === 'minimal' ? 116 : 126;
-  drawScoreRing(ctx, ringX, ringY, radius, heroScore, palette);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = palette.accent;
+  ctx.font = `800 30px ${FONT}`;
+  ctx.fillText((data.hero?.label ?? 'Recovery').toUpperCase(), centerX, centerY - radius - 54);
 
-  const contentX = ringX + radius + 58;
-  label(ctx, 'Recovery', contentX, top + 98, palette.accent);
-  fitted(ctx, data.title, contentX, top + 166, width - (contentX - left) - 42, 54, palette.ink, 720);
+  drawScoreRing(ctx, centerX, centerY, radius, heroScore, palette, 18);
 
-  const supporting = data.metrics.filter((metric) => metric.key === 'sleep' || metric.key === 'strain').slice(0, 2);
-  supporting.forEach((metric, index) => {
-    const x = contentX + index * 142;
-    const y = top + 282;
-    drawMiniScoreRing(ctx, x + 36, y, 34, Number(metric.value), metric.value, metric.key === 'strain' ? 21 : 100, palette, metric.key === 'strain' ? '#e7a426' : '#55a9ea');
-    small(ctx, metric.label, x + 78, y + 7, palette.muted);
-  });
-
-  if (data.meta) small(ctx, data.meta, contentX, top + height - 52, palette.faint);
-  drawBrandLockup(ctx, left + width - 38, top + height - 48, 20, palette.ink, palette.accent);
+  let metaY = centerY + radius + 74;
+  if (data.meta) {
+    ctx.textAlign = 'center';
+    ctx.fillStyle = palette.faint;
+    ctx.font = `600 24px ${FONT}`;
+    ctx.fillText(data.meta, centerX, metaY);
+    metaY += 44;
+  }
+  ctx.textAlign = 'center';
+  ctx.fillStyle = palette.muted;
+  ctx.font = `800 18px ${FONT}`;
+  ctx.fillText('WHOLEMATE', centerX, metaY);
 }
 
-function drawScoreRing(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, score: number | null, palette: Palette) {
+function drawScoreRing(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, score: number | null, palette: Palette, lineWidth = 16) {
   ctx.save();
-  ctx.lineWidth = 16;
+  ctx.lineWidth = lineWidth;
   ctx.lineCap = 'round';
   ctx.strokeStyle = palette.line;
   ctx.beginPath();
@@ -83,36 +87,16 @@ function drawScoreRing(ctx: CanvasRenderingContext2D, x: number, y: number, radi
     ctx.arc(x, y, radius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, Math.min(100, score)) / 100);
     ctx.stroke();
   }
+  const numeralSize = Math.round(radius * 0.65);
   ctx.textAlign = 'center';
   ctx.fillStyle = palette.ink;
-  ctx.font = `750 82px ${FONT}`;
+  ctx.font = `750 ${numeralSize}px ${FONT}`;
   if (score != null && Number.isFinite(score)) {
-    ctx.fillText(`${Math.round(score)}`, x, y + 25);
+    ctx.fillText(`${Math.round(score)}`, x, y + numeralSize * 0.3);
     ctx.fillStyle = palette.faint;
-    ctx.font = `650 18px ${FONT}`;
-    ctx.fillText('/100', x, y + 58);
+    ctx.font = `650 ${Math.round(numeralSize * 0.22)}px ${FONT}`;
+    ctx.fillText('/100', x, y + numeralSize * 0.68);
   }
-  ctx.restore();
-}
-
-function drawMiniScoreRing(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, value: number, displayValue: string, maximum: number, palette: Palette, accent: string) {
-  ctx.save();
-  ctx.lineWidth = 7;
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = palette.line;
-  ctx.beginPath();
-  ctx.arc(x, y, radius, 0, Math.PI * 2);
-  ctx.stroke();
-  if (Number.isFinite(value)) {
-    ctx.strokeStyle = accent;
-    ctx.beginPath();
-    ctx.arc(x, y, radius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, Math.min(maximum, value)) / maximum);
-    ctx.stroke();
-  }
-  ctx.textAlign = 'center';
-  ctx.fillStyle = palette.ink;
-  ctx.font = `700 24px ${FONT}`;
-  if (Number.isFinite(value)) ctx.fillText(displayValue, x, y + 8);
   ctx.restore();
 }
 

@@ -83,6 +83,49 @@
   gap: 10px;
 }
 
+/* "Recovery Why" — factor lines under the score/support-metrics row. Only
+   ever rendered when RecoveryDials receives a ready why prop; no separate
+   empty/loading state markup exists here on purpose. */
+.recovery-why-list {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 14px 0 0;
+  border-top: 1px solid #e7edec;
+  list-style: none;
+}
+.recovery-why-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #55677f;
+}
+.recovery-why-mark {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  border-radius: 5px;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 800;
+}
+.recovery-why-item.is-up .recovery-why-mark { color: #2f8f76; background: #e7f3ef; }
+.recovery-why-item.is-down .recovery-why-mark { color: #b0596b; background: #f8ebee; }
+.recovery-why-item.is-unavailable .recovery-why-mark { color: #8794a6; background: #eef2f7; }
+.recovery-why-item.is-unavailable { color: #8794a6; }
+
+/* "Yesterday → Today" continuity card — reuses .loop-card as-is, just a
+   tone modifier for the icon chip (matches .loop-card ion-icon's existing
+   pattern, e.g. .loop-card.primary-loop). */
+.continuity-card.is-up ion-icon { color: #2f8f76; background: #e7f3ef; }
+.continuity-card.is-down ion-icon { color: #b9812f; background: #faf1e0; }
+.continuity-card.is-gap ion-icon { color: #8794a6; background: #eef2f7; }
+.continuity-card span { color: #71849a; }
+
 .recovery-waiting-message {
   display: flex;
   justify-content: center;
@@ -698,6 +741,164 @@ button.recovery-inline-freshness:focus-visible {
   .recovery-score-stage .dial-ring { width: 108px; }
   .recovery-score-stage .dial-center strong { font-size: 39px; }
   .recovery-hero-copy > strong { font-size: 23px; }
+}
+
+/* ===== Frozen-labs Today hierarchy: hero / rings row / why / action ===== */
+/* Shared vertical rhythm — every top-level Today card ends at the same gap
+   so sections read as one deliberate sequence, not stacked cards. */
+.today-hero,
+.today-rings-card,
+.today-why-card,
+.loop-section,
+.today-action-card { margin: 0 0 14px; }
+.today-action-card { margin-bottom: 28px; }
+
+.dial-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+/* Level 1 — body status hero */
+.today-hero {
+  position: relative;
+  padding: 19px 22px 18px;
+  border-radius: 26px;
+  color: #fff;
+  overflow: hidden;
+  box-shadow: 0 16px 32px rgba(21, 60, 79, .19);
+}
+.today-hero-ready { background: linear-gradient(145deg, #155f79 0%, #1c839b 52%, #239db0 100%); }
+.today-hero-steady { background: linear-gradient(145deg, #172c49 0%, #1c4a63 55%, #1c839b 120%); }
+.today-hero-reduce { background: linear-gradient(145deg, #172c49 0%, #3a5170 55%, #8a6a45 130%); }
+.today-hero-recover { background: linear-gradient(145deg, #172c49 0%, #4a3f52 60%, #7a4a54 130%); }
+.today-hero-eyebrow { display: block; color: rgba(255, 255, 255, .7); font-size: 10px; font-weight: 850; letter-spacing: .13em; text-transform: uppercase; }
+.today-hero-title { margin: 7px 0 6px; font-size: 22px; line-height: 1.24; font-weight: 760; letter-spacing: -.02em; text-wrap: balance; }
+.today-hero-summary { margin: 0; max-width: 30ch; color: rgba(255, 255, 255, .8); font-size: 12.5px; line-height: 1.5; }
+.today-hero-freshness {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 11px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, .64);
+  font: inherit;
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: .01em;
+}
+.today-hero-freshness.is-stale { color: #ffd9a0; cursor: pointer; }
+
+/* Level 1b — the scannable 4-ring row (Recovery / Sleep / Strain / Energy) */
+.today-rings-card {
+  border: 1px solid rgba(25, 55, 76, .07);
+  border-radius: 24px;
+  background: radial-gradient(circle at 15% 0%, rgba(100, 203, 192, .1), transparent 38%), linear-gradient(145deg, #fcfdfd, #f7faf9);
+  box-shadow: 0 12px 28px rgba(35, 61, 76, .07);
+}
+.today-rings-card ion-card-content { padding: 20px 10px 18px; }
+.today-rings-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; gap: 2px; }
+.today-rings-row .metric-dial { gap: 9px; }
+.today-rings-row .dial-label { color: #56707c; font-size: 9.5px; font-weight: 800; letter-spacing: .035em; }
+.today-rings-row .dial-ring {
+  width: min(19vw, 76px);
+  padding: 5px;
+  filter: none;
+  box-shadow: 0 1px 2px rgba(18, 51, 72, .05);
+}
+.today-rings-row .dial-ring-ready { transition: --dial-progress 620ms cubic-bezier(.25, .75, .25, 1); }
+.today-rings-row .dial-center {
+  background: #fdfefe;
+  box-shadow: inset 0 0 0 1px rgba(25, 73, 72, .05), inset 0 1px 2px rgba(255, 255, 255, .8);
+}
+.today-rings-row .dial-loaded-value { display: flex; flex-direction: column; align-items: center; line-height: 1; }
+.today-rings-row .dial-center strong { color: #10202f; font-size: 17px; font-weight: 720; letter-spacing: -.03em; }
+.today-rings-row .dial-center small { margin-top: 2px; color: #93a4ac; font-size: 7px; font-weight: 700; letter-spacing: .02em; }
+/* Sleep shows a duration string ("6h 40m") instead of a two-digit score -
+   scaled down so it never crowds the ring's inner circle. */
+.today-rings-row .dial-sleep .dial-loaded-value strong { font-size: 12.5px; letter-spacing: -.01em; }
+.today-rings-row .dial-recovery .dial-ring-ready { background: conic-gradient(#1c839b var(--dial-progress), #e9eef0 0); }
+.today-rings-row .dial-sleep .dial-ring-ready { background: conic-gradient(#6b9fd0 var(--dial-progress), #e9eef0 0); }
+.today-rings-row .dial-strain .dial-ring-ready { background: conic-gradient(#d3a44f var(--dial-progress), #e9eef0 0); }
+.today-rings-row .dial-energy .dial-ring-ready { background: conic-gradient(#2ba995 var(--dial-progress), #e9eef0 0); }
+
+/* Level 2 — WHY card, expandable */
+.today-why-card {
+  display: block;
+  width: 100%;
+  padding: 15px 17px;
+  border: 1px solid rgba(210, 223, 236, .9);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .92);
+  box-shadow: 0 8px 20px rgba(46, 77, 111, .045);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.today-why-card:focus-visible { outline: 2px solid #2a89b8; outline-offset: 2px; }
+.today-why-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.today-why-eyebrow { color: #2474b2; font-size: 10px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase; }
+.today-why-chevron { flex: none; color: #97a9bb; font-size: 15px; transition: transform 200ms ease; }
+.today-why-card.open .today-why-chevron { transform: rotate(90deg); }
+.today-why-title { margin: 7px 0 0; color: #172e4a; font-size: 16.5px; font-weight: 720; line-height: 1.34; letter-spacing: -.01em; text-wrap: balance; }
+.today-why-detail-wrap { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 220ms ease; }
+.today-why-card.open .today-why-detail-wrap { grid-template-rows: 1fr; }
+.today-why-detail-inner { overflow: hidden; }
+.today-why-detail { margin: 0; max-width: 40ch; color: #60758c; font-size: 12.5px; line-height: 1.6; }
+.today-why-card.open .today-why-detail { margin-top: 11px; }
+.today-why-detail-inner .recovery-why-list { border-top-color: #e3ebee; }
+.today-why-detail-inner .recovery-why-item { color: #55677f; line-height: 1.6; }
+
+/* Level 3 — One Useful Move (content-only; Ask Coach lives in the FAB) */
+.today-action-card {
+  display: grid;
+  gap: 4px;
+  padding: 16px 17px 17px;
+  border: 1px solid rgba(210, 223, 236, .9);
+  border-radius: 20px;
+  background: linear-gradient(135deg, #edf7ff, #f7fbff);
+  box-shadow: 0 8px 20px rgba(46, 77, 111, .05);
+}
+.today-action-eyebrow { color: #2474b2; font-size: 10px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase; }
+.today-action-title { margin: 6px 0 0; color: #172e4a; font-size: 18px; font-weight: 760; line-height: 1.32; letter-spacing: -.015em; text-wrap: balance; }
+.today-action-detail { margin: 4px 0 0; max-width: 42ch; color: #5c7086; font-size: 12.5px; line-height: 1.6; }
+
+/* Ask Coach — floating action, bottom-right. Anchored to Ionic's actual
+   rendered tab-bar height (56px on md, the taller of md/ios, used as the
+   safe common baseline) plus its own safe-area inset, so the FAB sits just
+   above the tab bar edge instead of hovering higher up in empty content
+   space. Shadow is deliberately soft/short (not a glow) so it reads as one
+   integrated control sitting on the page, not a separate dominant element. */
+.today-coach-fab {
+  position: fixed;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: calc(56px + env(safe-area-inset-bottom) + 10px);
+  width: 50px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: linear-gradient(140deg, #155f79, #239db0);
+  box-shadow: 0 4px 10px rgba(21, 60, 79, .22);
+  font-size: 19px;
+  z-index: 20;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.today-coach-fab:active { transform: scale(.94); box-shadow: 0 2px 6px rgba(21, 60, 79, .2); }
+.today-coach-fab:focus-visible { outline: 3px solid rgba(35, 157, 176, .35); outline-offset: 3px; }
+
+@media (max-width: 390px) {
+  .today-hero { padding: 17px 16px 16px; }
+  .today-hero-title { font-size: 20px; }
+  .today-rings-row .dial-ring { width: min(19vw, 68px); }
+  .today-rings-row .dial-center strong { font-size: 15px; }
+  .today-coach-fab { width: 46px; height: 46px; font-size: 18px; bottom: calc(56px + env(safe-area-inset-bottom) + 8px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .today-rings-row .dial-ring-ready { transition: none; }
+  .today-coach-fab { transition: none; }
 }
 
 /* Preserve compactness without dropping important metadata below readable size. */

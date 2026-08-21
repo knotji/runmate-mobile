@@ -135,4 +135,28 @@ describe('buildTodayBrief', () => {
 
     expect(brief.readiness.title).toBe('Recovery Is Still Calibrating');
   });
+
+  it('states the concrete planned session in One Adjustment when keeping the plan as-is, instead of a generic instruction', () => {
+    const planned = { workoutType: 'Easy Run', distanceKm: 5, durationMin: 40, targetPace: '', targetHR: '', description: '', day: 'Monday' };
+    const brief = buildTodayBrief(context(), { ...options, planned });
+
+    expect(brief.action.title).toBe('Easy Run · 5 km · 40 min');
+    expect(brief.action.summary).toBe('Complete Easy Run · 5 km · 40 min as written, without adding extra distance or intensity.');
+  });
+
+  it('does not invent a distance/duration for a planned rest day', () => {
+    const planned = { workoutType: 'Rest', distanceKm: null, durationMin: null, targetPace: '', targetHR: '', description: '', day: 'Monday' };
+    const brief = buildTodayBrief(context(), { ...options, planned });
+
+    expect(brief.action.title).toBe('Rest Day');
+    expect(brief.action.summary).toBe('Today is a scheduled rest day — no training planned.');
+  });
+
+  it('still lets an adaptive recommendation override the concrete plan title when the plan is actually being adjusted', () => {
+    const planned = { workoutType: 'Tempo Run', distanceKm: 8, durationMin: 45, targetPace: '', targetHR: '', description: '', day: 'Monday' };
+    const recommendation = { action: 'swap', headline: 'Swap Tempo For Easy', summary: 'Recovery favors an easy day instead.', reasons: [], suggestedWorkout: planned } as unknown as NonNullable<Parameters<typeof buildTodayBrief>[1]['recommendation']>;
+    const brief = buildTodayBrief(context(), { ...options, planned, recommendation });
+
+    expect(brief.action.title).toBe('Swap Tempo For Easy');
+  });
 });

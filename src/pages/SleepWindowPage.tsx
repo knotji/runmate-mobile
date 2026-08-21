@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useHistory, useLocation } from 'react-router-dom';
 import { IonButton, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar, useIonViewWillEnter } from '@ionic/react';
 import { arrowBackOutline, cafeOutline, checkmarkCircleOutline, moonOutline, refreshOutline, timeOutline, walkOutline } from 'ionicons/icons';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
@@ -30,6 +30,11 @@ import './SleepWindowPage.css';
 
 const SleepWindowPage: React.FC = () => {
   const history = useHistory();
+  const location = useLocation();
+  // Reachable from both Today's freshness/action flow and Health's Sleep
+  // destination (SleepDetailPage.tsx) - back must return to whichever
+  // brought the user here instead of always landing on Today.
+  const backPath = new URLSearchParams(location.search).get('from') === 'health' ? '/sleep' : '/tabs/today';
   const context = useCoachContextStore((state) => state.context);
   const [startupContext] = useState(() => loadRecoveryContextStartupSnapshot());
   const visibleContext = context ?? startupContext;
@@ -126,7 +131,7 @@ const SleepWindowPage: React.FC = () => {
   return (
     <IonPage>
       <IonHeader translucent className="sleep-window-header"><IonToolbar>
-        <IonButton slot="start" fill="clear" aria-label="Back To Today" onClick={() => history.push('/tabs/today')}><IonIcon slot="icon-only" icon={arrowBackOutline} /></IonButton>
+        <IonButton slot="start" fill="clear" aria-label="Go Back" onClick={() => history.push(backPath)}><IonIcon slot="icon-only" icon={arrowBackOutline} /></IonButton>
         <IonTitle>Sleep Window</IonTitle>
       </IonToolbar></IonHeader>
       <IonContent fullscreen className="sleep-window-content"><main className="sleep-window-shell">

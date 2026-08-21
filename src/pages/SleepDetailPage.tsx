@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { IonButton, IonContent, IonDatetime, IonHeader, IonIcon, IonModal, IonPage, IonTitle, IonToolbar } from '@ionic/react';
-import { arrowBackOutline, calendarClearOutline, checkmarkCircleOutline, chevronBackOutline, chevronForwardOutline, warningOutline } from 'ionicons/icons';
+import { arrowBackOutline, calendarClearOutline, checkmarkCircleOutline, chevronBackOutline, chevronForwardOutline, moonOutline, warningOutline } from 'ionicons/icons';
 import { buildCoachContextFromSupabase, buildRecoveryCoreContextFromSupabase } from '@/lib/coachContextService';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
 import { buildSleepDiagnostics } from '@/lib/sleepDiagnostics';
@@ -110,6 +110,15 @@ const SleepDetailPage: React.FC = () => {
           {visibleContext && recovery && diagnostics && (
             <>
               <DataFreshnessStatus status={dataStatus} detail={dataStatusCopy.detail} onRetry={() => void load(true)} quietWhenFresh />
+              {/* Entry point for tonight's bedtime/wake plan - the plan itself
+                  already lives fully on SleepWindowPage.tsx (wake time, cycle
+                  planner, tonight's coaching); this is just the doorway to it
+                  from Health now that Today no longer carries its own copy. */}
+              <button type="button" className="sleep-plan-link" onClick={() => history.push('/sleep-window?from=health')}>
+                <span className="sleep-plan-link-icon" aria-hidden="true"><IonIcon icon={moonOutline} /></span>
+                <span className="sleep-plan-link-copy"><small>Tonight</small><strong>Sleep Plan</strong></span>
+                <IonIcon className="sleep-plan-link-chevron" icon={chevronForwardOutline} aria-hidden="true" />
+              </button>
               {selectedNight && (
                 <nav className={`sleep-date-navigator${!isLatestNight ? ' has-current' : ''}`} aria-label="Choose sleep night">
                   <button

@@ -87,7 +87,7 @@ function build(action: DailyRecommendationAction, reason: string, plannedWorkout
   return { status: 'ready', action, label: ACTION_LABEL[action], reason, plannedWorkoutNote };
 }
 
-function describePlannedWorkout(planned: WeekWorkout | null): string | null {
+export function describePlannedWorkout(planned: WeekWorkout | null): string | null {
   if (!planned) return null;
   if (isRestDayWorkout(planned)) return 'Rest Day';
   const distance = planned.distanceKm != null ? `${planned.distanceKm} km` : null;

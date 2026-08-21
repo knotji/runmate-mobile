@@ -15,20 +15,31 @@ import {
   useIonViewWillEnter,
   type RefresherEventDetail,
 } from '@ionic/react';
-import { addOutline, shareSocialOutline } from 'ionicons/icons';
+import { addOutline, shareSocialOutline, sparklesOutline } from 'ionicons/icons';
 import { SocialShareModal } from '@/components/SocialShareModal';
 import { buildRecoveryCoreContextFromSupabase, buildRecoveryPageContextFromSupabase } from '@/lib/coachContextService';
 import { useCoachContextStore } from '@/lib/context/coachContextStore';
 import { useHealthSyncStore } from '@/lib/health/healthSyncStore';
-import { extractGoalProfile } from '@/lib/goals/goalContext';
 import type { RunMateRecoverySystem } from '@/lib/recoverySystem';
-import { TodayTrainingPlanCard } from '@/components/TodayTrainingPlanCard';
-import { EnergyReserveCard } from '@/components/EnergyReserveCard';
+import { buildRecoveryWhy } from '@/lib/recoveryWhy';
+import { buildRecoveryExplainability } from '@/lib/recoveryExplainability';
+import { buildDailyRecommendation } from '@/lib/dailyRecommendation';
+import { buildAdaptiveTrainingRecommendation } from '@/lib/adaptiveTrainingPlan';
+import { buildTodayBrief, buildTodayReadiness } from '@/lib/todayBrief';
+import { buildTodayContinuity } from '@/lib/todayContinuity';
+import { getTodayPlannedWorkout, getTodayTrainingPlanStatus } from '@/lib/todayTrainingPlan';
 import { PageState } from '@/components/PageState';
 import { DataFreshnessStatus } from '@/components/DataFreshnessStatus';
-import { RecoveryDials, RecoveryLoadingDials, RecoveryPlan, RecoverySecondaryError, RecoverySecondaryLoading } from '@/components/health/RecoveryDialsView';
-import { loadTonightSleepCycleOverride, loadTonightWakeOverride, type SleepCycleCount } from '@/lib/sleepWindow';
-import { loadDefaultWakeTime, loadTonightWakePlan } from '@/lib/sleepWindowStorage';
+import {
+  RecoveryLoadingDials,
+  RecoverySecondaryError,
+  RecoverySecondaryLoading,
+  TodayActionCard,
+  TodayContinuityCard,
+  TodayHero,
+  TodayRingsRow,
+  TodayWhyCard,
+} from '@/components/health/RecoveryDialsView';
 import { describeTodayHealthSyncPerformance, syncTodayHealth } from '@/lib/healthSyncService';
 import { refreshNotifications } from '@/lib/notificationService';
 import { getBangkokDateKey } from '@/lib/date';
@@ -62,8 +73,6 @@ const RecoveryPage: React.FC = () => {
   const [refreshingData, setRefreshingData] = useState(() => startupRecovery !== null);
   const [refreshFailed, setRefreshFailed] = useState(false);
   const [freshnessNow, setFreshnessNow] = useState(() => Date.now());
-  const [wakeOverrideMinutes, setWakeOverrideMinutes] = useState<number | null>(() => loadTonightWakeOverride());
-  const [sleepCycleOverride, setSleepCycleOverride] = useState<SleepCycleCount | null>(() => loadTonightSleepCycleOverride());
   const energyDate = context?.todayDate ?? startupContext?.todayDate ?? getBangkokDateKey(Date.now());
   const [energyCheckIn, setEnergyCheckIn] = useState(() => loadDailyStrainCheckIn(energyDate));
   const loadedRef = useRef(false);
@@ -122,11 +131,6 @@ const RecoveryPage: React.FC = () => {
 
   useEffect(() => {
     const freshnessTimer = window.setInterval(() => setFreshnessNow(Date.now()), 60_000);
-    const syncSleepPlan = () => {
-      setWakeOverrideMinutes(loadTonightWakeOverride());
-      setSleepCycleOverride(loadTonightSleepCycleOverride());
-    };
-    window.addEventListener('runmate:sleep-window-updated', syncSleepPlan);
     const unsubscribe = useHealthSyncStore.subscribe((state, previous) => {
       if (state.lastSyncedAt !== previous.lastSyncedAt && visibleRef.current) {
         if (ownedHealthSyncRef.current) return;
@@ -138,7 +142,6 @@ const RecoveryPage: React.FC = () => {
     });
     return () => {
       window.clearInterval(freshnessTimer);
-      window.removeEventListener('runmate:sleep-window-updated', syncSleepPlan);
       unsubscribe();
     };
   }, [loadRecovery]);
@@ -212,9 +215,6 @@ const RecoveryPage: React.FC = () => {
 
   useIonViewWillEnter(() => {
     visibleRef.current = true;
-    setWakeOverrideMinutes(loadTonightWakeOverride());
-    setSleepCycleOverride(loadTonightSleepCycleOverride());
-    void Promise.all([loadTonightWakePlan(), loadDefaultWakeTime()]).then(([plan, defaultWake]) => setWakeOverrideMinutes(plan.minutes ?? defaultWake));
     const today = getBangkokDateKey(Date.now());
     const needsFreshDay = loadedDateRef.current !== null && loadedDateRef.current !== today;
     if (!loadedRef.current || needsFreshDay) {
@@ -286,6 +286,35 @@ const RecoveryPage: React.FC = () => {
   const dataStatusCopy = recoveryDataStatusCopy(dataStatus, lastSuccessfulAt);
   const loadErrorCopy = healthDataErrorCopy(error, 'Recovery Is Unavailable');
 
+  // "Recovery Why", "Yesterday → Today", and the Today hero/action cards —
+  // all pure UI-shaping adapters over already-computed deterministic output
+  // (recoveryWhy.ts, todayContinuity.ts, todayBrief.ts). No new data fetch,
+  // no new decision.
+  const recoveryWhy = visibleRecovery ? buildRecoveryWhy(visibleRecovery) : null;
+  // The hero card needs only Recovery (not the rest of CoachContext), so it
+  // can render as soon as visibleRecovery is ready, alongside the rings row -
+  // dailyAction sharpens the same thresholds once daily recommendation below
+  // resolves, it never changes them.
+  const heroReadiness = visibleRecovery ? buildTodayReadiness(visibleRecovery, null) : null;
+  const plannedToday = visibleContext ? getTodayPlannedWorkout(visibleContext) : null;
+  const explainabilityToday = visibleRecovery ? buildRecoveryExplainability(visibleRecovery) : null;
+  const dailyRecommendationToday = visibleContext && explainabilityToday
+    ? buildDailyRecommendation(visibleContext, explainabilityToday, plannedToday)
+    : null;
+  const todayContinuity = visibleContext && dailyRecommendationToday
+    ? buildTodayContinuity(visibleContext, dailyRecommendationToday)
+    : null;
+  const planStatusToday = visibleContext && plannedToday ? getTodayTrainingPlanStatus(visibleContext, plannedToday) : null;
+  const recommendationToday = visibleContext ? buildAdaptiveTrainingRecommendation(visibleContext, plannedToday) : null;
+  const briefToday = visibleContext
+    ? buildTodayBrief(visibleContext, {
+      planned: plannedToday,
+      recommendation: recommendationToday,
+      planStatus: planStatusToday,
+      dailyAction: dailyRecommendationToday?.status === 'ready' ? dailyRecommendationToday.action : null,
+    })
+    : null;
+
   return (
     <IonPage>
       <IonHeader translucent className="recovery-header">
@@ -315,7 +344,7 @@ const RecoveryPage: React.FC = () => {
             onAction={() => isHealthConnectPermissionError(error) ? history.push('/health-connect') : void retryRecovery()}
             className="state-panel error-panel"
           />}
-          {visibleRecovery && (
+          {visibleRecovery && heroReadiness && (
             <>
               {dataStatus === 'fallback' && <DataFreshnessStatus
                 status={dataStatus}
@@ -325,18 +354,28 @@ const RecoveryPage: React.FC = () => {
                 variant="panel"
                 className="recovery-freshness-status"
               />}
-              <RecoveryDials
-                recovery={visibleRecovery}
-                onRecoveryClick={() => history.push('/recovery-trends', { from: '/tabs/today' })}
-                onSleepClick={() => history.push('/sleep')}
-                onStrainClick={() => history.push('/strain', { from: '/tabs/today' })}
+              {/* Level 1 — body status hero (readiness sharpens once briefToday resolves, same underlying thresholds) */}
+              <TodayHero
+                readiness={briefToday?.readiness ?? heroReadiness}
                 freshness={dataStatus !== 'fallback' ? { status: dataStatus, detail: dataStatusCopy.detail } : undefined}
                 onFreshnessClick={() => void retryRecovery()}
               />
-              {visibleEnergy && <EnergyReserveCard energy={visibleEnergy} onOpen={() => history.push('/energy', { from: '/tabs/today' })} />}
-              {secondaryLoading && !visibleContext ? <RecoverySecondaryLoading /> : secondaryError && !visibleContext ? <RecoverySecondaryError message={secondaryError} onRetry={() => void loadSecondaryRecovery(true)} /> : !visibleContext ? <RecoverySecondaryLoading /> : <>
-                <TodayTrainingPlanCard context={visibleContext} onAskCoach={() => history.push('/ai-coach', { from: '/tabs/today', initialTopic: 'today' })} />
-                <RecoveryPlan recovery={visibleRecovery} wakeOverrideMinutes={wakeOverrideMinutes} sleepCycleOverride={sleepCycleOverride} goalProfile={extractGoalProfile(visibleContext)} onOpen={() => history.push('/sleep-window')} />
+              {/* Level 1b — the one 4-ring row */}
+              <TodayRingsRow
+                recovery={visibleRecovery}
+                energy={visibleEnergy}
+                onRecoveryClick={() => history.push('/recovery-trends', { from: '/tabs/today' })}
+                onSleepClick={() => history.push('/sleep')}
+                onStrainClick={() => history.push('/strain', { from: '/tabs/today' })}
+                onEnergyClick={() => history.push('/energy', { from: '/tabs/today' })}
+              />
+              {secondaryLoading && !visibleContext ? <RecoverySecondaryLoading /> : secondaryError && !visibleContext ? <RecoverySecondaryError message={secondaryError} onRetry={() => void loadSecondaryRecovery(true)} /> : !visibleContext || !briefToday ? <RecoverySecondaryLoading /> : <>
+                {/* Level 2 — WHY */}
+                <TodayWhyCard limiter={briefToday.limiter} why={recoveryWhy ?? undefined} />
+                {/* Optional — Yesterday → Today */}
+                {todayContinuity && <TodayContinuityCard continuity={todayContinuity} />}
+                {/* Level 3 — One Useful Move — end of Today's hierarchy */}
+                <TodayActionCard action={briefToday.action} />
               </>}
             </>
           )}
@@ -349,6 +388,17 @@ const RecoveryPage: React.FC = () => {
           energyReserve={visibleEnergy}
           mode="today"
         />
+
+        {visibleContext && (
+          <button
+            type="button"
+            className="today-coach-fab"
+            aria-label="Ask Coach About Today"
+            onClick={() => history.push('/ai-coach', { from: '/tabs/today', initialTopic: 'today' })}
+          >
+            <IonIcon icon={sparklesOutline} aria-hidden="true" />
+          </button>
+        )}
       </IonContent>
     </IonPage>
   );
