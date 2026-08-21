@@ -274,6 +274,17 @@
 .health-trend-bar-fill.is-steady { background: var(--health-status-steady); }
 .health-trend-bar-fill.is-caution { background: var(--health-status-caution); }
 .health-trend-bar-fill.is-low { background: var(--health-status-low); }
+/* A day with no recovery score at all — never rendered as a colored "low
+   score" bar. A short neutral dash at the baseline instead of a filled,
+   status-tinted column. */
+.health-trend-bar-missing {
+  width: 60%;
+  height: 4px;
+  margin-bottom: 2px;
+  border-radius: 2px;
+  background: var(--health-text-muted);
+  opacity: .45;
+}
 .health-trend-bar-label {
   font-size: 10px;
   font-weight: 650;

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { IonButton, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar, useIonViewWillEnter } from '@ionic/react';
 import { arrowBackOutline, cafeOutline, checkmarkCircleOutline, moonOutline, refreshOutline, timeOutline, walkOutline } from 'ionicons/icons';
@@ -21,6 +21,7 @@ import {
   type SleepCycleCount,
 } from '@/lib/sleepWindow';
 import { deleteTonightWakePlan, loadDefaultWakeTime, loadTonightWakePlan, saveTonightWakePlan } from '@/lib/sleepWindowStorage';
+import { getBangkokHour } from '@/lib/date';
 import { loadRecoveryContextStartupSnapshot } from '@/lib/recoveryStartupCache';
 import { measurePerformanceDiagnostic } from '@/lib/performanceDiagnostics';
 import { hapticImpact, hapticNotification, hapticSelection } from '@/lib/haptics';
@@ -33,8 +34,13 @@ const SleepWindowPage: React.FC = () => {
   const location = useLocation();
   // Reachable from both Today's freshness/action flow and Health's Sleep
   // destination (SleepDetailPage.tsx) - back must return to whichever
-  // brought the user here instead of always landing on Today.
-  const backPath = new URLSearchParams(location.search).get('from') === 'health' ? '/sleep' : '/tabs/today';
+  // brought the user here instead of always landing on Today. When Sleep
+  // Details linked here while viewing a specific historical night, it passes
+  // its full return URL (returnTo) so that night's date/from selection isn't
+  // silently dropped on the way back.
+  const searchParams = new URLSearchParams(location.search);
+  const returnTo = searchParams.get('returnTo');
+  const backPath = returnTo ? decodeURIComponent(returnTo) : searchParams.get('from') === 'health' ? '/sleep' : '/tabs/today';
   const context = useCoachContextStore((state) => state.context);
   const [startupContext] = useState(() => loadRecoveryContextStartupSnapshot());
   const visibleContext = context ?? startupContext;
@@ -49,7 +55,14 @@ const SleepWindowPage: React.FC = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [appliedCycles, setAppliedCycles] = useState<SleepCycleCount | null>(() => loadTonightSleepCycleOverride());
   const [selectedCycles, setSelectedCycles] = useState<SleepCycleCount | null>(() => loadTonightSleepCycleOverride());
+  // Guards against two hazards: (1) a background load() resolving after the user has
+  // already started editing the wake-time field should not clobber that edit, and
+  // (2) rapid view re-entry can start a second concurrent load() — only the most
+  // recently started one should be allowed to apply its result.
+  const wakeEditedRef = useRef(false);
+  const loadGenerationRef = useRef(0);
   const load = useCallback(async () => {
+    const generation = ++loadGenerationRef.current;
     try {
       setLoadError(null);
       const [, storedWake, storedDefaultWake] = await measurePerformanceDiagnostic(
@@ -57,14 +70,16 @@ const SleepWindowPage: React.FC = () => {
         () => Promise.all([buildCoachContextFromSupabase(), loadTonightWakePlan(), loadDefaultWakeTime()]),
         () => ({ detail: 'Recovery context and wake plan prepared' }),
       );
-      setWakeOverride(storedWake.minutes);
+      if (generation !== loadGenerationRef.current) return;
+      if (!wakeEditedRef.current) setWakeOverride(storedWake.minutes);
       setSavedWake(storedWake.synced ? storedWake.minutes : null);
       setDefaultWake(storedDefaultWake);
     }
     catch (error) {
+      if (generation !== loadGenerationRef.current) return;
       if (!visibleContext) setLoadError(error instanceof Error ? error.message : 'Could Not Build Your Sleep Window.');
     }
-    finally { setLoading(false); }
+    finally { if (generation === loadGenerationRef.current) setLoading(false); }
   }, [visibleContext]);
   useIonViewWillEnter(() => { if (!visibleContext) setLoading(true); void load(); });
 
@@ -82,11 +97,12 @@ const SleepWindowPage: React.FC = () => {
     : null;
   const primaryInBedMinutes = appliedCyclePlan?.inBedMinutes ?? window?.idealInBedMinutes ?? null;
   const windDownMinutes = primaryInBedMinutes == null ? null : bedtimeReminderMinutes(primaryInBedMinutes);
-  const caffeineAction = new Date().getHours() >= 14 ? 'Skip Any More Caffeine Today' : 'Finish Caffeine By 2:00 PM';
+  const caffeineAction = getBangkokHour() >= 14 ? 'Skip Any More Caffeine Today' : 'Finish Caffeine By 2:00 PM';
 
   const changeWake = (value: string) => {
     const minutes = parseTimeInput(value);
     if (minutes == null) return;
+    wakeEditedRef.current = true;
     setWakeOverride(minutes);
     setSaveError(null);
   };
@@ -98,6 +114,7 @@ const SleepWindowPage: React.FC = () => {
     const result = await saveTonightWakePlan(wakeMinutes);
     setSaving(false);
     if (!result.ok) { setSaveError(result.error); return; }
+    wakeEditedRef.current = false;
     setWakeOverride(wakeMinutes);
     setSavedWake(wakeMinutes);
     void hapticNotification();
@@ -109,6 +126,7 @@ const SleepWindowPage: React.FC = () => {
     const result = await deleteTonightWakePlan();
     setSaving(false);
     if (!result.ok) { setSaveError(result.error); return; }
+    wakeEditedRef.current = false;
     setWakeOverride(null);
     setSavedWake(null);
     void hapticImpact();

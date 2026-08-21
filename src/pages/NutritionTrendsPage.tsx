@@ -56,7 +56,7 @@ const NutritionTrendsPage: React.FC = () => {
   const trend = useMemo(() => items
     ? buildNutritionTrend(items, range, todayBangkokDateKey())
     : range === 7 ? startupTrends?.sevenDay ?? null : startupTrends?.thirtyDay ?? null, [items, range, startupTrends]);
-  const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(); event.detail.complete(); };
+  const refresh = async (event: CustomEvent<RefresherEventDetail>) => { try { await load(); } finally { event.detail.complete(); } };
 
   return <IonPage>
     <IonHeader translucent className="nutrition-trends-header"><IonToolbar>

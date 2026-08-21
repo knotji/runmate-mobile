@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar, useIonViewWillEnter } from '@ionic/react';
 import {
   addOutline,
@@ -57,6 +57,12 @@ const HealthPage: React.FC = () => {
   const contentRef = usePrimaryTabScroll('health');
   const [snapshot, setSnapshot] = useState(() => buildHealthHubSnapshot());
   const [dashboard, setDashboard] = useState<HealthDashboardData | null>(() => loadHealthDashboardStartupSnapshot());
+  // Rapid tab-hopping (Health -> another tab -> back to Health, more than
+  // once before the first fetch settles) can otherwise let an older
+  // in-flight response resolve after a newer one and overwrite fresher
+  // state with stale data. Same generation-counter guard pattern already
+  // used by the startup caches described in PROJECT_OVERVIEW.md.
+  const dashboardRequestRef = useRef(0);
 
   useIonViewWillEnter(() => {
     setSnapshot(buildHealthHubSnapshot());
@@ -64,7 +70,9 @@ const HealthPage: React.FC = () => {
     // pattern as RecoveryPage (Today) and ActivityPage (Move). Silent: this
     // section only ever gains data or updates it, never shows its own
     // loading spinner over already-visible content.
+    const requestId = ++dashboardRequestRef.current;
     void loadFreshHealthDashboardData().then((result) => {
+      if (dashboardRequestRef.current !== requestId) return;
       if (result.status !== 'ready') return;
       setDashboard(result.data);
       saveHealthDashboardStartupSnapshot(result.data);
@@ -117,8 +125,8 @@ function HealthSignalsSection({ dashboard }: { dashboard: HealthDashboardData })
       <span className="health-card-eyebrow">Recovery</span>
       <p className="health-trend-value">{dashboard.anchorValue}<small>/100 today</small></p>
       <div className="health-trend-bars" role="img" aria-label="Recovery over the last 7 days">
-        {dashboard.trend.map((day, index) => <div key={`${day.label}-${index}`} className="health-trend-bar-col">
-          <div className="health-trend-bar-track"><div className={`health-trend-bar-fill is-${day.status}`} style={{ height: `${day.value}%` }} /></div>
+        {dashboard.trend.map((day, index) => <div key={`${day.label}-${index}`} className="health-trend-bar-col" title={day.status === 'missing' ? `${day.label}: No recovery score recorded` : `${day.label}: ${day.value}`}>
+          <div className="health-trend-bar-track">{day.status === 'missing' ? <span className="health-trend-bar-missing" aria-hidden="true" /> : <div className={`health-trend-bar-fill is-${day.status}`} style={{ height: `${day.value}%` }} />}</div>
           <span className="health-trend-bar-label">{day.label}</span>
         </div>)}
       </div>

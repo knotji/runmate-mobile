@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   IonContent,
@@ -77,6 +77,13 @@ const RecoveryPage: React.FC = () => {
   const [energyCheckIn, setEnergyCheckIn] = useState(() => loadDailyStrainCheckIn(energyDate));
   const loadedRef = useRef(false);
   const loadedDateRef = useRef<string | null>(null);
+  // loadedRef only flips to true once loadInitialRecovery's first await resolves.
+  // Leaving and returning to Today before that first load settles could otherwise
+  // start a second, fully independent loadInitialRecovery — each with its own
+  // syncTodayHealth(true) call and context rebuild racing the other. This ref is
+  // set synchronously (before any await), so a second view-enter during that
+  // window is recognized and skipped instead of kicking off a duplicate load.
+  const loadInitialInFlightRef = useRef(false);
   const visibleRef = useRef(false);
   const syncTimerRef = useRef<number | null>(null);
   const ownedHealthSyncRef = useRef(false);
@@ -154,6 +161,8 @@ const RecoveryPage: React.FC = () => {
   }, [energyDate]);
 
   const loadInitialRecovery = useCallback(async (forceContext = false) => {
+    if (loadInitialInFlightRef.current) return;
+    loadInitialInFlightRef.current = true;
     setLoading(startupRecovery === null);
     setLoadingStage('syncing');
     setError(null);
@@ -188,6 +197,11 @@ const RecoveryPage: React.FC = () => {
       }
       setLoading(false);
       return;
+    } finally {
+      // Only guards the window before loadedRef.current flips true (the race the
+      // worklist flagged) — the fire-and-forget healthSyncPromise chain below is
+      // allowed to keep running after this resolves, same as before.
+      loadInitialInFlightRef.current = false;
     }
 
     void healthSyncPromise.then(async (result) => {
@@ -217,9 +231,9 @@ const RecoveryPage: React.FC = () => {
     visibleRef.current = true;
     const today = getBangkokDateKey(Date.now());
     const needsFreshDay = loadedDateRef.current !== null && loadedDateRef.current !== today;
-    if (!loadedRef.current || needsFreshDay) {
+    if ((!loadedRef.current || needsFreshDay) && !loadInitialInFlightRef.current) {
       void loadInitialRecovery(needsFreshDay);
-    } else {
+    } else if (!loadInitialInFlightRef.current) {
       syncTimerRef.current = window.setTimeout(() => {
         ownedHealthSyncRef.current = true;
         setRefreshingData(true);
@@ -276,12 +290,6 @@ const RecoveryPage: React.FC = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const visibleRecovery = context?.recoverySystem ?? startupRecovery;
   const visibleContext = secondaryLoading && startupContext ? startupContext : context ?? startupContext;
-  const visibleEnergy = visibleRecovery ? buildEnergyReserve({
-    recovery: visibleRecovery,
-    checkIn: energyCheckIn,
-    activePain: visibleContext?.activePain ?? false,
-    activeSick: visibleContext?.activeSick ?? false,
-  }) : null;
   const dataStatus = resolveRecoveryDataStatus({ savedAt: lastSuccessfulAt, refreshing: refreshingData, refreshFailed, now: freshnessNow });
   const dataStatusCopy = recoveryDataStatusCopy(dataStatus, lastSuccessfulAt);
   const loadErrorCopy = healthDataErrorCopy(error, 'Recovery Is Unavailable');
@@ -289,31 +297,57 @@ const RecoveryPage: React.FC = () => {
   // "Recovery Why", "Yesterday → Today", and the Today hero/action cards —
   // all pure UI-shaping adapters over already-computed deterministic output
   // (recoveryWhy.ts, todayContinuity.ts, todayBrief.ts). No new data fetch,
-  // no new decision.
-  const recoveryWhy = visibleRecovery ? buildRecoveryWhy(visibleRecovery) : null;
-  // The hero card needs only Recovery (not the rest of CoachContext), so it
-  // can render as soon as visibleRecovery is ready, alongside the rings row -
-  // dailyAction sharpens the same thresholds once daily recommendation below
-  // resolves, it never changes them.
-  const heroReadiness = visibleRecovery ? buildTodayReadiness(visibleRecovery, null) : null;
-  const plannedToday = visibleContext ? getTodayPlannedWorkout(visibleContext) : null;
-  const explainabilityToday = visibleRecovery ? buildRecoveryExplainability(visibleRecovery) : null;
-  const dailyRecommendationToday = visibleContext && explainabilityToday
-    ? buildDailyRecommendation(visibleContext, explainabilityToday, plannedToday)
-    : null;
-  const todayContinuity = visibleContext && dailyRecommendationToday
-    ? buildTodayContinuity(visibleContext, dailyRecommendationToday)
-    : null;
-  const planStatusToday = visibleContext && plannedToday ? getTodayTrainingPlanStatus(visibleContext, plannedToday) : null;
-  const recommendationToday = visibleContext ? buildAdaptiveTrainingRecommendation(visibleContext, plannedToday) : null;
-  const briefToday = visibleContext
-    ? buildTodayBrief(visibleContext, {
-      planned: plannedToday,
-      recommendation: recommendationToday,
-      planStatus: planStatusToday,
-      dailyAction: dailyRecommendationToday?.status === 'ready' ? dailyRecommendationToday.action : null,
-    })
-    : null;
+  // no new decision. Memoized because a 60s freshness tick (setFreshnessNow
+  // above) re-renders this page purely to refresh "Updated Xm ago" copy —
+  // without this, every one of these builders (and buildEnergyReserve) would
+  // re-run on that tick even though visibleRecovery/visibleContext/
+  // energyCheckIn haven't changed.
+  const {
+    visibleEnergy, recoveryWhy, heroReadiness, todayContinuity, briefToday,
+  } = useMemo(() => {
+    const energy = visibleRecovery ? buildEnergyReserve({
+      recovery: visibleRecovery,
+      checkIn: energyCheckIn,
+      activePain: visibleContext?.activePain ?? false,
+      activeSick: visibleContext?.activeSick ?? false,
+    }) : null;
+    const why = visibleRecovery ? buildRecoveryWhy(visibleRecovery) : null;
+    // The hero card needs only Recovery (not the rest of CoachContext), so it
+    // can render as soon as visibleRecovery is ready, alongside the rings row -
+    // dailyAction sharpens the same thresholds once daily recommendation below
+    // resolves, it never changes them.
+    const readiness = visibleRecovery ? buildTodayReadiness(visibleRecovery, null) : null;
+    const planned = visibleContext ? getTodayPlannedWorkout(visibleContext) : null;
+    const explainability = visibleRecovery ? buildRecoveryExplainability(visibleRecovery) : null;
+    const dailyRecommendation = visibleContext && explainability
+      ? buildDailyRecommendation(visibleContext, explainability, planned)
+      : null;
+    const continuity = visibleContext && dailyRecommendation
+      ? buildTodayContinuity(visibleContext, dailyRecommendation)
+      : null;
+    const planStatus = visibleContext && planned ? getTodayTrainingPlanStatus(visibleContext, planned) : null;
+    const recommendation = visibleContext ? buildAdaptiveTrainingRecommendation(visibleContext, planned) : null;
+    const brief = visibleContext
+      ? buildTodayBrief(visibleContext, {
+        planned,
+        recommendation,
+        planStatus,
+        dailyAction: dailyRecommendation?.status === 'ready' ? dailyRecommendation.action : null,
+      })
+      : null;
+    return {
+      visibleEnergy: energy,
+      recoveryWhy: why,
+      heroReadiness: readiness,
+      plannedToday: planned,
+      explainabilityToday: explainability,
+      dailyRecommendationToday: dailyRecommendation,
+      todayContinuity: continuity,
+      planStatusToday: planStatus,
+      recommendationToday: recommendation,
+      briefToday: brief,
+    };
+  }, [visibleRecovery, visibleContext, energyCheckIn]);
 
   return (
     <IonPage>

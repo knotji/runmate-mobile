@@ -239,7 +239,12 @@ const ActivityPage: React.FC = () => {
   }, [movementItems, selectedDate]);
   const selectedItems = useMemo(() => groupedItems.flatMap(([, dateItems]) => dateItems), [groupedItems]);
   const recordGroups = useMemo(() => groupActivityRecords(selectedItems), [selectedItems]);
-  const availableDates = useMemo(() => new Set([...movementItems.map(getHistoryItemDateKey), todayDate]), [movementItems, todayDate]);
+  // Meal-only days (no workout/strength record) used to be excluded here,
+  // which made the date navigator's calendar/prev-next controls silently
+  // skip over them — the only place in the app to browse back to a
+  // previously logged meal, permanently unreachable for those days.
+  const mealDates = useMemo(() => items.filter((item) => item.type === 'meal').map(getHistoryItemDateKey), [items]);
+  const availableDates = useMemo(() => new Set([...movementItems.map(getHistoryItemDateKey), ...mealDates, todayDate]), [movementItems, mealDates, todayDate]);
   const plannedWorkout = useMemo(() => selectedDate === todayDate ? getPlannedWorkoutForDateWithRaceDay(racePlan, raceGoal, selectedDate) : null, [racePlan, raceGoal, selectedDate, todayDate]);
   const fuelMeasurement = useMemo(() => {
     const startedAt = performance.now();

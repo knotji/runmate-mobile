@@ -16,7 +16,7 @@ import { getBangkokDateKey } from './date';
 import type { CoachContext } from './buildCoachContext';
 import type { SignalBaseline } from './personalBaseline';
 
-export type HealthTrendStatus = 'good' | 'steady' | 'caution' | 'low';
+export type HealthTrendStatus = 'good' | 'steady' | 'caution' | 'low' | 'missing';
 export interface HealthTrendDay { label: string; value: number; status: HealthTrendStatus; }
 
 export interface HealthStatTile {
@@ -38,8 +38,13 @@ export interface HealthDashboardData {
   sources: HealthDataSourceRow[];
 }
 
+// A day with no recovery score at all (not synced, or before the account
+// existed) is a different claim from a day that scored genuinely low — both
+// used to collapse onto the same amber 'caution' bar at a fabricated 0%
+// height, which reads as "very low recovery" rather than "no data for this
+// day". Keep them visually and semantically distinct.
 function trendStatus(score: number | null): HealthTrendStatus {
-  if (score == null) return 'caution';
+  if (score == null) return 'missing';
   if (score >= 70) return 'good';
   if (score >= 50) return 'steady';
   if (score >= 30) return 'caution';

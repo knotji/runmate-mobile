@@ -56,7 +56,7 @@ const PainTrendsPage: React.FC = () => {
   const trend = useMemo(() => items
     ? buildPainTrend(items, days, todayBangkokDateKey())
     : days === 7 ? startupTrends?.sevenDay ?? null : startupTrends?.thirtyDay ?? null, [items, days, startupTrends]);
-  const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(); event.detail.complete(); };
+  const refresh = async (event: CustomEvent<RefresherEventDetail>) => { try { await load(); } finally { event.detail.complete(); } };
 
   return <IonPage>
     <IonHeader translucent className="pain-trends-header"><IonToolbar>

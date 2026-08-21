@@ -6,7 +6,6 @@ import { loadNotificationPreferences, saveNotificationPreferences, type Notifica
 import { getNotificationDiagnostics, getNotificationPermission, refreshNotifications, requestExactReminderPermission, requestNotificationPermission, sendTestNotification, type NotificationDiagnostics } from '@/lib/notificationService';
 import { navigateBackOr } from '@/lib/navigationBack';
 import type { PermissionState } from '@capacitor/core';
-import { PageDataSkeleton } from '@/components/PageDataSkeleton';
 import './NotificationsPage.css';
 import './NotificationsPage.actions.css';
 
@@ -24,12 +23,13 @@ const NotificationsPage: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [diagnostics, setDiagnostics] = useState<NotificationDiagnostics | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Preferences already paint synchronously from loadNotificationPreferences() above,
+  // and Permission/Diagnostics both have sensible defaults ('prompt', null) that the
+  // JSX below already handles — a full-page skeleton on every entry just delays
+  // showing the (already-available) toggle list for no benefit.
   const load = useCallback(async () => {
-    try {
-      const [nextPermission, nextDiagnostics] = await Promise.all([getNotificationPermission(), getNotificationDiagnostics()]);
-      setPermission(nextPermission); setDiagnostics(nextDiagnostics);
-    } finally { setLoading(false); }
+    const [nextPermission, nextDiagnostics] = await Promise.all([getNotificationPermission(), getNotificationDiagnostics()]);
+    setPermission(nextPermission); setDiagnostics(nextDiagnostics);
   }, []);
   useIonViewWillEnter(() => { void load(); });
 
@@ -81,7 +81,6 @@ const NotificationsPage: React.FC = () => {
     <IonHeader translucent className="notifications-header"><IonToolbar><IonButton slot="start" fill="clear" aria-label="Back To You" onClick={() => navigateBackOr(history, '/tabs/you')}><IonIcon slot="icon-only" icon={arrowBackOutline} /></IonButton><IonTitle>Notifications</IonTitle></IonToolbar></IonHeader>
     <IonContent fullscreen className="notifications-content"><main className="notifications-shell">
       <header className="notifications-intro"><p>Personal Guidance</p><h1>Helpful, Not Noisy</h1><span>WholeMate sends only timely reminders based on your sleep, profile, and training plan.</span></header>
-      {loading ? <PageDataSkeleton variant="notifications" label="Loading Notification Settings" /> : <>
       <section className={`notifications-permission ${permission === 'granted' ? 'allowed' : ''}`}><IonIcon icon={permission === 'granted' ? checkmarkCircleOutline : notificationsOutline} /><div><span>Notification Access</span><h2>{permission === 'granted' ? 'Allowed' : 'Permission Needed'}</h2><p>{permission === 'granted' ? 'Your preferences below are active on this device.' : 'Allow notifications before WholeMate can deliver reminders.'}</p></div>{permission !== 'granted' && <IonButton disabled={busy} onClick={() => void enable()}>{busy ? <IonSpinner name="crescent" /> : 'Allow'}</IonButton>}</section>
       {permission === 'granted' && diagnostics?.exactAlarm !== 'granted' && <section className="notifications-exact-warning"><IonIcon icon={moonOutline} /><div><strong>Allow Exact Reminders</strong><p>Android may delay or remove your Bedtime Reminder until this setting is allowed.</p></div><button type="button" disabled={busy} onClick={() => void allowExactReminders()}>Open Settings</button></section>}
       <section className="notification-list" aria-label="Notification Preferences">{rows.map((row) => <article key={row.key}><IonIcon icon={row.icon} /><div><h2>{row.title}</h2><p>{row.detail}</p><span>{row.timing}</span></div><IonToggle aria-label={row.title} checked={prefs[row.key]} disabled={busy} onIonChange={(event) => void update(row.key, event.detail.checked)} /></article>)}</section>
@@ -99,7 +98,6 @@ const NotificationsPage: React.FC = () => {
         </div>
       </details>
       <p className="notifications-privacy">Preferences are device-specific. Health details stay in WholeMate and are not included in notification text.</p>
-      </>}
     </main></IonContent>
   </IonPage>;
 };

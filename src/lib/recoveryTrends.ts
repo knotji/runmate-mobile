@@ -4,6 +4,11 @@ import { dedupeSleepItems } from '@/lib/sleepDedupe';
 import { dedupeWorkoutItems } from '@/lib/workoutDedupe';
 import { calculateRunMateSleepScore, type RunMateSleepScoreNight } from '@/lib/runMateSleepScore';
 import { parseSleepDurationToMinutes } from '@/lib/sleepDuration';
+import { computeSignalBaseline } from '@/lib/personalBaseline';
+import { painHasRedFlag, isResolvedPainLog, compareHistoryByEventDateDesc } from '@/lib/context/contextHelpers';
+import { getIllnessRiskLevel } from '@/lib/health/illnessGuardrail';
+import type { PainLog } from '@/types/pain';
+import type { SickLog, SickRiskLevel } from '@/types/sick';
 
 export const RECOVERY_TRENDS_LOOKBACK_DAYS = 75;
 export const RECOVERY_TRENDS_ROW_LIMIT = 700;
@@ -66,6 +71,7 @@ type SleepSignals = {
   sleep: number | null;
   hrv: number | null;
   restingHR: number | null;
+  restingHRSource: 'measured' | 'estimated_sleep_hr' | null;
   respiratoryRate: number | null;
   durationMinutes: number | null;
   timeInBedMinutes: number | null;
@@ -87,7 +93,9 @@ export function buildRecoveryTrend(
     .map(toSleepSignals)
     .filter((night) => night.date <= todayDate)
     .sort((a, b) => b.date.localeCompare(a.date));
-  const strainByDate = buildDailyStrain(items, profile);
+  const strainByDate = buildDailyStrain(items, profile, sleep);
+  const painItems = items.filter((item) => item.type === 'pain');
+  const sickItems = items.filter((item) => item.type === 'sick');
   const scoredSleep = sleep.map((night, index) => ({
     ...night,
     sleep: calculateRunMateSleepScore(
@@ -102,7 +110,11 @@ export function buildRecoveryTrend(
     const date = shiftDate(startDate, offset);
     const night = scoredSleepByDate.get(date) ?? null;
     const olderNights = scoredSleep.filter((candidate) => candidate.date < date).slice(0, 30);
-    const recovery = night ? calculateRecovery(night, olderNights) : null;
+    const safety = {
+      pain: derivePainSafetyState(painItems, date),
+      sick: deriveSickSafetyState(sickItems, date),
+    };
+    const recovery = night ? calculateRecovery(night, olderNights, safety) : null;
     points.push({
       date,
       recovery: recovery?.score ?? null,
@@ -190,6 +202,7 @@ function toSleepSignals(item: LocalHistoryItem): SleepSignals {
     sleep: null,
     hrv: finite(extracted.hrv),
     restingHR: finite(extracted.restingHR),
+    restingHRSource: extracted.restingHRSource === 'measured' || extracted.restingHRSource === 'estimated_sleep_hr' ? extracted.restingHRSource : null,
     respiratoryRate: finite(extracted.avgRespiratoryRate),
     durationMinutes: parseSleepDurationToMinutes(extracted.actualSleepDurationMinutes ?? extracted.sleepDuration),
     timeInBedMinutes: finite(extracted.timeInBedMinutes),
@@ -213,20 +226,33 @@ function toSleepScoreNight(night: SleepSignals): RunMateSleepScoreNight {
   };
 }
 
-function calculateRecovery(night: SleepSignals, older: SleepSignals[]): { score: number; state: 'scored' | 'calibrating' } | null {
+type PainSafetyState = { activePain: boolean; painLevel: number; redFlagCount: number };
+type SickSafetyState = { activeSick: boolean; riskLevel: SickRiskLevel };
+type SafetyState = { pain: PainSafetyState; sick: SickSafetyState };
+
+/**
+ * Mirrors `recoverySystem.ts`'s `buildRecovery()` weighted blend (same signal
+ * weights, same personal-baseline source via `computeSignalBaseline`) and applies
+ * the same pain/sick safety caps, reconstructed per-day from that day's pain/sick
+ * check-in history. This intentionally does not have access to session-only
+ * overrides (e.g. the muscle-soreness slider) since those are never persisted to
+ * history — only what was actually logged that day can be reconstructed.
+ */
+function calculateRecovery(night: SleepSignals, older: SleepSignals[], safety: SafetyState): { score: number; state: 'scored' | 'calibrating' } | null {
   let weighted = 0;
   let weight = 0;
-  const hrvBaseline = median(older.map((item) => item.hrv));
-  const rhrBaseline = median(older.map((item) => item.restingHR));
-  const respiratoryBaseline = median(older.map((item) => item.respiratoryRate));
+  const hrvBaseline = computeSignalBaseline(older.map((item) => item.hrv)).value;
+  const rhrBaseline = computeSignalBaseline(older.map((item) => item.restingHR)).value;
+  const respiratoryBaseline = computeSignalBaseline(older.map((item) => item.respiratoryRate)).value;
 
   if (night.hrv != null && hrvBaseline != null && hrvBaseline > 0) {
     weighted += clamp(65 + ((night.hrv - hrvBaseline) / hrvBaseline) * 180) * 0.4;
     weight += 0.4;
   }
   if (night.restingHR != null && rhrBaseline != null && rhrBaseline > 0) {
-    weighted += clamp(65 - ((night.restingHR - rhrBaseline) / rhrBaseline) * 180) * 0.25;
-    weight += 0.25;
+    const rhrWeight = night.restingHRSource === 'estimated_sleep_hr' ? 0.15 : 0.25;
+    weighted += clamp(65 - ((night.restingHR - rhrBaseline) / rhrBaseline) * 180) * rhrWeight;
+    weight += rhrWeight;
   }
   if (night.respiratoryRate != null && respiratoryBaseline != null && respiratoryBaseline > 0) {
     weighted += clamp(70 - Math.abs((night.respiratoryRate - respiratoryBaseline) / respiratoryBaseline) * 300) * 0.15;
@@ -237,13 +263,63 @@ function calculateRecovery(night: SleepSignals, older: SleepSignals[]): { score:
     weight += 0.2;
   }
   if (!weight) return null;
-  return { score: Math.round(clamp(weighted / weight)), state: older.length >= 3 ? 'scored' : 'calibrating' };
+  let score = clamp(weighted / weight);
+  if (safety.sick.activeSick) {
+    score = Math.min(score, safety.sick.riskLevel === 'hard_stop' ? 25 : 45);
+  }
+  if (safety.pain.activePain) {
+    const painLevel = safety.pain.painLevel || 4;
+    score = Math.min(score, painLevel >= 7 || safety.pain.redFlagCount > 0 ? 25 : painLevel >= 4 ? 33 : 45);
+  }
+  return { score: Math.round(clamp(score)), state: older.length >= 3 ? 'scored' : 'calibrating' };
 }
 
-function buildDailyStrain(items: LocalHistoryItem[], profile: Record<string, unknown> | null): Map<string, number> {
+/** Reconstructs "was there active pain as of this date" from that day's pain-log history, using the same field mapping and 7-day lookback `buildCoachContext` uses live. */
+function derivePainSafetyState(painItems: LocalHistoryItem[], date: string): PainSafetyState {
+  const windowStart = shiftDate(date, -6);
+  const candidate = painItems
+    .filter((item) => { const key = getHistoryItemDateKey(item); return key >= windowStart && key <= date; })
+    .sort(compareHistoryByEventDateDesc)[0];
+  if (!candidate) return { activePain: false, painLevel: 0, redFlagCount: 0 };
+  const data = candidate.data as Partial<PainLog> | null;
+  const redFlags = Array.isArray(data?.redFlags) ? data!.redFlags! : [];
+  const painType = Array.isArray(data?.painType) ? data!.painType! : [];
+  const painLevel = Number.isFinite(Number(data?.painLevel)) ? Number(data?.painLevel) : 0;
+  const baseResolved = isResolvedPainLog(data as PainLog | undefined, redFlags, painType);
+  const hasRedFlag = painHasRedFlag({ swellingOrRedness: data?.swellingOrRedness, canBearWeight: data?.canBearWeight, redFlags, painType });
+  let hasActivePain = !baseResolved && (painLevel > 0 || hasRedFlag);
+  const storedStatus = data?.recoveryStatus;
+  if (storedStatus === 'active_pain') hasActivePain = true;
+  else if (storedStatus === 'improving') hasActivePain = false;
+  else if (storedStatus === 'cleared_light' || storedStatus === 'cleared_normal') hasActivePain = false;
+  return { activePain: hasActivePain, painLevel, redFlagCount: redFlags.length };
+}
+
+/** Reconstructs "was there an active sick check-in on this date" — matches `buildCoachContext`'s same-day-only scoping for sick logs. */
+function deriveSickSafetyState(sickItems: LocalHistoryItem[], date: string): SickSafetyState {
+  const candidate = sickItems
+    .filter((item) => getHistoryItemDateKey(item) === date)
+    .sort(compareHistoryByEventDateDesc)[0];
+  if (!candidate) return { activeSick: false, riskLevel: 'none' };
+  const data = candidate.data as Partial<SickLog> | null;
+  const healthStatus = data?.healthStatus === 'normal' || data?.healthStatus === 'fatigue' || data?.healthStatus === 'sick' ? data.healthStatus : 'sick';
+  const symptoms = Array.isArray(data?.symptoms) ? data.symptoms : [];
+  const severity = data?.severity === 'mild' || data?.severity === 'moderate' || data?.severity === 'severe' ? data.severity : undefined;
+  const riskLevel = getIllnessRiskLevel({ healthStatus, symptoms, severity });
+  return { activeSick: healthStatus !== 'normal', riskLevel };
+}
+
+function buildDailyStrain(items: LocalHistoryItem[], profile: Record<string, unknown> | null, sleep: SleepSignals[]): Map<string, number> {
   const workouts = dedupeWorkoutItems(items.filter((item) => item.type === 'workout' || item.type === 'strength'));
   const effort = new Map<string, number>();
   const profileMaxHR = finite(profile?.maxHr ?? profile?.max_hr) ?? 190;
+  // Mirrors recoverySystem.ts's buildStrain(), which uses the most recently known
+  // resting HR (not a fixed assumption) as the effort-intensity baseline.
+  const restingHRAsOf = (date: string): number => {
+    const windowStart = shiftDate(date, -6);
+    const match = sleep.find((night) => night.restingHR != null && night.date <= date && night.date >= windowStart);
+    return match?.restingHR ?? 60;
+  };
   for (const item of workouts) {
     const date = getHistoryItemDateKey(item);
     const data = item.data as { extracted?: Record<string, unknown>; durationMin?: number };
@@ -252,7 +328,7 @@ function buildDailyStrain(items: LocalHistoryItem[], profile: Record<string, unk
     if (duration == null || duration <= 0) continue;
     const avgHR = finite(extracted.avgHR);
     const kind = String(extracted.workoutKind ?? (item.type === 'strength' ? 'strength' : 'other'));
-    const restingHR = 60;
+    const restingHR = restingHRAsOf(date);
     const multiplier = kind === 'strength' ? 0.55 : kind === 'walk' ? 0.22 : avgHR == null
       ? (kind === 'outdoor_run' || kind === 'treadmill' ? 0.48 : 0.35)
       : Math.pow(clamp((avgHR - restingHR) / Math.max(1, profileMaxHR - restingHR), 0.2, 1.05), 1.7);
@@ -306,7 +382,6 @@ function durationMinutes(value: unknown): number | null {
 
 function finite(value: unknown): number | null { if (value == null || value === '') return null; const number = Number(value); return Number.isFinite(number) ? number : null; }
 function stringOrNull(value: unknown): string | null { return typeof value === 'string' && value.trim() ? value : null; }
-function median(values: Array<number | null>): number | null { const sorted = values.filter((value): value is number => value != null).sort((a, b) => a - b); if (!sorted.length) return null; const middle = Math.floor(sorted.length / 2); return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2; }
 function clamp(value: number, min = 0, max = 100): number { return Math.min(max, Math.max(min, value)); }
 function shiftDate(date: string, days: number): string { const value = new Date(`${date}T00:00:00Z`); value.setUTCDate(value.getUTCDate() + days); return value.toISOString().slice(0, 10); }
 function formatShortDate(date: string): string { return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`)); }

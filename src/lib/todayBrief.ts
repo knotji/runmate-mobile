@@ -237,7 +237,7 @@ function actionItem(
     };
   }
 
-  if (context.recoverySystem.sleepPerformance.score < 70) {
+  if (context.recoverySystem.sleepPerformance.state !== 'unscorable' && context.recoverySystem.sleepPerformance.score < 70) {
     return {
       eyebrow: 'One Adjustment',
       title: 'Protect Tonight’s Sleep Window',

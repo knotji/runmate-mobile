@@ -75,6 +75,25 @@ describe('assembleHealthDashboard', () => {
     expect(dashboard.sources[0]).toEqual({ label: 'Health Connect', detail: 'Synced with today\'s data', state: 'ok' });
   });
 
+  it('marks a day with no recovery score as "missing" rather than a fabricated low/caution score', () => {
+    const points = ['2026-08-13', '2026-08-14', '2026-08-15', '2026-08-16', '2026-08-17', '2026-08-18', '2026-08-19'].map((date, index) => ({
+      date,
+      recovery: index === 2 ? null : 60,
+      sleep: null,
+      strain: null,
+      state: 'scored' as const,
+      hrv: null,
+      restingHR: null,
+      respiratoryRate: null,
+    }));
+    const dashboard = assembleHealthDashboard(context(), recoveryTrend({ points }), nutritionTrend());
+
+    expect(dashboard.trend[2].status).toBe('missing');
+    expect(dashboard.trend[2].value).toBe(0);
+    // Every scored day stays on its real status, not swept into "missing".
+    expect(dashboard.trend.filter((day) => day.status !== 'missing')).toHaveLength(6);
+  });
+
   it('shows the current HRV value with a real delta when the baseline is ready (>=4 nights)', () => {
     const dashboard = assembleHealthDashboard(context(), recoveryTrend(), nutritionTrend());
 

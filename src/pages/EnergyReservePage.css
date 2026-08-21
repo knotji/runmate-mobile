@@ -49,6 +49,8 @@
 .energy-fuel small { overflow: hidden; color: #71899b; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .energy-fuel > ion-icon { color: #78a3b7; }
 .energy-fuel.is-low > span, .energy-fuel.is-top_up > span { color: #b47a22; background: #fff3dc; }
+.energy-fuel.is-unknown > span { color: #5c7488; background: #eaeff3; }
+.energy-fuel.is-unknown p { color: #5c7488; }
 .energy-action { padding: 16px 18px; border-color: rgba(134,211,190,.72); background: linear-gradient(145deg, rgba(239,252,248,.96), rgba(255,255,255,.94)); }
 .energy-action h2 { color: #176a5d; }
 .energy-action span { display: block; margin-top: 6px; color: #647f83; font-size: 10px; line-height: 1.48; }

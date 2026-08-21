@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { daysBetween, endOfMonth, shiftMonths, startOfMonth, startOfWeek, weekdayIndex } from './date';
+import { daysBetween, endOfMonth, getBangkokHour, shiftMonths, startOfMonth, startOfWeek, weekdayIndex } from './date';
+
+describe('getBangkokHour', () => {
+  it('reads the hour in Asia/Bangkok time, not the device local timezone', () => {
+    // 2026-01-01T23:30:00Z is 6:30 AM the next day in Bangkok (UTC+7) — a
+    // device set to US/Pacific local time (still 2026-01-01, 3:30 PM) must
+    // still see the Bangkok hour here, not its own local hour.
+    expect(getBangkokHour('2026-01-01T23:30:00.000Z')).toBe(6);
+    expect(getBangkokHour('2026-01-01T06:30:00.000Z')).toBe(13);
+  });
+});
 
 describe('startOfWeek', () => {
   it('returns the same date when it is already Sunday', () => {

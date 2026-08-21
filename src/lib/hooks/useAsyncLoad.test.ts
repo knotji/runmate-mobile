@@ -42,4 +42,49 @@ describe('useAsyncLoad', () => {
     expect(result.current.error).toBeNull();
     expect(load).toHaveBeenLastCalledWith(true);
   });
+
+  it('does not set `loading` again on reload(), but exposes `refreshing` so a page can opt into feedback', async () => {
+    let resolveReload: (() => void) | null = null;
+    const load = vi.fn()
+      .mockResolvedValueOnce(undefined)
+      .mockImplementationOnce(() => new Promise<void>((resolve) => { resolveReload = resolve; }));
+    const { result } = renderHook(() => useAsyncLoad(load, 'fallback'));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.refreshing).toBe(false);
+
+    act(() => { void result.current.reload(); });
+    // `loading` (used by pages for a one-time full-page skeleton) must stay false;
+    // `refreshing` becomes true so "Try Again"/pull-to-refresh can show feedback.
+    await waitFor(() => expect(result.current.refreshing).toBe(true));
+    expect(result.current.loading).toBe(false);
+
+    await act(async () => { resolveReload?.(); await Promise.resolve(); });
+    expect(result.current.refreshing).toBe(false);
+  });
+
+  it('does not let a slower, superseded reload() overwrite the result of a newer one', async () => {
+    let rejectFirst: ((reason: Error) => void) | null = null;
+    let resolveSecond: (() => void) | null = null;
+    const load = vi.fn()
+      .mockResolvedValueOnce(undefined) // initial mount load
+      .mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectFirst = reject; }))
+      .mockImplementationOnce(() => new Promise<void>((resolve) => { resolveSecond = resolve; }));
+    const { result } = renderHook(() => useAsyncLoad(load, 'fallback'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    // Two overlapping reloads (e.g. a double-tapped "Try Again"). The first is
+    // slower and will reject; the second is faster and succeeds.
+    act(() => { void result.current.reload(); });
+    act(() => { void result.current.reload(); });
+
+    await act(async () => { resolveSecond?.(); await Promise.resolve(); });
+    expect(result.current.error).toBeNull();
+    expect(result.current.refreshing).toBe(false);
+
+    // The slower, now-stale first call finally rejects — it must not clobber
+    // the newer, successful result that already landed.
+    await act(async () => { rejectFirst?.(new Error('stale failure')); await Promise.resolve(); });
+    expect(result.current.error).toBeNull();
+  });
 });

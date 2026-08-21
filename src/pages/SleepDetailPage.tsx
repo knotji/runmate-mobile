@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { IonButton, IonContent, IonDatetime, IonHeader, IonIcon, IonModal, IonPage, IonTitle, IonToolbar } from '@ionic/react';
 import { arrowBackOutline, calendarClearOutline, checkmarkCircleOutline, chevronBackOutline, chevronForwardOutline, moonOutline, warningOutline } from 'ionicons/icons';
@@ -59,11 +59,19 @@ const SleepDetailPage: React.FC = () => {
   const diagnostics = visibleContext ? buildSleepDiagnostics(visibleContext, selectedNight?.date) : null;
   const latestDate = visibleContext?.sleepHistory[0]?.date ?? null;
   const isLatestNight = selectedNight?.date === latestDate;
-  const availableNights = visibleContext?.sleepHistory ?? [];
+  const availableNights = useMemo(() => visibleContext?.sleepHistory ?? [], [visibleContext]);
   const selectedNightIndex = availableNights.findIndex((night) => night.date === selectedNight?.date);
-  const scoreBreakdown = selectedNightIndex >= 0
-    ? calculateRunMateSleepScore(availableNights.slice(selectedNightIndex, selectedNightIndex + 31).map(toSleepScoreNight))
-    : null;
+  // calculateRunMateSleepScore parses up to 31 nights of bed/wake timestamps
+  // (each via an Intl.DateTimeFormat call) to score sleep consistency. Without
+  // memoizing, that reruns on every render, including ones triggered by state
+  // that has nothing to do with the sleep score itself, like opening the
+  // night-picker calendar.
+  const scoreBreakdown = useMemo(
+    () => selectedNightIndex >= 0
+      ? calculateRunMateSleepScore(availableNights.slice(selectedNightIndex, selectedNightIndex + 31).map(toSleepScoreNight))
+      : null,
+    [availableNights, selectedNightIndex],
+  );
   const availableDates = new Set(availableNights.map((night) => night.date));
   const freshnessTitle = recovery?.scoreState === 'scored' ? 'Scored Today'
     : recovery?.scoreState === 'calibrating' ? 'Baseline Calibrating'
@@ -114,7 +122,7 @@ const SleepDetailPage: React.FC = () => {
                   already lives fully on SleepWindowPage.tsx (wake time, cycle
                   planner, tonight's coaching); this is just the doorway to it
                   from Health now that Today no longer carries its own copy. */}
-              <button type="button" className="sleep-plan-link" onClick={() => history.push('/sleep-window?from=health')}>
+              <button type="button" className="sleep-plan-link" onClick={() => history.push(`/sleep-window?from=health&returnTo=${encodeURIComponent(`/sleep${location.search}`)}`)}>
                 <span className="sleep-plan-link-icon" aria-hidden="true"><IonIcon icon={moonOutline} /></span>
                 <span className="sleep-plan-link-copy"><small>Tonight</small><strong>Sleep Plan</strong></span>
                 <IonIcon className="sleep-plan-link-chevron" icon={chevronForwardOutline} aria-hidden="true" />

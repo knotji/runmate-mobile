@@ -34,8 +34,9 @@ const MealUploadFlow: React.FC = () => {
   useEffect(() => () => { imagesRef.current.forEach((image) => URL.revokeObjectURL(image.url)); }, []);
 
   const choose = (files: File[]) => {
+    if (!files.length) return;
     const available = Math.max(0, 4 - images.length);
-    if (!available) return;
+    if (!available) { setError('You Can Add Up To 4 Photos.'); return; }
     setImages((current) => [...current, ...files.slice(0, available).map((file) => ({ file, url: URL.createObjectURL(file) }))]);
     setMeal(null);
     setError(files.length > available ? 'You Can Add Up To 4 Photos.' : '');

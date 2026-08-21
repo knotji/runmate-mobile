@@ -31,6 +31,13 @@ const analyzedMeal: MealAnalysis = {
   needsReview: true,
 };
 
+// jsdom does not implement these; stubbed once for the whole file (not
+// restored — nothing else in this suite depends on the real, unimplemented
+// browser APIs) so photo-picking flows can be exercised.
+let mockObjectUrlCount = 0;
+URL.createObjectURL = vi.fn(() => `blob:mock-${++mockObjectUrlCount}`);
+URL.revokeObjectURL = vi.fn();
+
 describe('MealUploadFlow text input', () => {
   beforeEach(() => {
     analyzeMealText.mockReset();
@@ -96,6 +103,24 @@ describe('MealUploadFlow text input', () => {
     expect(createHistoryItem).toHaveBeenCalledWith('meal', expect.objectContaining({ mealType: 'lunch', mealSlot: 'lunch' }));
     const savedItem = saveHistoryItems.mock.calls[0][0][0];
     expect(savedItem.source).toMatchObject({ provider: 'manual', importType: 'manual' });
+  });
+
+  it('shows an error instead of silently ignoring a photo added once the 4-photo cap is already reached', () => {
+    render(<MemoryRouter><MealUploadFlow /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: /Use Photos/i }));
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+
+    const makeFiles = (count: number) => Array.from({ length: count }, (_, index) => new File(['x'], `photo-${index}.jpg`, { type: 'image/jpeg' }));
+
+    fireEvent.change(fileInput, { target: { files: makeFiles(4) } });
+    expect(screen.getByText('4/4 selected')).toBeInTheDocument();
+
+    // Already at the cap — adding one more must surface the same limit
+    // message shown when a single over-sized batch is trimmed, not fail
+    // silently with no feedback at all.
+    fireEvent.change(fileInput, { target: { files: makeFiles(1) } });
+    expect(screen.getByText('You Can Add Up To 4 Photos.')).toBeInTheDocument();
+    expect(screen.getByText('4/4 selected')).toBeInTheDocument();
   });
 
   it('shows analysis errors and allows retrying', async () => {

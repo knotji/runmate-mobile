@@ -39,6 +39,7 @@ import { NutritionSyncSettings } from '@/components/health/NutritionSyncSettings
 import { HealthSyncPerformanceCard } from '@/components/health/HealthSyncPerformanceCard';
 import { HealthDiagnosticsPanel, type LogEntry } from '@/components/health/HealthDiagnosticsPanel';
 import { navigateBackOr } from '@/lib/navigationBack';
+import { missingPermissionLabels } from '@/lib/healthPermissionLabels';
 import './HealthTestPage.css';
 
 const HealthTestPage: React.FC = () => {
@@ -143,13 +144,14 @@ const HealthTestPage: React.FC = () => {
     setConnectionMessage(null);
     try {
       const authorization = await Health.requestAuthorization({ read: PRODUCT_READ_TYPES, requestHistoryAccess: true });
-      if (authorization.readAuthorized.includes('sleep')) {
-        const { sleep, workout: workouts, weight } = await syncHealthHistory();
-        await showSyncResult(sleep, workouts, setSyncSummary);
-        if (sleep.error || workouts.error || weight.error) setConnectionMessage(sleep.error ?? workouts.error ?? weight.error ?? 'Could Not Sync Health Connect.');
-      } else {
-        setConnectionMessage('Sleep permission was not granted. You can change it in Health Connect settings.');
-      }
+      const missing = missingPermissionLabels(authorization.readAuthorized);
+      // Each sub-sync in syncHealthHistory() already checks its own permission
+      // independently (see samsungSleepSync.ts etc.), so a partial grant is safe
+      // to sync — denying one permission must not skip everything else.
+      const { sleep, workout: workouts, weight } = await syncHealthHistory();
+      await showSyncResult(sleep, workouts, setSyncSummary);
+      if (sleep.error || workouts.error || weight.error) setConnectionMessage(sleep.error ?? workouts.error ?? weight.error ?? 'Could Not Sync Health Connect.');
+      else if (missing.length) setConnectionMessage(`${missing.join(', ')} permission${missing.length > 1 ? 's were' : ' was'} not granted, so WholeMate could not sync ${missing.length > 1 ? 'those' : 'that'}. Everything else you allowed was synced. You can change this in Health Connect settings.`);
     } catch (error) {
       setConnectionMessage(error instanceof Error ? error.message : 'Could Not Connect Health Connect.');
     }
@@ -163,6 +165,7 @@ const HealthTestPage: React.FC = () => {
     await showSyncResult(sleep, workouts, setSyncSummary);
     if (sleep.status === 'permission_required' || workouts.status === 'permission_required') setConnectionMessage('Update Health Connect access before syncing.');
     else if (sleep.error || workouts.error || weight.error) setConnectionMessage(sleep.error ?? workouts.error ?? weight.error ?? 'Could Not Sync Health Connect.');
+    else if (weight.status === 'permission_required') setConnectionMessage('Weight permission was not granted, so Body Weight was not synced. Sleep and Workouts synced normally.');
     else if (weight.status === 'manual_override') setConnectionMessage(`Health Connect found ${weight.weightKg} kg. Your manually entered Body Weight was kept.`);
     await refreshConnection();
   };

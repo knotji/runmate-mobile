@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import {
+  IonAlert,
   IonButton,
   IonContent,
   IonHeader,
@@ -50,6 +51,7 @@ const MorePage: React.FC = () => {
   const history = useHistory();
   const contentRef = usePrimaryTabScroll('you');
   const [youContext, setYouContext] = useState<YouContextData | null>(() => loadYouContextStartupSnapshot());
+  const [signOutOpen, setSignOutOpen] = useState(false);
   const requestIdRef = useRef(0);
 
   const warmPage = (path: MorePagePath) => {
@@ -153,13 +155,23 @@ const MorePage: React.FC = () => {
 
           <section className="more-account" aria-labelledby="account-heading">
             <p id="account-heading">ACCOUNT</p>
-            <IonButton expand="block" fill="outline" color="danger" onClick={() => void supabase.auth.signOut()}>
+            <IonButton expand="block" fill="outline" color="danger" onClick={() => setSignOutOpen(true)}>
               <IonIcon slot="start" icon={logOutOutline} />
               Sign Out
             </IonButton>
           </section>
         </main>
       </IonContent>
+      <IonAlert
+        isOpen={signOutOpen}
+        onDidDismiss={() => setSignOutOpen(false)}
+        header="Sign Out?"
+        message="You will need to sign back in to see your WholeMate data on this device."
+        buttons={[
+          { text: 'Cancel', role: 'cancel' },
+          { text: 'Sign Out', role: 'destructive', handler: () => void supabase.auth.signOut() },
+        ]}
+      />
     </IonPage>
   );
 };

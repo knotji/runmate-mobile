@@ -13,6 +13,7 @@ import type { LocalHistoryItem } from '@/lib/localHistory';
 import { useAsyncLoad } from '@/lib/hooks/useAsyncLoad';
 import { PageState } from '@/components/PageState';
 import { PageDataSkeleton } from '@/components/PageDataSkeleton';
+import { DataFreshnessStatus } from '@/components/DataFreshnessStatus';
 import { navigateBackOr } from '@/lib/navigationBack';
 import './RecoveryTrendsPage.css';
 
@@ -22,12 +23,12 @@ const RecoveryTrendsPage: React.FC = () => {
   const [startupTrends] = useState(() => loadRecoveryTrendsStartupSnapshot());
   const [source, setSource] = useState<{ items: LocalHistoryItem[]; profile: Record<string, unknown> | null } | null>(null);
 
-  const { loading, error, reload: load } = useAsyncLoad(async (sync) => {
+  const { loading, refreshing, error, reload: load } = useAsyncLoad(async (sync) => {
     if (sync) await syncTodayHealth(true);
     const [historyResult, profileResult] = await measurePerformanceDiagnostic(
       'recovery_trends',
       () => Promise.all([
-        loadHistoryItems(['sleep', 'workout', 'strength'], recoveryTrendHistoryOptions()),
+        loadHistoryItems(['sleep', 'workout', 'strength', 'pain', 'sick'], recoveryTrendHistoryOptions()),
         loadProfileFromSupabase(),
       ]),
       ([history]) => ({
@@ -48,7 +49,10 @@ const RecoveryTrendsPage: React.FC = () => {
   const trend = useMemo(() => source
     ? buildRecoveryTrend(source.items, source.profile, days, todayBangkokDateKey())
     : days === 7 ? startupTrends?.sevenDay ?? null : startupTrends?.thirtyDay ?? null, [source, days, startupTrends]);
-  const showLoading = loading && !trend;
+  // `refreshing` covers "Try Again" and pull-to-refresh too (not just the first
+  // mount) so retrying with no trend on screen yet shows the skeleton again
+  // instead of a blank page while the retry's error is cleared mid-flight.
+  const showLoading = (loading || refreshing) && !trend;
   const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(true); event.detail.complete(); };
 
   return <IonPage>
@@ -67,6 +71,7 @@ const RecoveryTrendsPage: React.FC = () => {
         {showLoading && <PageDataSkeleton variant="trends" label="Building Your Recovery Trends" />}
         {!showLoading && error && !trend && <PageState kind="error" title="Trends Are Unavailable" detail={error} actionLabel="Try Again" onAction={() => void load()} className="recovery-trends-state" />}
         {!showLoading && trend && <>
+          {error && <DataFreshnessStatus status="fallback" label="Saved Data" detail="Refresh unavailable · Showing your last loaded Recovery trend" onRetry={() => void load()} variant="panel" />}
           <section className="trend-chart-card" aria-labelledby="trend-chart-heading">
             <div className="trend-section-heading"><div><p>Last {days} Days</p><h2 id="trend-chart-heading">Recovery At A Glance</h2></div><Coverage points={trend.points} /></div>
             <TrendChart points={trend.points} compact={days === 30} />
@@ -154,7 +159,7 @@ function TrendHistory({ points, days }: { points: RecoveryTrendPoint[]; days: 7 
       <summary><div><p>Daily Detail</p><h2>Recent Scores</h2></div><span>{visiblePoints.length} Days</span></summary>
       <div className="trend-history-columns" aria-hidden="true"><span>Date</span><span>Recovery</span><span>Sleep</span><span>Strain</span></div>
       <div className="trend-history-list">{visiblePoints.map((point) => <TrendRow key={point.date} point={point} />)}</div>
-      <p className="trend-method-note"><IonIcon icon={informationCircleOutline} />Historical Recovery uses available physiological signals and personal-baseline weighting. Sleep Score uses WholeMate's calculation for every night. Missing physiological data stays blank.</p>
+      <p className="trend-method-note"><IonIcon icon={informationCircleOutline} />Historical Recovery is recomputed from available physiological signals, personal-baseline weighting, and that day's logged pain or sick check-ins (same safety caps as Today's Recovery). Sleep Score uses WholeMate's calculation for every night. Missing physiological data stays blank, and in-session adjustments like the muscle-soreness slider aren't saved to history, so they can't be reflected here.</p>
     </details>
   </section>;
 }

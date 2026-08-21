@@ -16,6 +16,17 @@ export function todayBangkokDateKey(): string {
   return getBangkokDateKey();
 }
 
+export function getBangkokHour(dateInput?: Date | string | number): number {
+  const d = dateInput ? new Date(dateInput) : new Date();
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Bangkok",
+    hour: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(d);
+  const hour = parts.find(p => p.type === 'hour')?.value;
+  return hour != null ? Number(hour) : d.getHours();
+}
+
 export function yesterdayBangkokDateKey(): string {
   const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
   return getBangkokDateKey(yesterday);

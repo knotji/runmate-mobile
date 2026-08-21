@@ -10,6 +10,30 @@ function workout(date: string): LocalHistoryItem {
   return { id: `workout-${date}`, type: 'workout', createdAt: `${date}T12:00:00Z`, dateKey: date, source: { provider: 'samsung_health', importType: 'health_connect', importedAt: `${date}T13:00:00Z` }, data: { extracted: { workoutKind: 'outdoor_run', duration: '30:00', avgHR: 150 } } };
 }
 
+function pain(date: string, painLevel: number, options: { redFlags?: string[] } = {}): LocalHistoryItem {
+  return {
+    id: `pain-${date}`,
+    type: 'pain',
+    createdAt: `${date}T08:00:00Z`,
+    dateKey: date,
+    data: {
+      painLevel,
+      painLocation: 'Knee',
+      painSide: 'right',
+      painType: [],
+      swellingOrRedness: 'no',
+      canBearWeight: 'yes',
+      redFlags: options.redFlags ?? [],
+      riskLevel: 'moderate',
+      trainingImpact: 'modify',
+    },
+  };
+}
+
+function sick(date: string, healthStatus: 'fatigue' | 'sick', symptoms: string[], severity?: 'mild' | 'moderate' | 'severe'): LocalHistoryItem {
+  return { id: `sick-${date}`, type: 'sick', createdAt: `${date}T07:00:00Z`, dateKey: date, data: { healthStatus, symptoms, severity } };
+}
+
 describe('recovery trends', () => {
   it('loads enough bounded history for a 30-day view and its baseline', () => {
     expect(recoveryTrendHistoryOptions('2026-07-27T00:00:00.000Z')).toEqual({
@@ -96,5 +120,60 @@ describe('recovery trends', () => {
       available: true,
       detail: 'Calculated from available Sleep details',
     });
+  });
+
+  it('applies the same active-pain safety cap the deterministic engine applies, using that day\'s logged pain check-in', () => {
+    const items: LocalHistoryItem[] = [
+      sleep('2026-07-15', 70, 90, 52), sleep('2026-07-16', 75, 94, 51),
+      sleep('2026-07-17', 78, 98, 50), sleep('2026-07-18', 82, 104, 48),
+    ];
+    const uncapped = buildRecoveryTrend(items, null, 7, '2026-07-19');
+    const uncappedScore = uncapped.points.find((point) => point.date === '2026-07-18')?.recovery;
+    expect(uncappedScore).not.toBeNull();
+    expect(uncappedScore!).toBeGreaterThan(50);
+
+    const withPain = buildRecoveryTrend([...items, pain('2026-07-18', 8)], null, 7, '2026-07-19');
+    const cappedPoint = withPain.points.find((point) => point.date === '2026-07-18');
+    expect(cappedPoint?.state).toBe('scored');
+    // Level-8 active pain (>= 7) caps Recovery at 25, matching recoverySystem.ts's buildRecovery() safety cap.
+    expect(cappedPoint?.recovery).toBeLessThanOrEqual(25);
+  });
+
+  it('applies the same hard-stop sick safety cap the deterministic engine applies, using that day\'s logged sick check-in', () => {
+    const items: LocalHistoryItem[] = [
+      sleep('2026-07-15', 70, 90, 52), sleep('2026-07-16', 75, 94, 51),
+      sleep('2026-07-17', 78, 98, 50), sleep('2026-07-18', 82, 104, 48),
+      sick('2026-07-18', 'sick', ['fever'], 'severe'),
+    ];
+    const result = buildRecoveryTrend(items, null, 7, '2026-07-19');
+    const point = result.points.find((point) => point.date === '2026-07-18');
+    expect(point?.state).toBe('scored');
+    // A hard-stop illness (fever + severe) caps Recovery at 25, matching recoverySystem.ts.
+    expect(point?.recovery).toBeLessThanOrEqual(25);
+  });
+
+  it('does not let a pain or sick check-in from a different day cap an unrelated night\'s score', () => {
+    const items: LocalHistoryItem[] = [
+      sleep('2026-07-15', 70, 90, 52), sleep('2026-07-16', 75, 94, 51),
+      sleep('2026-07-17', 78, 98, 50), sleep('2026-07-18', 82, 104, 48),
+      pain('2026-07-01', 9), // resolved by staleness — well outside the 7-day pain lookback
+    ];
+    const result = buildRecoveryTrend(items, null, 7, '2026-07-19');
+    const point = result.points.find((point) => point.date === '2026-07-18');
+    expect(point?.recovery).toBeGreaterThan(50);
+  });
+
+  it('uses the actual known resting heart rate for daily Strain instead of a fixed assumption', () => {
+    // A very low real resting HR (elite-endurance profile) should register a meaningfully
+    // higher Strain for the same workout than the previous hardcoded restingHR=60 would have.
+    const lowRhrItems: LocalHistoryItem[] = [sleep('2026-07-18', 80, 90, 38), workout('2026-07-18')];
+    const highRhrItems: LocalHistoryItem[] = [sleep('2026-07-18', 80, 90, 75), workout('2026-07-18')];
+    const lowRhrResult = buildRecoveryTrend(lowRhrItems, { maxHr: 195 }, 7, '2026-07-19');
+    const highRhrResult = buildRecoveryTrend(highRhrItems, { maxHr: 195 }, 7, '2026-07-19');
+    const lowStrain = lowRhrResult.points.find((point) => point.date === '2026-07-18')?.strain;
+    const highStrain = highRhrResult.points.find((point) => point.date === '2026-07-18')?.strain;
+    expect(lowStrain).not.toBeNull();
+    expect(highStrain).not.toBeNull();
+    expect(lowStrain!).not.toBe(highStrain!);
   });
 });

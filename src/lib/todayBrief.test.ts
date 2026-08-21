@@ -109,6 +109,23 @@ describe('buildTodayBrief', () => {
 
     expect(brief.readiness.title).toBe('Waiting For Fresh Sleep Data');
     expect(brief.limiter.title).toBe('Latest Sleep Is Missing');
+    // Regression: sleepPerformance.score is a placeholder 0 (not a real low score) when
+    // state is 'unscorable' — the action card must not fabricate "Protect Tonight's
+    // Sleep Window" while the WHY card is simultaneously saying sleep data is missing.
+    expect(brief.action.title).not.toBe('Protect Tonight’s Sleep Window');
+  });
+
+  it('does not treat an unscorable placeholder Sleep Performance score as a real low score for the action card', () => {
+    const base = context();
+    const brief = buildTodayBrief(context({
+      recoverySystem: {
+        ...base.recoverySystem,
+        sleepPerformance: { score: 0, state: 'unscorable', actualSleepMinutes: null, sleepNeedMinutes: 450 },
+      } as unknown as CoachContext['recoverySystem'],
+    }), options);
+
+    expect(brief.action.title).not.toBe('Protect Tonight’s Sleep Window');
+    expect(brief.action.title).toBe('Keep Today Steady');
   });
 
   it('puts a logged safety signal ahead of lower-priority sleep explanations', () => {

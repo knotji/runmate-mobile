@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useHistory, useParams } from 'react-router-dom';
 import { IonButton, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar } from '@ionic/react';
 import { arrowBackOutline, chevronForwardOutline, heartOutline, medkitOutline } from 'ionicons/icons';
@@ -13,9 +13,16 @@ const HealthDetailPage: React.FC = () => {
   const history = useHistory(); const { id } = useParams<{ id: string }>();
   const selectedId = decodeURIComponent(id);
   const [item, setItem] = useState<LocalHistoryItem | null>(null); const [items, setItems] = useState<LocalHistoryItem[]>([]); const [error, setError] = useState<string | null>(null);
+  // Tapping quickly between two records in the History disclosure below
+  // triggers two overlapping loads (one per `selectedId`). Without a
+  // generation guard, an older in-flight request can resolve after a newer
+  // one and clobber the record the URL/UI has already moved on to.
+  const requestRef = useRef(0);
   const load = useCallback(async () => {
+    const requestId = ++requestRef.current;
     setError(null); setItem(null);
     const result = await loadHistoryItems(['pain', 'sick']);
+    if (requestRef.current !== requestId) return;
     if (!result.ok) { setError(result.error); return; }
     const sorted = [...result.items].sort((left, right) => healthTimestamp(right) - healthTimestamp(left));
     const match = sorted.find((record) => record.id === selectedId);

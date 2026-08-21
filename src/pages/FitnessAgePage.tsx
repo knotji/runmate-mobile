@@ -38,7 +38,7 @@ const FitnessAgePage: React.FC = () => {
   }, []);
   useEffect(() => { void load(); }, [load]);
   const result = useMemo(() => items ? buildFitnessAge(profile, items, todayBangkokDateKey()) : null, [items, profile]);
-  const refresh = async (event: CustomEvent<RefresherEventDetail>) => { await load(); event.detail.complete(); };
+  const refresh = async (event: CustomEvent<RefresherEventDetail>) => { try { await load(); } finally { event.detail.complete(); } };
 
   return <IonPage>
     <IonHeader translucent className="fitness-age-header"><IonToolbar>
