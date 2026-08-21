@@ -36,7 +36,7 @@ describe('buildRacePlanGenerationContext', () => {
       activeSick: false,
       workouts7d: [],
       racePlan: {},
-      profile: { goal_profile: { primaryGoal: 'running_consistency', secondaryGoals: ['six_pack'], guardrailGoals: [] } },
+      profile: { goalProfile: { primaryGoal: 'running_consistency', secondaryGoals: ['six_pack'], guardrailGoals: [] } },
     } as unknown as CoachContext;
 
     const result = buildRacePlanGenerationContext(context);

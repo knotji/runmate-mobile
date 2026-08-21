@@ -2,29 +2,29 @@ import { describe, expect, it } from 'vitest';
 import { extractGoalProfile, hasBodyRecompositionGoal } from './goalContext';
 
 describe('extractGoalProfile', () => {
-  it('returns a valid goal profile from the raw Supabase profile row', () => {
-    const context = { profile: { goal_profile: { primaryGoal: 'running_consistency', secondaryGoals: ['six_pack'], guardrailGoals: [] } } };
+  it('returns a valid goal profile from the typed UserProfile object CoachContext.profile actually holds at runtime', () => {
+    const context = { profile: { goalProfile: { primaryGoal: 'running_consistency', secondaryGoals: ['six_pack'], guardrailGoals: [] } } };
     expect(extractGoalProfile(context)).toEqual({ primaryGoal: 'running_consistency', secondaryGoals: ['six_pack'], guardrailGoals: [] });
   });
 
-  it('returns null when there is no profile or no goal_profile column', () => {
+  it('returns null when there is no profile or no goalProfile column', () => {
     expect(extractGoalProfile({ profile: null })).toBeNull();
     expect(extractGoalProfile({ profile: {} })).toBeNull();
   });
 
   it('returns null when primaryGoal is missing or not a known GoalType', () => {
-    expect(extractGoalProfile({ profile: { goal_profile: { secondaryGoals: ['six_pack'] } } })).toBeNull();
-    expect(extractGoalProfile({ profile: { goal_profile: { primaryGoal: 'become_the_goat' } } })).toBeNull();
+    expect(extractGoalProfile({ profile: { goalProfile: { secondaryGoals: ['six_pack'] } } })).toBeNull();
+    expect(extractGoalProfile({ profile: { goalProfile: { primaryGoal: 'become_the_goat' } } })).toBeNull();
   });
 
   it('drops unknown/legacy strings from secondaryGoals and guardrailGoals instead of trusting them', () => {
-    const context = { profile: { goal_profile: { primaryGoal: 'running_consistency', secondaryGoals: ['six_pack', 'legacy_value', 123], guardrailGoals: ['stress_balance', null] } } };
+    const context = { profile: { goalProfile: { primaryGoal: 'running_consistency', secondaryGoals: ['six_pack', 'legacy_value', 123], guardrailGoals: ['stress_balance', null] } } };
     expect(extractGoalProfile(context)).toEqual({ primaryGoal: 'running_consistency', secondaryGoals: ['six_pack'], guardrailGoals: ['stress_balance'] });
   });
 
-  it('treats a non-object goal_profile as malformed rather than throwing', () => {
-    expect(extractGoalProfile({ profile: { goal_profile: 'running_consistency' } })).toBeNull();
-    expect(extractGoalProfile({ profile: { goal_profile: null } })).toBeNull();
+  it('treats a non-object goalProfile as malformed rather than throwing', () => {
+    expect(extractGoalProfile({ profile: { goalProfile: 'running_consistency' } })).toBeNull();
+    expect(extractGoalProfile({ profile: { goalProfile: null } })).toBeNull();
   });
 });
 

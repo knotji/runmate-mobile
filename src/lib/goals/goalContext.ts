@@ -10,13 +10,20 @@ import { BODY_GOALS, GOAL_TYPES, type GoalType, type UserGoalProfile } from './g
 // goals are supporting rationale only, never change the underlying
 // recovery-driven decision) — see each consumer for its specific treatment.
 
-// CoachContext.profile is the raw Supabase profile row (Record<string,
-// unknown> | null), not the typed UserProfile — so this is genuinely
-// `unknown` data, not just a cast. Filters out malformed/legacy JSON instead
-// of trusting it, since it flows into AI prompts downstream.
+// CoachContext.profile is typed as Record<string, unknown> | null, but at
+// runtime every builder (coachContextService.ts's buildCoachContextFromSupabase/
+// buildRecoveryCoreContextFromSupabase/buildRecoveryPageContextFromSupabase)
+// populates it via loadProfileFromSupabase() -> rowToProfile(), i.e. the
+// already-typed UserProfile (camelCase goalProfile), never the raw
+// snake_case DB row. Reading `.goal_profile` here silently returned null
+// for every real user regardless of what they set in Profile Settings -
+// found via a real bug report (a user's six_pack secondary goal never
+// affected their race plan, despite two separate fixes further downstream).
+// Still filters out malformed/legacy JSON instead of trusting it blindly,
+// since it flows into AI prompts downstream.
 export function extractGoalProfile(context: Pick<CoachContext, 'profile'>): UserGoalProfile | null {
   const raw = context.profile;
-  const value = raw && typeof raw === 'object' ? (raw as Record<string, unknown>).goal_profile : null;
+  const value = raw && typeof raw === 'object' ? (raw as Record<string, unknown>).goalProfile : null;
   if (!value || typeof value !== 'object') return null;
   const input = value as Record<string, unknown>;
   const primaryGoal = isGoalType(input.primaryGoal) ? input.primaryGoal : null;
