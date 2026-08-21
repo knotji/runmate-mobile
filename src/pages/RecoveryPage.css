@@ -753,7 +753,17 @@ button.recovery-inline-freshness:focus-visible {
 .today-action-card { margin: 0 0 14px; }
 .today-action-card { margin-bottom: 28px; }
 
-.dial-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.dial-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+/* The cold-start loading skeleton (RecoveryLoadingDials) sits on the same
+   light "Quiet Performance" .recovery-dials card as everything else on this
+   page (see the override above) - the base .dial-ring/.dial-label rules
+   were still sized/colored for the old dark-teal card, which on 4 columns
+   let the rings overflow their grid cell and overlap their neighbors, and
+   made the labels nearly invisible (white-on-white). Scoped fix, only
+   affects this loading state - nothing else uses .dial-grid-4. */
+.dial-grid-4 .dial-ring { width: min(19vw, 76px); padding: 5px; filter: none; }
+.recovery-dials-loading .dial-label { color: #56707c; }
+.recovery-dials-loading .dial-center small { color: #93a4ac; }
 
 /* Level 1 — body status hero */
 .today-hero {
