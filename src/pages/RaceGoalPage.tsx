@@ -21,6 +21,7 @@ import { buildMobileRaceSummary, formatRaceWorkoutMetric, isRaceWorkoutToday } f
 import { loadActiveRaceGoalAndPlan, loadRacePlanVersions, saveRaceGoalAndPlan } from '@/lib/raceStorage';
 import { loadRaceResults, maybeCompleteRaceFromWorkoutItem } from '@/lib/raceResults';
 import { buildCoachContextFromSupabase } from '@/lib/coachContextService';
+import { extractGoalProfile } from '@/lib/goals/goalContext';
 import { useRacePlanStore } from '@/lib/race/racePlanStore';
 import { generateRacePlan } from '@/lib/racePlanGeneration';
 import { mergeRefreshedRacePlanWithOptions } from '@/lib/racePlanRefresh';
@@ -152,6 +153,7 @@ const RaceGoalPage: React.FC = () => {
       const nextPlan = plan ? mergeRefreshedRacePlanWithOptions(plan, generatedPlan, today, {
         dynamicUpcoming: true,
         completedWorkoutDates: context.workouts7d.map((day) => day.date),
+        goalProfile: extractGoalProfile(context),
       }) : generatedPlan;
       setPlanPreview({ goal: nextGoal, plan: nextPlan, changes: plan ? buildRacePlanDiff(plan, nextPlan) : [], mode: 'refresh' });
     } catch (refreshFailure) {

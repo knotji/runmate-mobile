@@ -120,6 +120,69 @@ describe('mergeRefreshedRacePlan', () => {
     expect(result.weeklyPlan?.[0]).toMatchObject({ workoutType: 'Race Day', distanceKm: 10 });
   });
 
+  it('guarantees a Strength Training slot on the one genuinely open day when a body-recomposition goal is active (real regression: mid-week refresh with most days already completed/locked)', () => {
+    // Reproduces a real report: user had six_pack set, hit Refresh Plan on a
+    // Friday with Sun-Fri already completed (locked) and the server's fresh
+    // plan came back with zero Strength Training anywhere - the guarantee
+    // must still land on the one day that's actually still open (Saturday).
+    const previous = plan([
+      workout('Sunday', 'Recovery', null),
+      workout('Monday', 'Rest', null),
+      workout('Tuesday', 'Easy Run', 6),
+      workout('Wednesday', 'Tempo Run', 5),
+      workout('Thursday', 'Easy Run', 5),
+      workout('Friday', 'Recovery', null),
+      workout('Saturday', 'Rest', null),
+    ], { planStartDate: '2026-08-16' });
+    const generated = plan([
+      workout('Sunday', 'Recovery', null),
+      workout('Monday', 'Rest', null),
+      workout('Tuesday', 'Easy Run', 6),
+      workout('Wednesday', 'Tempo Run', 5),
+      workout('Thursday', 'Easy Run', 5),
+      workout('Friday', 'Recovery', null),
+      workout('Saturday', 'Rest', null),
+    ]);
+
+    const result = mergeRefreshedRacePlanWithOptions(previous, generated, '2026-08-21', {
+      dynamicUpcoming: true,
+      completedWorkoutDates: ['2026-08-21'],
+      goalProfile: { primaryGoal: 'running_consistency', secondaryGoals: ['six_pack'], guardrailGoals: [] },
+    });
+
+    expect(result.weeklyPlan?.map(({ workoutType }) => workoutType)).toEqual([
+      'Recovery', 'Rest', 'Easy Run', 'Tempo Run', 'Easy Run', 'Recovery', 'Strength Training',
+    ]);
+  });
+
+  it('does not inject Strength Training onto a locked day, even if it would otherwise be eligible', () => {
+    const previous = plan([workout('Sunday', 'Rest', null), workout('Monday', 'Rest', null)], { planStartDate: '2026-08-16' });
+    const generated = plan([workout('Sunday', 'Rest', null), workout('Monday', 'Rest', null)]);
+
+    const result = mergeRefreshedRacePlanWithOptions(previous, generated, '2026-08-21', {
+      dynamicUpcoming: true,
+      completedWorkoutDates: [],
+      goalProfile: { primaryGoal: 'six_pack', secondaryGoals: [], guardrailGoals: [] },
+    });
+
+    // Both Sunday and Monday are before today (2026-08-21), so both are locked -
+    // there is no open day to claim, and the plan must stay exactly as-is.
+    expect(result.weeklyPlan?.map(({ workoutType }) => workoutType)).toEqual(['Rest', 'Rest']);
+  });
+
+  it('does nothing without a body-recomposition goal', () => {
+    const previous = plan([workout('Saturday', 'Rest', null)], { planStartDate: '2026-08-16' });
+    const generated = plan([workout('Saturday', 'Rest', null)]);
+
+    const result = mergeRefreshedRacePlanWithOptions(previous, generated, '2026-08-21', {
+      dynamicUpcoming: true,
+      completedWorkoutDates: [],
+      goalProfile: { primaryGoal: 'running_consistency', secondaryGoals: [], guardrailGoals: [] },
+    });
+
+    expect(result.weeklyPlan?.[0].workoutType).toBe('Rest');
+  });
+
   it('applies the rolling schedule to the actual current training week, not generated week one', () => {
     const currentWeek = { weekNumber: 3, phase: 'Build', weeklyFocus: '', targetWeeklyDistanceKm: 12, longRunDistanceKm: 7, workouts: [workout('Wednesday', 'Recovery', null), workout('Thursday', 'Tempo Run', 7)] };
     const previous = plan(currentWeek.workouts, { planStartDate: '2026-07-12', weeks: [currentWeek] });

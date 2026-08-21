@@ -1,5 +1,7 @@
 import type { RacePlan, TrainingWeek, WeekWorkout } from '@/types/race';
 import { getBangkokDateKey } from '@/lib/date';
+import { hasBodyRecompositionGoal } from '@/lib/goals/goalContext';
+import type { UserGoalProfile } from '@/lib/goals/goalTypes';
 
 /**
  * Refreshes guidance without rewriting the schedule users already followed.
@@ -16,18 +18,67 @@ export type RacePlanRefreshOptions = {
   /** Enables rolling refresh: past days and a completed today stay immutable. */
   dynamicUpcoming?: boolean;
   completedWorkoutDates?: string[];
+  /** See applyStrengthPreferenceToUnlockedDays() below. */
+  goalProfile?: UserGoalProfile | null;
 };
 
 export function mergeRefreshedRacePlanWithOptions(previous: RacePlan, generated: RacePlan, today: string, options: RacePlanRefreshOptions = {}): RacePlan {
   const currentWeek = currentPlanWeek(previous.planStartDate, today);
   const lockedDays = options.dynamicUpcoming ? lockedWeekdays(today, options.completedWorkoutDates ?? []) : null;
+  const weeklyPlan = applyStrengthPreferenceToUnlockedDays(
+    mergeCurrentWeek(previous.weeklyPlan ?? [], generated.weeklyPlan ?? [], lockedDays),
+    options.goalProfile ?? null,
+    lockedDays,
+  );
   return {
     ...generated,
     planStartDate: previous.planStartDate ?? generated.planStartDate ?? today,
     createdAt: previous.createdAt ?? generated.createdAt ?? null,
-    weeklyPlan: mergeCurrentWeek(previous.weeklyPlan ?? [], generated.weeklyPlan ?? [], lockedDays),
+    weeklyPlan,
     weeks: mergeTrainingWeeks(previous.weeks ?? [], generated.weeks ?? [], generated.weeklyPlan ?? [], currentWeek, lockedDays),
   };
+}
+
+const HARD_WORKOUT_PATTERN = /tempo|threshold|interval|speed|repeat|hill|race/i;
+const SOFT_WORKOUT_PATTERN = /rest|recovery|easy/i;
+
+/**
+ * The server (generate-race-plan's applyStrengthPreference, plan-policy.ts)
+ * already guarantees a body-recomposition Strength Training slot on its own
+ * output - but mergeCurrentWeek() above always keeps the OLD workout for any
+ * locked day (past, or already completed this week) regardless of what the
+ * server generated, and the server's guarantee tends to land on exactly
+ * those earliest-in-the-week days, since it has no visibility into which
+ * days this client will treat as locked. Confirmed by a real refresh: a
+ * user with a body-recomposition goal hit Refresh Plan mid-week (most of
+ * the week already completed) and still saw zero Strength Training in the
+ * preview, even after the server-side fix. Re-applies the same policy here,
+ * restricted to genuinely open (unlocked) days only, so a mid-week refresh
+ * doesn't silently drop the preference.
+ */
+function applyStrengthPreferenceToUnlockedDays(weeklyPlan: WeekWorkout[], goalProfile: UserGoalProfile | null, lockedDays: Set<number> | null): WeekWorkout[] {
+  if (!hasBodyRecompositionGoal(goalProfile)) return weeklyPlan;
+  if (weeklyPlan.some((item) => item.workoutType === 'Strength Training')) return weeklyPlan;
+  const eligible = weeklyPlan
+    .map((item, index) => ({ item, index }))
+    .filter(({ item, index }) => !lockedDays?.has(weekdayIndex(item.day))
+      && SOFT_WORKOUT_PATTERN.test(item.workoutType)
+      && !HARD_WORKOUT_PATTERN.test(weeklyPlan[index - 1]?.workoutType ?? '')
+      && !HARD_WORKOUT_PATTERN.test(weeklyPlan[index + 1]?.workoutType ?? ''))
+    .map(({ index }) => index)
+    .slice(0, 2);
+  if (eligible.length === 0) return weeklyPlan;
+  return weeklyPlan.map((item, index) => (eligible.includes(index) ? {
+    ...item,
+    workoutType: 'Strength Training',
+    distanceKm: null,
+    durationMin: 30,
+    targetPace: null,
+    targetHR: 'Controlled effort',
+    description: 'ฝึกความแข็งแรงของกล้ามเนื้อขาและแกนกลางลำตัว เสริมความมั่นคงให้การวิ่ง',
+    purpose: 'ฝึกความแข็งแรงของกล้ามเนื้อขาและแกนกลางลำตัว เสริมความมั่นคงให้การวิ่ง',
+    adjustment: 'หยุดหรือลดความหนักทันทีถ้ารู้สึกเจ็บหรือรู้สึกผิดปกติ',
+  } : item));
 }
 
 /**
