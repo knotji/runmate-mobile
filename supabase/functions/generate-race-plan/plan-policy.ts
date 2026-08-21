@@ -32,3 +32,46 @@ export function hasBodyRecompositionGoal(goalProfile: unknown): boolean {
   const secondary = Array.isArray(profile.secondaryGoals) ? profile.secondaryGoals : [];
   return Boolean(primary && BODY_RECOMPOSITION_GOALS.has(primary)) || secondary.some((goal) => typeof goal === 'string' && BODY_RECOMPOSITION_GOALS.has(goal));
 }
+
+const isHardWorkout = (value: string) => /tempo|threshold|interval|speed|repeat|hill|race/i.test(value);
+
+/**
+ * A day is eligible to become Strength Training only if it's currently a
+ * soft day (Rest/Recovery/Easy) and isn't next to a hard session on either
+ * side - same "never adjacent to a hard session" rule buildFallbackPlan's
+ * own strengthIndexes already follow, just derived from an actual weekly
+ * plan's contents (any source: fallback or AI) instead of index-guessing.
+ */
+export function eligibleStrengthDayIndexes(weeklyPlan: Array<{ workoutType: string }>): number[] {
+  return weeklyPlan
+    .map((item, index) => ({ item, index }))
+    .filter(({ item, index }) => /rest|recovery|easy/i.test(item.workoutType)
+      && !isHardWorkout(weeklyPlan[index - 1]?.workoutType ?? '')
+      && !isHardWorkout(weeklyPlan[index + 1]?.workoutType ?? ''))
+    .map(({ index }) => index);
+}
+
+/**
+ * Guarantees the body-recomposition Strength Training preference on a
+ * FINAL weekly plan regardless of its source (fallback or AI-generated) -
+ * see index.ts's normalizePlan() for why the AI path needs this: Gemini's
+ * own per-day workoutType always wins over the fallback plan's, so the
+ * fallback's strengthIndexes alone never reach a real AI-generated plan,
+ * and the prompt's own instruction is explicitly skippable. Never touches
+ * a plan that already has a Strength Training session (respects the AI's
+ * or the fallback's own choice), and only ever claims days already left as
+ * Rest/Recovery/Easy - never a run day the caller chose.
+ */
+export function applyStrengthPreference<T extends { workoutType: string }>(
+  weeklyPlan: T[],
+  goalProfile: unknown,
+  input: { safeOnly: boolean; daysLeft: number },
+  buildStrengthDay: (day: T) => T,
+): T[] {
+  const bodyRecompositionGoalActive = hasBodyRecompositionGoal(goalProfile);
+  if (!bodyRecompositionGoalActive || weeklyPlan.some((item) => item.workoutType === 'Strength Training')) return weeklyPlan;
+  const eligible = eligibleStrengthDayIndexes(weeklyPlan);
+  const strengthIndexes = selectStrengthDayIndexes(eligible, { ...input, bodyRecompositionGoalActive, strengthAlreadyThisWeek: false });
+  if (strengthIndexes.length === 0) return weeklyPlan;
+  return weeklyPlan.map((item, index) => (strengthIndexes.includes(index) ? buildStrengthDay(item) : item));
+}

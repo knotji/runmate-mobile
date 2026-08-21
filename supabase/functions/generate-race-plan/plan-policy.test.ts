@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasBodyRecompositionGoal, selectStrengthDayIndexes } from './plan-policy';
+import { applyStrengthPreference, eligibleStrengthDayIndexes, hasBodyRecompositionGoal, selectStrengthDayIndexes } from './plan-policy';
 
 describe('selectStrengthDayIndexes', () => {
   // The acceptance scenario the user specified: primaryGoal=running_consistency,
@@ -44,6 +44,76 @@ describe('selectStrengthDayIndexes', () => {
     const offIndexes = [3, 6];
     const result = selectStrengthDayIndexes(offIndexes, { safeOnly: false, daysLeft: 30, bodyRecompositionGoalActive: true, strengthAlreadyThisWeek: false });
     expect(result.some((index) => runIndexes.includes(index))).toBe(false);
+  });
+});
+
+describe('eligibleStrengthDayIndexes', () => {
+  it('picks Rest/Recovery/Easy days that are not adjacent to a hard session', () => {
+    const plan = [
+      { workoutType: 'Easy Run' }, // 0 - eligible
+      { workoutType: 'Rest' }, // 1 - adjacent to hard (index 2)
+      { workoutType: 'Tempo Run' }, // 2 - hard, not soft
+      { workoutType: 'Recovery' }, // 3 - adjacent to hard (index 2)
+      { workoutType: 'Easy Run' }, // 4 - eligible
+      { workoutType: 'Rest' }, // 5 - eligible
+      { workoutType: 'Long Run' }, // 6 - not soft
+    ];
+    expect(eligibleStrengthDayIndexes(plan)).toEqual([0, 4, 5]);
+  });
+});
+
+describe('applyStrengthPreference (real-world regression: AI-generated plan with zero Strength Training)', () => {
+  const buildStrengthDay = (item: { day: string; workoutType: string }) => ({ ...item, workoutType: 'Strength Training' });
+
+  it('injects Strength Training onto an AI-generated plan that omitted it entirely, when a body-recomposition goal is active', () => {
+    // Mirrors the real bug report: Gemini returned a full week with no
+    // Strength Training even though the user's secondary goal is six_pack.
+    const geminiPlan = [
+      { day: 'Sunday', workoutType: 'Recovery' },
+      { day: 'Monday', workoutType: 'Rest' },
+      { day: 'Tuesday', workoutType: 'Easy Run' },
+      { day: 'Wednesday', workoutType: 'Tempo Run' },
+      { day: 'Thursday', workoutType: 'Easy Run' },
+      { day: 'Friday', workoutType: 'Recovery' },
+      { day: 'Saturday', workoutType: 'Rest' },
+    ];
+    const result = applyStrengthPreference(geminiPlan, { primaryGoal: 'running_consistency', secondaryGoals: ['six_pack'] }, { safeOnly: false, daysLeft: 30 }, buildStrengthDay);
+    expect(result.filter((item) => item.workoutType === 'Strength Training').length).toBe(2);
+    // Never touches the Tempo Run or the days immediately beside it (Tuesday/Thursday).
+    expect(result[3].workoutType).toBe('Tempo Run');
+    expect(result[2].workoutType).not.toBe('Strength Training');
+    expect(result[4].workoutType).not.toBe('Strength Training');
+  });
+
+  it('does nothing when no body-recomposition goal is active', () => {
+    const plan = [{ day: 'Sunday', workoutType: 'Rest' }, { day: 'Monday', workoutType: 'Rest' }];
+    const result = applyStrengthPreference(plan, { primaryGoal: 'running_consistency', secondaryGoals: [] }, { safeOnly: false, daysLeft: 30 }, buildStrengthDay);
+    expect(result).toEqual(plan);
+  });
+
+  it('does not duplicate or override when the AI plan already includes a Strength Training session', () => {
+    const plan = [{ day: 'Sunday', workoutType: 'Strength Training' }, { day: 'Monday', workoutType: 'Rest' }];
+    const result = applyStrengthPreference(plan, { primaryGoal: 'six_pack', secondaryGoals: [] }, { safeOnly: false, daysLeft: 30 }, buildStrengthDay);
+    expect(result).toEqual(plan);
+    expect(result.filter((item) => item.workoutType === 'Strength Training').length).toBe(1);
+  });
+
+  it('never injects during Race Week, even with the goal active and eligible days present', () => {
+    const plan = [{ day: 'Sunday', workoutType: 'Rest' }, { day: 'Monday', workoutType: 'Rest' }];
+    const result = applyStrengthPreference(plan, { primaryGoal: 'six_pack', secondaryGoals: [] }, { safeOnly: false, daysLeft: 5 }, buildStrengthDay);
+    expect(result).toEqual(plan);
+  });
+
+  it('never injects when the week is safety-capped (pain/illness/low Recovery)', () => {
+    const plan = [{ day: 'Sunday', workoutType: 'Rest' }, { day: 'Monday', workoutType: 'Rest' }];
+    const result = applyStrengthPreference(plan, { primaryGoal: 'six_pack', secondaryGoals: [] }, { safeOnly: true, daysLeft: 30 }, buildStrengthDay);
+    expect(result).toEqual(plan);
+  });
+
+  it('never touches a run day even when every other day is somehow ineligible', () => {
+    const plan = [{ day: 'Sunday', workoutType: 'Long Run' }, { day: 'Monday', workoutType: 'Tempo Run' }];
+    const result = applyStrengthPreference(plan, { primaryGoal: 'six_pack', secondaryGoals: [] }, { safeOnly: false, daysLeft: 30 }, buildStrengthDay);
+    expect(result).toEqual(plan);
   });
 });
 

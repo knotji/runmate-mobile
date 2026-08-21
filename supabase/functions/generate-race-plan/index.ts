@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { hasBodyRecompositionGoal, selectStrengthDayIndexes } from './plan-policy.ts';
+import { applyStrengthPreference, hasBodyRecompositionGoal, selectStrengthDayIndexes } from './plan-policy.ts';
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
 const DAY_MS = 86_400_000;
@@ -31,7 +31,7 @@ Deno.serve(async (request) => {
       const generated = await response.json();
       const text = generated?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (typeof text !== 'string') return reply({ data: fallback, source: 'fallback' });
-      return reply({ data: normalizePlan(JSON.parse(text), fallback, goal, today), source: 'ai' });
+      return reply({ data: normalizePlan(JSON.parse(text), fallback, goal, today, body.context), source: 'ai' });
     } catch (error) {
       console.error('[generate-race-plan] AI fallback', error);
       return reply({ data: fallback, source: 'fallback' });
@@ -111,13 +111,37 @@ function buildFallbackPlan(goal: Goal, contextValue: unknown, today: string) {
     if (recentHeavyDay && index <= 1 && isHardWorkout(candidate.workoutType)) return workout(day, 'Recovery', null, 20, null, 'Easy breathing', 'โหลดซ้อมช่วงที่ผ่านมาสูง หลีกเลี่ยงการซ้อมหนักซ้อนอีกวัน');
     return { ...candidate, day };
   });
-  const alignedWeeklyPlan = enforceRaceWeek(weeklyPlan, goal, today, paces);
+  // A committed day (from currentWeeklyPlan) also wins over strengthIndexes
+  // above the same way Gemini's own type wins in normalizePlan() - this
+  // closes the same loophole here as a final safety net, idempotent when
+  // a Strength Training session already made it through.
+  const withStrength = applyStrengthPreference(weeklyPlan, context.goalProfile, { safeOnly, daysLeft }, (item) =>
+    workout(item.day, 'Strength Training', null, 30, null, 'Controlled effort', 'ฝึกความแข็งแรงของกล้ามเนื้อขาและแกนกลางลำตัว เสริมความมั่นคงให้การวิ่ง'));
+  const alignedWeeklyPlan = enforceRaceWeek(withStrength, goal, today, paces);
   return { raceCountdownText: daysLeft === 0 ? 'Race Day' : `${daysLeft} days until race`, totalWeeks, currentPhase: phase, planSummary: `A conservative ${phase.toLowerCase()} plan for ${goal.raceName}, built around ${desired} training days per week.`, phases: [{ name: phase, weekRange: `1-${totalWeeks}`, focus: phaseFocus(phase), notes: 'Adjust the plan when Recovery, pain, or illness changes.' }], weeks: [{ weekNumber: 1, phase, weeklyFocus: phaseFocus(phase), targetWeeklyDistanceKm: roundHalf(alignedWeeklyPlan.reduce((sum, item) => sum + (item.distanceKm ?? 0), 0)), longRunDistanceKm: longestDistance(alignedWeeklyPlan), workouts: alignedWeeklyPlan }], safetyNotes: 'หยุดหรือลดการซ้อมทันทีถ้าเจ็บมากขึ้น มีอาการป่วย หรือรู้สึกหนักผิดปกติ', weeksRemaining: totalWeeks, planStartDate: today, todayWorkout: alignedWeeklyPlan[0], weeklyPlan: alignedWeeklyPlan, paceGuidance: paces, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
 }
 
-function normalizePlan(value: unknown, fallback: ReturnType<typeof buildFallbackPlan>, goal: Goal, today: string) {
+// normalizeWorkout() below always prefers Gemini's own per-day workoutType
+// (str(w.workoutType) ?? fallback.workoutType) over the fallback plan's -
+// which means buildFallbackPlan's deterministic strengthIndexes (see
+// plan-policy.ts) never actually reach a real AI-generated plan, since
+// Gemini always returns a type for every day. The prompt's own Strength
+// Training instruction is explicitly optional ("skip it when there is no
+// safe, useful slot"), so in practice Gemini regularly omits it even when a
+// body-recomposition goal is active and eligible days exist - confirmed by
+// a real user's regenerated plan having zero Strength Training sessions
+// despite six_pack being set. applyStrengthPreference() (plan-policy.ts)
+// re-applies the same tested policy on top of Gemini's own plan as a
+// guarantee rather than a suggestion.
+function normalizePlan(value: unknown, fallback: ReturnType<typeof buildFallbackPlan>, goal: Goal, today: string, contextValue: unknown) {
   const data = obj(value); const input = Array.isArray(data.weeklyPlan) ? data.weeklyPlan : []; const generatedWeeklyPlan = fallback.weeklyPlan.map((base, index) => normalizeWorkout(input[index], base));
-  const weeklyPlan = enforceRaceWeek(generatedWeeklyPlan, goal, today, fallback.paceGuidance);
+  const daysLeft = Math.max(0, dateDiff(today, goal.raceDate));
+  const context = obj(contextValue);
+  const recoveryScore = num(context.recoveryScore);
+  const safeOnly = context.activePain === true || context.activeSick === true || (recoveryScore != null && recoveryScore < 34);
+  const withStrength = applyStrengthPreference(generatedWeeklyPlan, context.goalProfile, { safeOnly, daysLeft }, (item) =>
+    workout(item.day, 'Strength Training', null, 30, null, 'Controlled effort', 'ฝึกความแข็งแรงของกล้ามเนื้อขาและแกนกลางลำตัว เสริมความมั่นคงให้การวิ่ง'));
+  const weeklyPlan = enforceRaceWeek(withStrength, goal, today, fallback.paceGuidance);
   const phase = str(data.currentPhase) ?? fallback.currentPhase;
   return { ...fallback, currentPhase: phase, planSummary: str(data.planSummary) ?? fallback.planSummary, safetyNotes: str(data.safetyNotes) ?? fallback.safetyNotes, weeklyPlan, todayWorkout: weeklyPlan[0], weeks: [{ ...fallback.weeks[0], phase, workouts: weeklyPlan, targetWeeklyDistanceKm: roundHalf(weeklyPlan.reduce((sum, item) => sum + (item.distanceKm ?? 0), 0)) }], paceGuidance: normalizePaceGuidance(data.paceGuidance, fallback.paceGuidance), updatedAt: new Date().toISOString() };
 }
