@@ -215,7 +215,7 @@ export function mapSamsungSleepSample(sample: HealthSample, signals?: SamsungSle
 }
 
 const ADJACENT_SLEEP_GAP_MS = 30 * 60_000;
-const OVERNIGHT_CONTINUATION_GAP_MS = 90 * 60_000;
+const OVERNIGHT_CONTINUATION_GAP_MS = 150 * 60_000;
 const MIN_MAIN_SLEEP_BLOCK_MS = 3 * 60 * 60_000;
 const BANGKOK_UTC_OFFSET_MS = 7 * 60 * 60_000;
 
@@ -226,10 +226,14 @@ const BANGKOK_UTC_OFFSET_MS = 7 * 60 * 60_000;
  * those as separate nights under-counts sleep duration, since only the
  * longest single fragment would otherwise survive dedupe. Merge same-source
  * records that are chained within ADJACENT_SLEEP_GAP_MS. Samsung can also
- * split an overnight sleep around a longer early-morning wake period. Merge
- * that continuation only when the first block is a main sleep (3h+), both
- * records belong to the same Bangkok wake date, and the continuation begins
- * before 08:00, so a later nap is not folded into the night.
+ * split an overnight sleep around a longer early-morning wake period (seen:
+ * a 118-minute gap between a 4h41m main block and its continuation, both
+ * ending on the same Bangkok wake date - a real device report where the
+ * shorter 90-minute threshold left the two fragments unmerged and
+ * under-counted that night by the whole second fragment). Merge that
+ * continuation only when the first block is a main sleep (3h+), both records
+ * belong to the same Bangkok wake date, and the continuation begins before
+ * 08:00, so a later nap is not folded into the night.
  */
 export function mergeAdjacentSleepSamples(samples: HealthSample[]): HealthSample[] {
   const sorted = [...samples].sort((a, b) => Date.parse(a.startDate) - Date.parse(b.startDate));

@@ -280,6 +280,39 @@ describe('Samsung Health sleep importer', () => {
     expect(mergeAdjacentSleepSamples([night, laterNap])).toHaveLength(2);
   });
 
+  it('merges an overnight continuation split by a 118-minute gap (real device report)', () => {
+    // A user-reported case: Health Connect returned three Samsung sleep
+    // records for one night - a 4h41m main block, a 118-minute gap (longer
+    // than the old 90-minute OVERNIGHT_CONTINUATION_GAP_MS), then a
+    // 2h16m continuation immediately followed by a 22-minute tail fragment.
+    // Under the old threshold, the main block and the continuation stayed
+    // unmerged, landed on the same Bangkok wake date, and dedupeSleepItems
+    // picked only the longer single fragment - under-counting the night by
+    // the entire second half.
+    const mainBlock: HealthSample = {
+      dataType: 'sleep', value: 281, unit: 'minute',
+      startDate: '2026-08-22T13:52:00.000Z', endDate: '2026-08-22T18:33:00.000Z',
+      sourceId: 'com.sec.android.app.shealth', platformId: 'main-block',
+    };
+    const continuation: HealthSample = {
+      dataType: 'sleep', value: 136, unit: 'minute',
+      startDate: '2026-08-22T20:31:00.000Z', endDate: '2026-08-22T22:47:00.000Z',
+      sourceId: 'com.sec.android.app.shealth', platformId: 'continuation',
+    };
+    const tailFragment: HealthSample = {
+      dataType: 'sleep', value: 22, unit: 'minute',
+      startDate: '2026-08-22T22:51:00.000Z', endDate: '2026-08-22T23:13:00.000Z',
+      sourceId: 'com.sec.android.app.shealth', platformId: 'tail-fragment',
+    };
+
+    const merged = mergeAdjacentSleepSamples([tailFragment, mainBlock, continuation]);
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0].startDate).toBe(mainBlock.startDate);
+    expect(merged[0].endDate).toBe(tailFragment.endDate);
+    expect(merged[0].value).toBe(439);
+  });
+
   it('does not merge Samsung sleep fragments separated by more than the gap threshold', () => {
     const nap: HealthSample = {
       dataType: 'sleep', value: 30, unit: 'minute',
