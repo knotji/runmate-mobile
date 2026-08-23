@@ -28,7 +28,6 @@
 
 .recovery-shell {
   width: min(100%, 600px);
-  min-height: calc(100% - 56px);
   margin: 0 auto;
   padding: 24px 20px max(88px, calc(env(safe-area-inset-bottom) + 72px));
 }
