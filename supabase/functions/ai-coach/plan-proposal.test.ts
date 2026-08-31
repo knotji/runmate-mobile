@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { normalizePlanProposal } from './plan-proposal';
 
@@ -111,5 +113,47 @@ describe('the shape stays stable for clients that read it', () => {
 
   it('carries a weekday name rather than a date, which is how the plan matches days', () => {
     expect(normalizePlanProposal(COMPLETE)?.day).toBe('Sunday');
+  });
+});
+
+describe('the worked example in the prompt', () => {
+  // The prompt teaches by example because the rules alone were not enough: a
+  // deployed run answered "วันนี้ขอพัก" by describing a plan change in prose
+  // and sending no proposal at all. An example that the server would itself
+  // drop would teach the wrong shape, so it is checked rather than trusted.
+  //
+  // index.ts is a Deno entry point and cannot be imported here, so the prompt
+  // is read as text — which is also what keeps this honest if someone edits
+  // the prompt without touching this module.
+  const source = readFileSync(resolve(process.cwd(), 'supabase/functions/ai-coach/index.ts'), 'utf8');
+  const block = source.slice(source.indexOf('Two worked examples'), source.indexOf('nothing was asked to change.'));
+  const rendered = eval(String.fromCharCode(96) + block + String.fromCharCode(96)) as string;
+  const exampleLine = rendered.split('\n').find((line) => line.trim().startsWith('{"message":"ได้เลยครับ'));
+
+  it('is present and is valid JSON, not a newline-broken string', () => {
+    // A single backslash in the source would render as a real newline here and
+    // show the model a broken object to copy.
+    expect(exampleLine, 'example A missing from the prompt').toBeTruthy();
+    expect(() => JSON.parse(exampleLine as string)).not.toThrow();
+  });
+
+  it('survives the normalizer the server runs on every answer', () => {
+    const answer = JSON.parse(exampleLine as string);
+
+    expect(normalizePlanProposal(answer.planProposal)).toMatchObject({
+      day: 'Sunday',
+      workoutType: 'Rest',
+      durationMin: 0,
+      distanceKm: 0,
+    });
+  });
+
+  it('shows a message that proposes rather than claims a change', () => {
+    const message: string = JSON.parse(exampleLine as string).message;
+
+    for (const claim of ['ปรับแผนให้แล้ว', 'เปลี่ยนให้แล้ว', 'อัปเดตแล้ว']) {
+      expect(message, `example must not claim: ${claim}`).not.toContain(claim);
+    }
+    expect(message).toContain('ยังไม่ถูกนำไปใช้');
   });
 });
