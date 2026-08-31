@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { normalizeCoachOrigin, originInstruction, type CoachOrigin } from './prompt-policy.ts';
+import { normalizePlanProposal } from './plan-proposal.ts';
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
 const TOPICS = ['today', 'recovery', 'adjust', 'fuel', 'race', 'chat'] as const;
@@ -129,11 +130,16 @@ Rules:
 - Give meal choices only when the user explicitly asks about food or selected the fuel topic. For other topics, do not append a meal section; mention fueling in one short sentence only if it is clearly the most relevant action.
 - When the user asks about food, give practical Thai meal choices based on available logs without inventing exact targets.
 - Ask at most one genuinely useful follow-up question that directly relates to the current question. For simple preset answers, acknowledgements, and complete answers, return no follow-up. Never use race questions as generic follow-ups.
+- Include planProposal only when the user explicitly asks to change or adjust their plan: "วันนี้ขอพัก", "ลดเหลือ 30 นาที", "พรุ่งนี้เปลี่ยนเป็น easy ได้ไหม", "ช่วยปรับแผนวันนี้". A request to change the plan is the only trigger.
+- Never include planProposal for a question that only asks for explanation or advice: "ทำไมวันนี้ EASY?", "วันนี้ควรทำอะไร?", "การนอนเมื่อคืนเป็นยังไง?", "กินอะไรหลังวิ่งดี?". Answer those in message alone.
+- When the intent is ambiguous, answer without planProposal. Offering an unrequested change is worse than withholding one the user can still ask for.
+- planProposal.day must be the weekday name as the training plan spells it, such as "Sunday" — the app matches the day by that name. Add dateKey as YYYY-MM-DD only when the context gives a date you are certain of; omit it rather than inferring one.
+- planProposal describes a single session and never persists anything. The app validates it, shows the user what would change, and applies it only if they confirm.
 - The message field is the complete primary reply. Also provide concise legacy headline, summary, actions, reasons, and nextMeal fields for older app versions, but never add advice there that is absent from message.
 - Format message with light Markdown so a longer answer stays scannable: wrap the key numbers, scores, and the single most important instruction in each paragraph with **bold** (not every word or sentence), separate distinct ideas into their own paragraph with a blank line between them, and use "- " prefixed lines — one per line — for a genuine list of 2 or more concrete items (exercises, meal options, steps). Do not use Markdown headings, tables, numbered lists, or nested lists.
 
 Return JSON only:
-{"message":"","headline":"","summary":"","actions":[],"reasons":[],"caution":null,"missingDataAffectsAnswer":false,"missingData":[],"nextMeal":null,"followUps":[]}`;
+{"message":"","headline":"","summary":"","actions":[],"reasons":[],"caution":null,"missingDataAffectsAnswer":false,"missingData":[],"nextMeal":null,"followUps":[],"planProposal":null}`;
 }
 
 function topicInstruction(topic: Topic): string {
@@ -198,6 +204,7 @@ function normalizeAnswer(value: unknown, userQuery: string | null) {
     missingData: missingDataAffectsAnswer ? strings(answer.missingData, 2, 160) : [],
     caution: str(answer.caution, 260),
     nextMeal: normalizeNextMeal(answer.nextMeal),
+    planProposal: normalizePlanProposal(answer.planProposal),
     followUps: acknowledgement ? [] : strings(answer.followUps, 1, 140),
   };
 }
