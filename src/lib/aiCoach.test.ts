@@ -206,3 +206,48 @@ describe('askAiCoach caching', () => {
     expect(second.headline).toBe('Go Easy');
   });
 });
+
+describe('a response carrying WholeMate-only keys', () => {
+  beforeEach(() => {
+    invoke.mockReset();
+    clearAiCoachAnswerCache();
+  });
+
+  // `planProposal` was added to the shared ai-coach function for WholeMate,
+  // which has a plan to apply it to. RunMate has no such surface, so the key
+  // must be inert here: the answer reads the same as it did before the server
+  // learned to send one, and nothing leaks into the object the UI renders.
+  it('answers identically whether or not a planProposal is present', async () => {
+    const base = { headline: 'Go Easy', summary: 'Take it easy today.', message: 'พักวันนี้ก่อนนะครับ' };
+
+    invoke.mockResolvedValue({ data: { data: base }, error: null });
+    const without = await askAiCoach('today', buildContext());
+
+    clearAiCoachAnswerCache();
+    invoke.mockResolvedValue({
+      data: {
+        data: {
+          ...base,
+          planProposal: { day: 'Sunday', workoutType: 'Rest', durationMin: 0, description: 'พักเต็มวัน' },
+        },
+      },
+      error: null,
+    });
+    const withProposal = await askAiCoach('today', buildContext());
+
+    expect({ ...withProposal, generatedAt: null }).toEqual({ ...without, generatedAt: null });
+    expect(withProposal).not.toHaveProperty('planProposal');
+    expect(withProposal.message).toBe('พักวันนี้ก่อนนะครับ');
+  });
+
+  it('still answers when a malformed planProposal arrives', async () => {
+    invoke.mockResolvedValue({
+      data: { data: { headline: 'Go Easy', summary: 'Take it easy.', planProposal: 'not an object' } },
+      error: null,
+    });
+
+    const answer = await askAiCoach('today', buildContext());
+
+    expect(answer.headline).toBe('Go Easy');
+  });
+});
