@@ -111,3 +111,40 @@ describe('the new fields are additions, not replacements', () => {
     expect(result.needsClarification).toBe(false);
   });
 });
+
+describe('the bounds this answer is written to', () => {
+  // WholeMate validates what this function emits, and the two disagreed: the
+  // server allowed a quantity up to 1000 and the client refused above 100, so
+  // "อกไก่นึ่ง 150 กรัม" cost a runner a whole meal. Both sides now pin the
+  // same number, and this is the half that lives here.
+  const withQuantity = (quantity: unknown) => normalizeMealAnalysis({
+    detectedFoods: [{ name: 'อกไก่นึ่ง', quantity, unit: 'กรัม' }],
+    nutrition: { caloriesKcal: 200 },
+  }, 'lunch', '', '', 1).detectedFoods[0].quantity;
+
+  it('sends a quantity in grams, not only a count', () => {
+    expect(withQuantity(150)).toBe(150);
+    expect(withQuantity(1000)).toBe(1000);
+  });
+
+  it('keeps a fractional quantity for half a portion', () => {
+    expect(withQuantity(0.5)).toBe(0.5);
+  });
+
+  it('falls back to one when the quantity is not a usable number', () => {
+    for (const quantity of [-1, 'สองจาน', null, undefined]) {
+      expect(withQuantity(quantity), String(quantity)).toBe(1);
+    }
+  });
+
+  it('clamps an absurd quantity to the bound rather than dropping it', () => {
+    // Documented, not endorsed. 50kg of chicken becomes 1kg here, and a
+    // clamped number is one nobody wrote — the same objection that made the
+    // plan proposal drop out-of-range values instead of pinning them to an
+    // edge. Left alone because changing it changes RunMate's answers too.
+    //
+    // What matters for the seam is that the bound the client validates against
+    // and the bound this clamps to are the same number.
+    expect(withQuantity(50_000)).toBe(1000);
+  });
+});
